@@ -130,13 +130,51 @@ def volatility_label(atr_percent):
     return "Low"
 
 
+def rvol_label(rvol):
+    if pd.isna(rvol):
+        return "N/A"
+    if rvol >= 1.5:
+        return "Strong"
+    if rvol >= 1.0:
+        return "Normal"
+    return "Weak"
+
+
+def rs_label(rs_value):
+    if pd.isna(rs_value):
+        return "N/A"
+    if rs_value > 1.2:
+        return "Leader"
+    if rs_value < 0.8:
+        return "Weak"
+    return "Neutral"
+
+
 def fmt_number(value, digits=2):
     if pd.isna(value):
         return "N/A"
     return f"{float(value):.{digits}f}"
 
 
-def build_symbol_metrics(symbol):
+def benchmark_for_symbol(symbol):
+    if symbol == "QQQ":
+        return "QQQ"
+    if symbol == "SPY":
+        return "SPY"
+    return "QQQ"
+
+
+def calculate_20d_return(close_series):
+    if len(close_series) < 21:
+        return pd.NA
+    current_close = close_series.iloc[-1]
+    past_close = close_series.iloc[-21]
+    if past_close == 0:
+        return pd.NA
+    return ((current_close / past_close) - 1) * 100
+
+
+def build_symbol_metrics(symbol, benchmark_returns):
     df = get_daily_bars(symbol)
 
     if df is None or df.empty:
@@ -148,8 +186,19 @@ def build_symbol_metrics(symbol):
     df["RSI14"] = calculate_rsi(df["close"], 14)
     df["ATR14"] = calculate_atr(df, 14)
     df["ATR_PCT"] = (df["ATR14"] / df["close"]) * 100
+    df["VOL20"] = df["volume"].rolling(20).mean()
+    df["RVOL"] = df["volume"] / df["VOL20"]
 
     last = df.iloc[-1]
+    ret_20d = calculate_20d_return(df["close"])
+
+    benchmark_symbol = benchmark_for_symbol(symbol)
+    benchmark_ret_20d = benchmark_returns.get(benchmark_symbol, pd.NA)
+
+    if pd.isna(ret_20d) or pd.isna(benchmark_ret_20d) or benchmark_ret_20d == 0:
+        rs_value = pd.NA
+    else:
+        rs_value = ret_20d / benchmark_ret_20d
 
     metrics = {
         "symbol": symbol,
@@ -163,6 +212,12 @@ def build_symbol_metrics(symbol):
         "rsi14": last["RSI14"],
         "atr14": last["ATR14"],
         "atr_pct": last["ATR_PCT"],
+        "vol20": last["VOL20"],
+        "rvol": last["RVOL"],
+        "ret_20d": ret_20d,
+        "benchmark": benchmark_symbol,
+        "benchmark_ret_20d": benchmark_ret_20d,
+        "rs_value": rs_value,
     }
 
     metrics["trend"] = trend_label(
@@ -170,6 +225,8 @@ def build_symbol_metrics(symbol):
     )
     metrics["momentum"] = rsi_label(metrics["rsi14"])
     metrics["volatility"] = volatility_label(metrics["atr_pct"])
+    metrics["rvol_label"] = rvol_label(metrics["rvol"])
+    metrics["rs_label"] = rs_label(metrics["rs_value"])
 
     return metrics
 
@@ -184,6 +241,8 @@ def format_symbol_report(metrics):
         f"High {fmt_number(metrics['high'])} | "
         f"Low {fmt_number(metrics['low'])} | "
         f"Volume {metrics['volume']} | "
+        f"RVOL {fmt_number(metrics['rvol'])} ({metrics['rvol_label']}) | "
+        f"RS20D {fmt_number(metrics['rs_value'])} vs {metrics['benchmark']} ({metrics['rs_label']}) | "
         f"RSI14 {fmt_number(metrics['rsi14'])} ({metrics['momentum']}) | "
         f"ATR14 {fmt_number(metrics['atr14'])} | "
         f"ATR% {fmt_number(metrics['atr_pct'])} ({metrics['volatility']}) | "
@@ -210,7 +269,6 @@ def build_market_regime_summary(metrics_map):
 
     score = 0
 
-    # Trend score
     if spy["trend"] in ["Strong Uptrend", "Uptrend"]:
         score += 2
     elif spy["trend"] == "Mixed":
@@ -221,13 +279,11 @@ def build_market_regime_summary(metrics_map):
     elif qqq["trend"] == "Mixed":
         score += 1
 
-    # RSI score
     if spy["rsi14"] >= 55:
         score += 1
     if qqq["rsi14"] >= 55:
         score += 1
 
-    # Determine market regime
     if score >= 5:
         market_regime = "Bullish"
     elif score >= 3:
@@ -235,7 +291,6 @@ def build_market_regime_summary(metrics_map):
     else:
         market_regime = "Bearish"
 
-    # Extension status
     overbought_count = sum([spy["rsi14"] >= 70, qqq["rsi14"] >= 70])
     if overbought_count == 2:
         extension_status = "Extended"
@@ -244,7 +299,6 @@ def build_market_regime_summary(metrics_map):
     else:
         extension_status = "Healthy"
 
-    # Risk state
     if market_regime == "Bullish" and spy["atr_pct"] < 1.5 and qqq["atr_pct"] < 2.0:
         risk_state = "Risk-On"
     elif market_regime == "Bearish":
@@ -252,7 +306,6 @@ def build_market_regime_summary(metrics_map):
     else:
         risk_state = "Cautious"
 
-    # Fresh longs guidance
     if market_regime == "Bullish" and extension_status == "Healthy":
         fresh_longs = "Allowed"
     elif market_regime == "Bullish" and extension_status in ["Extended", "Moderately Extended"]:
@@ -306,11 +359,23 @@ def main():
 
     lines = [f"# Market Report {report_timestamp} UTC\n"]
 
+    benchmark_returns = {}
+    benchmark_data = {}
+
+    for benchmark_symbol in ["QQQ", "SPY"]:
+        df = get_daily_bars(benchmark_symbol)
+        benchmark_data[benchmark_symbol] = df
+        if df is not None and not df.empty:
+            benchmark_returns[benchmark_symbol] = calculate_20d_return(df["close"])
+        else:
+            benchmark_returns[benchmark_symbol] = pd.NA
+        time.sleep(12)
+
     metrics_map = {}
 
     for symbol in SYMBOLS:
         try:
-            metrics = build_symbol_metrics(symbol)
+            metrics = build_symbol_metrics(symbol, benchmark_returns)
             metrics_map[symbol] = metrics
 
             if metrics:
