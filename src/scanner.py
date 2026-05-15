@@ -1,6 +1,6 @@
 import os
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pandas as pd
@@ -11,15 +11,15 @@ API_KEY = os.getenv("POLYGON_API_KEY")
 SYMBOLS = ["AAPL", "MSFT", "NVDA", "MU", "QQQ", "SPY"]
 
 
-def get_daily_bars(symbol, days=260, retries=3):
-    end_date = datetime.utcnow().date()
+def get_daily_bars(symbol, days=500, retries=3):
+    end_date = datetime.now(timezone.utc).date()
     start_date = end_date - timedelta(days=days)
 
     url = f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/day/{start_date}/{end_date}"
     params = {
         "adjusted": "true",
         "sort": "asc",
-        "limit": 500,
+        "limit": 5000,
         "apiKey": API_KEY,
     }
 
@@ -105,6 +105,12 @@ def rsi_label(rsi):
     return "Neutral"
 
 
+def fmt_number(value, digits=2):
+    if pd.isna(value):
+        return "N/A"
+    return f"{float(value):.{digits}f}"
+
+
 def build_symbol_report(symbol):
     df = get_daily_bars(symbol)
 
@@ -118,23 +124,28 @@ def build_symbol_report(symbol):
 
     last = df.iloc[-1]
 
-    close = round(float(last["close"]), 2)
-    high = round(float(last["high"]), 2)
-    low = round(float(last["low"]), 2)
+    close = last["close"]
+    high = last["high"]
+    low = last["low"]
     volume = int(last["volume"])
 
-    sma20 = round(float(last["SMA20"]), 2) if pd.notna(last["SMA20"]) else None
-    sma50 = round(float(last["SMA50"]), 2) if pd.notna(last["SMA50"]) else None
-    sma200 = round(float(last["SMA200"]), 2) if pd.notna(last["SMA200"]) else None
-    rsi14 = round(float(last["RSI14"]), 2) if pd.notna(last["RSI14"]) else None
+    sma20 = last["SMA20"]
+    sma50 = last["SMA50"]
+    sma200 = last["SMA200"]
+    rsi14 = last["RSI14"]
 
     trend = trend_label(close, sma20, sma50, sma200)
     momentum = rsi_label(rsi14)
 
     return (
-        f"- {symbol}: Close {close} | High {high} | Low {low} | Volume {volume} | "
-        f"RSI14 {rsi14} ({momentum}) | "
-        f"SMA20 {sma20} | SMA50 {sma50} | SMA200 {sma200} | "
+        f"- {symbol}: Close {fmt_number(close)} | "
+        f"High {fmt_number(high)} | "
+        f"Low {fmt_number(low)} | "
+        f"Volume {volume} | "
+        f"RSI14 {fmt_number(rsi14)} ({momentum}) | "
+        f"SMA20 {fmt_number(sma20)} | "
+        f"SMA50 {fmt_number(sma50)} | "
+        f"SMA200 {fmt_number(sma200)} | "
         f"Trend {trend}"
     )
 
@@ -143,10 +154,13 @@ def main():
     if not API_KEY:
         raise RuntimeError("POLYGON_API_KEY fehlt.")
 
-    today = datetime.utcnow().strftime("%Y-%m-%d")
+    now_utc = datetime.now(timezone.utc)
+    report_date = now_utc.strftime("%Y-%m-%d")
+    report_timestamp = now_utc.strftime("%Y-%m-%d_%H-%M-%S")
+
     Path("reports").mkdir(exist_ok=True)
 
-    lines = [f"# Market Report {today}\n"]
+    lines = [f"# Market Report {report_timestamp} UTC\n"]
 
     for symbol in SYMBOLS:
         try:
@@ -156,7 +170,7 @@ def main():
 
         time.sleep(12)
 
-    report_path = f"reports/{today}-market-report.md"
+    report_path = f"reports/{report_timestamp}-market-report.md"
     Path(report_path).write_text("\n".join(lines), encoding="utf-8")
 
     print(f"Report created: {report_path}")
