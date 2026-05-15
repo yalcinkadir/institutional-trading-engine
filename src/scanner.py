@@ -8,8 +8,24 @@ import requests
 
 API_KEY = os.getenv("POLYGON_API_KEY")
 
-SYMBOLS = ["AAPL", "MSFT", "NVDA", "MU", "QQQ", "SPY"]
-
+SYMBOLS = [
+    "AAPL",
+    "MSFT",
+    "NVDA",
+    "META",
+    "AMZN",
+    "GOOGL",
+    "AVGO",
+    "AMD",
+    "MU",
+    "ADBE",
+    "CSCO",
+    "CRM",
+    "QQQ",
+    "SPY",
+    "GLD",
+    "SLV",
+]
 
 def get_daily_bars(symbol, days=500, retries=3):
     end_date = datetime.now(timezone.utc).date()
