@@ -501,22 +501,22 @@ def build_leaders_section(metrics_map):
         is_leader = (
             metrics["trend"] in ["Strong Uptrend", "Uptrend"]
             and metrics["rs_label"] == "Leader"
-            and metrics["rvol"] >= 1.0
         )
 
         if not is_leader:
             continue
 
-        is_aggressive = (
-            metrics["setup_readiness"] == "High Volatility Caution"
-            or len(metrics["warnings"]) > 0
-            or (pd.notna(metrics["atr_pct"]) and metrics["atr_pct"] > 4.0)
+        is_clean = (
+            metrics["rvol"] >= 1.0
+            and metrics["setup_readiness"] not in ["Extended - Avoid Chase", "High Volatility Caution"]
+            and len(metrics["warnings"]) == 0
+            and pd.notna(metrics["atr_pct"]) and metrics["atr_pct"] <= 4.0
         )
 
-        if is_aggressive:
-            aggressive_rows.append(metrics)
-        else:
+        if is_clean:
             clean_rows.append(metrics)
+        else:
+            aggressive_rows.append(metrics)
 
     clean_rows = sorted(
         clean_rows,
@@ -572,7 +572,6 @@ def build_weak_names_section(metrics_map):
         if (
             metrics["rs_label"] == "Weak"
             or metrics["trend"] in ["Mixed", "Downtrend"]
-            or metrics["rvol_label"] == "Weak"
         ):
             rows.append(metrics)
 
