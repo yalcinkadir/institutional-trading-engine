@@ -8,27 +8,89 @@ on:
   workflow_dispatch:
   schedule:
     - cron: "30 22 * * 1-5"
-    
+
 permissions:
   contents: write
+
 jobs:
   scan:
     runs-on: ubuntu-latest
+
     env:
       POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
+
       - name: Run market scanner
         run: |
           python src/scanner.py
+
+      - name: Build Telegram summary
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          report_path = sorted(
+              Path("reports").glob("*.md"),
+              key=lambda p: p.stat().st_mtime,
+              reverse=True
+          )[0]
+
+          text = report_path.read_text(encoding="utf-8")
+
+          wanted_sections = [
+              "## Market Regime Summary",
+              "## Watchlist Candidates",
+              "## Leaders",
+              "## Weak Names",
+              "## Data / Risk Warnings",
+          ]
+
+          lines = text.splitlines()
+          output = []
+          keep = False
+
+          for line in lines:
+              if line.strip() in wanted_sections:
+                  keep = True
+                  output.append(line)
+                  continue
+
+              if line.startswith("## ") and line.strip() not in wanted_sections:
+                  keep = False
+
+              if keep:
+                  output.append(line)
+
+          summary = "\n".join(output).strip()
+
+          if not summary:
+              summary = "Scanner finished, but no summary could be extracted."
+
+          message = f"📊 Institutional Market Scanner Update\n\n{summary}"
+
+          Path("telegram_message.txt").write_text(message[:4000], encoding="utf-8")
+          PY
+
+      - name: Send Telegram summary
+        run: |
+          MESSAGE=$(cat telegram_message.txt)
+
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            --data-urlencode text="$MESSAGE"
+
       - name: Commit report
         run: |
           git config user.name "github-actions"
