@@ -36,7 +36,7 @@ jobs:
         run: |
           python src/scanner.py
 
-            - name: Build Telegram summary
+      - name: Build Telegram summary
         run: |
           python - <<'PY'
           from pathlib import Path
