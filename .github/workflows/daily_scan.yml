@@ -1,11 +1,14 @@
 name: Daily Market Scan
+
+concurrency:
+  group: daily-market-scan
+  cancel-in-progress: false
+
 on:
   workflow_dispatch:
   schedule:
     - cron: "30 22 * * 1-5"
-concurrency:
-  group: daily-market-scan
-  cancel-in-progress: false
+    
 permissions:
   contents: write
 jobs:
