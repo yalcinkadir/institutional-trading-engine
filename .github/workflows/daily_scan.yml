@@ -146,29 +146,25 @@ jobs:
           risk = regime_map.get("Risk State", "N/A")
           fresh = regime_map.get("Fresh Longs", "N/A")
 
+          import re
+
           trade_plan_lines = []
           if watchlist_name and watchlist_label:
               for item in full_items:
                   if item.startswith(f"{watchlist_name}:"):
-                      fields = [x.strip() for x in item.split("|")]
-                      data = {}
 
-                      for f in fields:
-                          if ": " in f:
-                              k, v = f.split(": ", 1)
-                              data[k.strip()] = v.strip()
+                      def extract_number(label, text):
+                          pattern = rf"{re.escape(label)} ([0-9]+(?:\.[0-9]+)?)"
+                          match = re.search(pattern, text)
+                          if match:
+                              return float(match.group(1))
+                          return None
 
-                      def to_float(value):
-                          try:
-                              return float(value)
-                          except:
-                              return None
-
-                      high = to_float(data.get("High"))
-                      sma20 = to_float(data.get("SMA20"))
-                      sma50 = to_float(data.get("SMA50"))
-                      atr14 = to_float(data.get("ATR14"))
-                      close = to_float(data.get("Close"))
+                      high = extract_number("High", item)
+                      sma20 = extract_number("SMA20", item)
+                      sma50 = extract_number("SMA50", item)
+                      atr14 = extract_number("ATR14", item)
+                      close = extract_number("Close", item)
 
                       trigger = None
                       entry_zone_low = None
@@ -187,13 +183,13 @@ jobs:
 
                       elif watchlist_label == "Pullback Candidate" and atr14 is not None:
                           if sma20 is not None and close is not None and abs((close - sma20) / sma20) <= 0.03:
+                              trigger = sma20
                               entry_zone_low = sma20 * 0.995
                               entry_zone_high = sma20 * 1.005
-                              trigger = sma20
                           elif sma50 is not None:
+                              trigger = sma50
                               entry_zone_low = sma50 * 0.995
                               entry_zone_high = sma50 * 1.005
-                              trigger = sma50
 
                           if trigger is not None:
                               stop_loss = trigger - atr14
