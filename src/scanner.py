@@ -78,6 +78,19 @@ def calculate_rsi(series, period=14):
     return rsi
 
 
+def calculate_atr(df, period=14):
+    prev_close = df["close"].shift(1)
+
+    tr1 = df["high"] - df["low"]
+    tr2 = (df["high"] - prev_close).abs()
+    tr3 = (df["low"] - prev_close).abs()
+
+    true_range = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+    atr = true_range.rolling(window=period, min_periods=period).mean()
+
+    return atr
+
+
 def trend_label(close, sma20, sma50, sma200):
     if pd.isna(sma20) or pd.isna(sma50) or pd.isna(sma200):
         return "N/A"
@@ -105,6 +118,18 @@ def rsi_label(rsi):
     return "Neutral"
 
 
+def volatility_label(atr_percent):
+    if pd.isna(atr_percent):
+        return "N/A"
+    if atr_percent >= 4:
+        return "Very High"
+    if atr_percent >= 2.5:
+        return "High"
+    if atr_percent >= 1.2:
+        return "Normal"
+    return "Low"
+
+
 def fmt_number(value, digits=2):
     if pd.isna(value):
         return "N/A"
@@ -121,6 +146,8 @@ def build_symbol_report(symbol):
     df["SMA50"] = df["close"].rolling(50).mean()
     df["SMA200"] = df["close"].rolling(200).mean()
     df["RSI14"] = calculate_rsi(df["close"], 14)
+    df["ATR14"] = calculate_atr(df, 14)
+    df["ATR_PCT"] = (df["ATR14"] / df["close"]) * 100
 
     last = df.iloc[-1]
 
@@ -133,9 +160,12 @@ def build_symbol_report(symbol):
     sma50 = last["SMA50"]
     sma200 = last["SMA200"]
     rsi14 = last["RSI14"]
+    atr14 = last["ATR14"]
+    atr_pct = last["ATR_PCT"]
 
     trend = trend_label(close, sma20, sma50, sma200)
     momentum = rsi_label(rsi14)
+    volatility = volatility_label(atr_pct)
 
     return (
         f"- {symbol}: Close {fmt_number(close)} | "
@@ -143,6 +173,8 @@ def build_symbol_report(symbol):
         f"Low {fmt_number(low)} | "
         f"Volume {volume} | "
         f"RSI14 {fmt_number(rsi14)} ({momentum}) | "
+        f"ATR14 {fmt_number(atr14)} | "
+        f"ATR% {fmt_number(atr_pct)} ({volatility}) | "
         f"SMA20 {fmt_number(sma20)} | "
         f"SMA50 {fmt_number(sma50)} | "
         f"SMA200 {fmt_number(sma200)} | "
@@ -155,7 +187,6 @@ def main():
         raise RuntimeError("POLYGON_API_KEY fehlt.")
 
     now_utc = datetime.now(timezone.utc)
-    report_date = now_utc.strftime("%Y-%m-%d")
     report_timestamp = now_utc.strftime("%Y-%m-%d_%H-%M-%S")
 
     Path("reports").mkdir(exist_ok=True)
