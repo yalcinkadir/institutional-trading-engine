@@ -36,7 +36,7 @@ jobs:
         run: |
           python src/scanner.py
 
-      - name: Build Telegram summary
+            - name: Build Telegram summary
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -158,44 +158,67 @@ jobs:
                               k, v = f.split(": ", 1)
                               data[k.strip()] = v.strip()
 
-                      try:
-                          high = float(data.get("High", "nan"))
-                          sma20 = float(data.get("SMA20", "nan"))
-                          sma50 = float(data.get("SMA50", "nan"))
-                          atr14 = float(data.get("ATR14", "nan"))
-                          close = float(data.get("Close", "nan"))
-                      except:
-                          high = sma20 = sma50 = atr14 = close = float("nan")
+                      def to_float(value):
+                          try:
+                              return float(value)
+                          except:
+                              return None
 
-                      entry = stop_loss = exit_1 = exit_2 = None
+                      high = to_float(data.get("High"))
+                      sma20 = to_float(data.get("SMA20"))
+                      sma50 = to_float(data.get("SMA50"))
+                      atr14 = to_float(data.get("ATR14"))
+                      close = to_float(data.get("Close"))
 
-                      if watchlist_label == "Breakout Watch" and atr14 == atr14 and high == high:
-                          entry = high * 1.002
-                          stop_loss = entry - atr14
-                          exit_1 = entry + (1.5 * atr14)
-                          exit_2 = entry + (2.5 * atr14)
+                      trigger = None
+                      entry_zone_low = None
+                      entry_zone_high = None
+                      stop_loss = None
+                      exit_1 = None
+                      exit_2 = None
 
-                      elif watchlist_label == "Pullback Candidate" and atr14 == atr14:
-                          if sma20 == sma20 and abs((close - sma20) / sma20) <= 0.03:
-                              entry = sma20
-                          elif sma50 == sma50:
-                              entry = sma50
+                      if watchlist_label == "Breakout Watch" and atr14 is not None and high is not None:
+                          trigger = high
+                          entry_zone_low = high
+                          entry_zone_high = high + (0.30 * atr14)
+                          stop_loss = high - atr14
+                          exit_1 = high + (1.5 * atr14)
+                          exit_2 = high + (2.5 * atr14)
 
-                          if entry is not None:
-                              stop_loss = entry - atr14
-                              exit_1 = entry + (1.5 * atr14)
-                              exit_2 = entry + (2.5 * atr14)
+                      elif watchlist_label == "Pullback Candidate" and atr14 is not None:
+                          if sma20 is not None and close is not None and abs((close - sma20) / sma20) <= 0.03:
+                              entry_zone_low = sma20 * 0.995
+                              entry_zone_high = sma20 * 1.005
+                              trigger = sma20
+                          elif sma50 is not None:
+                              entry_zone_low = sma50 * 0.995
+                              entry_zone_high = sma50 * 1.005
+                              trigger = sma50
+
+                          if trigger is not None:
+                              stop_loss = trigger - atr14
+                              exit_1 = trigger + (1.5 * atr14)
+                              exit_2 = trigger + (2.5 * atr14)
 
                       def fmt(x):
                           return f"{x:.2f}" if x is not None else "N/A"
 
-                      if entry is not None:
-                          trade_plan_lines = [
-                              f"➡️ Entry: {fmt(entry)}",
-                              f"🛑 Stop: {fmt(stop_loss)}",
-                              f"🎯 Exit 1: {fmt(exit_1)}",
-                              f"🎯 Exit 2: {fmt(exit_2)}",
-                          ]
+                      if trigger is not None:
+                          if watchlist_label == "Breakout Watch":
+                              trade_plan_lines = [
+                                  f"➡️ Trigger: über {fmt(trigger)}",
+                                  f"📍 Entry Zone: {fmt(entry_zone_low)} - {fmt(entry_zone_high)}",
+                                  f"🛑 Stop: {fmt(stop_loss)}",
+                                  f"🎯 Exit 1: {fmt(exit_1)}",
+                                  f"🎯 Exit 2: {fmt(exit_2)}",
+                              ]
+                          else:
+                              trade_plan_lines = [
+                                  f"📍 Entry Zone: {fmt(entry_zone_low)} - {fmt(entry_zone_high)}",
+                                  f"🛑 Stop: {fmt(stop_loss)}",
+                                  f"🎯 Exit 1: {fmt(exit_1)}",
+                                  f"🎯 Exit 2: {fmt(exit_2)}",
+                              ]
                       break
 
           message_lines = [
