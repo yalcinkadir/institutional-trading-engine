@@ -2,31 +2,13 @@ import os
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from config import SYMBOLS
 
 import pandas as pd
 import requests
 
-API_KEY = os.getenv("POLYGON_API_KEY")
+from config import SYMBOLS, BENCHMARK_MAP
 
-SYMBOLS = [
-    "AAPL",
-    "MSFT",
-    "NVDA",
-    "META",
-    "AMZN",
-    "GOOGL",
-    "AVGO",
-    "AMD",
-    "MU",
-    "ADBE",
-    "CSCO",
-    "CRM",
-    "QQQ",
-    "SPY",
-    "GLD",
-    "SLV",
-]
+API_KEY = os.getenv("POLYGON_API_KEY")
 
 def get_daily_bars(symbol, days=500, retries=3):
     end_date = datetime.now(timezone.utc).date()
@@ -234,29 +216,7 @@ def fmt_signed_percent(value, digits=2):
     return f"{sign}{value:.{digits}f}%"
 
 def benchmark_for_symbol(symbol):
-    qqq_group = {
-        "AAPL", "MSFT", "NVDA", "META", "AMZN", "GOOGL",
-        "AVGO", "AMD", "MU", "ADBE", "CSCO", "CRM", "QQQ"
-    }
-
-    spy_group = {
-        "SPY"
-    }
-
-    metals_group = {
-        "GLD", "SLV"
-    }
-
-    if symbol in qqq_group:
-        return "QQQ"
-
-    if symbol in spy_group:
-        return "SPY"
-
-    if symbol in metals_group:
-        return "GLD"
-
-    return "SPY"
+    return BENCHMARK_MAP.get(symbol, "SPY")
 
 def calculate_20d_return(close_series):
     if len(close_series) < 21:
