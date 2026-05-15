@@ -202,7 +202,7 @@ jobs:
                       if trigger is not None:
                           if watchlist_label == "Breakout Watch":
                               trade_plan_lines = [
-                                  f"➡️ Trigger: über {fmt(trigger)}",
+                                  f"➡️ Trigger: above {fmt(trigger)}",
                                   f"📍 Entry Zone: {fmt(entry_zone_low)} - {fmt(entry_zone_high)}",
                                   f"🛑 Stop: {fmt(stop_loss)}",
                                   f"🎯 Exit 1: {fmt(exit_1)}",
