@@ -136,11 +136,11 @@ def fmt_number(value, digits=2):
     return f"{float(value):.{digits}f}"
 
 
-def build_symbol_report(symbol):
+def build_symbol_metrics(symbol):
     df = get_daily_bars(symbol)
 
     if df is None or df.empty:
-        return f"- {symbol}: ERROR - No data"
+        return None
 
     df["SMA20"] = df["close"].rolling(20).mean()
     df["SMA50"] = df["close"].rolling(50).mean()
@@ -151,35 +151,148 @@ def build_symbol_report(symbol):
 
     last = df.iloc[-1]
 
-    close = last["close"]
-    high = last["high"]
-    low = last["low"]
-    volume = int(last["volume"])
+    metrics = {
+        "symbol": symbol,
+        "close": last["close"],
+        "high": last["high"],
+        "low": last["low"],
+        "volume": int(last["volume"]),
+        "sma20": last["SMA20"],
+        "sma50": last["SMA50"],
+        "sma200": last["SMA200"],
+        "rsi14": last["RSI14"],
+        "atr14": last["ATR14"],
+        "atr_pct": last["ATR_PCT"],
+    }
 
-    sma20 = last["SMA20"]
-    sma50 = last["SMA50"]
-    sma200 = last["SMA200"]
-    rsi14 = last["RSI14"]
-    atr14 = last["ATR14"]
-    atr_pct = last["ATR_PCT"]
+    metrics["trend"] = trend_label(
+        metrics["close"], metrics["sma20"], metrics["sma50"], metrics["sma200"]
+    )
+    metrics["momentum"] = rsi_label(metrics["rsi14"])
+    metrics["volatility"] = volatility_label(metrics["atr_pct"])
 
-    trend = trend_label(close, sma20, sma50, sma200)
-    momentum = rsi_label(rsi14)
-    volatility = volatility_label(atr_pct)
+    return metrics
+
+
+def format_symbol_report(metrics):
+    if not metrics:
+        return "- ERROR - No data"
 
     return (
-        f"- {symbol}: Close {fmt_number(close)} | "
-        f"High {fmt_number(high)} | "
-        f"Low {fmt_number(low)} | "
-        f"Volume {volume} | "
-        f"RSI14 {fmt_number(rsi14)} ({momentum}) | "
-        f"ATR14 {fmt_number(atr14)} | "
-        f"ATR% {fmt_number(atr_pct)} ({volatility}) | "
-        f"SMA20 {fmt_number(sma20)} | "
-        f"SMA50 {fmt_number(sma50)} | "
-        f"SMA200 {fmt_number(sma200)} | "
-        f"Trend {trend}"
+        f"- {metrics['symbol']}: "
+        f"Close {fmt_number(metrics['close'])} | "
+        f"High {fmt_number(metrics['high'])} | "
+        f"Low {fmt_number(metrics['low'])} | "
+        f"Volume {metrics['volume']} | "
+        f"RSI14 {fmt_number(metrics['rsi14'])} ({metrics['momentum']}) | "
+        f"ATR14 {fmt_number(metrics['atr14'])} | "
+        f"ATR% {fmt_number(metrics['atr_pct'])} ({metrics['volatility']}) | "
+        f"SMA20 {fmt_number(metrics['sma20'])} | "
+        f"SMA50 {fmt_number(metrics['sma50'])} | "
+        f"SMA200 {fmt_number(metrics['sma200'])} | "
+        f"Trend {metrics['trend']}"
     )
+
+
+def build_market_regime_summary(metrics_map):
+    spy = metrics_map.get("SPY")
+    qqq = metrics_map.get("QQQ")
+
+    if not spy or not qqq:
+        return [
+            "## Market Regime Summary",
+            "- Market Regime: N/A",
+            "- Extension Status: N/A",
+            "- Risk State: N/A",
+            "- Fresh Longs: N/A",
+            "- Comment: Missing SPY/QQQ data",
+        ]
+
+    score = 0
+
+    # Trend score
+    if spy["trend"] in ["Strong Uptrend", "Uptrend"]:
+        score += 2
+    elif spy["trend"] == "Mixed":
+        score += 1
+
+    if qqq["trend"] in ["Strong Uptrend", "Uptrend"]:
+        score += 2
+    elif qqq["trend"] == "Mixed":
+        score += 1
+
+    # RSI score
+    if spy["rsi14"] >= 55:
+        score += 1
+    if qqq["rsi14"] >= 55:
+        score += 1
+
+    # Determine market regime
+    if score >= 5:
+        market_regime = "Bullish"
+    elif score >= 3:
+        market_regime = "Neutral"
+    else:
+        market_regime = "Bearish"
+
+    # Extension status
+    overbought_count = sum([spy["rsi14"] >= 70, qqq["rsi14"] >= 70])
+    if overbought_count == 2:
+        extension_status = "Extended"
+    elif overbought_count == 1:
+        extension_status = "Moderately Extended"
+    else:
+        extension_status = "Healthy"
+
+    # Risk state
+    if market_regime == "Bullish" and spy["atr_pct"] < 1.5 and qqq["atr_pct"] < 2.0:
+        risk_state = "Risk-On"
+    elif market_regime == "Bearish":
+        risk_state = "Risk-Off"
+    else:
+        risk_state = "Cautious"
+
+    # Fresh longs guidance
+    if market_regime == "Bullish" and extension_status == "Healthy":
+        fresh_longs = "Allowed"
+    elif market_regime == "Bullish" and extension_status in ["Extended", "Moderately Extended"]:
+        fresh_longs = "Selective"
+    else:
+        fresh_longs = "Avoid"
+
+    comment_parts = []
+
+    if market_regime == "Bullish":
+        comment_parts.append("Trend backdrop is supportive")
+    elif market_regime == "Neutral":
+        comment_parts.append("Trend backdrop is mixed")
+    else:
+        comment_parts.append("Trend backdrop is weak")
+
+    if extension_status == "Extended":
+        comment_parts.append("indices are short-term stretched")
+    elif extension_status == "Moderately Extended":
+        comment_parts.append("one index is getting stretched")
+    else:
+        comment_parts.append("extension is not excessive")
+
+    if risk_state == "Risk-On":
+        comment_parts.append("volatility remains controlled")
+    elif risk_state == "Cautious":
+        comment_parts.append("position selection should stay tight")
+    else:
+        comment_parts.append("capital protection should dominate")
+
+    comment = ". ".join(comment_parts) + "."
+
+    return [
+        "## Market Regime Summary",
+        f"- Market Regime: {market_regime}",
+        f"- Extension Status: {extension_status}",
+        f"- Risk State: {risk_state}",
+        f"- Fresh Longs: {fresh_longs}",
+        f"- Comment: {comment}",
+    ]
 
 
 def main():
@@ -193,13 +306,26 @@ def main():
 
     lines = [f"# Market Report {report_timestamp} UTC\n"]
 
+    metrics_map = {}
+
     for symbol in SYMBOLS:
         try:
-            lines.append(build_symbol_report(symbol))
+            metrics = build_symbol_metrics(symbol)
+            metrics_map[symbol] = metrics
+
+            if metrics:
+                lines.append(format_symbol_report(metrics))
+            else:
+                lines.append(f"- {symbol}: ERROR - No data")
+
         except Exception as e:
+            metrics_map[symbol] = None
             lines.append(f"- {symbol}: ERROR - {e}")
 
         time.sleep(12)
+
+    lines.append("")
+    lines.extend(build_market_regime_summary(metrics_map))
 
     report_path = f"reports/{report_timestamp}-market-report.md"
     Path(report_path).write_text("\n".join(lines), encoding="utf-8")
