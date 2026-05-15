@@ -63,6 +63,59 @@ def get_daily_bars(symbol, days=500, retries=3):
                 return None
 
 
+def get_vix_value(retries=3):
+    # Polygon index ticker format can depend on plan/feed.
+    # We try I:VIX. If unavailable, return None gracefully.
+    symbol = "I:VIX"
+    end_date = datetime.now(timezone.utc).date()
+    start_date = end_date - timedelta(days=30)
+
+    url = f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/day/{start_date}/{end_date}"
+    params = {
+        "adjusted": "true",
+        "sort": "asc",
+        "limit": 100,
+        "apiKey": API_KEY,
+    }
+
+    for attempt in range(retries):
+        try:
+            response = requests.get(url, params=params, timeout=30)
+
+            if response.status_code == 429:
+                time.sleep(15)
+                continue
+
+            response.raise_for_status()
+            data = response.json()
+
+            if "results" not in data or not data["results"]:
+                return None
+
+            df = pd.DataFrame(data["results"])
+            df = df.rename(columns={"c": "close"})
+            latest_close = df.iloc[-1]["close"]
+            prev_close = df.iloc[-2]["close"] if len(df) >= 2 else pd.NA
+
+            direction = "Flat"
+            if pd.notna(prev_close):
+                if latest_close > prev_close:
+                    direction = "Rising"
+                elif latest_close < prev_close:
+                    direction = "Falling"
+
+            return {
+                "close": latest_close,
+                "direction": direction,
+            }
+
+        except Exception:
+            if attempt < retries - 1:
+                time.sleep(10)
+            else:
+                return None
+
+
 def calculate_rsi(series, period=14):
     delta = series.diff()
 
@@ -182,6 +235,50 @@ def calculate_20d_return(close_series):
     return ((current_close / past_close) - 1) * 100
 
 
+def setup_readiness_label(metrics):
+    if not metrics:
+        return "N/A"
+
+    trend = metrics["trend"]
+    rsi = metrics["rsi14"]
+    atr_pct = metrics["atr_pct"]
+    rs_spread = metrics["rs_spread"]
+    rvol = metrics["rvol"]
+    close = metrics["close"]
+    sma20 = metrics["sma20"]
+    sma50 = metrics["sma50"]
+
+    if pd.notna(atr_pct) and atr_pct > 5:
+        return "High Volatility Caution"
+
+    if trend in ["Mixed", "Downtrend"] or metrics["rs_label"] == "Weak":
+        return "Weak - Avoid"
+
+    if trend in ["Strong Uptrend", "Uptrend"] and pd.notna(rsi) and rsi >= 70:
+        return "Extended - Avoid Chase"
+
+    if (
+        trend in ["Strong Uptrend", "Uptrend"]
+        and pd.notna(rsi) and 52 <= rsi <= 68
+        and pd.notna(rs_spread) and rs_spread >= 0
+        and pd.notna(rvol) and rvol >= 1.0
+    ):
+        return "Breakout Watch"
+
+    near_sma20 = pd.notna(sma20) and abs((close - sma20) / sma20) <= 0.03
+    near_sma50 = pd.notna(sma50) and abs((close - sma50) / sma50) <= 0.03
+
+    if (
+        trend in ["Strong Uptrend", "Uptrend"]
+        and pd.notna(rsi) and 45 <= rsi <= 65
+        and pd.notna(rs_spread) and rs_spread >= -2
+        and (near_sma20 or near_sma50)
+    ):
+        return "Pullback Candidate"
+
+    return "Not Ready"
+
+
 def build_symbol_metrics(symbol, benchmark_returns):
     df = get_daily_bars(symbol)
 
@@ -242,6 +339,7 @@ def build_symbol_metrics(symbol, benchmark_returns):
     metrics["volatility"] = volatility_label(metrics["atr_pct"])
     metrics["rvol_label"] = rvol_label(metrics["rvol"])
     metrics["rs_label"] = rs_spread_label(metrics["rs_spread"])
+    metrics["setup_readiness"] = setup_readiness_label(metrics)
 
     return metrics
 
@@ -256,6 +354,7 @@ def format_symbol_report(metrics):
 
     return (
         f"- {metrics['symbol']}: "
+        f"Setup {metrics['setup_readiness']} | "
         f"Close {fmt_number(metrics['close'])} | "
         f"High {fmt_number(metrics['high'])} | "
         f"Low {fmt_number(metrics['low'])} | "
@@ -274,7 +373,7 @@ def format_symbol_report(metrics):
     )
 
 
-def build_market_regime_summary(metrics_map):
+def build_market_regime_summary(metrics_map, vix_data):
     spy = metrics_map.get("SPY")
     qqq = metrics_map.get("QQQ")
 
@@ -285,6 +384,7 @@ def build_market_regime_summary(metrics_map):
             "- Extension Status: N/A",
             "- Risk State: N/A",
             "- Fresh Longs: N/A",
+            "- VIX: N/A",
             "- Comment: Missing SPY/QQQ data",
         ]
 
@@ -320,16 +420,30 @@ def build_market_regime_summary(metrics_map):
     else:
         extension_status = "Healthy"
 
+    risk_state = "Cautious"
     if market_regime == "Bullish" and spy["atr_pct"] < 1.5 and qqq["atr_pct"] < 2.0:
         risk_state = "Risk-On"
     elif market_regime == "Bearish":
         risk_state = "Risk-Off"
-    else:
-        risk_state = "Cautious"
 
-    if market_regime == "Bullish" and extension_status == "Healthy":
+    vix_text = "Unavailable"
+    if vix_data:
+        vix_close = fmt_number(vix_data["close"])
+        vix_dir = vix_data["direction"]
+        vix_text = f"{vix_close} ({vix_dir})"
+
+        if pd.notna(vix_data["close"]):
+            if vix_data["close"] > 25:
+                risk_state = "Risk-Off"
+            elif vix_data["close"] > 18 and risk_state == "Risk-On":
+                risk_state = "Cautious"
+
+            if vix_data["direction"] == "Rising" and risk_state == "Risk-On":
+                risk_state = "Cautious"
+
+    if market_regime == "Bullish" and extension_status == "Healthy" and risk_state == "Risk-On":
         fresh_longs = "Allowed"
-    elif market_regime == "Bullish" and extension_status in ["Extended", "Moderately Extended"]:
+    elif market_regime == "Bullish":
         fresh_longs = "Selective"
     else:
         fresh_longs = "Avoid"
@@ -353,7 +467,7 @@ def build_market_regime_summary(metrics_map):
     if risk_state == "Risk-On":
         comment_parts.append("volatility remains controlled")
     elif risk_state == "Cautious":
-        comment_parts.append("position selection should stay tight")
+        comment_parts.append("risk should stay selective")
     else:
         comment_parts.append("capital protection should dominate")
 
@@ -365,6 +479,7 @@ def build_market_regime_summary(metrics_map):
         f"- Extension Status: {extension_status}",
         f"- Risk State: {risk_state}",
         f"- Fresh Longs: {fresh_longs}",
+        f"- VIX: {vix_text}",
         f"- Comment: {comment}",
     ]
 
@@ -399,7 +514,8 @@ def build_leaders_section(metrics_map):
     for m in rows:
         lines.append(
             f"- {m['symbol']}: RS Spread {fmt_signed_percent(m['rs_spread'])} vs {m['benchmark']} | "
-            f"RVOL {fmt_number(m['rvol'])} | RSI14 {fmt_number(m['rsi14'])} | Trend {m['trend']}"
+            f"RVOL {fmt_number(m['rvol'])} | RSI14 {fmt_number(m['rsi14'])} | Trend {m['trend']} | "
+            f"Setup {m['setup_readiness']}"
         )
     return lines
 
@@ -433,8 +549,28 @@ def build_weak_names_section(metrics_map):
     for m in rows:
         lines.append(
             f"- {m['symbol']}: RS Spread {fmt_signed_percent(m['rs_spread'])} vs {m['benchmark']} | "
-            f"RVOL {fmt_number(m['rvol'])} | RSI14 {fmt_number(m['rsi14'])} | Trend {m['trend']}"
+            f"RVOL {fmt_number(m['rvol'])} | RSI14 {fmt_number(m['rsi14'])} | Trend {m['trend']} | "
+            f"Setup {m['setup_readiness']}"
         )
+    return lines
+
+
+def build_setup_readiness_section(metrics_map):
+    lines = ["## Setup Readiness"]
+
+    rows = []
+    for symbol, metrics in metrics_map.items():
+        if not metrics or symbol in ["QQQ", "SPY"]:
+            continue
+        rows.append(metrics)
+
+    if not rows:
+        lines.append("- None")
+        return lines
+
+    for m in rows:
+        lines.append(f"- {m['symbol']}: {m['setup_readiness']}")
+
     return lines
 
 
@@ -476,6 +612,9 @@ def main():
             benchmark_returns[benchmark_symbol] = pd.NA
         time.sleep(12)
 
+    vix_data = get_vix_value()
+    time.sleep(12)
+
     metrics_map = {}
 
     for symbol in SYMBOLS:
@@ -488,11 +627,13 @@ def main():
 
         time.sleep(12)
 
-    lines.extend(build_market_regime_summary(metrics_map))
+    lines.extend(build_market_regime_summary(metrics_map, vix_data))
     lines.append("")
     lines.extend(build_leaders_section(metrics_map))
     lines.append("")
     lines.extend(build_weak_names_section(metrics_map))
+    lines.append("")
+    lines.extend(build_setup_readiness_section(metrics_map))
     lines.append("")
     lines.extend(build_data_warnings_section(metrics_map))
     lines.append("")
