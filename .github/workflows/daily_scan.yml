@@ -81,7 +81,6 @@ jobs:
 
           regime_items = clean_items(regime)
           watchlist_items = clean_items(watchlist)
-          leaders_items = clean_items(leaders)
           weak_items = clean_items(weak)
           warning_items = clean_items(warnings)
 
@@ -128,15 +127,24 @@ jobs:
           weak_names = extract_names(weak_items)
           warning_names = extract_names(warning_items)
 
+          regime = regime_map.get("Market Regime", "N/A")
+          extension = regime_map.get("Extension Status", "N/A")
+          risk = regime_map.get("Risk State", "N/A")
+          fresh = regime_map.get("Fresh Longs", "N/A")
+
           message_lines = [
-              "📊 Institutional Market Scanner",
+              "📊 *Institutional Market Scanner*",
               "",
-              f"Regime: {regime_map.get('Market Regime', 'N/A')} | {regime_map.get('Extension Status', 'N/A')} | {regime_map.get('Risk State', 'N/A')} | Fresh Longs: {regime_map.get('Fresh Longs', 'N/A')}",
-              f"Watchlist: {watchlist_text}",
-              f"Clean Leaders: {', '.join(clean_leaders) if clean_leaders else 'None'}",
-              f"Aggressive Leaders: {', '.join(aggressive_leaders) if aggressive_leaders else 'None'}",
-              f"Weak Names: {', '.join(weak_names) if weak_names else 'None'}",
-              f"Warnings: {', '.join(warning_names) if warning_names else 'None'}",
+              f"🧭 *Regime:* {regime}",
+              f"📏 *Extension:* {extension}",
+              f"⚠️ *Risk State:* {risk}",
+              f"🎯 *Fresh Longs:* {fresh}",
+              "",
+              f"👀 *Watchlist:* {watchlist_text}",
+              f"✅ *Clean Leaders:* {', '.join(clean_leaders) if clean_leaders else 'None'}",
+              f"🔥 *Aggressive Leaders:* {', '.join(aggressive_leaders) if aggressive_leaders else 'None'}",
+              f"❌ *Weak Names:* {', '.join(weak_names) if weak_names else 'None'}",
+              f"🚨 *Warnings:* {', '.join(warning_names) if warning_names else 'None'}",
           ]
 
           message = "\n".join(message_lines)
@@ -149,6 +157,7 @@ jobs:
 
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d parse_mode="Markdown" \
             --data-urlencode text="$MESSAGE"
 
       - name: Commit report
