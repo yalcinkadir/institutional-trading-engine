@@ -67,6 +67,7 @@ jobs:
           leaders = collect_section("## Leaders")
           weak = collect_section("## Weak Names")
           warnings = collect_section("## Data / Risk Warnings")
+          full_report = collect_section("## Full Asset Report")
 
           def clean_items(items):
               cleaned = []
@@ -83,6 +84,7 @@ jobs:
           watchlist_items = clean_items(watchlist)
           weak_items = clean_items(weak)
           warning_items = clean_items(warnings)
+          full_items = clean_items(full_report)
 
           regime_map = {}
           for item in regime_items:
@@ -100,8 +102,20 @@ jobs:
               return names
 
           watchlist_text = "None"
+          watchlist_name = None
+          watchlist_label = None
+
           if watchlist_items and watchlist_items[0] != "None":
-              watchlist_text = "; ".join(watchlist_items[:3])
+              first_item = watchlist_items[0]
+              watchlist_name = first_item.split(":", 1)[0].strip()
+
+              label = "Watch"
+              if ": " in first_item:
+                  rest = first_item.split(": ", 1)[1]
+                  label = rest.split(" | ", 1)[0].strip()
+
+              watchlist_label = label
+              watchlist_text = f"{watchlist_name} ({label})"
 
           clean_leaders = []
           aggressive_leaders = []
@@ -127,25 +141,84 @@ jobs:
           weak_names = extract_names(weak_items)
           warning_names = extract_names(warning_items)
 
-          regime = regime_map.get("Market Regime", "N/A")
+          regime_value = regime_map.get("Market Regime", "N/A")
           extension = regime_map.get("Extension Status", "N/A")
           risk = regime_map.get("Risk State", "N/A")
           fresh = regime_map.get("Fresh Longs", "N/A")
 
+          trade_plan_lines = []
+          if watchlist_name and watchlist_label:
+              for item in full_items:
+                  if item.startswith(f"{watchlist_name}:"):
+                      fields = [x.strip() for x in item.split("|")]
+                      data = {}
+
+                      for f in fields:
+                          if ": " in f:
+                              k, v = f.split(": ", 1)
+                              data[k.strip()] = v.strip()
+
+                      try:
+                          high = float(data.get("High", "nan"))
+                          sma20 = float(data.get("SMA20", "nan"))
+                          sma50 = float(data.get("SMA50", "nan"))
+                          atr14 = float(data.get("ATR14", "nan"))
+                          close = float(data.get("Close", "nan"))
+                      except:
+                          high = sma20 = sma50 = atr14 = close = float("nan")
+
+                      entry = stop_loss = exit_1 = exit_2 = None
+
+                      if watchlist_label == "Breakout Watch" and atr14 == atr14 and high == high:
+                          entry = high * 1.002
+                          stop_loss = entry - atr14
+                          exit_1 = entry + (1.5 * atr14)
+                          exit_2 = entry + (2.5 * atr14)
+
+                      elif watchlist_label == "Pullback Candidate" and atr14 == atr14:
+                          if sma20 == sma20 and abs((close - sma20) / sma20) <= 0.03:
+                              entry = sma20
+                          elif sma50 == sma50:
+                              entry = sma50
+
+                          if entry is not None:
+                              stop_loss = entry - atr14
+                              exit_1 = entry + (1.5 * atr14)
+                              exit_2 = entry + (2.5 * atr14)
+
+                      def fmt(x):
+                          return f"{x:.2f}" if x is not None else "N/A"
+
+                      if entry is not None:
+                          trade_plan_lines = [
+                              f"➡️ Entry: {fmt(entry)}",
+                              f"🛑 Stop: {fmt(stop_loss)}",
+                              f"🎯 Exit 1: {fmt(exit_1)}",
+                              f"🎯 Exit 2: {fmt(exit_2)}",
+                          ]
+                      break
+
           message_lines = [
-              "📊 *Institutional Market Scanner*",
+              "📊 Institutional Market Scanner",
               "",
-              f"🧭 *Regime:* {regime}",
-              f"📏 *Extension:* {extension}",
-              f"⚠️ *Risk State:* {risk}",
-              f"🎯 *Fresh Longs:* {fresh}",
+              f"🧭 Regime: {regime_value}",
+              f"📏 Extension: {extension}",
+              f"⚠️ Risk State: {risk}",
+              f"🎯 Fresh Longs: {fresh}",
               "",
-              f"👀 *Watchlist:* {watchlist_text}",
-              f"✅ *Clean Leaders:* {', '.join(clean_leaders) if clean_leaders else 'None'}",
-              f"🔥 *Aggressive Leaders:* {', '.join(aggressive_leaders) if aggressive_leaders else 'None'}",
-              f"❌ *Weak Names:* {', '.join(weak_names) if weak_names else 'None'}",
-              f"🚨 *Warnings:* {', '.join(warning_names) if warning_names else 'None'}",
+              f"👀 Watchlist: {watchlist_text}",
           ]
+
+          if trade_plan_lines:
+              message_lines.extend(trade_plan_lines)
+              message_lines.append("")
+
+          message_lines.extend([
+              f"✅ Clean Leaders: {', '.join(clean_leaders) if clean_leaders else 'None'}",
+              f"🔥 Aggressive Leaders: {', '.join(aggressive_leaders) if aggressive_leaders else 'None'}",
+              f"❌ Weak Names: {', '.join(weak_names) if weak_names else 'None'}",
+              f"🚨 Warnings: {', '.join(warning_names) if warning_names else 'None'}",
+          ])
 
           message = "\n".join(message_lines)
           Path("telegram_message.txt").write_text(message[:4000], encoding="utf-8")
