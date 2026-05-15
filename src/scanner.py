@@ -490,22 +490,36 @@ def build_market_regime_summary(metrics_map, vix_data):
         f"- Comment: {comment}",
     ]
 
-
 def build_leaders_section(metrics_map):
-    rows = []
+    clean_rows = []
+    aggressive_rows = []
+
     for symbol, metrics in metrics_map.items():
         if not metrics or symbol in ["QQQ", "SPY"]:
             continue
 
-        if (
+        is_leader = (
             metrics["trend"] in ["Strong Uptrend", "Uptrend"]
             and metrics["rs_label"] == "Leader"
             and metrics["rvol"] >= 1.0
-        ):
-            rows.append(metrics)
+        )
 
-    rows = sorted(
-        rows,
+        if not is_leader:
+            continue
+
+        is_aggressive = (
+            metrics["setup_readiness"] == "High Volatility Caution"
+            or len(metrics["warnings"]) > 0
+            or (pd.notna(metrics["atr_pct"]) and metrics["atr_pct"] > 4.0)
+        )
+
+        if is_aggressive:
+            aggressive_rows.append(metrics)
+        else:
+            clean_rows.append(metrics)
+
+    clean_rows = sorted(
+        clean_rows,
         key=lambda x: (
             float("-inf") if pd.isna(x["rs_spread"]) else x["rs_spread"],
             float("-inf") if pd.isna(x["rvol"]) else x["rvol"],
@@ -513,19 +527,41 @@ def build_leaders_section(metrics_map):
         reverse=True,
     )
 
-    lines = ["## Leaders"]
-    if not rows:
+    aggressive_rows = sorted(
+        aggressive_rows,
+        key=lambda x: (
+            float("-inf") if pd.isna(x["rs_spread"]) else x["rs_spread"],
+            float("-inf") if pd.isna(x["rvol"]) else x["rvol"],
+        ),
+        reverse=True,
+    )
+
+    lines = ["## Leaders", "### Clean Leaders"]
+
+    if not clean_rows:
         lines.append("- None")
-        return lines
+    else:
+        for m in clean_rows:
+            lines.append(
+                f"- {m['symbol']}: RS Spread {fmt_signed_percent(m['rs_spread'])} vs {m['benchmark']} | "
+                f"RVOL {fmt_number(m['rvol'])} | RSI14 {fmt_number(m['rsi14'])} | "
+                f"Trend {m['trend']} | Setup {m['setup_readiness']}"
+            )
 
-    for m in rows:
-        lines.append(
-            f"- {m['symbol']}: RS Spread {fmt_signed_percent(m['rs_spread'])} vs {m['benchmark']} | "
-            f"RVOL {fmt_number(m['rvol'])} | RSI14 {fmt_number(m['rsi14'])} | Trend {m['trend']} | "
-            f"Setup {m['setup_readiness']}"
-        )
+    lines.append("")
+    lines.append("### Aggressive Leaders")
+
+    if not aggressive_rows:
+        lines.append("- None")
+    else:
+        for m in aggressive_rows:
+            lines.append(
+                f"- {m['symbol']}: RS Spread {fmt_signed_percent(m['rs_spread'])} vs {m['benchmark']} | "
+                f"RVOL {fmt_number(m['rvol'])} | RSI14 {fmt_number(m['rsi14'])} | "
+                f"ATR% {fmt_number(m['atr_pct'])} | Setup {m['setup_readiness']}"
+            )
+
     return lines
-
 
 def build_weak_names_section(metrics_map):
     rows = []
@@ -561,6 +597,46 @@ def build_weak_names_section(metrics_map):
         )
     return lines
 
+def build_watchlist_section(metrics_map):
+    rows = []
+
+    allowed_labels = {
+        "Pullback Candidate": 1,
+        "Breakout Watch": 2,
+        "Trend Strong, Entry Unclear": 3,
+    }
+
+    for symbol, metrics in metrics_map.items():
+        if not metrics or symbol in ["QQQ", "SPY"]:
+            continue
+
+        if metrics["setup_readiness"] in allowed_labels:
+            rows.append(metrics)
+
+    rows = sorted(
+        rows,
+        key=lambda m: (
+            allowed_labels.get(m["setup_readiness"], 99),
+            -(float("-inf") if pd.isna(m["rs_spread"]) else m["rs_spread"]),
+        ),
+    )
+
+    lines = ["## Watchlist Candidates"]
+
+    if not rows:
+        lines.append("- None")
+        return lines
+
+    for m in rows:
+        lines.append(
+            f"- {m['symbol']}: {m['setup_readiness']} | "
+            f"RS Spread {fmt_signed_percent(m['rs_spread'])} vs {m['benchmark']} | "
+            f"RVOL {fmt_number(m['rvol'])} | "
+            f"RSI14 {fmt_number(m['rsi14'])} | "
+            f"Trend {m['trend']}"
+        )
+
+    return lines
 
 def build_setup_readiness_section(metrics_map):
     lines = ["## Setup Readiness"]
@@ -651,6 +727,8 @@ def main():
         time.sleep(12)
 
     lines.extend(build_market_regime_summary(metrics_map, vix_data))
+    lines.append("")
+    lines.extend(build_watchlist_section(metrics_map))
     lines.append("")
     lines.extend(build_leaders_section(metrics_map))
     lines.append("")
