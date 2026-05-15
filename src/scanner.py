@@ -232,14 +232,30 @@ def fmt_signed_percent(value, digits=2):
     sign = "+" if value >= 0 else ""
     return f"{sign}{value:.{digits}f}%"
 
-
 def benchmark_for_symbol(symbol):
-    if symbol == "QQQ":
-        return "QQQ"
-    if symbol == "SPY":
-        return "SPY"
-    return "QQQ"
+    qqq_group = {
+        "AAPL", "MSFT", "NVDA", "META", "AMZN", "GOOGL",
+        "AVGO", "AMD", "MU", "ADBE", "CSCO", "CRM", "QQQ"
+    }
 
+    spy_group = {
+        "SPY"
+    }
+
+    metals_group = {
+        "GLD", "SLV"
+    }
+
+    if symbol in qqq_group:
+        return "QQQ"
+
+    if symbol in spy_group:
+        return "SPY"
+
+    if symbol in metals_group:
+        return "GLD"
+
+    return "SPY"
 
 def calculate_20d_return(close_series):
     if len(close_series) < 21:
@@ -718,7 +734,7 @@ def main():
 
     benchmark_returns = {}
 
-    for benchmark_symbol in ["QQQ", "SPY"]:
+    for benchmark_symbol in ["QQQ", "SPY", "GLD"]:        
         df = get_daily_bars(benchmark_symbol)
         if df is not None and not df.empty:
             benchmark_returns[benchmark_symbol] = calculate_20d_return(df["close"])
