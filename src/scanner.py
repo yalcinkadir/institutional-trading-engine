@@ -2,6 +2,7 @@ import os
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from config import SYMBOLS
 
 import pandas as pd
 import requests
