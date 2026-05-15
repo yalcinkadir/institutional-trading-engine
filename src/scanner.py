@@ -311,6 +311,11 @@ def build_symbol_metrics(symbol, benchmark_returns):
     if pd.notna(last["ATR_PCT"]) and last["ATR_PCT"] > 6:
         warnings.append("Extreme volatility")
 
+    entry = pd.NA
+    stop_loss = pd.NA
+    exit_1 = pd.NA
+    exit_2 = pd.NA
+    
     metrics = {
         "symbol": symbol,
         "close": last["close"],
@@ -340,7 +345,28 @@ def build_symbol_metrics(symbol, benchmark_returns):
     metrics["rvol_label"] = rvol_label(metrics["rvol"])
     metrics["rs_label"] = rs_spread_label(metrics["rs_spread"])
     metrics["setup_readiness"] = setup_readiness_label(metrics)
+    
+    if metrics["setup_readiness"] == "Breakout Watch":
+        entry = metrics["high"] * 1.002
+        stop_loss = entry - metrics["atr14"]
+        exit_1 = entry + (1.5 * metrics["atr14"])
+        exit_2 = entry + (2.5 * metrics["atr14"])
 
+    elif metrics["setup_readiness"] == "Pullback Candidate":
+        if pd.notna(metrics["sma20"]) and abs((metrics["close"] - metrics["sma20"]) / metrics["sma20"]) <= 0.03:
+            entry = metrics["sma20"]
+        elif pd.notna(metrics["sma50"]):
+            entry = metrics["sma50"]
+
+        if pd.notna(entry):
+            stop_loss = entry - metrics["atr14"]
+            exit_1 = entry + (1.5 * metrics["atr14"])
+            exit_2 = entry + (2.5 * metrics["atr14"])
+
+    metrics["entry"] = entry
+    metrics["stop_loss"] = stop_loss
+    metrics["exit_1"] = exit_1
+    metrics["exit_2"] = exit_2
     return metrics
 
 
