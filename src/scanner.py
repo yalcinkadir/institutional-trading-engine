@@ -1,23 +1,32 @@
 import os
-import requests
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
+
+import pandas as pd
+import requests
 
 API_KEY = os.getenv("POLYGON_API_KEY")
 
 SYMBOLS = ["AAPL", "MSFT", "NVDA", "MU", "QQQ", "SPY"]
 
 
-def get_last_close(symbol, retries=3):
-    url = f"https://api.polygon.io/v2/aggs/ticker/{symbol}/prev"
-    params = {"adjusted": "true", "apiKey": API_KEY}
+def get_daily_bars(symbol, days=260, retries=3):
+    end_date = datetime.utcnow().date()
+    start_date = end_date - timedelta(days=days)
+
+    url = f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/day/{start_date}/{end_date}"
+    params = {
+        "adjusted": "true",
+        "sort": "asc",
+        "limit": 500,
+        "apiKey": API_KEY,
+    }
 
     for attempt in range(retries):
         try:
-            response = requests.get(url, params=params, timeout=20)
+            response = requests.get(url, params=params, timeout=30)
 
-            # Rate limit handling
             if response.status_code == 429:
                 wait_time = 15
                 print(f"Rate limit hit for {symbol}. Waiting {wait_time}s...")
@@ -27,28 +36,107 @@ def get_last_close(symbol, retries=3):
             response.raise_for_status()
             data = response.json()
 
-            if "results" not in data or len(data["results"]) == 0:
+            if "results" not in data or not data["results"]:
                 print(f"No data returned for {symbol}")
                 return None
 
-            result = data["results"][0]
+            df = pd.DataFrame(data["results"])
+            df["date"] = pd.to_datetime(df["t"], unit="ms").dt.date
+            df = df.rename(
+                columns={
+                    "o": "open",
+                    "h": "high",
+                    "l": "low",
+                    "c": "close",
+                    "v": "volume",
+                }
+            )
 
-            return {
-                "symbol": symbol,
-                "close": result["c"],
-                "high": result["h"],
-                "low": result["l"],
-                "volume": result["v"],
-            }
+            return df[["date", "open", "high", "low", "close", "volume"]].copy()
 
         except Exception as e:
             print(f"Error for {symbol}: {e}")
-
             if attempt < retries - 1:
                 time.sleep(10)
             else:
                 print(f"Final error for {symbol}")
                 return None
+
+
+def calculate_rsi(series, period=14):
+    delta = series.diff()
+
+    gain = delta.clip(lower=0)
+    loss = -delta.clip(upper=0)
+
+    avg_gain = gain.rolling(window=period, min_periods=period).mean()
+    avg_loss = loss.rolling(window=period, min_periods=period).mean()
+
+    rs = avg_gain / avg_loss.replace(0, pd.NA)
+    rsi = 100 - (100 / (1 + rs))
+
+    return rsi
+
+
+def trend_label(close, sma20, sma50, sma200):
+    if pd.isna(sma20) or pd.isna(sma50) or pd.isna(sma200):
+        return "N/A"
+
+    if close > sma20 > sma50 > sma200:
+        return "Strong Uptrend"
+    if close > sma50 and close > sma200:
+        return "Uptrend"
+    if close < sma50 and close < sma200:
+        return "Downtrend"
+    return "Mixed"
+
+
+def rsi_label(rsi):
+    if pd.isna(rsi):
+        return "N/A"
+    if rsi >= 70:
+        return "Overbought"
+    if rsi <= 30:
+        return "Oversold"
+    if rsi >= 55:
+        return "Strong"
+    if rsi <= 45:
+        return "Weak"
+    return "Neutral"
+
+
+def build_symbol_report(symbol):
+    df = get_daily_bars(symbol)
+
+    if df is None or df.empty:
+        return f"- {symbol}: ERROR - No data"
+
+    df["SMA20"] = df["close"].rolling(20).mean()
+    df["SMA50"] = df["close"].rolling(50).mean()
+    df["SMA200"] = df["close"].rolling(200).mean()
+    df["RSI14"] = calculate_rsi(df["close"], 14)
+
+    last = df.iloc[-1]
+
+    close = round(float(last["close"]), 2)
+    high = round(float(last["high"]), 2)
+    low = round(float(last["low"]), 2)
+    volume = int(last["volume"])
+
+    sma20 = round(float(last["SMA20"]), 2) if pd.notna(last["SMA20"]) else None
+    sma50 = round(float(last["SMA50"]), 2) if pd.notna(last["SMA50"]) else None
+    sma200 = round(float(last["SMA200"]), 2) if pd.notna(last["SMA200"]) else None
+    rsi14 = round(float(last["RSI14"]), 2) if pd.notna(last["RSI14"]) else None
+
+    trend = trend_label(close, sma20, sma50, sma200)
+    momentum = rsi_label(rsi14)
+
+    return (
+        f"- {symbol}: Close {close} | High {high} | Low {low} | Volume {volume} | "
+        f"RSI14 {rsi14} ({momentum}) | "
+        f"SMA20 {sma20} | SMA50 {sma50} | SMA200 {sma200} | "
+        f"Trend {trend}"
+    )
 
 
 def main():
@@ -61,16 +149,11 @@ def main():
     lines = [f"# Market Report {today}\n"]
 
     for symbol in SYMBOLS:
-        data = get_last_close(symbol)
+        try:
+            lines.append(build_symbol_report(symbol))
+        except Exception as e:
+            lines.append(f"- {symbol}: ERROR - {e}")
 
-        if data:
-            lines.append(
-                f"- {data['symbol']}: Close {data['close']} | High {data['high']} | Low {data['low']} | Volume {data['volume']}"
-            )
-        else:
-            lines.append(f"- {symbol}: ERROR - No data")
-
-        # Wichtig: Abstand zwischen Requests
         time.sleep(12)
 
     report_path = f"reports/{today}-market-report.md"
