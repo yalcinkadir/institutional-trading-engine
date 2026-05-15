@@ -140,12 +140,12 @@ def rvol_label(rvol):
     return "Weak"
 
 
-def rs_label(rs_value):
-    if pd.isna(rs_value):
+def rs_spread_label(rs_spread):
+    if pd.isna(rs_spread):
         return "N/A"
-    if rs_value > 1.2:
+    if rs_spread > 5:
         return "Leader"
-    if rs_value < 0.8:
+    if rs_spread < -5:
         return "Weak"
     return "Neutral"
 
@@ -154,6 +154,14 @@ def fmt_number(value, digits=2):
     if pd.isna(value):
         return "N/A"
     return f"{float(value):.{digits}f}"
+
+
+def fmt_signed_percent(value, digits=2):
+    if pd.isna(value):
+        return "N/A"
+    value = float(value)
+    sign = "+" if value >= 0 else ""
+    return f"{sign}{value:.{digits}f}%"
 
 
 def benchmark_for_symbol(symbol):
@@ -195,10 +203,16 @@ def build_symbol_metrics(symbol, benchmark_returns):
     benchmark_symbol = benchmark_for_symbol(symbol)
     benchmark_ret_20d = benchmark_returns.get(benchmark_symbol, pd.NA)
 
-    if pd.isna(ret_20d) or pd.isna(benchmark_ret_20d) or benchmark_ret_20d == 0:
-        rs_value = pd.NA
+    if pd.isna(ret_20d) or pd.isna(benchmark_ret_20d):
+        rs_spread = pd.NA
     else:
-        rs_value = ret_20d / benchmark_ret_20d
+        rs_spread = ret_20d - benchmark_ret_20d
+
+    warnings = []
+    if pd.notna(ret_20d) and abs(ret_20d) > 40:
+        warnings.append("Extreme 20D move")
+    if pd.notna(last["ATR_PCT"]) and last["ATR_PCT"] > 6:
+        warnings.append("Extreme volatility")
 
     metrics = {
         "symbol": symbol,
@@ -217,7 +231,8 @@ def build_symbol_metrics(symbol, benchmark_returns):
         "ret_20d": ret_20d,
         "benchmark": benchmark_symbol,
         "benchmark_ret_20d": benchmark_ret_20d,
-        "rs_value": rs_value,
+        "rs_spread": rs_spread,
+        "warnings": warnings,
     }
 
     metrics["trend"] = trend_label(
@@ -226,7 +241,7 @@ def build_symbol_metrics(symbol, benchmark_returns):
     metrics["momentum"] = rsi_label(metrics["rsi14"])
     metrics["volatility"] = volatility_label(metrics["atr_pct"])
     metrics["rvol_label"] = rvol_label(metrics["rvol"])
-    metrics["rs_label"] = rs_label(metrics["rs_value"])
+    metrics["rs_label"] = rs_spread_label(metrics["rs_spread"])
 
     return metrics
 
@@ -235,6 +250,10 @@ def format_symbol_report(metrics):
     if not metrics:
         return "- ERROR - No data"
 
+    warning_text = ""
+    if metrics["warnings"]:
+        warning_text = f" | Warnings: {', '.join(metrics['warnings'])}"
+
     return (
         f"- {metrics['symbol']}: "
         f"Close {fmt_number(metrics['close'])} | "
@@ -242,7 +261,8 @@ def format_symbol_report(metrics):
         f"Low {fmt_number(metrics['low'])} | "
         f"Volume {metrics['volume']} | "
         f"RVOL {fmt_number(metrics['rvol'])} ({metrics['rvol_label']}) | "
-        f"RS20D {fmt_number(metrics['rs_value'])} vs {metrics['benchmark']} ({metrics['rs_label']}) | "
+        f"20D Return {fmt_signed_percent(metrics['ret_20d'])} | "
+        f"RS Spread {fmt_signed_percent(metrics['rs_spread'])} vs {metrics['benchmark']} ({metrics['rs_label']}) | "
         f"RSI14 {fmt_number(metrics['rsi14'])} ({metrics['momentum']}) | "
         f"ATR14 {fmt_number(metrics['atr14'])} | "
         f"ATR% {fmt_number(metrics['atr_pct'])} ({metrics['volatility']}) | "
@@ -250,6 +270,7 @@ def format_symbol_report(metrics):
         f"SMA50 {fmt_number(metrics['sma50'])} | "
         f"SMA200 {fmt_number(metrics['sma200'])} | "
         f"Trend {metrics['trend']}"
+        f"{warning_text}"
     )
 
 
@@ -348,6 +369,92 @@ def build_market_regime_summary(metrics_map):
     ]
 
 
+def build_leaders_section(metrics_map):
+    rows = []
+    for symbol, metrics in metrics_map.items():
+        if not metrics or symbol in ["QQQ", "SPY"]:
+            continue
+
+        if (
+            metrics["trend"] in ["Strong Uptrend", "Uptrend"]
+            and metrics["rs_label"] == "Leader"
+            and metrics["rvol"] >= 1.0
+        ):
+            rows.append(metrics)
+
+    rows = sorted(
+        rows,
+        key=lambda x: (
+            float("-inf") if pd.isna(x["rs_spread"]) else x["rs_spread"],
+            float("-inf") if pd.isna(x["rvol"]) else x["rvol"],
+        ),
+        reverse=True,
+    )
+
+    lines = ["## Leaders"]
+    if not rows:
+        lines.append("- None")
+        return lines
+
+    for m in rows:
+        lines.append(
+            f"- {m['symbol']}: RS Spread {fmt_signed_percent(m['rs_spread'])} vs {m['benchmark']} | "
+            f"RVOL {fmt_number(m['rvol'])} | RSI14 {fmt_number(m['rsi14'])} | Trend {m['trend']}"
+        )
+    return lines
+
+
+def build_weak_names_section(metrics_map):
+    rows = []
+    for symbol, metrics in metrics_map.items():
+        if not metrics or symbol in ["QQQ", "SPY"]:
+            continue
+
+        if (
+            metrics["rs_label"] == "Weak"
+            or metrics["trend"] in ["Mixed", "Downtrend"]
+            or metrics["rvol_label"] == "Weak"
+        ):
+            rows.append(metrics)
+
+    rows = sorted(
+        rows,
+        key=lambda x: (
+            float("inf") if pd.isna(x["rs_spread"]) else x["rs_spread"],
+            float("inf") if pd.isna(x["rvol"]) else x["rvol"],
+        ),
+    )
+
+    lines = ["## Weak Names"]
+    if not rows:
+        lines.append("- None")
+        return lines
+
+    for m in rows:
+        lines.append(
+            f"- {m['symbol']}: RS Spread {fmt_signed_percent(m['rs_spread'])} vs {m['benchmark']} | "
+            f"RVOL {fmt_number(m['rvol'])} | RSI14 {fmt_number(m['rsi14'])} | Trend {m['trend']}"
+        )
+    return lines
+
+
+def build_data_warnings_section(metrics_map):
+    lines = ["## Data / Risk Warnings"]
+    has_warning = False
+
+    for symbol, metrics in metrics_map.items():
+        if not metrics:
+            continue
+        if metrics["warnings"]:
+            has_warning = True
+            lines.append(f"- {symbol}: {', '.join(metrics['warnings'])}")
+
+    if not has_warning:
+        lines.append("- None")
+
+    return lines
+
+
 def main():
     if not API_KEY:
         raise RuntimeError("POLYGON_API_KEY fehlt.")
@@ -360,11 +467,9 @@ def main():
     lines = [f"# Market Report {report_timestamp} UTC\n"]
 
     benchmark_returns = {}
-    benchmark_data = {}
 
     for benchmark_symbol in ["QQQ", "SPY"]:
         df = get_daily_bars(benchmark_symbol)
-        benchmark_data[benchmark_symbol] = df
         if df is not None and not df.empty:
             benchmark_returns[benchmark_symbol] = calculate_20d_return(df["close"])
         else:
@@ -377,20 +482,28 @@ def main():
         try:
             metrics = build_symbol_metrics(symbol, benchmark_returns)
             metrics_map[symbol] = metrics
-
-            if metrics:
-                lines.append(format_symbol_report(metrics))
-            else:
-                lines.append(f"- {symbol}: ERROR - No data")
-
         except Exception as e:
             metrics_map[symbol] = None
-            lines.append(f"- {symbol}: ERROR - {e}")
+            print(f"Build metrics failed for {symbol}: {e}")
 
         time.sleep(12)
 
-    lines.append("")
     lines.extend(build_market_regime_summary(metrics_map))
+    lines.append("")
+    lines.extend(build_leaders_section(metrics_map))
+    lines.append("")
+    lines.extend(build_weak_names_section(metrics_map))
+    lines.append("")
+    lines.extend(build_data_warnings_section(metrics_map))
+    lines.append("")
+    lines.append("## Full Asset Report")
+
+    for symbol in SYMBOLS:
+        metrics = metrics_map.get(symbol)
+        if metrics:
+            lines.append(format_symbol_report(metrics))
+        else:
+            lines.append(f"- {symbol}: ERROR - No data")
 
     report_path = f"reports/{report_timestamp}-market-report.md"
     Path(report_path).write_text("\n".join(lines), encoding="utf-8")
