@@ -1,0 +1,18 @@
+SYMBOLS = [
+    "AAPL",
+    "MSFT",
+    "NVDA",
+    "META",
+    "AMZN",
+    "GOOGL",
+    "AVGO",
+    "AMD",
+    "MU",
+    "ADBE",
+    "CSCO",
+    "CRM",
+    "QQQ",
+    "SPY",
+    "GLD",
+    "SLV",
+]
