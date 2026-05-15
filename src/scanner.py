@@ -28,7 +28,8 @@ def get_last_close(symbol, retries=3):
             data = response.json()
 
             if "results" not in data or len(data["results"]) == 0:
-                raise ValueError("No data returned")
+                print(f"No data returned for {symbol}")
+                return None
 
             result = data["results"][0]
 
@@ -41,11 +42,13 @@ def get_last_close(symbol, retries=3):
             }
 
         except Exception as e:
+            print(f"Error for {symbol}: {e}")
+
             if attempt < retries - 1:
-                print(f"Retry {attempt+1} for {symbol} due to error: {e}")
                 time.sleep(10)
             else:
-                raise e
+                print(f"Final error for {symbol}")
+                return None
 
 
 def main():
@@ -58,15 +61,14 @@ def main():
     lines = [f"# Market Report {today}\n"]
 
     for symbol in SYMBOLS:
-        try:
-            data = get_last_close(symbol)
+        data = get_last_close(symbol)
 
+        if data:
             lines.append(
                 f"- {data['symbol']}: Close {data['close']} | High {data['high']} | Low {data['low']} | Volume {data['volume']}"
             )
-
-        except Exception as e:
-            lines.append(f"- {symbol}: ERROR - {e}")
+        else:
+            lines.append(f"- {symbol}: ERROR - No data")
 
         # Wichtig: Abstand zwischen Requests
         time.sleep(12)
