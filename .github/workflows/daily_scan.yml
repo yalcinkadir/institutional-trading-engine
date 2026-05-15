@@ -47,39 +47,99 @@ jobs:
               reverse=True
           )[0]
 
-          text = report_path.read_text(encoding="utf-8")
+          lines = report_path.read_text(encoding="utf-8").splitlines()
 
-          wanted_sections = [
-              "## Market Regime Summary",
-              "## Watchlist Candidates",
-              "## Leaders",
-              "## Weak Names",
-              "## Data / Risk Warnings",
+          def collect_section(section_name):
+              collected = []
+              inside = False
+              for line in lines:
+                  if line.strip() == section_name:
+                      inside = True
+                      continue
+                  if inside and line.startswith("## "):
+                      break
+                  if inside and line.strip():
+                      collected.append(line.strip())
+              return collected
+
+          regime = collect_section("## Market Regime Summary")
+          watchlist = collect_section("## Watchlist Candidates")
+          leaders = collect_section("## Leaders")
+          weak = collect_section("## Weak Names")
+          warnings = collect_section("## Data / Risk Warnings")
+
+          def clean_items(items):
+              cleaned = []
+              for item in items:
+                  if item.startswith("- "):
+                      cleaned.append(item[2:])
+                  elif item.startswith("### "):
+                      continue
+                  else:
+                      cleaned.append(item)
+              return cleaned
+
+          regime_items = clean_items(regime)
+          watchlist_items = clean_items(watchlist)
+          leaders_items = clean_items(leaders)
+          weak_items = clean_items(weak)
+          warning_items = clean_items(warnings)
+
+          regime_map = {}
+          for item in regime_items:
+              if ": " in item:
+                  key, value = item.split(": ", 1)
+                  regime_map[key] = value
+
+          def extract_names(items):
+              names = []
+              for item in items:
+                  if item == "None":
+                      continue
+                  name = item.split(":", 1)[0].strip()
+                  names.append(name)
+              return names
+
+          watchlist_text = "None"
+          if watchlist_items and watchlist_items[0] != "None":
+              watchlist_text = "; ".join(watchlist_items[:3])
+
+          clean_leaders = []
+          aggressive_leaders = []
+          current_bucket = None
+          for raw in leaders:
+              line = raw.strip()
+              if line == "### Clean Leaders":
+                  current_bucket = "clean"
+                  continue
+              if line == "### Aggressive Leaders":
+                  current_bucket = "aggressive"
+                  continue
+              if line.startswith("- "):
+                  item = line[2:]
+                  if item == "None":
+                      continue
+                  name = item.split(":", 1)[0].strip()
+                  if current_bucket == "clean":
+                      clean_leaders.append(name)
+                  elif current_bucket == "aggressive":
+                      aggressive_leaders.append(name)
+
+          weak_names = extract_names(weak_items)
+          warning_names = extract_names(warning_items)
+
+          message_lines = [
+              "📊 Institutional Market Scanner",
+              "",
+              f"Regime: {regime_map.get('Market Regime', 'N/A')} | {regime_map.get('Extension Status', 'N/A')} | {regime_map.get('Risk State', 'N/A')} | Fresh Longs: {regime_map.get('Fresh Longs', 'N/A')}",
+              f"Watchlist: {watchlist_text}",
+              f"Clean Leaders: {', '.join(clean_leaders) if clean_leaders else 'None'}",
+              f"Aggressive Leaders: {', '.join(aggressive_leaders) if aggressive_leaders else 'None'}",
+              f"Weak Names: {', '.join(weak_names) if weak_names else 'None'}",
+              f"Warnings: {', '.join(warning_names) if warning_names else 'None'}",
           ]
 
-          lines = text.splitlines()
-          output = []
-          keep = False
-
-          for line in lines:
-              if line.strip() in wanted_sections:
-                  keep = True
-                  output.append(line)
-                  continue
-
-              if line.startswith("## ") and line.strip() not in wanted_sections:
-                  keep = False
-
-              if keep:
-                  output.append(line)
-
-          summary = "\n".join(output).strip()
-
-          if not summary:
-              summary = "Scanner finished, but no summary could be extracted."
-
-          message = f"📊 Institutional Market Scanner Update\n\n{summary}"
-
+          message = "\n".join(message_lines)
           Path("telegram_message.txt").write_text(message[:4000], encoding="utf-8")
           PY
 
