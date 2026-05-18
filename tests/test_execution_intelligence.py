@@ -1,60 +1,46 @@
-from pathlib import Path
-import sys
-
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
-
-from src.execution_intelligence import (  # noqa: E402
-    ExecutionInput,
-    build_execution_plan,
-)
+from src.execution.entry_timing import evaluate_entry_timing
+from src.execution.liquidity_engine import evaluate_liquidity
+from src.execution.slippage_model import estimate_slippage
+from src.execution.volatility_filter import evaluate_volatility_filter
 
 
-def test_high_quality_execution_plan_generated_for_stable_conditions():
-    result = build_execution_plan(
-        ExecutionInput(
-            symbol="NVDA",
-            current_price=120.0,
-            sma50=115.0,
-            atr14=3.0,
-            relative_volume=1.6,
-            intraday_range_percent=1.8,
-            liquidity_score=82,
-            volatility_stability_score=79,
-            failure_risk_score=18,
-            event_risk_active=False,
-            spread_percent=0.04,
-            risk_tier="tier_1",
-        )
+def test_liquidity_engine():
+    result = evaluate_liquidity(
+        average_volume=2_000_000,
+        dollar_volume=120_000_000,
     )
 
-    assert result.execution_state == "execution_quality_high"
-    assert result.entry_quality_score >= 75
-    assert result.position_size_multiplier >= 0.75
-    assert result.stop_distance_atr >= 1.0
+    assert result["liquidity_score"] == 100
+    assert result["classification"] == "Institutional Liquidity"
 
 
-def test_execution_avoided_when_conditions_are_fragile():
-    result = build_execution_plan(
-        ExecutionInput(
-            symbol="SMCI",
-            current_price=120.0,
-            sma50=95.0,
-            atr14=9.0,
-            relative_volume=0.7,
-            intraday_range_percent=6.1,
-            liquidity_score=28,
-            volatility_stability_score=31,
-            failure_risk_score=81,
-            event_risk_active=True,
-            spread_percent=0.35,
-            risk_tier="tier_2",
-        )
+def test_slippage_model():
+    result = estimate_slippage(
+        spread_percent=0.1,
+        volatility_percent=0.5,
+        order_size_percent_of_volume=0.2,
     )
 
-    assert result.execution_state in {
-        "avoid_execution",
-        "do_not_execute",
-    }
-    assert result.position_size_multiplier <= 0.25
-    assert "event_risk_active" in result.warnings
+    assert result["estimated_slippage_percent"] < 1
+    assert result["classification"] in {"Low", "Moderate"}
+
+
+def test_entry_timing_engine():
+    result = evaluate_entry_timing(
+        minutes_after_open=45,
+        relative_volume=1.5,
+        volatility_percent=2,
+    )
+
+    assert result["timing_score"] >= 80
+    assert result["classification"] == "Optimal"
+
+
+def test_volatility_filter():
+    result = evaluate_volatility_filter(
+        atr_percent=3,
+        vix=15,
+    )
+
+    assert result["volatility_score"] >= 80
+    assert result["classification"] == "Stable"
