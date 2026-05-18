@@ -17,6 +17,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
+from src.reporting.cross_asset_report import build_cross_asset_report
 from src.reporting.decision_report import build_decision_report
 from src.reporting.market_regime import build_market_regime_summary
 from src.reporting.report_formatter import format_report
@@ -51,10 +52,12 @@ def build_report(report_type: str) -> str:
     else:
         market_regime = build_market_regime_summary(report_type)
         screener = build_screener_snapshot(report_type)
+        cross_asset = build_cross_asset_report()
 
         payload = {
             "report_type": report_type,
             "market_regime": market_regime,
+            "cross_asset": cross_asset,
             "screener": screener,
             "decision_report": build_decision_report(
                 market_regime=market_regime,
