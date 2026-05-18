@@ -34,6 +34,7 @@ def format_report(payload: dict) -> str:
 
     market = payload["market_regime"]
     screener = payload["screener"]
+    decision_report = payload.get("decision_report", {})
 
     lines.append("## Market Regime")
     lines.append("")
@@ -69,6 +70,58 @@ def format_report(payload: dict) -> str:
     for item in market["focus_areas"]:
         lines.append(f"- {item}")
     lines.append("")
+
+    lines.append("## Decision Engine")
+    lines.append("")
+    lines.append(f"- Market State: {decision_report.get('market_state', 'unknown')}")
+    lines.append(f"- Portfolio Heat Limit: {decision_report.get('portfolio_heat_limit', 'n/a')}")
+    lines.append(f"- Approved / Reduced Size Candidates: {decision_report.get('approved_count', 0)}")
+    lines.append(f"- Blocked / No Trade Candidates: {decision_report.get('blocked_count', 0)}")
+    lines.append("")
+
+    hard_overrides = decision_report.get("hard_overrides", [])
+    if hard_overrides:
+        lines.append("### Hard Overrides")
+        for override in hard_overrides:
+            lines.append(f"- {override}")
+        lines.append("")
+
+    lines.append("### Active Strategy Types")
+    for setup in decision_report.get("allowed_setups", []):
+        lines.append(f"- {setup}")
+    lines.append("")
+
+    lines.append("### Decision Summary")
+    lines.append(f"- {decision_report.get('summary', 'No summary available.')}")
+    lines.append("")
+
+    decisions = decision_report.get("decisions", [])
+    if decisions:
+        lines.append("### Ranked Opportunities")
+        lines.append("")
+
+        for item in decisions[:5]:
+            lines.append(f"#### {item['symbol']}")
+            lines.append(f"- Decision: {item['decision']}")
+            lines.append(f"- Risk Tier: {item['risk_tier']}")
+            lines.append(f"- Setup Type: {item['setup_type']}")
+            lines.append(f"- Position Size Multiplier: {item['position_size_multiplier']}")
+            lines.append(f"- Setup Score: {item['setup_score']}")
+            lines.append(f"- Regime Alignment: {item['regime_alignment']}")
+            lines.append(f"- Asymmetry Score: {item['asymmetry_score']}")
+            lines.append(f"- Data Confidence: {item['data_confidence']}")
+
+            if item["blocked_reasons"]:
+                lines.append("- Blocked Reasons:")
+                for reason in item["blocked_reasons"]:
+                    lines.append(f"  - {reason}")
+
+            if item["notes"]:
+                lines.append("- Notes:")
+                for note in item["notes"]:
+                    lines.append(f"  - {note}")
+
+            lines.append("")
 
     lines.append(f"## {screener['title']}")
     lines.append("")
