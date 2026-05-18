@@ -18,7 +18,7 @@ on:
           - weekly
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   report:
@@ -35,6 +35,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -82,6 +85,7 @@ jobs:
           echo "REPORT_TYPE=${REPORT_TYPE}" >> "$GITHUB_ENV"
           echo "REPORT_FILE=${REPORT_FILE}" >> "$GITHUB_ENV"
           echo "LATEST_FILE=${LATEST_FILE}" >> "$GITHUB_ENV"
+          echo "RUN_TIMESTAMP=${RUN_TIMESTAMP}" >> "$GITHUB_ENV"
 
       - name: Generate report
         shell: bash
@@ -90,6 +94,22 @@ jobs:
           python scripts/generate_report.py --type "$REPORT_TYPE" --output "$REPORT_FILE"
           cp "$REPORT_FILE" "$LATEST_FILE"
           find reports -type f -maxdepth 3 -print
+
+      - name: Commit generated reports to repository
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add reports/
+
+          if git diff --cached --quiet; then
+            echo "No report changes to commit."
+          else
+            git commit -m "Archive ${REPORT_TYPE} report ${RUN_TIMESTAMP}"
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
 
       - name: Upload dated report artifact
         uses: actions/upload-artifact@v4
