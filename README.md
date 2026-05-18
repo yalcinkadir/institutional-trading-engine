@@ -13,221 +13,99 @@ Institutional Trading Engine ist ein datengetriebenes Marktanalyse-, Ranking- un
 - Indizes
 - Edelmetalle
 
-Das Ziel ist eine institutionelle Marktanalyse mit:
+Das Ziel ist eine institutionell inspirierte **Market Decision Engine**. Das System soll nicht nur bullish/bearish Signale sammeln, sondern entscheiden:
 
-- Market Regime Detection
-- Relative Strength Analyse
-- Leader-/Weak-Name-Erkennung
-- institutionellem Asset Ranking
-- Risk Management
-- Swing-Trading-Setups
-- Watchlist-Generierung
-- automatisierten Reports
-- Telegram-Delivery
-- Qualitätskontrolle der Reports
+> Welches Risiko darf in welchem Marktregime überhaupt eingegangen werden?
 
-Das System verwendet Live-Marktdaten über Polygon.io.
+Das System verwendet Live-Marktdaten über Polygon.io und verbindet Screening, Regime-Erkennung, Report-Erstellung und Qualitätskontrolle.
 
 ---
 
-## Hauptfunktionen
+## Strategische Leitlinie v3
 
-### Market Regime Engine
-Automatische Analyse von:
+Die nächste Evolutionsstufe ist bewusst **nicht** mehr Feature-Sammlung, sondern Entscheidungsqualität.
 
-- SPY
-- QQQ
-- VIX
-- SMA50 / SMA200
-- ATR14
-- Breadth
-- Trendstruktur
-- Volatilitätsregime
+Kernprinzipien:
 
----
-
-### Institutional Market Health Score
-Das System berechnet automatisch einen institutionellen Market Health Score basierend auf:
-
-- Trendqualität
-- VIX-Regime
-- Marktbreite
-- SPY-/QQQ-Struktur
-
-Mögliche Regime:
-
-- Strong Bullish
-- Bullish
-- Neutral
-- Defensive
-- Risk-Off
+- Kontext schlägt Einzelsignal
+- Risk Gates schlagen additive Scores
+- Setup-Qualität ist abhängig vom Marktregime
+- Kein Trade ist eine aktive Entscheidung
+- Outcome Tracking ist wichtiger als mehr Indikatoren
+- Kapital wird nach Asymmetrie und Confidence verteilt
 
 ---
 
-### Relative Strength Engine
-Das System analysiert Relative Strength gegen:
+## Decision Engine v3
 
-- QQQ
-- SPY
+Die v3-Architektur ergänzt den bisherigen Screener um eine hierarchische Entscheidungslogik.
 
-Relative Strength Klassifikation:
+### 1. Signal Hierarchy Engine
+Nicht alle Signale sind gleich wichtig.
 
-- Leader
-- Neutral
-- Weak
+Priorität:
 
-Die RS-Analyse dient als Grundlage für:
+1. Systemisches Risiko / Survival Layer
+2. Makro-, Liquiditäts- und Volatilitätsregime
+3. Cross-Asset Confirmation
+4. Breadth und Market Internals
+5. Sector / Theme Leadership
+6. Einzelasset-Setup
+7. Execution und Position Sizing
 
-- Leader Detection
-- Weak Name Detection
-- institutionelles Asset Ranking
-- Setup Priorisierung
-
----
-
-### Institutional Asset Ranking
-Jedes Asset erhält einen institutionellen Score basierend auf:
-
-- Trendstruktur
-- Relative Strength
-- Volumenqualität
-- Volatilität
-- Risiko
-
-Mögliche Status:
-
-- Strong Ready
-- Ready
-- Watch
-- Neutral
-- Weak
+Ein starkes Einzelasset darf ein schlechtes Risiko-Regime nicht automatisch überstimmen.
 
 ---
 
-### Leader & Weak Name Detection
-Das System erkennt automatisch:
+### 2. Override Engine
+Bestimmte Zustände sind keine Score-Abzüge, sondern harte Blocker.
 
-#### Leaders
-Assets mit:
-- hoher Relative Strength
-- starker Trendstruktur
-- institutioneller Stärke
-- hoher Ranking-Qualität
+Beispiele:
 
-#### Weak Names
-Assets mit:
-- schwacher Relative Strength
-- schlechter Trendstruktur
-- Underperformance
-- schwacher Marktstruktur
+- VIX-Term-Structure invertiert + Breadth Collapse + Credit Stress
+- aggressive Long-Breakouts werden deaktiviert
+- Portfolio Heat wird reduziert
+- Positionsgrößen werden gekappt
+- No-Trade-Modus kann aktiv werden
 
 ---
 
-### Trade Summary Engine
-Das System erzeugt Telegram-kompatible Trade Summaries mit:
+### 3. Regime-to-Setup Mapping
+Strategien werden nur aktiviert, wenn sie zum Marktumfeld passen.
 
-- Market Regime
-- Market Health Score
-- Top Leaders
-- Weak Names
-- institutioneller Zusammenfassung
-
----
-
-### Automatische Reports
-Das System erstellt automatisch:
-
-#### Pre-Market Reports
-Sonntag bis Freitag
-
-Inhalt:
-- Marktregime
-- Volatilität
-- Watchlist
-- Risiken vor Börseneröffnung
-- Leader-Kandidaten
-- institutionelle Marktstruktur
-
-#### Post-Market Reports
-Montag bis Freitag
-
-Inhalt:
-- Marktabschlussanalyse
-- Marktbreite
-- Trendbestätigung
-- Leader-/Weak-Names
-- Swing-Setups
-- institutionelle Rotation
-
-#### Weekly Reports
-Samstag
-
-Inhalt:
-- Wochenanalyse
-- empfohlene Assets
-- Fokus für nächste Woche
-- Risikobewertung
-- Marktrotation
+| Regime | Bevorzugte Setups | Reduzierte/Blockierte Setups |
+|---|---|---|
+| Low Vol Bull | Momentum, Breakout, RS Leader | aggressive Shorts |
+| High Vol Transition | kleinere Size, Mean Reversion, schnelle Exits | extended Breakouts |
+| Risk Off | Cash, Defensive Rotation, Hedges | speculative Growth Breakouts |
+| Panic / Dislocation | asymmetrische Reversal-Setups | normale Trendfolge |
 
 ---
 
-## Telegram Integration
-Reports werden automatisch an Telegram gesendet.
+### 4. No-Trade Engine
+Das System soll bewusst sagen können:
 
-Benötigte Secrets:
+> Keine hochwertige asymmetrische Opportunität vorhanden.
 
-```txt
-TELEGRAM_BOT_TOKEN
-TELEGRAM_CHAT_ID
-```
+No-Trade ist kein Fehler, sondern ein Qualitätsmerkmal.
 
 ---
 
-## Report Quality System
-Das Projekt enthält ein integriertes QA-System für Reports.
+### 5. Outcome Tracking
+Das System soll nicht nur Trades, sondern auch Entscheidungen tracken:
 
-Automatisch geprüft werden:
+- akzeptierte Setups
+- verworfene Setups
+- blockierte Trades
+- Override-Auslöser
+- Regime-Zustand
+- MFE / MAE
+- Ergebnis nach 1D / 5D / 20D
+- Setup-Typ
+- Confidence
+- Risk Tier
 
-- Struktur
-- Mindestlänge
-- Analysequalität
-- fehlende Marktmetriken
-- Relative Strength Analyse
-- Leader-/Weak-Name-Analyse
-- Placeholder
-- schwache Inhalte
-- Sprache
-- Telegram-Tauglichkeit
-
-Der Workflow blockiert Reports mit unzureichender Qualität.
-
----
-
-## GitHub Actions Workflows
-
-### Institutional Reports
-Automatische Erstellung von:
-
-- Pre-Market Reports
-- Post-Market Reports
-- Weekly Reports
-
-Mit:
-
-- Telegram Versand
-- Artifact Upload
-- manueller Ausführung
-- Zeitsteuerung
-
----
-
-### Report Quality Validation
-Automatisches QA-System für:
-
-- Pull Requests
-- manuelle Tests
-- Qualitätsprüfung
-- institutionelle Analyseprüfung
+Damit entsteht später eine Expectancy Engine.
 
 ---
 
@@ -235,133 +113,37 @@ Automatisches QA-System für:
 
 ```txt
 .github/workflows/
+docs/
+ ├── DECISION_ENGINE_V3.md
+ └── OUTCOME_TRACKING.md
 scripts/
 src/
- ├── data/
- ├── indicators/
- ├── relative_strength/
- ├── reporting/
- ├── scoring/
- └── screening/
+ ├── decision_engine.py
 
 tests/
-```
-
----
-
-## Aktuell gescannte Symbole
-
-### Indizes / ETFs
-- SPY
-- QQQ
-- IWM
-- DIA
-
-### Technologie / Leader
-- MSFT
-- NVDA
-- META
-- AAPL
-- AMZN
-- AVGO
-- AMD
-- MU
-- ADBE
-- CSCO
-
-### Edelmetalle
-- GLD
-- SLV
-- PPLT
-
-### Weitere Kandidaten
-- TSLA
-- NFLX
-- CRWD
-- PANW
-- SHOP
-- PLTR
-
----
-
-## Verwendete Indikatoren
-
-- SMA50
-- SMA200
-- ATR14
-- Relative Strength
-- Relative Volume
-- Breadth
-- VIX
-- Trendstruktur
-- Volatilitätsregime
-- institutionelles Asset Scoring
-
----
-
-## Benötigte Secrets
-
-```txt
-POLYGON_API_KEY
-TELEGRAM_BOT_TOKEN
-TELEGRAM_CHAT_ID
-REPORT_WEBHOOK_URL
+ └── test_decision_engine.py
 ```
 
 ---
 
 ## Tests & Qualitätssicherung
 
-Das Projekt enthält:
+Neue Decision-Engine-Tests prüfen:
 
-- Report Quality Validation
-- Screening Engine Tests
-- Relative Strength Tests
-- Ranking Tests
-- Trade Summary Tests
-- institutionelle Analyseprüfung
-
-Das Ziel ist:
-
-- stabile Reports
-- konsistente Analysequalität
-- Vermeidung schwacher AI-Ausgaben
-- institutionell orientierte Qualitätssicherung
+- Risk-Off blockiert aggressive Long-Breakouts
+- Low-Vol-Bull aktiviert Momentum-Setups
+- High-Vol-Transition reduziert Positionsgröße
+- No-Trade wird bei schwacher Asymmetrie ausgelöst
+- Capital Allocation folgt Risk Tier statt blindem Score
 
 ---
 
-## Geplante Features
+## Lokale Ausführung
 
-### Screening
-- Auto Asset Ranking
-- Setup Quality Score
-- Setup Readiness
-- Confidence Score
-- institutionelle Momentum-Erkennung
-
-### Trading
-- Entry Engine
-- Exit Engine
-- ATR-basierte Stops
-- Risk Scoring
-- Position Sizing
-- Exposure Management
-
-### Analytics
-- Historical Recommendation Tracking
-- Weekly Performance Tracking
-- Trefferquote
-- Risk/Reward Statistik
-- Backtesting
-- Alpha Tracking
-
-### Reporting
-- PDF Export
-- Chart Rendering
-- Telegram Trade Summary
-- Telegram Charts
-- Telegram Alerts
-- institutionelle Watchlists
+```bash
+pip install -r requirements.txt
+pytest
+```
 
 ---
 
@@ -375,6 +157,8 @@ Das Ziel ist ein institutionell orientiertes Analyse-, Ranking- und Screening-Sy
 - objektiver Qualitätskontrolle
 - professionellem Risk Management
 - skalierbarer Architektur
+- hierarchischer Entscheidungslogik
+- Performance Feedback Loop
 
 Das System soll:
 
@@ -383,4 +167,5 @@ Das System soll:
 - institutionelle Marktrotation sichtbar machen
 - hochwertige Assets priorisieren
 - schwache Marktstrukturen erkennen
+- schlechte Trading-Umfelder vermeiden
 - professionelle Trading-Entscheidungen unterstützen
