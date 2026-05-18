@@ -9,6 +9,9 @@ from src.backtesting_framework import (  # noqa: E402
     run_backtest,
 )
 
+JAN_1_2024_MS = 1704067200000
+DAY_MS = 86400000
+
 
 def _bars(start=100.0, drift=1.5, count=30):
     bars = []
@@ -18,7 +21,7 @@ def _bars(start=100.0, drift=1.5, count=30):
         close += drift
         bars.append(
             {
-                "t": 1700000000000 + (index * 86400000),
+                "t": JAN_1_2024_MS + (index * DAY_MS),
                 "c": round(close, 2),
                 "h": round(close + 2, 2),
                 "l": round(close - 2, 2),
