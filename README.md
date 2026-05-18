@@ -1,233 +1,288 @@
 # Institutional Trading Engine
 
-## Projektname
-Institutional Trading Engine
+Institutional-grade market intelligence, decision support and portfolio risk framework.
+
+This project combines:
+- market regime analysis
+- institutional screening
+- adaptive risk intelligence
+- portfolio construction
+- outcome learning
+- advanced backtesting
+- deterministic decision architecture
+
+The goal is not to build a black-box trading bot.
+
+The goal is to build:
+a transparent, explainable and testable institutional decision intelligence framework.
 
 ---
 
-## Proprietary Research Notice
+# Core Philosophy
 
-This project is intended as a private, proprietary market research and decision-support framework.
+The architecture is intentionally:
 
-It contains architecture, decision logic, risk models, screening logic and adaptive expectancy concepts that should be treated as intellectual property.
+- deterministic
+- explainable
+- modular
+- testable
+- risk-first
+- anti-overfitting
 
-Do not expose:
+No uncontrolled AI execution.
+No hidden optimization layers.
+No opaque signal generation.
 
-- API keys
-- Telegram tokens
-- private market data exports
-- decision logs
-- outcome logs
-- proprietary scoring logic
-- portfolio or account information
-
----
-
-## Disclaimer
-
-This software is for research, education, market analysis and decision-support purposes only.
-
-It is **not financial advice**, **not investment advice**, **not a trading recommendation**, and **not a guarantee of future performance**.
-
-All outputs must be reviewed manually before any financial decision is made. The user is solely responsible for all trading, investment and risk decisions.
+Every decision layer must remain auditable and reproducible.
 
 ---
 
-## Zweck des Systems
-Institutional Trading Engine ist ein datengetriebenes Marktanalyse-, Ranking- und Screening-System für:
+# Institutional Intelligence Architecture
 
-- US-Aktien
-- ETFs
-- Indizes
-- Edelmetalle
-
-Das Ziel ist eine institutionell inspirierte **Market Decision Engine**. Das System soll nicht nur bullish/bearish Signale sammeln, sondern entscheiden:
-
-> Welches Risiko darf in welchem Marktregime überhaupt eingegangen werden?
-
-Das System verwendet Live-Marktdaten über Polygon.io und verbindet Screening, Regime-Erkennung, Report-Erstellung und Qualitätskontrolle.
-
----
-
-## Strategische Leitlinie v3
-
-Die nächste Evolutionsstufe ist bewusst **nicht** mehr Feature-Sammlung, sondern Entscheidungsqualität.
-
-Kernprinzipien:
-
-- Kontext schlägt Einzelsignal
-- Risk Gates schlagen additive Scores
-- Setup-Qualität ist abhängig vom Marktregime
-- Kein Trade ist eine aktive Entscheidung
-- Outcome Tracking ist wichtiger als mehr Indikatoren
-- Kapital wird nach Asymmetrie und Confidence verteilt
+```text
+Market Data
+    ↓
+Market Regime Engine
+    ↓
+Screening Engine
+    ↓
+Decision Engine
+    ↓
+Risk Intelligence
+    ↓
+Portfolio Construction
+    ↓
+Execution Intelligence
+    ↓
+Outcome Tracking
+    ↓
+Meta Learning
+    ↓
+Dynamic Weighting
+```
 
 ---
 
-## Decision Engine v3
+# System Layers
 
-Die v3-Architektur ergänzt den bisherigen Screener um eine hierarchische Entscheidungslogik.
+## Market Intelligence
 
-### 1. Signal Hierarchy Engine
-Nicht alle Signale sind gleich wichtig.
+The platform continuously evaluates:
+- market breadth
+- volatility structure
+- sector rotation
+- liquidity conditions
+- macro cross-market signals
+- event risk
+- regime transitions
 
-Priorität:
-
-1. Systemisches Risiko / Survival Layer
-2. Makro-, Liquiditäts- und Volatilitätsregime
-3. Cross-Asset Confirmation
-4. Breadth und Market Internals
-5. Sector / Theme Leadership
-6. Einzelasset-Setup
-7. Execution und Position Sizing
-
-Ein starkes Einzelasset darf ein schlechtes Risiko-Regime nicht automatisch überstimmen.
-
----
-
-### 2. Override Engine
-Bestimmte Zustände sind keine Score-Abzüge, sondern harte Blocker.
-
-Beispiele:
-
-- VIX-Term-Structure invertiert + Breadth Collapse + Credit Stress
-- aggressive Long-Breakouts werden deaktiviert
-- Portfolio Heat wird reduziert
-- Positionsgrößen werden gekappt
-- No-Trade-Modus kann aktiv werden
+Modules:
+- Breadth Engine v2
+- Sector Rotation Engine
+- Liquidity & Volatility Engine
+- Macro Cross-Market Engine
+- Event Risk Engine
+- Regime Transition Engine
 
 ---
 
-### 3. Regime-to-Setup Mapping
-Strategien werden nur aktiviert, wenn sie zum Marktumfeld passen.
+## Decision Intelligence
 
-| Regime | Bevorzugte Setups | Reduzierte/Blockierte Setups |
-|---|---|---|
-| Low Vol Bull | Momentum, Breakout, RS Leader | aggressive Shorts |
-| High Vol Transition | kleinere Size, Mean Reversion, schnelle Exits | extended Breakouts |
-| Risk Off | Cash, Defensive Rotation, Hedges | speculative Growth Breakouts |
-| Panic / Dislocation | asymmetrische Reversal-Setups | normale Trendfolge |
+The Decision Engine combines:
+- regime alignment
+- asymmetry scoring
+- setup quality
+- relative strength
+- volatility context
+- risk filtering
 
----
-
-### 4. No-Trade Engine
-Das System soll bewusst sagen können:
-
-> Keine hochwertige asymmetrische Opportunität vorhanden.
-
-No-Trade ist kein Fehler, sondern ein Qualitätsmerkmal.
+Outputs:
+- approved
+- reduced risk
+- no-trade
+- blocked
 
 ---
 
-### 5. Outcome Tracking
-Das System soll nicht nur Trades, sondern auch Entscheidungen tracken:
+## Risk Intelligence
 
-- akzeptierte Setups
-- verworfene Setups
-- blockierte Trades
-- Override-Auslöser
-- Regime-Zustand
-- MFE / MAE
-- Ergebnis nach 1D / 5D / 20D
-- Setup-Typ
-- Confidence
-- Risk Tier
+Institutional risk infrastructure includes:
+- Scenario Engine
+- Exposure Correlation Engine
+- Autonomous Risk Reduction
+- Portfolio Beta Monitoring
+- Volatility Budgeting
+- Correlation Stress Detection
 
-Damit entsteht später eine Expectancy Engine.
+The framework actively detects:
+- hidden concentration
+- correlated exposure
+- liquidity fragility
+- macro instability
+- excessive beta clustering
 
 ---
 
-## Projektstruktur
+## Portfolio Construction
 
-```txt
-.github/workflows/
-docs/
- ├── DECISION_ENGINE_V3.md
- └── OUTCOME_TRACKING.md
-scripts/
+The platform includes:
+- portfolio construction optimizer
+- factor exposure caps
+- sector exposure caps
+- volatility-aware allocation
+- liquidity-aware allocation
+- dynamic allocation logic
+
+The goal is robust portfolio construction,
+not naive signal stacking.
+
+---
+
+## Research & Validation Infrastructure
+
+Advanced research framework includes:
+- Advanced Backtesting v2
+- Walk-forward validation
+- Monte Carlo stress testing
+- expectancy profiling
+- outcome persistence
+- historical regime analysis
+
+This allows:
+- robustness testing
+- edge validation
+- strategy stress testing
+- adaptive learning
+
+---
+
+## Meta Learning Infrastructure
+
+The platform continuously evaluates:
+- factor reliability
+- confidence calibration
+- expectancy decay
+- regime effectiveness
+- setup performance
+
+The system can:
+- increase/decrease factor weights
+- detect overconfidence
+- identify weakening edges
+- adapt allocation logic
+
+All adaptations remain deterministic and capped.
+
+---
+
+# Engineering Principles
+
+## Explainability First
+
+Every module must:
+- expose reasoning
+- remain inspectable
+- avoid hidden optimization
+
+---
+
+## Deterministic Architecture
+
+Given identical inputs:
+the system must produce identical outputs.
+
+---
+
+## Modular Design
+
+Each intelligence layer is isolated and independently testable.
+
+---
+
+## Risk-First Design
+
+The architecture prioritizes:
+- survival
+- robustness
+- exposure control
+- drawdown management
+
+over aggressive optimization.
+
+---
+
+# Repository Structure
+
+```text
 src/
- ├── adaptive_expectancy.py
- ├── cross_asset_regime.py
- ├── decision_engine.py
- ├── market_internal_quality.py
- ├── multi_timeframe_structure.py
- ├── outcome_tracking.py
- ├── portfolio_risk.py
- └── setup_scoring.py
+    Core intelligence engines
 
 tests/
+    Deterministic validation suite
+
+scripts/
+    Automation and report tooling
+
+reports/
+    Generated market intelligence reports
+
+.github/workflows/
+    CI/CD automation
 ```
 
 ---
 
-## Tests & Qualitätssicherung
+# CI/CD
 
-Die Tests prüfen u. a.:
-
-- Risk-Off blockiert aggressive Long-Breakouts
-- Low-Vol-Bull aktiviert Momentum-Setups
-- High-Vol-Transition reduziert Positionsgröße
-- No-Trade wird bei schwacher Asymmetrie ausgelöst
-- Capital Allocation folgt Risk Tier statt blindem Score
-- Cross-Asset Risk-On/Risk-Off Regime
-- Portfolio Heat und Korrelationen
-- Outcome Tracking und Expectancy
-- Adaptive Expectancy je Setup/Regime
-- Market Internal Quality und Opportunity Density
-- Multi-Timeframe Structure Alignment
+Automated workflows include:
+- pytest validation
+- report quality validation
+- outcome learning workflows
+- artifact generation
+- automated reporting
+- quality gates
 
 ---
 
-## Lokale Ausführung
+# Current Capabilities
 
-```bash
-pip install -r requirements.txt
-pytest
-```
-
----
-
-## Benötigte Umgebungsvariablen
-
-Siehe `.env.example`.
-
-Pflicht:
-
-```txt
-POLYGON_API_KEY
-```
-
-Optional:
-
-```txt
-TELEGRAM_BOT_TOKEN
-TELEGRAM_CHAT_ID
-REPORT_WEBHOOK_URL
-```
-
-Echte Secrets dürfen niemals committed werden.
+Implemented:
+- Decision Engine
+- Scenario Engine
+- Exposure Correlation Engine
+- Portfolio Construction Optimizer
+- Meta Learning Engine
+- Dynamic Weighting Engine
+- Advanced Backtesting v2
+- Outcome Pipeline
+- Historical Regime Memory
+- Real-Time Monitoring
+- Autonomous Risk Reduction
 
 ---
 
-## Ziel des Projekts
+# Future Roadmap
 
-Das Ziel ist ein institutionell orientiertes Analyse-, Ranking- und Screening-System mit:
+Planned:
+- Adaptive Risk Budgeting
+- Cross-Strategy Capital Allocation
+- Strategy Decay Detection
+- Institutional Regime Memory v2
+- Multi-Strategy Portfolio Intelligence
+- Advanced Portfolio Hedging
+- Regime Similarity Forecasting
 
-- datengetriebener Marktanalyse
-- institutioneller Asset-Priorisierung
-- automatisierten institutionellen Reports
-- objektiver Qualitätskontrolle
-- professionellem Risk Management
-- skalierbarer Architektur
-- hierarchischer Entscheidungslogik
-- Performance Feedback Loop
+---
 
-Das System soll:
+# Disclaimer
 
-- Marktregime erkennen
-- Relative Strength analysieren
-- institutionelle Marktrotation sichtbar machen
-- hochwertige Assets priorisieren
-- schwache Marktstrukturen erkennen
-- schlechte Trading-Umfelder vermeiden
-- professionelle Trading-Entscheidungen unterstützen
+This project is intended for:
+- research
+- education
+- system design
+- market structure analysis
+
+It is not financial advice.
+No guarantees of profitability exist.
+
+Use at your own risk.
