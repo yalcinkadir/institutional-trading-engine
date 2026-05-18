@@ -1,0 +1,58 @@
+name: Report Quality Validation
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  validate-reports:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        report_type:
+          - premarket
+          - postmarket
+          - weekly
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          pip install -r requirements.txt
+
+      - name: Generate report
+        shell: bash
+        run: |
+          mkdir -p reports
+          python scripts/generate_report.py \
+            --type "${{ matrix.report_type }}" \
+            --output "reports/${{ matrix.report_type }}-report.md"
+
+      - name: Validate report quality
+        shell: bash
+        run: |
+          python scripts/validate_report_quality.py \
+            --type "${{ matrix.report_type }}" \
+            --file "reports/${{ matrix.report_type }}-report.md" \
+            --min-score 75
+
+      - name: Upload validated report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: validated-${{ matrix.report_type }}-report
+          path: reports/${{ matrix.report_type }}-report.md
+          retention-days: 14
