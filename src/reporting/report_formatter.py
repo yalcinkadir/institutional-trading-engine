@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from datetime import datetime, UTC
+from datetime import UTC, datetime
+
+
+def _bool_icon(value: bool) -> str:
+    return "✅" if value else "❌"
 
 
 def format_report(payload: dict) -> str:
@@ -33,9 +37,33 @@ def format_report(payload: dict) -> str:
 
     lines.append("## Market Regime")
     lines.append("")
+    lines.append(f"- Data Status: {market['data_status']}")
     lines.append(f"- Regime: {market['regime']}")
     lines.append(f"- Market Health Score: {market['market_health_score']}")
     lines.append("")
+
+    symbols = market.get("symbols", {})
+
+    if symbols:
+        lines.append("### Core Market Metrics")
+        lines.append("")
+
+        for ticker, snapshot in symbols.items():
+            lines.append(f"#### {ticker}")
+            lines.append(f"- Close: {snapshot['close']}")
+            lines.append(f"- SMA50: {snapshot['sma50']} {_bool_icon(snapshot['above_sma50'])}")
+            lines.append(f"- SMA200: {snapshot['sma200']} {_bool_icon(snapshot['above_sma200'])}")
+            lines.append(f"- ATR14: {snapshot['atr14']}")
+            lines.append("")
+
+    breadth = market.get("breadth", {})
+
+    if breadth:
+        lines.append("### Market Breadth")
+        lines.append(f"- Universe Size: {breadth['universe_size']}")
+        lines.append(f"- Above SMA50: {breadth['above_sma50']}")
+        lines.append(f"- Breadth %: {breadth['breadth_percent']}%")
+        lines.append("")
 
     lines.append("### Focus Areas")
     for item in market["focus_areas"]:
@@ -58,5 +86,10 @@ def format_report(payload: dict) -> str:
     lines.append("### Warnings")
     for warning in screener["warnings"]:
         lines.append(f"- {warning}")
+    lines.append("")
+
+    lines.append("### Notes")
+    for note in market["notes"]:
+        lines.append(f"- {note}")
 
     return "\n".join(lines)
