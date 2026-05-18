@@ -5,16 +5,13 @@ on:
   push:
     branches:
       - main
-      - feature/**
+      - 'feature/**'
   workflow_dispatch:
 
 jobs:
   tests:
     runs-on: ubuntu-latest
     timeout-minutes: 20
-
-    env:
-      PYTHONPATH: .:./src
 
     steps:
       - name: Checkout repository
