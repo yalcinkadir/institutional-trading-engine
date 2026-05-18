@@ -22,6 +22,8 @@ def format_report(payload: dict) -> str:
 
         lines.append("## Weekly Summary")
         lines.append("")
+        lines.append("This report summarizes market structure, leadership quality, risk conditions and focus areas for the upcoming trading week.")
+        lines.append("")
 
         for key, values in weekly["sections"].items():
             title = key.replace("_", " ").title()
@@ -39,17 +41,17 @@ def format_report(payload: dict) -> str:
 
     lines.append("## Market Regime")
     lines.append("")
-    lines.append(f"- Data Status: {market['data_status']}")
-    lines.append(f"- Regime: {market['regime']}")
-    lines.append(f"- Market Health Score: {market['market_health_score']}")
+    lines.append(f"- Data Status: {market.get('data_status', 'unknown')}")
+    lines.append(f"- Regime: {market.get('regime', 'unknown')}")
+    lines.append(f"- Market Health Score: {market.get('market_health_score', 'n/a')}")
     lines.append("")
 
-    symbols = market.get("symbols", {})
+    symbols = market.get("symbols") or {}
+
+    lines.append("### Core Market Metrics")
+    lines.append("")
 
     if symbols:
-        lines.append("### Core Market Metrics")
-        lines.append("")
-
         for ticker, snapshot in symbols.items():
             lines.append(f"#### {ticker}")
             lines.append(f"- Close: {snapshot['close']}")
@@ -57,15 +59,25 @@ def format_report(payload: dict) -> str:
             lines.append(f"- SMA200: {snapshot['sma200']} {_bool_icon(snapshot['above_sma200'])}")
             lines.append(f"- ATR14: {snapshot['atr14']}")
             lines.append("")
+    else:
+        lines.append("- SPY: DATA_UNAVAILABLE")
+        lines.append("- SMA50: DATA_UNAVAILABLE")
+        lines.append("- SMA200: DATA_UNAVAILABLE")
+        lines.append("- ATR14: DATA_UNAVAILABLE")
+        lines.append("")
 
-    breadth = market.get("breadth", {})
+    breadth = market.get("breadth") or {}
+
+    lines.append("### Market Breadth")
 
     if breadth:
-        lines.append("### Market Breadth")
         lines.append(f"- Universe Size: {breadth['universe_size']}")
         lines.append(f"- Above SMA50: {breadth['above_sma50']}")
         lines.append(f"- Breadth %: {breadth['breadth_percent']}%")
-        lines.append("")
+    else:
+        lines.append("- Breadth data unavailable during fallback mode.")
+
+    lines.append("")
 
     lines.append("## Cross-Asset Regime")
     lines.append("")
@@ -92,7 +104,7 @@ def format_report(payload: dict) -> str:
         lines.append("")
 
     lines.append("### Focus Areas")
-    for item in market["focus_areas"]:
+    for item in market.get("focus_areas", ["Monitor institutional risk conditions and trend quality."]):
         lines.append(f"- {item}")
     lines.append("")
 
@@ -135,17 +147,6 @@ def format_report(payload: dict) -> str:
             lines.append(f"- Regime Alignment: {item['regime_alignment']}")
             lines.append(f"- Asymmetry Score: {item['asymmetry_score']}")
             lines.append(f"- Data Confidence: {item['data_confidence']}")
-
-            if item["blocked_reasons"]:
-                lines.append("- Blocked Reasons:")
-                for reason in item["blocked_reasons"]:
-                    lines.append(f"  - {reason}")
-
-            if item["notes"]:
-                lines.append("- Notes:")
-                for note in item["notes"]:
-                    lines.append(f"  - {note}")
-
             lines.append("")
 
     lines.append(f"## {screener['title']}")
@@ -167,7 +168,7 @@ def format_report(payload: dict) -> str:
     lines.append("")
 
     lines.append("### Notes")
-    for note in market["notes"]:
+    for note in market.get("notes", ["Fallback mode active when live market data is unavailable."]):
         lines.append(f"- {note}")
 
     return "\n".join(lines)
