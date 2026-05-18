@@ -53,6 +53,8 @@ ENGLISH_MARKERS = [
     "breadth",
     "score",
     "generated",
+    "leaders",
+    "weak names",
 ]
 
 GERMAN_MARKERS = [
@@ -137,11 +139,34 @@ def validate_report_quality(report: str, report_type: str) -> ReportQualityResul
         score -= 15
 
     if normalized_type in {"premarket", "postmarket"}:
-        required_terms = ["SPY", "QQQ", "VIX", "SMA50", "SMA200", "ATR14", "Market Health Score"]
+        required_terms = [
+            "SPY",
+            "QQQ",
+            "VIX",
+            "SMA50",
+            "SMA200",
+            "ATR14",
+            "Market Health Score",
+        ]
+
         for term in required_terms:
             if term not in report:
                 errors.append(f"Missing analytical term: {term}")
                 score -= 8
+
+        optional_quality_terms = [
+            "Top Leaders",
+            "Weak Names",
+            "Relative Strength",
+            "Trade Summary",
+        ]
+
+        quality_hits = sum(1 for term in optional_quality_terms if term in report)
+        if quality_hits >= 2:
+            score += 5
+        elif quality_hits == 0:
+            warnings.append("Report does not yet include advanced leader/weakness analysis")
+            score -= 5
 
     score = max(score, 0)
     passed = not errors and score >= 75
