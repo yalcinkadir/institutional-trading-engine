@@ -7,6 +7,11 @@ Usage:
     python scripts/generate_report.py --type weekly --output reports/weekly-report.md
 """
 
+- name: Install dependencies
+  run: |
+    python -m pip install --upgrade pip
+    pip install -r requirements.txt
+
 from __future__ import annotations
 
 import argparse
