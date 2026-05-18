@@ -5,6 +5,34 @@ Institutional Trading Engine
 
 ---
 
+## Proprietary Research Notice
+
+This project is intended as a private, proprietary market research and decision-support framework.
+
+It contains architecture, decision logic, risk models, screening logic and adaptive expectancy concepts that should be treated as intellectual property.
+
+Do not expose:
+
+- API keys
+- Telegram tokens
+- private market data exports
+- decision logs
+- outcome logs
+- proprietary scoring logic
+- portfolio or account information
+
+---
+
+## Disclaimer
+
+This software is for research, education, market analysis and decision-support purposes only.
+
+It is **not financial advice**, **not investment advice**, **not a trading recommendation**, and **not a guarantee of future performance**.
+
+All outputs must be reviewed manually before any financial decision is made. The user is solely responsible for all trading, investment and risk decisions.
+
+---
+
 ## Zweck des Systems
 Institutional Trading Engine ist ein datengetriebenes Marktanalyse-, Ranking- und Screening-System für:
 
@@ -118,23 +146,35 @@ docs/
  └── OUTCOME_TRACKING.md
 scripts/
 src/
+ ├── adaptive_expectancy.py
+ ├── cross_asset_regime.py
  ├── decision_engine.py
+ ├── market_internal_quality.py
+ ├── multi_timeframe_structure.py
+ ├── outcome_tracking.py
+ ├── portfolio_risk.py
+ └── setup_scoring.py
 
 tests/
- └── test_decision_engine.py
 ```
 
 ---
 
 ## Tests & Qualitätssicherung
 
-Neue Decision-Engine-Tests prüfen:
+Die Tests prüfen u. a.:
 
 - Risk-Off blockiert aggressive Long-Breakouts
 - Low-Vol-Bull aktiviert Momentum-Setups
 - High-Vol-Transition reduziert Positionsgröße
 - No-Trade wird bei schwacher Asymmetrie ausgelöst
 - Capital Allocation folgt Risk Tier statt blindem Score
+- Cross-Asset Risk-On/Risk-Off Regime
+- Portfolio Heat und Korrelationen
+- Outcome Tracking und Expectancy
+- Adaptive Expectancy je Setup/Regime
+- Market Internal Quality und Opportunity Density
+- Multi-Timeframe Structure Alignment
 
 ---
 
@@ -144,6 +184,28 @@ Neue Decision-Engine-Tests prüfen:
 pip install -r requirements.txt
 pytest
 ```
+
+---
+
+## Benötigte Umgebungsvariablen
+
+Siehe `.env.example`.
+
+Pflicht:
+
+```txt
+POLYGON_API_KEY
+```
+
+Optional:
+
+```txt
+TELEGRAM_BOT_TOKEN
+TELEGRAM_CHAT_ID
+REPORT_WEBHOOK_URL
+```
+
+Echte Secrets dürfen niemals committed werden.
 
 ---
 
