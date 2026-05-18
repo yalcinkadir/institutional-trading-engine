@@ -1,0 +1,85 @@
+name: Institutional Reports
+
+on:
+  schedule:
+    # GitHub Actions cron uses UTC.
+    # Pre-Market: Sunday-Friday, 14:30 Vienna summer time / 08:30 New York
+    - cron: "30 12 * * 0-5"
+    # Post-Market: Monday-Friday, 22:30 Vienna summer time / 16:30 New York
+    - cron: "30 20 * * 1-5"
+    # Weekly Report: Saturday, 10:00 Vienna summer time
+    - cron: "0 8 * * 6"
+  workflow_dispatch:
+    inputs:
+      report_type:
+        description: "Report type to generate"
+        required: true
+        default: "premarket"
+        type: choice
+        options:
+          - premarket
+          - postmarket
+          - weekly
+
+permissions:
+  contents: read
+
+jobs:
+  report:
+    name: Generate ${{ github.event.inputs.report_type || 'scheduled' }} report
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
+      REPORT_WEBHOOK_URL: ${{ secrets.REPORT_WEBHOOK_URL }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Resolve report type
+        id: report_type
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            REPORT_TYPE="${{ github.event.inputs.report_type }}"
+          elif [[ "${{ github.event.schedule }}" == "30 12 * * 0-5" ]]; then
+            REPORT_TYPE="premarket"
+          elif [[ "${{ github.event.schedule }}" == "30 20 * * 1-5" ]]; then
+            REPORT_TYPE="postmarket"
+          elif [[ "${{ github.event.schedule }}" == "0 8 * * 6" ]]; then
+            REPORT_TYPE="weekly"
+          else
+            echo "Unknown schedule: ${{ github.event.schedule }}" >&2
+            exit 1
+          fi
+
+          echo "report_type=${REPORT_TYPE}" >> "$GITHUB_OUTPUT"
+          echo "REPORT_TYPE=${REPORT_TYPE}" >> "$GITHUB_ENV"
+
+      - name: Generate report
+        shell: bash
+        run: |
+          mkdir -p reports
+          python scripts/generate_report.py --type "$REPORT_TYPE" --output "reports/${REPORT_TYPE}-report.md"
+
+      - name: Upload report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.report_type.outputs.report_type }}-report
+          path: reports/${{ steps.report_type.outputs.report_type }}-report.md
+          retention-days: 30
+
+      - name: Send report to webhook if configured
+        if: env.REPORT_WEBHOOK_URL != ''
+        shell: bash
+        run: |
+          curl -sS -X POST "$REPORT_WEBHOOK_URL" \
+            -H "Content-Type: text/plain; charset=utf-8" \
+            --data-binary "@reports/${REPORT_TYPE}-report.md"
