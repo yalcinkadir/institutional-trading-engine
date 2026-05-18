@@ -35,6 +35,7 @@ def format_report(payload: dict) -> str:
     market = payload["market_regime"]
     screener = payload["screener"]
     decision_report = payload.get("decision_report", {})
+    cross_asset = payload.get("cross_asset", {})
 
     lines.append("## Market Regime")
     lines.append("")
@@ -64,6 +65,30 @@ def format_report(payload: dict) -> str:
         lines.append(f"- Universe Size: {breadth['universe_size']}")
         lines.append(f"- Above SMA50: {breadth['above_sma50']}")
         lines.append(f"- Breadth %: {breadth['breadth_percent']}%")
+        lines.append("")
+
+    lines.append("## Cross-Asset Regime")
+    lines.append("")
+    lines.append(f"- Data Status: {cross_asset.get('data_status', 'unknown')}")
+    lines.append(f"- Cross-Asset Regime: {cross_asset.get('regime', 'unknown')}")
+    lines.append(f"- Risk Score: {cross_asset.get('risk_score', 'n/a')}")
+    lines.append(f"- Risk-On Score: {cross_asset.get('risk_on_score', 'n/a')}")
+    lines.append(f"- Risk-Off Score: {cross_asset.get('risk_off_score', 'n/a')}")
+    lines.append("")
+
+    warnings = cross_asset.get("warnings", [])
+    confirmations = cross_asset.get("confirmations", [])
+
+    if warnings:
+        lines.append("### Cross-Asset Warnings")
+        for warning in warnings:
+            lines.append(f"- {warning}")
+        lines.append("")
+
+    if confirmations:
+        lines.append("### Cross-Asset Confirmations")
+        for confirmation in confirmations:
+            lines.append(f"- {confirmation}")
         lines.append("")
 
     lines.append("### Focus Areas")
