@@ -10,6 +10,10 @@ REQUIRED_SECTIONS = {
         "### Core Market Metrics",
         "### Market Breadth",
         "### Focus Areas",
+        "## Decision Engine",
+        "### Active Strategy Types",
+        "### Decision Summary",
+        "### Ranked Opportunities",
         "## Pre-Market Watchlist",
         "### Watchlist",
         "### Objectives",
@@ -22,6 +26,10 @@ REQUIRED_SECTIONS = {
         "### Core Market Metrics",
         "### Market Breadth",
         "### Focus Areas",
+        "## Decision Engine",
+        "### Active Strategy Types",
+        "### Decision Summary",
+        "### Ranked Opportunities",
         "## Post-Market Review",
         "### Watchlist",
         "### Objectives",
@@ -115,10 +123,10 @@ def validate_report_quality(report: str, report_type: str) -> ReportQualityResul
 
     words = _word_count(report)
     if normalized_type in {"premarket", "postmarket"}:
-        if words < 90:
+        if words < 150:
             errors.append(f"Report is too short: {words} words")
             score -= 20
-        if words > 850:
+        if words > 1200:
             warnings.append(f"Report may be too long for Telegram: {words} words")
             score -= 5
     else:
@@ -147,6 +155,10 @@ def validate_report_quality(report: str, report_type: str) -> ReportQualityResul
             "SMA200",
             "ATR14",
             "Market Health Score",
+            "Market State",
+            "Risk Tier",
+            "Asymmetry Score",
+            "Decision",
         ]
 
         for term in required_terms:
@@ -155,18 +167,20 @@ def validate_report_quality(report: str, report_type: str) -> ReportQualityResul
                 score -= 8
 
         optional_quality_terms = [
-            "Top Leaders",
-            "Weak Names",
             "Relative Strength",
             "Trade Summary",
+            "Portfolio Heat Limit",
+            "No-Trade",
+            "Hard Overrides",
+            "Regime Alignment",
         ]
 
         quality_hits = sum(1 for term in optional_quality_terms if term in report)
-        if quality_hits >= 2:
-            score += 5
-        elif quality_hits == 0:
-            warnings.append("Report does not yet include advanced leader/weakness analysis")
-            score -= 5
+        if quality_hits >= 3:
+            score += 8
+        elif quality_hits <= 1:
+            warnings.append("Decision-engine quality markers are weak")
+            score -= 8
 
     score = max(score, 0)
     passed = not errors and score >= 75
