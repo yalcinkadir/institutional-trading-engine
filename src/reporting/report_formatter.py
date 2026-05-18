@@ -61,6 +61,7 @@ def format_report(payload: dict) -> str:
             lines.append("")
     else:
         lines.append("- SPY: DATA_UNAVAILABLE")
+        lines.append("- VIX: DATA_UNAVAILABLE")
         lines.append("- SMA50: DATA_UNAVAILABLE")
         lines.append("- SMA200: DATA_UNAVAILABLE")
         lines.append("- ATR14: DATA_UNAVAILABLE")
