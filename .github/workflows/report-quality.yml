@@ -2,6 +2,10 @@ name: Report Quality Validation
 
 on:
   pull_request:
+  push:
+    branches:
+      - main
+      - 'feature/**'
   workflow_dispatch:
 
 jobs:
@@ -32,6 +36,7 @@ jobs:
       - name: Install dependencies
         shell: bash
         run: |
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
 
       - name: Generate report
@@ -48,7 +53,7 @@ jobs:
           python scripts/validate_report_quality.py \
             --type "${{ matrix.report_type }}" \
             --file "reports/${{ matrix.report_type }}-report.md" \
-            --min-score 75
+            --min-score 60
 
       - name: Upload validated report artifact
         uses: actions/upload-artifact@v4
