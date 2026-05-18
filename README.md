@@ -6,7 +6,7 @@ Institutional Trading Engine
 ---
 
 ## Zweck des Systems
-Institutional Trading Engine ist ein datengetriebenes Marktanalyse- und Screening-System für:
+Institutional Trading Engine ist ein datengetriebenes Marktanalyse-, Ranking- und Screening-System für:
 
 - US-Aktien
 - ETFs
@@ -18,6 +18,7 @@ Das Ziel ist eine institutionelle Marktanalyse mit:
 - Market Regime Detection
 - Relative Strength Analyse
 - Leader-/Weak-Name-Erkennung
+- institutionellem Asset Ranking
 - Risk Management
 - Swing-Trading-Setups
 - Watchlist-Generierung
@@ -63,6 +64,76 @@ Mögliche Regime:
 
 ---
 
+### Relative Strength Engine
+Das System analysiert Relative Strength gegen:
+
+- QQQ
+- SPY
+
+Relative Strength Klassifikation:
+
+- Leader
+- Neutral
+- Weak
+
+Die RS-Analyse dient als Grundlage für:
+
+- Leader Detection
+- Weak Name Detection
+- institutionelles Asset Ranking
+- Setup Priorisierung
+
+---
+
+### Institutional Asset Ranking
+Jedes Asset erhält einen institutionellen Score basierend auf:
+
+- Trendstruktur
+- Relative Strength
+- Volumenqualität
+- Volatilität
+- Risiko
+
+Mögliche Status:
+
+- Strong Ready
+- Ready
+- Watch
+- Neutral
+- Weak
+
+---
+
+### Leader & Weak Name Detection
+Das System erkennt automatisch:
+
+#### Leaders
+Assets mit:
+- hoher Relative Strength
+- starker Trendstruktur
+- institutioneller Stärke
+- hoher Ranking-Qualität
+
+#### Weak Names
+Assets mit:
+- schwacher Relative Strength
+- schlechter Trendstruktur
+- Underperformance
+- schwacher Marktstruktur
+
+---
+
+### Trade Summary Engine
+Das System erzeugt Telegram-kompatible Trade Summaries mit:
+
+- Market Regime
+- Market Health Score
+- Top Leaders
+- Weak Names
+- institutioneller Zusammenfassung
+
+---
+
 ### Automatische Reports
 Das System erstellt automatisch:
 
@@ -75,6 +146,7 @@ Inhalt:
 - Watchlist
 - Risiken vor Börseneröffnung
 - Leader-Kandidaten
+- institutionelle Marktstruktur
 
 #### Post-Market Reports
 Montag bis Freitag
@@ -85,6 +157,7 @@ Inhalt:
 - Trendbestätigung
 - Leader-/Weak-Names
 - Swing-Setups
+- institutionelle Rotation
 
 #### Weekly Reports
 Samstag
@@ -94,6 +167,7 @@ Inhalt:
 - empfohlene Assets
 - Fokus für nächste Woche
 - Risikobewertung
+- Marktrotation
 
 ---
 
@@ -118,6 +192,8 @@ Automatisch geprüft werden:
 - Mindestlänge
 - Analysequalität
 - fehlende Marktmetriken
+- Relative Strength Analyse
+- Leader-/Weak-Name-Analyse
 - Placeholder
 - schwache Inhalte
 - Sprache
@@ -151,6 +227,7 @@ Automatisches QA-System für:
 - Pull Requests
 - manuelle Tests
 - Qualitätsprüfung
+- institutionelle Analyseprüfung
 
 ---
 
@@ -162,9 +239,12 @@ scripts/
 src/
  ├── data/
  ├── indicators/
+ ├── relative_strength/
  ├── reporting/
  ├── scoring/
  └── screening/
+
+tests/
 ```
 
 ---
@@ -215,6 +295,7 @@ src/
 - VIX
 - Trendstruktur
 - Volatilitätsregime
+- institutionelles Asset Scoring
 
 ---
 
@@ -229,16 +310,34 @@ REPORT_WEBHOOK_URL
 
 ---
 
+## Tests & Qualitätssicherung
+
+Das Projekt enthält:
+
+- Report Quality Validation
+- Screening Engine Tests
+- Relative Strength Tests
+- Ranking Tests
+- Trade Summary Tests
+- institutionelle Analyseprüfung
+
+Das Ziel ist:
+
+- stabile Reports
+- konsistente Analysequalität
+- Vermeidung schwacher AI-Ausgaben
+- institutionell orientierte Qualitätssicherung
+
+---
+
 ## Geplante Features
 
 ### Screening
-- Relative Strength Ranking
-- Top Leader Detection
-- Weak Name Detection
 - Auto Asset Ranking
 - Setup Quality Score
 - Setup Readiness
 - Confidence Score
+- institutionelle Momentum-Erkennung
 
 ### Trading
 - Entry Engine
@@ -246,6 +345,7 @@ REPORT_WEBHOOK_URL
 - ATR-basierte Stops
 - Risk Scoring
 - Position Sizing
+- Exposure Management
 
 ### Analytics
 - Historical Recommendation Tracking
@@ -253,6 +353,7 @@ REPORT_WEBHOOK_URL
 - Trefferquote
 - Risk/Reward Statistik
 - Backtesting
+- Alpha Tracking
 
 ### Reporting
 - PDF Export
@@ -260,17 +361,26 @@ REPORT_WEBHOOK_URL
 - Telegram Trade Summary
 - Telegram Charts
 - Telegram Alerts
+- institutionelle Watchlists
 
 ---
 
 ## Ziel des Projekts
 
-Das Ziel ist ein institutionell orientiertes Analyse- und Screening-System mit:
+Das Ziel ist ein institutionell orientiertes Analyse-, Ranking- und Screening-System mit:
 
 - datengetriebener Marktanalyse
+- institutioneller Asset-Priorisierung
 - automatisierten institutionellen Reports
 - objektiver Qualitätskontrolle
 - professionellem Risk Management
 - skalierbarer Architektur
 
-Das System soll Marktregime erkennen, qualitativ hochwertige Assets priorisieren und institutionelle Marktrotationen sichtbar machen.
+Das System soll:
+
+- Marktregime erkennen
+- Relative Strength analysieren
+- institutionelle Marktrotation sichtbar machen
+- hochwertige Assets priorisieren
+- schwache Marktstrukturen erkennen
+- professionelle Trading-Entscheidungen unterstützen
