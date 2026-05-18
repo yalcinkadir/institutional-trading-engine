@@ -8,6 +8,18 @@ Ohne Outcome Tracking entsteht nur mehr Komplexität. Mit Outcome Tracking entst
 
 ---
 
+## Implementierungsstatus
+
+Bereits implementiert:
+
+- `src/outcome_tracking.py`
+- persistente CSV-basierte Decision Logs
+- `DecisionRecord` Datenmodell
+- Expectancy-Berechnung
+- Outcome-Tracking-Tests
+
+---
+
 ## Was getrackt werden muss
 
 Nicht nur echte Trades, sondern jede Entscheidung:
@@ -20,11 +32,11 @@ Nicht nur echte Trades, sondern jede Entscheidung:
 
 ---
 
-## Empfohlenes Decision Record Schema
+## Decision Record Schema
 
 ```json
 {
-  "timestamp": "2026-05-18T16:00:00+02:00",
+  "timestamp_utc": "2026-05-18T16:00:00+00:00",
   "symbol": "QQQ",
   "market_state": "low_vol_bull",
   "setup_type": "momentum_breakout",
@@ -35,8 +47,8 @@ Nicht nur echte Trades, sondern jede Entscheidung:
   "regime_alignment": 0.88,
   "asymmetry_score": 0.78,
   "data_confidence": 0.91,
-  "blocked_reasons": [],
-  "notes": [],
+  "blocked_reasons": "",
+  "notes": "full_alignment",
   "price_at_decision": 0.0,
   "result_1d": null,
   "result_5d": null,
@@ -44,6 +56,32 @@ Nicht nur echte Trades, sondern jede Entscheidung:
   "mfe": null,
   "mae": null
 }
+```
+
+---
+
+## Beispiel
+
+```python
+from src.outcome_tracking import (
+    build_decision_record,
+    append_decision_record,
+)
+
+record = build_decision_record(
+    symbol="QQQ",
+    market_state="low_vol_bull",
+    setup_type="momentum_breakout",
+    decision="approved",
+    risk_tier="tier_1",
+    position_size_multiplier=1.0,
+    setup_score=86,
+    regime_alignment=0.82,
+    asymmetry_score=0.77,
+    data_confidence=0.91,
+)
+
+append_decision_record("data/decision_log.csv", record)
 ```
 
 ---
@@ -74,8 +112,9 @@ Das ist der Unterschied zwischen Meinung und Lernen.
 
 ## Nächste Ausbaustufe
 
-1. `decision_log.csv` oder Datenbanktabelle
-2. tägliches Update der Outcomes
-3. wöchentlicher Outcome Report
-4. Expectancy pro Setup/Regime
-5. adaptive Gewichtung erst nach genügend Daten
+1. automatisches tägliches Update der Outcomes
+2. echte Price-Resolution via Polygon
+3. Outcome Reports
+4. Setup-Regime-Expectancy
+5. adaptive Gewichtung auf Basis historischer Daten
+6. Correlation- und Portfolio-Outcome-Tracking
