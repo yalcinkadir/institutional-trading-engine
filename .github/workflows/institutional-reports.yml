@@ -67,27 +67,58 @@ jobs:
             exit 1
           fi
 
+          RUN_DATE="$(date -u +'%Y-%m-%d')"
+          RUN_TIMESTAMP="$(date -u +'%Y-%m-%d_%H-%M-%S_UTC')"
+          ISO_WEEK="$(date -u +'%G-W%V')"
+
+          if [[ "$REPORT_TYPE" == "weekly" ]]; then
+            REPORT_DIR="reports/weekly"
+            REPORT_FILE="${REPORT_DIR}/${ISO_WEEK}-weekly.md"
+          else
+            REPORT_DIR="reports/${REPORT_TYPE}"
+            REPORT_FILE="${REPORT_DIR}/${RUN_DATE}-${REPORT_TYPE}.md"
+          fi
+
+          LATEST_FILE="reports/${REPORT_TYPE}-report.md"
+
           echo "report_type=${REPORT_TYPE}" >> "$GITHUB_OUTPUT"
+          echo "report_file=${REPORT_FILE}" >> "$GITHUB_OUTPUT"
+          echo "latest_file=${LATEST_FILE}" >> "$GITHUB_OUTPUT"
+          echo "run_timestamp=${RUN_TIMESTAMP}" >> "$GITHUB_OUTPUT"
+
           echo "REPORT_TYPE=${REPORT_TYPE}" >> "$GITHUB_ENV"
+          echo "REPORT_FILE=${REPORT_FILE}" >> "$GITHUB_ENV"
+          echo "LATEST_FILE=${LATEST_FILE}" >> "$GITHUB_ENV"
+          echo "RUN_TIMESTAMP=${RUN_TIMESTAMP}" >> "$GITHUB_ENV"
 
       - name: Generate report
         shell: bash
         run: |
-          mkdir -p reports
-          python scripts/generate_report.py --type "$REPORT_TYPE" --output "reports/${REPORT_TYPE}-report.md"
+          mkdir -p "$(dirname "$REPORT_FILE")"
+          python scripts/generate_report.py --type "$REPORT_TYPE" --output "$REPORT_FILE"
+          cp "$REPORT_FILE" "$LATEST_FILE"
+          echo "Generated report archive file: $REPORT_FILE"
+          echo "Generated latest report file: $LATEST_FILE"
+          find reports -type f -maxdepth 3 -print
 
-      - name: Upload report artifact
+      - name: Upload dated report artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.report_type.outputs.report_type }}-report
-          path: reports/${{ steps.report_type.outputs.report_type }}-report.md
-          retention-days: 30
+          name: ${{ steps.report_type.outputs.report_type }}-${{ steps.report_type.outputs.run_timestamp }}
+          path: ${{ steps.report_type.outputs.report_file }}
+          retention-days: 90
+
+      - name: Upload full reports archive artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports-archive-${{ steps.report_type.outputs.run_timestamp }}
+          path: reports/
+          retention-days: 90
 
       - name: Send report to Telegram if configured
         if: env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_CHAT_ID != ''
         shell: bash
         run: |
-          REPORT_FILE="reports/${REPORT_TYPE}-report.md"
           TITLE="Institutional Trading Engine - ${REPORT_TYPE} report"
 
           curl -sS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
@@ -101,4 +132,4 @@ jobs:
         run: |
           curl -sS -X POST "$REPORT_WEBHOOK_URL" \
             -H "Content-Type: text/plain; charset=utf-8" \
-            --data-binary "@reports/${REPORT_TYPE}-report.md"
+            --data-binary "@${REPORT_FILE}"
