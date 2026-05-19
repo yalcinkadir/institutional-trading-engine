@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.responses import PlainTextResponse
 
+from src.api.auth import validate_api_key
 from src.api.health_api import health_response
 from src.api.metrics_api import metrics_registry
 
@@ -27,14 +28,18 @@ def health() -> dict:
     return health_response()
 
 
-@app.get("/metrics")
+@app.get("/metrics", dependencies=[Depends(validate_api_key)])
 def metrics() -> dict:
     metrics_registry.increment("api_requests_total")
 
     return metrics_registry.export()
 
 
-@app.get("/metrics/prometheus", response_class=PlainTextResponse)
+@app.get(
+    "/metrics/prometheus",
+    response_class=PlainTextResponse,
+    dependencies=[Depends(validate_api_key)],
+)
 def prometheus_metrics() -> str:
     metrics_registry.increment("api_requests_total")
 
