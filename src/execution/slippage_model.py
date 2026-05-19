@@ -1,27 +1,38 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 
-def estimate_slippage(
-    spread_percent: float,
-    volatility_percent: float,
-    order_size_percent_of_volume: float,
-) -> dict:
-    slippage = (
-        spread_percent * 0.4
-        + volatility_percent * 0.3
-        + order_size_percent_of_volume * 0.3
-    )
 
-    slippage = round(slippage, 2)
+@dataclass(frozen=True)
+class SlippageEstimate:
+    estimated_slippage_percent: float
+    execution_quality: str
 
-    if slippage <= 0.3:
-        classification = "Low"
-    elif slippage <= 0.8:
-        classification = "Moderate"
-    else:
-        classification = "High"
 
-    return {
-        "estimated_slippage_percent": slippage,
-        "classification": classification,
-    }
+class SlippageModel:
+    def estimate(
+        self,
+        volatility_percent: float,
+        spread_percent: float,
+        order_size_percent_adv: float,
+    ) -> SlippageEstimate:
+        slippage = (
+            (volatility_percent * 0.15)
+            + (spread_percent * 2)
+            + (order_size_percent_adv * 0.5)
+        )
+
+        if slippage <= 0.5:
+            quality = "excellent"
+        elif slippage <= 1.5:
+            quality = "acceptable"
+        else:
+            quality = "poor"
+
+        return SlippageEstimate(
+            estimated_slippage_percent=round(slippage, 2),
+            execution_quality=quality,
+        )
+
+
+slippage_model = SlippageModel()
