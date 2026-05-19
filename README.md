@@ -42,6 +42,142 @@ Current state:
 
 ---
 
+# Runtime Evolution Status
+
+The platform is now transitioning from:
+
+```text
+collection of institutional intelligence engines
+```
+
+into:
+
+```text
+continuous institutional runtime system
+```
+
+---
+
+# Phase 1 — Runtime Loop
+
+Implemented:
+
+```text
+src/runtime/runtime_loop.py
+src/runtime/runtime_state.py
+```
+
+Capabilities:
+
+- continuous runtime cycles
+- deterministic orchestration
+- runtime state tracking
+- cycle history
+- state snapshots
+
+Validation:
+
+```text
+tests/test_runtime_loop.py
+```
+
+Architecture documentation:
+
+```text
+docs/architecture/runtime_loop.md
+```
+
+---
+
+# Phase 2 — Persistence Layer
+
+Implemented:
+
+```text
+src/storage/decision_log_store.py
+```
+
+Capabilities:
+
+- append-only decision persistence
+- runtime audit trail
+- historical replay foundation
+- institutional memory foundation
+
+Validation:
+
+```text
+tests/test_decision_log_store.py
+```
+
+Architecture documentation:
+
+```text
+docs/architecture/decision_log_store.md
+```
+
+Current implementation:
+
+```text
+JSONL persistence
+```
+
+Future target:
+
+```text
+Postgres-backed institutional persistence
+```
+
+---
+
+# Phase 3 — Runtime State Layer
+
+Implemented:
+
+```text
+src/runtime/in_memory_state_cache.py
+```
+
+Capabilities:
+
+- runtime state caching
+- shared runtime memory
+- temporary orchestration state
+- deterministic state access
+
+Validation:
+
+```text
+tests/test_in_memory_state_cache.py
+```
+
+Important:
+
+Redis was intentionally NOT added yet.
+
+Reason:
+
+```text
+Deterministic runtime architecture
+is currently more important than distributed infrastructure complexity.
+```
+
+The current architecture intentionally prioritizes:
+
+- explainability
+- auditability
+- runtime simplicity
+- deterministic execution
+
+before introducing:
+
+- distributed runtime systems
+- event buses
+- async infrastructure
+- Redis pub/sub
+
+---
+
 # Connected Runtime Decision Flow
 
 The following engines are NOW connected through:
@@ -62,9 +198,12 @@ Cross Asset Intelligence
 → Multi-Factor Fusion
 → Probabilistic Decision Engine
 → Confidence Weighted Execution
+→ Runtime Loop
+→ Runtime State
+→ Decision Log Persistence
 ```
 
-This now represents the first true institutional end-to-end decision pipeline inside the repository.
+This now represents the first continuously executable institutional runtime architecture inside the repository.
 
 ---
 
@@ -107,6 +246,9 @@ Examples of connected systems:
 - Multi-Factor Fusion
 - Probabilistic Decisions
 - Confidence-Weighted Execution
+- Runtime Loop
+- Runtime State
+- Decision Persistence
 
 Examples of partially isolated systems:
 
