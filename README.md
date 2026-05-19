@@ -25,6 +25,7 @@ Instead, it acts as an institutional intelligence platform that:
 - tracks outcomes
 - measures signal quality
 - prepares adaptive intelligence
+- applies institutional risk overrides
 
 ---
 
@@ -41,6 +42,8 @@ Research / Macro / Risk Layers
     ↓
 Decision Fusion
     ↓
+Negative Override Layer
+    ↓
 Governance Controls
     ↓
 Report Generation
@@ -53,6 +56,94 @@ Outcome Tracking
     ↓
 Adaptive Intelligence
 ```
+
+---
+
+# Decision Safety Architecture
+
+One of the most important architectural principles:
+
+```text
+High scores alone are NOT enough.
+```
+
+The platform now includes:
+
+```text
+Negative Override Logic
+```
+
+Purpose:
+Prevent dangerous recommendations even when setup scores are high.
+
+Example:
+
+```text
+NVDA
+Score: 90
+Conviction: High
+
+BUT:
+- Earnings tomorrow
+- VIX elevated
+- Event risk high
+
+→ Final recommendation downgraded automatically
+```
+
+This moves the system away from:
+
+```text
+simple additive scoring
+```
+
+and toward:
+
+```text
+institutional risk-aware decision logic
+```
+
+---
+
+# Negative Override Layer
+
+Location:
+
+```text
+src/core/negative_override.py
+```
+
+Purpose:
+Hard risk factors can reduce or block recommendations.
+
+Current override checks:
+
+- kill switch active
+- FALLBACK data mode
+- low report quality
+- earnings proximity
+- extreme VIX
+- high event risk
+- illiquid assets
+- high portfolio correlation
+- large opening gaps
+- weak setup status
+
+Possible recommendation reductions:
+
+```text
+STRONG BUY → BUY
+STRONG BUY → WATCH
+BUY → HOLD
+BUY → AVOID
+```
+
+This creates:
+
+- graceful conviction reduction
+- institutional risk brakes
+- safer recommendation logic
+- degraded-mode protection
 
 ---
 
@@ -84,6 +175,7 @@ Contains:
 - setup readiness
 - watchlists
 - risk warnings
+- institutional recommendation logic
 
 ---
 
@@ -103,6 +195,7 @@ Contains:
 - signal validation
 - relative strength review
 - market regime confirmation
+- risk override validation
 
 ---
 
@@ -122,6 +215,7 @@ Contains:
 - performance attribution
 - strategic observations
 - adaptive intelligence preparation
+- outcome review
 
 ---
 
@@ -164,6 +258,66 @@ Historical reports are used later for:
 - adaptive intelligence
 - regime similarity
 - future ML analysis
+
+---
+
+# Outcome Tracking System
+
+Location:
+
+```text
+scripts/generate_outcomes.py
+src/outcomes/
+reports/outcomes/
+```
+
+The platform now automatically generates outcome reports.
+
+Workflow:
+
+```text
+Historical reports
+    ↓
+Signal extraction
+    ↓
+Outcome classification
+    ↓
+Performance summary
+    ↓
+JSON persistence
+    ↓
+Historical outcome storage
+```
+
+Generated files:
+
+```text
+reports/outcomes/
+├── YYYY-MM-DD-outcomes.md
+├── latest-outcomes.md
+├── outcome-history.json
+└── signal-performance.json
+```
+
+Current capabilities:
+
+- WIN / LOSS / NEUTRAL classification
+- signal extraction
+- winrate analysis
+- average performance tracking
+- signal persistence
+- structured JSON output
+
+Purpose:
+Build institutional historical memory.
+
+Future usage:
+
+- adaptive weighting
+- attribution
+- regime similarity
+- ML feature generation
+- fine-tuning datasets
 
 ---
 
@@ -234,6 +388,16 @@ VIX failed
 
 ## FALLBACK
 Most or all market feeds failed.
+
+The platform now supports:
+
+```text
+Graceful Degradation
+```
+
+Meaning:
+
+Single feed failures no longer destroy the entire report.
 
 ---
 
@@ -318,54 +482,6 @@ Simulate institutional multi-engine decision systems.
 
 ---
 
-# Outcome Tracking
-
-Location:
-
-```text
-src/outcomes/
-reports/outcomes/
-```
-
-Current status:
-
-```text
-FOUNDATION IMPLEMENTED
-AUTO-GENERATION NOT YET ACTIVE
-```
-
-Currently implemented:
-
-- signal classification
-- win/loss analysis
-- regime performance analysis
-- outcome summaries
-
-Not yet implemented:
-
-- automatic daily outcome generation
-- automatic signal extraction from reports
-- automatic performance comparison
-
-This is why:
-
-```text
-reports/outcomes/
-```
-
-may still be empty.
-
-Planned future structure:
-
-```text
-reports/outcomes/
-├── 2026-05-19-outcomes.md
-├── 2026-05-20-outcomes.md
-└── latest-outcomes.md
-```
-
----
-
 # Database & Persistence
 
 Location:
@@ -379,6 +495,7 @@ Current persistent storage:
 - reports
 - signals
 - telemetry
+- outcomes
 
 Database:
 
@@ -464,12 +581,14 @@ Main workflows:
 
 ```text
 .github/workflows/institutional-reports.yml
+.github/workflows/outcome-tracking.yml
 .github/workflows/daily-backup.yml
 ```
 
 Responsible for:
 
 - scheduled reports
+- outcome generation
 - Telegram delivery
 - report archival
 - quality validation
@@ -498,6 +617,7 @@ Test coverage includes:
 - network layer
 - memory systems
 - quality infrastructure
+- negative override logic
 
 ---
 
@@ -520,7 +640,9 @@ Implemented:
 - monitoring
 - backups
 - probabilistic infrastructure
-- outcome tracking foundation
+- outcome tracking automation
+- negative override layer
+- graceful degradation
 - quality validation
 
 Still missing for full production maturity:
@@ -531,10 +653,10 @@ Still missing for full production maturity:
 - async workers
 - Postgres migration
 - feature importance
-- live outcome generation
 - regime similarity engine
 - ML inference
 - observability dashboards
+- real market outcome evaluation
 
 ---
 
