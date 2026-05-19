@@ -1,5 +1,9 @@
 # Institutional Trading Engine
 
+![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
+![CI](https://img.shields.io/badge/CI-enabled-brightgreen.svg)
+![Status](https://img.shields.io/badge/status-production--oriented-orange.svg)
+
 Institutional-grade market analysis, reporting, screening, governance and outcome-tracking platform.
 
 The project is designed as:
@@ -26,6 +30,111 @@ Instead, it acts as an institutional intelligence platform that:
 - measures signal quality
 - prepares adaptive intelligence
 - applies institutional risk overrides
+
+---
+
+# Quick Start
+
+## Requirements
+
+- Python 3.11+
+- Git
+- Polygon.io API Key
+- GitHub Actions enabled
+
+---
+
+## Installation
+
+Clone repository:
+
+```bash
+git clone https://github.com/yalcinkadir/institutional-trading-engine.git
+cd institutional-trading-engine
+```
+
+Create virtual environment:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+```
+
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+## Environment Setup
+
+Create:
+
+```text
+.env
+```
+
+Example:
+
+```env
+POLYGON_API_KEY=your_api_key
+TELEGRAM_BOT_TOKEN=your_bot_token
+TELEGRAM_CHAT_ID=your_chat_id
+```
+
+---
+
+## Generate Premarket Report
+
+```bash
+python scripts/generate_report.py \
+  --type premarket \
+  --output reports/premarket/test-report.md
+```
+
+---
+
+## Generate Outcome Reports
+
+```bash
+python scripts/generate_outcomes.py
+```
+
+---
+
+## Run Tests
+
+```bash
+pytest
+```
+
+---
+
+# Repository Structure
+
+```text
+institutional-trading-engine/
+├── .github/workflows/
+├── reports/
+├── scripts/
+├── src/
+│   ├── core/
+│   ├── data/
+│   ├── governance/
+│   ├── monitoring/
+│   ├── network/
+│   ├── optimization/
+│   ├── outcomes/
+│   ├── reporting/
+│   ├── simulation/
+│   ├── storage/
+│   └── strategy/
+├── tests/
+├── data/
+└── README.md
+```
 
 ---
 
@@ -90,60 +199,6 @@ BUT:
 
 → Final recommendation downgraded automatically
 ```
-
-This moves the system away from:
-
-```text
-simple additive scoring
-```
-
-and toward:
-
-```text
-institutional risk-aware decision logic
-```
-
----
-
-# Negative Override Layer
-
-Location:
-
-```text
-src/core/negative_override.py
-```
-
-Purpose:
-Hard risk factors can reduce or block recommendations.
-
-Current override checks:
-
-- kill switch active
-- FALLBACK data mode
-- low report quality
-- earnings proximity
-- extreme VIX
-- high event risk
-- illiquid assets
-- high portfolio correlation
-- large opening gaps
-- weak setup status
-
-Possible recommendation reductions:
-
-```text
-STRONG BUY → BUY
-STRONG BUY → WATCH
-BUY → HOLD
-BUY → AVOID
-```
-
-This creates:
-
-- graceful conviction reduction
-- institutional risk brakes
-- safer recommendation logic
-- degraded-mode protection
 
 ---
 
@@ -236,29 +291,6 @@ reports/
 └── weekly-report.md
 ```
 
-Examples:
-
-```text
-reports/premarket/2026-05-19-premarket.md
-reports/postmarket/2026-05-19-postmarket.md
-reports/weekly/2026-W20-weekly.md
-```
-
-Meaning:
-
-- dated files = historical archive
-- latest files = current version
-
-Important:
-
-Historical reports are used later for:
-
-- outcome tracking
-- signal attribution
-- adaptive intelligence
-- regime similarity
-- future ML analysis
-
 ---
 
 # Outcome Tracking System
@@ -271,24 +303,6 @@ src/outcomes/
 reports/outcomes/
 ```
 
-The platform now automatically generates outcome reports.
-
-Workflow:
-
-```text
-Historical reports
-    ↓
-Signal extraction
-    ↓
-Outcome classification
-    ↓
-Performance summary
-    ↓
-JSON persistence
-    ↓
-Historical outcome storage
-```
-
 Generated files:
 
 ```text
@@ -299,7 +313,7 @@ reports/outcomes/
 └── signal-performance.json
 ```
 
-Current capabilities:
+Capabilities:
 
 - WIN / LOSS / NEUTRAL classification
 - signal extraction
@@ -307,17 +321,6 @@ Current capabilities:
 - average performance tracking
 - signal persistence
 - structured JSON output
-
-Purpose:
-Build institutional historical memory.
-
-Future usage:
-
-- adaptive weighting
-- attribution
-- regime similarity
-- ML feature generation
-- fine-tuning datasets
 
 ---
 
@@ -332,19 +335,6 @@ TELEGRAM_BOT_TOKEN=
 TELEGRAM_CHAT_ID=
 ```
 
-Telegram delivery includes:
-
-- compact summary message
-- full markdown report document
-
-Summary contains:
-
-- Market Regime
-- Final Recommendation
-- Leaders
-- Weak Names
-- Risk Warnings
-
 ---
 
 # Market Regime Engine
@@ -355,15 +345,6 @@ Location:
 src/reporting/market_regime.py
 ```
 
-Responsible for:
-
-- SPY trend analysis
-- QQQ trend analysis
-- VIX analysis
-- breadth analysis
-- Market Health Score
-- regime classification
-
 Data states:
 
 ```text
@@ -372,206 +353,40 @@ PARTIAL
 FALLBACK
 ```
 
-## LIVE
-All market feeds loaded successfully.
-
-## PARTIAL
-Some feeds failed but the report still works.
-
-Example:
-
-```text
-SPY ok
-QQQ ok
-VIX failed
-```
-
-## FALLBACK
-Most or all market feeds failed.
-
-The platform now supports:
+The platform supports:
 
 ```text
 Graceful Degradation
 ```
 
-Meaning:
-
 Single feed failures no longer destroy the entire report.
 
 ---
 
-# Polygon Data Layer
+# Testing
 
-Location:
+Run all tests:
 
-```text
-src/data/polygon_client.py
+```bash
+pytest
 ```
 
-Features:
+Run specific test file:
 
-- retry logic
-- rate-limit handling
-- timeout protection
-- disk cache
-- graceful recovery
-
-Cache location:
-
-```text
-.cache/polygon/
+```bash
+pytest tests/test_negative_override.py
 ```
 
----
+Test coverage includes:
 
-# Governance Layer
-
-Location:
-
-```text
-src/governance/
-```
-
-Responsible for:
-
-- risk limits
-- compliance checks
-- kill switches
-- exposure policies
-
-Purpose:
-Prevent unstable or dangerous recommendations.
-
----
-
-# Optimization Layer
-
-Location:
-
-```text
-src/optimization/
-```
-
-Responsible for:
-
-- portfolio optimization
-- capital allocation
-- risk/reward analysis
-- adaptive weighting
-
----
-
-# Intelligence Network
-
-Location:
-
-```text
-src/network/
-```
-
-Responsible for:
-
-- multi-agent coordination
-- distributed analysis
-- consensus building
-- intelligence sharing
-
-Purpose:
-Simulate institutional multi-engine decision systems.
-
----
-
-# Database & Persistence
-
-Location:
-
-```text
-src/storage/sqlite_store.py
-```
-
-Current persistent storage:
-
-- reports
-- signals
-- telemetry
-- outcomes
-
-Database:
-
-```text
-data/institutional_engine.db
-```
-
----
-
-# Monitoring & Telemetry
-
-Location:
-
-```text
-src/monitoring/
-```
-
-Responsible for:
-
-- telemetry tracking
-- operational metrics
-- anomaly alerts
-- production monitoring
-
-Examples:
-
-- high latency
-- high failure rate
-- low cache efficiency
-
----
-
-# Quality Validation
-
-Location:
-
-```text
-scripts/validate_report_quality.py
-```
-
-Before reports are:
-
-- committed
-- uploaded
-- sent to Telegram
-
-The system validates quality.
-
-Minimum score:
-
-```text
-75
-```
-
-Low-quality reports are rejected.
-
----
-
-# Backup System
-
-Location:
-
-```text
-scripts/create_backup.py
-.github/workflows/daily-backup.yml
-```
-
-Daily backups include:
-
-```text
-reports/
-data/
-.cache/polygon/
-```
-
-Backup artifacts are uploaded automatically.
+- governance
+- reporting
+- optimization
+- outcome tracking
+- monitoring
+- simulation
+- probabilistic infrastructure
+- negative override logic
 
 ---
 
@@ -597,27 +412,31 @@ Responsible for:
 
 ---
 
-# Testing
+# Contributing
 
-Run tests:
+Contributions are welcome.
 
-```bash
-pytest
+Recommended workflow:
+
+```text
+1. Create feature branch
+2. Add implementation
+3. Add tests
+4. Run pytest
+5. Open pull request
 ```
 
-Test coverage includes:
+---
 
-- governance
-- reporting
-- optimization
-- outcome tracking
-- monitoring
-- simulation
-- probabilistic infrastructure
-- network layer
-- memory systems
-- quality infrastructure
-- negative override logic
+# License
+
+Currently:
+
+```text
+All Rights Reserved
+```
+
+Until an open-source license is explicitly added.
 
 ---
 
