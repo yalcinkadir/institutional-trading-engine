@@ -9,3 +9,13 @@ def test_metrics_registry_increment():
     exported = registry.export()
 
     assert exported["metrics"]["reports_generated_total"] == 1
+
+
+def test_prometheus_export_contains_metric():
+    registry = MetricsRegistry()
+
+    registry.increment("api_requests_total")
+
+    output = registry.export_prometheus()
+
+    assert "api_requests_total" in output
