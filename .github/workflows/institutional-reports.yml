@@ -2,8 +2,11 @@ name: Institutional Reports
 
 on:
   schedule:
+    # Premarket report: Sunday to Friday before US market open.
     - cron: "30 12 * * 0-5"
-    - cron: "30 20 * * 1-5"
+    # Postmarket report: Monday to Friday after US market close, with buffer for close data.
+    - cron: "0 21 * * 1-5"
+    # Weekly report: Saturday strategic review.
     - cron: "0 8 * * 6"
   workflow_dispatch:
     inputs:
@@ -57,7 +60,7 @@ jobs:
             REPORT_TYPE="${{ github.event.inputs.report_type }}"
           elif [[ "${{ github.event.schedule }}" == "30 12 * * 0-5" ]]; then
             REPORT_TYPE="premarket"
-          elif [[ "${{ github.event.schedule }}" == "30 20 * * 1-5" ]]; then
+          elif [[ "${{ github.event.schedule }}" == "0 21 * * 1-5" ]]; then
             REPORT_TYPE="postmarket"
           else
             REPORT_TYPE="weekly"
@@ -93,7 +96,15 @@ jobs:
           mkdir -p "$(dirname "$REPORT_FILE")"
           python scripts/generate_report.py --type "$REPORT_TYPE" --output "$REPORT_FILE"
           cp "$REPORT_FILE" "$LATEST_FILE"
-          find reports -type f -maxdepth 3 -print
+          find reports -maxdepth 3 -type f -print
+
+      - name: Validate report quality
+        shell: bash
+        run: |
+          python scripts/validate_report_quality.py \
+            --type "$REPORT_TYPE" \
+            --file "$REPORT_FILE" \
+            --min-score 75
 
       - name: Commit generated reports to repository
         shell: bash
