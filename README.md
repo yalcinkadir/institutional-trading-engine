@@ -1,308 +1,486 @@
 # Institutional Trading Engine
 
-Advanced institutional-grade market intelligence, portfolio analysis, execution analysis, adaptive scoring, simulation, governance and multi-agent decision platform.
+Institutional-grade market analysis, reporting, screening, governance and outcome-tracking platform.
 
-This project is not designed as a black-box trading bot.
+The project is designed as:
 
-The goal is to build a transparent, explainable and testable institutional decision intelligence framework.
-
----
-
-## Core Philosophy
-
-The architecture is intentionally:
-
-- deterministic
-- explainable
 - modular
-- testable
-- risk-first
-- anti-overfitting
 - auditable
+- deterministic
 - reproducible
+- explainable
+- risk-first
+- production-oriented
 
-No uncontrolled AI execution.  
-No opaque signal generation.  
-No hidden optimization layer without validation.
+The system is NOT intended to be a black-box trading bot.
 
-Every decision layer must remain inspectable and testable.
+Instead, it acts as an institutional intelligence platform that:
+
+- analyzes markets
+- evaluates regimes
+- ranks opportunities
+- generates reports
+- validates report quality
+- stores historical reports
+- tracks outcomes
+- measures signal quality
+- prepares adaptive intelligence
 
 ---
 
-## Platform Maturity
-
-Current platform maturity:
+# How The System Works
 
 ```text
-Institutional Multi-Agent Intelligence Network
-```
-
-Core capabilities:
-
-- autonomous workflows
-- institutional decision fusion
-- adaptive intelligence
-- strategic macro analysis
-- governance enforcement
-- simulation and optimization
-- distributed intelligence coordination
-- Telegram automation
-- report quality validation
-
----
-
-## Feature Overview
-
-### Market Intelligence
-
-- Market regime analysis
-- Breadth analysis
-- VIX integration
-- Risk-on / risk-off analysis
-- Volatility structure
-- Sector rotation
-- Liquidity conditions
-- Macro cross-market signals
-- Event risk
-- Regime transition analysis
-
-### Relative Strength & Screening
-
-- Relative strength ranking
-- Leader detection
-- Weak-name detection
-- Asset ranking
-- Setup readiness
-- Confidence scoring
-- Watchlist generation
-
-### Trading & Decision Engines
-
-- Entry engine
-- Risk engine
-- Setup readiness scoring
-- Confidence scoring
-- Conflict resolution
-- Institutional conviction scoring
-- Final recommendation engine
-- Centralized decision fusion
-
-### Portfolio Intelligence
-
-- Exposure analysis
-- Correlation analysis
-- Sector concentration analysis
-- Position optimization
-- Portfolio simulation
-- Portfolio risk classification
-
-### Execution Intelligence
-
-- Liquidity analysis
-- Slippage estimation
-- Entry timing analysis
-- Volatility filtering
-- Execution suitability analysis
-
-### Adaptive Intelligence
-
-- Adaptive factor weighting
-- Signal quality analysis
-- Alpha tracking
-- Regime performance analysis
-- Strategy performance feedback
-
-### Autonomous Intelligence
-
-- Scenario planning
-- Regime forecasting
-- Dynamic watchlist planning
-- Risk profile adaptation
-
-### Strategic Intelligence
-
-- Macro regime analysis
-- Intermarket analysis
-- Sector rotation analysis
-- Global risk monitoring
-
-### Institutional Memory
-
-- Historical regime memory
-- Pattern memory
-- Trade memory
-- Anomaly memory
-- Similar-regime matching
-
-### Research Intelligence
-
-- News sentiment analysis
-- Narrative detection
-- Event-risk analysis
-- Earnings-risk analysis
-
-### Meta Intelligence
-
-- System health monitoring
-- Model drift detection
-- Decision auditing
-- Self evaluation
-
-### Simulation Layer
-
-- Market scenario simulation
-- Stress testing
-- Portfolio growth simulation
-- Probability engine
-
-### Optimization Layer
-
-- Portfolio weight optimization
-- Risk/reward optimization
-- Capital allocation
-- Adaptive strategy weighting
-
-### Governance Layer
-
-- Global risk-limit enforcement
-- Compliance validation
-- Emergency kill switch
-- Exposure policy enforcement
-
-### Institutional OS
-
-- Module orchestration
-- Workflow engine
-- Task routing
-- Priority management
-
-### Intelligence Network
-
-- Multi-agent coordination
-- Consensus engine
-- Distributed analysis
-- Intelligence sharing
-
----
-
-## Architecture
-
-```text
-src/
-├── analytics/
-├── autonomy/
-├── core/
-├── data/
-├── execution/
-├── governance/
-├── indicators/
-├── memory/
-├── meta/
-├── network/
-├── optimization/
-├── os/
-├── portfolio/
-├── relative_strength/
-├── reporting/
-├── research/
-├── scoring/
-├── screening/
-├── simulation/
-├── strategy/
-└── trading/
-
-tests/
-├── test_adaptive_intelligence.py
-├── test_analytics_layer.py
-├── test_autonomous_intelligence.py
-├── test_decision_core.py
-├── test_execution_intelligence.py
-├── test_governance_layer.py
-├── test_memory_layer.py
-├── test_meta_intelligence.py
-├── test_network_layer.py
-├── test_operating_system.py
-├── test_optimization_layer.py
-├── test_portfolio_intelligence.py
-├── test_research_intelligence.py
-├── test_screening_engine.py
-├── test_simulation_layer.py
-├── test_strategic_intelligence.py
-└── test_trading_engines.py
+Market Data
+    ↓
+Market Regime Engine
+    ↓
+Relative Strength & Screening
+    ↓
+Research / Macro / Risk Layers
+    ↓
+Decision Fusion
+    ↓
+Governance Controls
+    ↓
+Report Generation
+    ↓
+Telegram Delivery
+    ↓
+Historical Storage
+    ↓
+Outcome Tracking
+    ↓
+Adaptive Intelligence
 ```
 
 ---
 
-## Automated Reports
+# Reporting System
 
-### Premarket Report
+Location:
 
-Sent automatically Sunday to Friday before the US market open.
+```text
+scripts/generate_report.py
+src/reporting/
+```
 
-Includes:
+The platform automatically generates institutional reports.
 
-- market regime
-- volatility risk
-- watchlist candidates
+## Premarket Report
+
+Purpose:
+Prepare before the US market opens.
+
+Schedule:
+Sunday-Friday before market open.
+
+Contains:
+
+- SPY / QQQ trend analysis
+- VIX analysis
+- Market Health Score
+- breadth analysis
 - setup readiness
-- strategic analysis
-- institutional recommendations
-
-### Postmarket Report
-
-Sent automatically Monday to Friday after the US market close.
-
-Includes:
-
-- market review
-- performance analysis
-- signal validation
-- regime tracking
-- leader / weak-name review
-- adaptive intelligence updates
-
-### Weekly Institutional Report
-
-Sent automatically every Saturday.
-
-Includes:
-
-- weekly winners / losers
-- recommended assets
-- performance attribution
-- signal quality
-- risk review
-- strategy review
-- meta intelligence summary
+- watchlists
+- risk warnings
 
 ---
 
-## Telegram Integration
+## Postmarket Report
 
-Reports are automatically delivered to Telegram when these GitHub Secrets are configured:
+Purpose:
+Analyze the completed market session.
+
+Schedule:
+Monday-Friday after market close.
+
+Contains:
+
+- leaders
+- weak names
+- volatility expansion
+- signal validation
+- relative strength review
+- market regime confirmation
+
+---
+
+## Weekly Report
+
+Purpose:
+Strategic institutional review.
+
+Schedule:
+Saturday.
+
+Contains:
+
+- regime evolution
+- strongest setups
+- weak setups
+- performance attribution
+- strategic observations
+- adaptive intelligence preparation
+
+---
+
+# Report Storage
+
+Reports are automatically committed into the repository.
+
+Structure:
+
+```text
+reports/
+├── premarket/
+├── postmarket/
+├── weekly/
+├── outcomes/
+├── premarket-report.md
+├── postmarket-report.md
+└── weekly-report.md
+```
+
+Examples:
+
+```text
+reports/premarket/2026-05-19-premarket.md
+reports/postmarket/2026-05-19-postmarket.md
+reports/weekly/2026-W20-weekly.md
+```
+
+Meaning:
+
+- dated files = historical archive
+- latest files = current version
+
+Important:
+
+Historical reports are used later for:
+
+- outcome tracking
+- signal attribution
+- adaptive intelligence
+- regime similarity
+- future ML analysis
+
+---
+
+# Telegram Integration
+
+Reports are automatically delivered to Telegram.
+
+Required GitHub Secrets:
 
 ```env
 TELEGRAM_BOT_TOKEN=
 TELEGRAM_CHAT_ID=
 ```
 
-Optional generic webhook support:
+Telegram delivery includes:
 
-```env
-REPORT_WEBHOOK_URL=
+- compact summary message
+- full markdown report document
+
+Summary contains:
+
+- Market Regime
+- Final Recommendation
+- Leaders
+- Weak Names
+- Risk Warnings
+
+---
+
+# Market Regime Engine
+
+Location:
+
+```text
+src/reporting/market_regime.py
 ```
 
-Required market data secret:
+Responsible for:
 
-```env
-POLYGON_API_KEY=
+- SPY trend analysis
+- QQQ trend analysis
+- VIX analysis
+- breadth analysis
+- Market Health Score
+- regime classification
+
+Data states:
+
+```text
+LIVE
+PARTIAL
+FALLBACK
+```
+
+## LIVE
+All market feeds loaded successfully.
+
+## PARTIAL
+Some feeds failed but the report still works.
+
+Example:
+
+```text
+SPY ok
+QQQ ok
+VIX failed
+```
+
+## FALLBACK
+Most or all market feeds failed.
+
+---
+
+# Polygon Data Layer
+
+Location:
+
+```text
+src/data/polygon_client.py
+```
+
+Features:
+
+- retry logic
+- rate-limit handling
+- timeout protection
+- disk cache
+- graceful recovery
+
+Cache location:
+
+```text
+.cache/polygon/
 ```
 
 ---
 
-## Testing
+# Governance Layer
 
-Run the deterministic test suite:
+Location:
+
+```text
+src/governance/
+```
+
+Responsible for:
+
+- risk limits
+- compliance checks
+- kill switches
+- exposure policies
+
+Purpose:
+Prevent unstable or dangerous recommendations.
+
+---
+
+# Optimization Layer
+
+Location:
+
+```text
+src/optimization/
+```
+
+Responsible for:
+
+- portfolio optimization
+- capital allocation
+- risk/reward analysis
+- adaptive weighting
+
+---
+
+# Intelligence Network
+
+Location:
+
+```text
+src/network/
+```
+
+Responsible for:
+
+- multi-agent coordination
+- distributed analysis
+- consensus building
+- intelligence sharing
+
+Purpose:
+Simulate institutional multi-engine decision systems.
+
+---
+
+# Outcome Tracking
+
+Location:
+
+```text
+src/outcomes/
+reports/outcomes/
+```
+
+Current status:
+
+```text
+FOUNDATION IMPLEMENTED
+AUTO-GENERATION NOT YET ACTIVE
+```
+
+Currently implemented:
+
+- signal classification
+- win/loss analysis
+- regime performance analysis
+- outcome summaries
+
+Not yet implemented:
+
+- automatic daily outcome generation
+- automatic signal extraction from reports
+- automatic performance comparison
+
+This is why:
+
+```text
+reports/outcomes/
+```
+
+may still be empty.
+
+Planned future structure:
+
+```text
+reports/outcomes/
+├── 2026-05-19-outcomes.md
+├── 2026-05-20-outcomes.md
+└── latest-outcomes.md
+```
+
+---
+
+# Database & Persistence
+
+Location:
+
+```text
+src/storage/sqlite_store.py
+```
+
+Current persistent storage:
+
+- reports
+- signals
+- telemetry
+
+Database:
+
+```text
+data/institutional_engine.db
+```
+
+---
+
+# Monitoring & Telemetry
+
+Location:
+
+```text
+src/monitoring/
+```
+
+Responsible for:
+
+- telemetry tracking
+- operational metrics
+- anomaly alerts
+- production monitoring
+
+Examples:
+
+- high latency
+- high failure rate
+- low cache efficiency
+
+---
+
+# Quality Validation
+
+Location:
+
+```text
+scripts/validate_report_quality.py
+```
+
+Before reports are:
+
+- committed
+- uploaded
+- sent to Telegram
+
+The system validates quality.
+
+Minimum score:
+
+```text
+75
+```
+
+Low-quality reports are rejected.
+
+---
+
+# Backup System
+
+Location:
+
+```text
+scripts/create_backup.py
+.github/workflows/daily-backup.yml
+```
+
+Daily backups include:
+
+```text
+reports/
+data/
+.cache/polygon/
+```
+
+Backup artifacts are uploaded automatically.
+
+---
+
+# GitHub Actions
+
+Main workflows:
+
+```text
+.github/workflows/institutional-reports.yml
+.github/workflows/daily-backup.yml
+```
+
+Responsible for:
+
+- scheduled reports
+- Telegram delivery
+- report archival
+- quality validation
+- backups
+- artifact uploads
+
+---
+
+# Testing
+
+Run tests:
 
 ```bash
 pytest
@@ -310,156 +488,62 @@ pytest
 
 Test coverage includes:
 
-- trading engines
-- decision core
 - governance
-- simulation
+- reporting
 - optimization
-- portfolio intelligence
-- execution intelligence
+- outcome tracking
+- monitoring
+- simulation
+- probabilistic infrastructure
+- network layer
 - memory systems
-- meta intelligence
-- network intelligence
-- research intelligence
-- strategic intelligence
-- report quality validation
+- quality infrastructure
 
 ---
 
-## GitHub Actions
+# Current Platform Status
 
-Automated workflows include:
-
-- scheduled institutional reports
-- manual report execution
-- Telegram delivery
-- artifact upload
-- report quality validation
-- deterministic test validation
-- CI quality gates
-
----
-
-## Example Commands
-
-Generate a premarket report:
-
-```bash
-python scripts/generate_report.py --type premarket --output reports/premarket-report.md
-```
-
-Generate a postmarket report:
-
-```bash
-python scripts/generate_report.py --type postmarket --output reports/postmarket-report.md
-```
-
-Generate a weekly report:
-
-```bash
-python scripts/generate_report.py --type weekly --output reports/weekly-report.md
-```
-
-Validate report quality:
-
-```bash
-python scripts/validate_report_quality.py --type premarket --file reports/premarket-report.md --min-score 75
-```
-
----
-
-## Institutional Decision Flow
+Current maturity:
 
 ```text
-Market Data
-    ↓
-Market Regime Engine
-    ↓
-Screening & Relative Strength
-    ↓
-Research / Macro / Risk Layers
-    ↓
-Decision Fusion
-    ↓
-Conviction Engine
-    ↓
-Governance Controls
-    ↓
-Final Recommendation
-    ↓
-Telegram / Report Output
-    ↓
-Outcome Tracking
-    ↓
-Memory / Adaptive Learning
+Production-Oriented Institutional Intelligence Platform
 ```
-
----
-
-## Current Capabilities
 
 Implemented:
 
-- Live market report architecture
-- Polygon.io data client
-- Market Health Score
-- Relative Strength Engine
-- Ranking Engine
-- Setup Readiness
-- Confidence Score
-- Entry Engine
-- Risk Engine
-- Portfolio Intelligence
-- Execution Intelligence
-- Adaptive Intelligence
-- Autonomous Intelligence
-- Strategic Intelligence
-- Institutional Memory
-- Meta Intelligence
-- Research Intelligence
-- Decision Core
-- Institutional OS
-- Simulation Layer
-- Optimization Layer
-- Governance Layer
-- Intelligence Network
-- Telegram automation
-- Report quality validation
-- Deterministic test suite
+- report automation
+- historical report storage
+- Telegram integration
+- governance controls
+- optimization layer
+- intelligence network
+- monitoring
+- backups
+- probabilistic infrastructure
+- outcome tracking foundation
+- quality validation
 
----
+Still missing for full production maturity:
 
-## Future Roadmap
-
-Potential future improvements:
-
-- real-time streaming pipelines
-- stronger Polygon retry / caching layer
-- database historization
-- Monte Carlo simulation
-- walk-forward validation
-- feature importance analysis
-- explainability dashboards
-- live monitoring
-- canary / shadow validation
-- API failover systems
-- advanced statistical modeling
-- performance attribution
-- production observability
-- rate-limit management
+- streaming pipelines
 - dashboard UI
+- Redis cache
+- async workers
+- Postgres migration
+- feature importance
+- live outcome generation
+- regime similarity engine
+- ML inference
+- observability dashboards
 
 ---
 
-## Disclaimer
+# Disclaimer
 
 This project is intended for:
 
 - research
 - education
-- system design
-- market structure analysis
+- institutional analysis experiments
 
-It is not financial advice.  
-No guarantees of profitability exist.  
-Use at your own risk.
+It is not financial advice.
