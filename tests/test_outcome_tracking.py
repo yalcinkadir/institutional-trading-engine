@@ -10,6 +10,9 @@ from outcome_tracking import (  # noqa: E402
     calculate_basic_expectancy,
     read_decision_records,
 )
+from src.outcomes.outcome_summary import summarize_outcomes
+from src.outcomes.regime_outcome import evaluate_regime_performance
+from src.outcomes.signal_outcome import classify_signal_outcome
 
 
 def test_append_and_read_decision_records(tmp_path):
@@ -61,3 +64,36 @@ def test_expectancy_returns_zero_stats_without_results():
 
     assert stats["count"] == 0
     assert stats["expectancy"] == 0.0
+
+
+def test_signal_outcome():
+    result = classify_signal_outcome(
+        entry_price=100,
+        current_price=110,
+    )
+
+    assert result["classification"] == "WIN"
+
+
+def test_regime_outcomes():
+    result = evaluate_regime_performance(
+        [
+            {"regime": "bullish", "performance_percent": 10},
+            {"regime": "bullish", "performance_percent": 6},
+            {"regime": "bearish", "performance_percent": -5},
+        ]
+    )
+
+    assert result["bullish"]["average_performance"] == 8
+
+
+def test_outcome_summary():
+    result = summarize_outcomes(
+        [
+            {"classification": "WIN", "performance_percent": 10},
+            {"classification": "LOSS", "performance_percent": -5},
+            {"classification": "WIN", "performance_percent": 8},
+        ]
+    )
+
+    assert result["win_rate"] > 60
