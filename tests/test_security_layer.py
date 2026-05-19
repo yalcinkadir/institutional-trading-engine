@@ -14,7 +14,10 @@ def test_metrics_requires_jwt_token():
 
 
 def test_metrics_accepts_admin_token():
-    token = create_access_token("admin-user")
+    token = create_access_token(
+        "admin-user",
+        role="admin",
+    )
 
     response = client.get(
         "/metrics",
@@ -23,4 +26,20 @@ def test_metrics_accepts_admin_token():
         },
     )
 
-    assert response.status_code in [200, 403]
+    assert response.status_code == 200
+
+
+def test_viewer_cannot_access_metrics():
+    token = create_access_token(
+        "viewer-user",
+        role="viewer",
+    )
+
+    response = client.get(
+        "/metrics",
+        headers={
+            "Authorization": f"Bearer {token}",
+        },
+    )
+
+    assert response.status_code == 403
