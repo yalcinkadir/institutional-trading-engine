@@ -18,473 +18,120 @@ The project is designed as:
 
 The system is NOT intended to be a black-box trading bot.
 
-Instead, it acts as an institutional intelligence platform that:
-
-- analyzes markets
-- evaluates regimes
-- ranks opportunities
-- generates reports
-- validates report quality
-- stores historical reports
-- tracks outcomes
-- measures signal quality
-- prepares adaptive intelligence
-- applies institutional risk overrides
+Instead, it acts as an institutional intelligence platform.
 
 ---
 
-# Quick Start
+# Architecture Reality Check
 
-## Requirements
+A critical architectural clarification:
 
-- Python 3.11+
-- Git
-- Polygon.io API Key
-- GitHub Actions enabled
+The repository now contains many institutional intelligence modules.
 
----
+However, not all modules are fully integrated into a single live runtime pipeline yet.
 
-## Installation
+Current state:
 
-Clone repository:
-
-```bash
-git clone https://github.com/yalcinkadir/institutional-trading-engine.git
-cd institutional-trading-engine
-```
-
-Create virtual environment:
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-```
-
-Install dependencies:
-
-```bash
-pip install -r requirements.txt
-```
+| Layer | Status |
+|---|---|
+| Individual Engines | Implemented |
+| Unit Tests | Mostly implemented |
+| Architecture Docs | Partially implemented |
+| End-to-End Orchestration | Partially implemented |
+| Fully Unified Runtime Pipeline | In progress |
 
 ---
 
-## Environment Setup
+# Connected Runtime Decision Flow
 
-Create:
+The following engines are NOW connected through:
 
 ```text
-.env
+src/orchestration/institutional_decision_orchestrator.py
 ```
 
-Example:
-
-```env
-POLYGON_API_KEY=your_api_key
-TELEGRAM_BOT_TOKEN=your_bot_token
-TELEGRAM_CHAT_ID=your_chat_id
-```
-
----
-
-## Generate Premarket Report
-
-```bash
-python scripts/generate_report.py \
-  --type premarket \
-  --output reports/premarket/test-report.md
-```
-
----
-
-## Generate Outcome Reports
-
-```bash
-python scripts/generate_outcomes.py
-```
-
----
-
-## Run Tests
-
-```bash
-pytest
-```
-
----
-
-# Repository Structure
+Connected layers:
 
 ```text
-institutional-trading-engine/
-├── .github/workflows/
-├── reports/
-├── scripts/
-├── src/
-│   ├── core/
-│   ├── data/
-│   ├── governance/
-│   ├── monitoring/
-│   ├── network/
-│   ├── optimization/
-│   ├── outcomes/
-│   ├── reporting/
-│   ├── simulation/
-│   ├── storage/
-│   └── strategy/
-├── tests/
-├── data/
-└── README.md
+Cross Asset Intelligence
+→ Tail Risk Engine
+→ Liquidity Intelligence
+→ Portfolio Intelligence
+→ Macro Regime Fusion
+→ Slippage Intelligence
+→ Multi-Factor Fusion
+→ Probabilistic Decision Engine
+→ Confidence Weighted Execution
 ```
+
+This now represents the first true institutional end-to-end decision pipeline inside the repository.
 
 ---
 
-# How The System Works
+# End-to-End Integration Validation
+
+The repository now contains a real integration test:
 
 ```text
-Market Data
-    ↓
-Market Regime Engine
-    ↓
-Relative Strength & Screening
-    ↓
-Research / Macro / Risk Layers
-    ↓
-Decision Fusion
-    ↓
-Negative Override Layer
-    ↓
-Governance Controls
-    ↓
-Report Generation
-    ↓
-Telegram Delivery
-    ↓
-Historical Storage
-    ↓
-Outcome Tracking
-    ↓
-Adaptive Intelligence
+tests/test_end_to_end_institutional_flow.py
 ```
+
+This validates that the major intelligence engines:
+
+- communicate together
+- exchange outputs
+- produce a unified institutional decision
+- generate final exposure sizing
+- create explainable reasoning
+
+This is one of the most important architectural milestones.
 
 ---
 
-# Decision Safety Architecture
-
-One of the most important architectural principles:
-
-```text
-High scores alone are NOT enough.
-```
-
-The platform now includes:
-
-```text
-Negative Override Logic
-```
-
-Purpose:
-Prevent dangerous recommendations even when setup scores are high.
-
-Example:
-
-```text
-NVDA
-Score: 90
-Conviction: High
-
-BUT:
-- Earnings tomorrow
-- VIX elevated
-- Event risk high
-
-→ Final recommendation downgraded automatically
-```
-
----
-
-# Reporting System
-
-Location:
-
-```text
-scripts/generate_report.py
-src/reporting/
-```
-
-The platform automatically generates institutional reports.
-
-## Premarket Report
-
-Purpose:
-Prepare before the US market opens.
-
-Schedule:
-Sunday-Friday before market open.
-
-Contains:
-
-- SPY / QQQ trend analysis
-- VIX analysis
-- Market Health Score
-- breadth analysis
-- setup readiness
-- watchlists
-- risk warnings
-- institutional recommendation logic
-
----
-
-## Postmarket Report
-
-Purpose:
-Analyze the completed market session.
-
-Schedule:
-Monday-Friday after market close.
-
-Contains:
-
-- leaders
-- weak names
-- volatility expansion
-- signal validation
-- relative strength review
-- market regime confirmation
-- risk override validation
-
----
-
-## Weekly Report
-
-Purpose:
-Strategic institutional review.
-
-Schedule:
-Saturday.
-
-Contains:
-
-- regime evolution
-- strongest setups
-- weak setups
-- performance attribution
-- strategic observations
-- adaptive intelligence preparation
-- outcome review
-
----
-
-# Report Storage
-
-Reports are automatically committed into the repository.
-
-Structure:
-
-```text
-reports/
-├── premarket/
-├── postmarket/
-├── weekly/
-├── outcomes/
-├── premarket-report.md
-├── postmarket-report.md
-└── weekly-report.md
-```
-
----
-
-# Outcome Tracking System
-
-Location:
-
-```text
-scripts/generate_outcomes.py
-src/outcomes/
-reports/outcomes/
-```
-
-Generated files:
-
-```text
-reports/outcomes/
-├── YYYY-MM-DD-outcomes.md
-├── latest-outcomes.md
-├── outcome-history.json
-└── signal-performance.json
-```
-
-Capabilities:
-
-- WIN / LOSS / NEUTRAL classification
-- signal extraction
-- winrate analysis
-- average performance tracking
-- signal persistence
-- structured JSON output
-
----
-
-# Telegram Integration
-
-Reports are automatically delivered to Telegram.
-
-Required GitHub Secrets:
-
-```env
-TELEGRAM_BOT_TOKEN=
-TELEGRAM_CHAT_ID=
-```
-
----
-
-# Market Regime Engine
-
-Location:
-
-```text
-src/reporting/market_regime.py
-```
-
-Data states:
-
-```text
-LIVE
-PARTIAL
-FALLBACK
-```
-
-The platform supports:
-
-```text
-Graceful Degradation
-```
-
-Single feed failures no longer destroy the entire report.
-
----
-
-# Testing
-
-Run all tests:
-
-```bash
-pytest
-```
-
-Run specific test file:
-
-```bash
-pytest tests/test_negative_override.py
-```
-
-Test coverage includes:
-
-- governance
-- reporting
-- optimization
-- outcome tracking
-- monitoring
-- simulation
-- probabilistic infrastructure
-- negative override logic
-
----
-
-# GitHub Actions
-
-Main workflows:
-
-```text
-.github/workflows/institutional-reports.yml
-.github/workflows/outcome-tracking.yml
-.github/workflows/daily-backup.yml
-```
-
-Responsible for:
-
-- scheduled reports
-- outcome generation
-- Telegram delivery
-- report archival
-- quality validation
-- backups
-- artifact uploads
-
----
-
-# Contributing
-
-Contributions are welcome.
-
-Recommended workflow:
-
-```text
-1. Create feature branch
-2. Add implementation
-3. Add tests
-4. Run pytest
-5. Open pull request
-```
-
----
-
-# License
+# Current Architectural Reality
 
 Currently:
 
 ```text
-All Rights Reserved
+Some modules are fully connected.
+Some modules are still standalone intelligence layers.
 ```
 
-Until an open-source license is explicitly added.
+Examples of connected systems:
+
+- Macro Regime Fusion
+- Cross Asset Intelligence
+- Tail Risk Intelligence
+- Liquidity Intelligence
+- Portfolio Intelligence
+- Multi-Factor Fusion
+- Probabilistic Decisions
+- Confidence-Weighted Execution
+
+Examples of partially isolated systems:
+
+- Event Bus
+- Background Workers
+- Redis Runtime
+- Postgres Runtime
+- Regime Similarity Memory
+- Feature Attribution Learning
+- Adaptive Weighting Persistence
+
+These exist and are tested individually, but are not yet fully integrated into one continuous runtime orchestration layer.
 
 ---
 
-# Current Platform Status
+# Development Standard
 
-Current maturity:
+No new feature should be added without:
 
 ```text
-Production-Oriented Institutional Intelligence Platform
+- tests
+- architecture documentation
+- explainability
+- operational notes
+- deterministic behavior
 ```
 
-Implemented:
-
-- report automation
-- historical report storage
-- Telegram integration
-- governance controls
-- optimization layer
-- intelligence network
-- monitoring
-- backups
-- probabilistic infrastructure
-- outcome tracking automation
-- negative override layer
-- graceful degradation
-- quality validation
-
-Still missing for full production maturity:
-
-- streaming pipelines
-- dashboard UI
-- Redis cache
-- async workers
-- Postgres migration
-- feature importance
-- regime similarity engine
-- ML inference
-- observability dashboards
-- real market outcome evaluation
-
----
-
-# Disclaimer
-
-This project is intended for:
-
-- research
-- education
-- institutional analysis experiments
-
-It is not financial advice.
+This is now considered an institutional development requirement.
