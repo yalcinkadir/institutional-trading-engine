@@ -4,10 +4,10 @@ from fastapi import Depends, FastAPI, Request
 from fastapi.responses import PlainTextResponse
 
 from src.api.audit_log import audit_logger
-from src.api.auth import validate_api_key
 from src.api.health_api import health_response
 from src.api.metrics_api import metrics_registry
 from src.api.rate_limit import rate_limiter
+from src.api.security import require_permission
 
 app = FastAPI(title="Institutional Trading Engine")
 
@@ -50,7 +50,10 @@ def health(request: Request) -> dict:
     return health_response()
 
 
-@app.get("/metrics", dependencies=[Depends(validate_api_key)])
+@app.get(
+    "/metrics",
+    dependencies=[Depends(require_permission("metrics"))],
+)
 def metrics(request: Request) -> dict:
     apply_rate_limit(request)
     audit_request("/metrics", request)
@@ -63,7 +66,7 @@ def metrics(request: Request) -> dict:
 @app.get(
     "/metrics/prometheus",
     response_class=PlainTextResponse,
-    dependencies=[Depends(validate_api_key)],
+    dependencies=[Depends(require_permission("metrics"))],
 )
 def prometheus_metrics(request: Request) -> str:
     apply_rate_limit(request)
