@@ -1,6 +1,6 @@
 # Institutional Trading Engine — POSTMARKET REPORT
 
-Generated: 2026-05-19 21:40 UTC
+Generated: 2026-05-20 21:15 UTC
 
 ## Market Regime
 
@@ -22,9 +22,15 @@ Generated: 2026-05-19 21:40 UTC
 - SMA200: 557.14 ✅
 - ATR14: 7.48
 
+#### VIX
+- Close: DATA_UNAVAILABLE
+- SMA50: DATA_UNAVAILABLE
+- SMA200: DATA_UNAVAILABLE
+- ATR14: DATA_UNAVAILABLE
+
 ### Market Breadth
-- Universe Size: 10
-- Above SMA50: 6
+- Universe Size: 5
+- Above SMA50: 3
 - Breadth %: 60.0%
 
 ## Cross-Asset Regime
@@ -48,11 +54,10 @@ Generated: 2026-05-19 21:40 UTC
 
 - Market State: low_vol_bull
 - Portfolio Heat Limit: 1.0
-- Approved / Reduced Size Candidates: 0
-- Blocked / No Trade Candidates: 8
+- Approved / Reduced Size: 6
+- Blocked / No Trade: 0
 
-### Hard Overrides
-- liquidity_stress
+> ℹ️ Data feeds partial (Free Polygon tier — VIX unavailable). Data confidence reduced; sizing conservative.
 
 ### Active Strategy Types
 - momentum_breakout
@@ -60,59 +65,49 @@ Generated: 2026-05-19 21:40 UTC
 - speculative_growth
 
 ### Decision Summary
-- Hard risk override active. The report should prioritize defense and avoid new aggressive exposure.
+- Decision context allows selective risk-taking in regime-aligned setups.
 
 ### Ranked Opportunities
 
 #### MSFT
-- Decision: blocked
-- Risk Tier: no_trade
-- Setup Type: momentum_breakout
-- Position Size Multiplier: 0.0
-- Setup Score: 82
-- Regime Alignment: 0.82
-- Asymmetry Score: 0.72
-- Data Confidence: 0.45
+- Decision: **approved** | Risk Tier: tier_2
+- Setup Type: momentum_breakout | Size: 0.5x
+- Setup Score: 82.0 | Regime Alignment: 0.82 | Asymmetry Score: 0.72 | Data Confidence: 0.65
 
 #### NVDA
-- Decision: blocked
-- Risk Tier: no_trade
-- Setup Type: momentum_breakout
-- Position Size Multiplier: 0.0
-- Setup Score: 79
-- Regime Alignment: 0.78
-- Asymmetry Score: 0.69
-- Data Confidence: 0.45
+- Decision: **approved** | Risk Tier: tier_2
+- Setup Type: momentum_breakout | Size: 0.5x
+- Setup Score: 79.0 | Regime Alignment: 0.78 | Asymmetry Score: 0.69 | Data Confidence: 0.65
 
 #### META
-- Decision: blocked
-- Risk Tier: no_trade
-- Setup Type: momentum_breakout
-- Position Size Multiplier: 0.0
-- Setup Score: 76
-- Regime Alignment: 0.74
-- Asymmetry Score: 0.66
-- Data Confidence: 0.45
+- Decision: **approved** | Risk Tier: tier_2
+- Setup Type: momentum_breakout | Size: 0.5x
+- Setup Score: 76.0 | Regime Alignment: 0.74 | Asymmetry Score: 0.66 | Data Confidence: 0.65
 
 #### AAPL
-- Decision: blocked
-- Risk Tier: no_trade
-- Setup Type: momentum_breakout
-- Position Size Multiplier: 0.0
-- Setup Score: 73
-- Regime Alignment: 0.7
-- Asymmetry Score: 0.63
-- Data Confidence: 0.45
+- Decision: **approved** | Risk Tier: tier_2
+- Setup Type: momentum_breakout | Size: 0.5x
+- Setup Score: 73.0 | Regime Alignment: 0.7 | Asymmetry Score: 0.63 | Data Confidence: 0.65
 
 #### MU
-- Decision: blocked
-- Risk Tier: no_trade
-- Setup Type: momentum_breakout
-- Position Size Multiplier: 0.0
-- Setup Score: 70
-- Regime Alignment: 0.66
-- Asymmetry Score: 0.6
-- Data Confidence: 0.45
+- Decision: **approved** | Risk Tier: tier_2
+- Setup Type: momentum_breakout | Size: 0.5x
+- Setup Score: 70.0 | Regime Alignment: 0.66 | Asymmetry Score: 0.6 | Data Confidence: 0.65
+
+#### QQQ
+- Decision: **approved** | Risk Tier: tier_2
+- Setup Type: momentum_breakout | Size: 0.5x
+- Setup Score: 67.0 | Regime Alignment: 0.62 | Asymmetry Score: 0.57 | Data Confidence: 0.65
+
+#### GLD
+- Decision: **watch** | Risk Tier: tier_3
+- Setup Type: momentum_breakout | Size: 0.25x
+- Setup Score: 64.0 | Regime Alignment: 0.58 | Asymmetry Score: 0.54 | Data Confidence: 0.65
+
+#### SLV
+- Decision: **watch** | Risk Tier: tier_3
+- Setup Type: momentum_breakout | Size: 0.25x
+- Setup Score: 61.0 | Regime Alignment: 0.54 | Asymmetry Score: 0.51 | Data Confidence: 0.65
 
 ## Post-Market Review
 
