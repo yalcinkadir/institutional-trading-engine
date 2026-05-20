@@ -14,6 +14,8 @@ signals → lifecycle → outcomes → expectancy → future scoring
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from src.decision_engine import (
     Decision,
     MarketContext,
@@ -21,11 +23,11 @@ from src.decision_engine import (
     SetupCandidate,
     SetupType,
     detect_hard_overrides,
-    evaluate_candidate,
     get_allowed_setups,
     rank_candidates,
 )
 from src.scoring.expectancy_adjuster import (
+    DEFAULT_OUTCOME_HISTORY,
     apply_expectancy_to_score,
     default_entry_type_for_setup,
     find_expectancy_adjustment,
@@ -133,6 +135,7 @@ def _candidate_for_symbol(
     index: int,
     context: MarketContext,
     data_quality_ok: bool,
+    outcome_history_path: str | Path = DEFAULT_OUTCOME_HISTORY,
 ) -> tuple[SetupCandidate, dict]:
     """
     Build report candidate and apply historical expectancy adjustment.
@@ -160,6 +163,7 @@ def _candidate_for_symbol(
         setup_type=preferred_setup.value,
         market_state=context.market_state.value,
         entry_type=entry_type,
+        outcome_history_path=outcome_history_path,
     )
     adjusted_setup_score = apply_expectancy_to_score(base_setup_score, adjustment)
 
@@ -198,13 +202,23 @@ def _candidate_for_symbol(
     return candidate, meta
 
 
-def build_decision_report(market_regime: dict, screener: dict) -> dict:
+def build_decision_report(
+    market_regime: dict,
+    screener: dict,
+    outcome_history_path: str | Path = DEFAULT_OUTCOME_HISTORY,
+) -> dict:
     context, data_quality_ok = _build_market_context(market_regime)
     allowed_setups = get_allowed_setups(context.market_state)
     hard_overrides = detect_hard_overrides(context)
 
     candidate_pairs = [
-        _candidate_for_symbol(symbol, index, context, data_quality_ok)
+        _candidate_for_symbol(
+            symbol,
+            index,
+            context,
+            data_quality_ok,
+            outcome_history_path=outcome_history_path,
+        )
         for index, symbol in enumerate(screener.get("watchlist", []))
     ]
     candidates = [candidate for candidate, _meta in candidate_pairs]
