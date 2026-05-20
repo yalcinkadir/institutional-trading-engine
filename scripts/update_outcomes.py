@@ -27,7 +27,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--decision-log",
         default="data/decision_log.csv",
-        help="Path to the persistent decision log CSV.",
+        help="Path to the persistent decision log CSV or JSONL.",
     )
     parser.add_argument(
         "--output",
@@ -74,7 +74,10 @@ def write_expectancy_report(summary: dict, output_path: str | Path) -> Path:
     lines: list[str] = []
     lines.append("# Adaptive Expectancy Report")
     lines.append("")
-    lines.append("This report evaluates historical Decision Engine outcomes by setup, regime and setup-regime combination.")
+    lines.append(
+        "This report evaluates historical Decision Engine outcomes by setup, "
+        "regime, entry type and setup-regime-entry combination."
+    )
     lines.append("")
 
     lines.append("## Strongest Edges")
@@ -95,7 +98,12 @@ def write_expectancy_report(summary: dict, output_path: str | Path) -> Path:
 
     lines.extend(_format_profile_table("Setup Profiles", summary["setup_profiles"]))
     lines.extend(_format_profile_table("Regime Profiles", summary["regime_profiles"]))
+    lines.extend(_format_profile_table("Entry Type Profiles", summary.get("entry_type_profiles", [])))
     lines.extend(_format_profile_table("Combined Setup-Regime Profiles", summary["combined_profiles"]))
+    lines.extend(_format_profile_table(
+        "Setup-Regime-Entry Profiles",
+        summary.get("setup_regime_entry_profiles", []),
+    ))
 
     path.write_text("\n".join(lines), encoding="utf-8")
     return path
