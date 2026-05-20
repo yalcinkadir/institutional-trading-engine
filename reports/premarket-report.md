@@ -1,12 +1,12 @@
 # Institutional Trading Engine — PREMARKET REPORT
 
-Generated: 2026-05-20 21:30 UTC
+Generated: 2026-05-20 21:41 UTC
 
 ## Market Regime
 
 - Data Status: PARTIAL
-- Regime: Strong Bullish (VIX missing)
-- Market Health Score: 80
+- Regime: Bullish (VIX missing)
+- Market Health Score: 75
 
 ### Core Market Metrics
 
@@ -29,9 +29,9 @@ Generated: 2026-05-20 21:30 UTC
 - ATR14: DATA_UNAVAILABLE
 
 ### Market Breadth
-- Universe Size: 7
-- Above SMA50: 5
-- Breadth %: 71.43%
+- Universe Size: 6
+- Above SMA50: 3
+- Breadth %: 50.0%
 
 ## Cross-Asset Regime
 
