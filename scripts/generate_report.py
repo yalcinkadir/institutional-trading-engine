@@ -3,11 +3,12 @@
 
 Usage:
     python scripts/generate_report.py --type premarket --output reports/premarket-report.md
+    python scripts/generate_report.py --type intraday --output reports/intraday-report.md
     python scripts/generate_report.py --type postmarket --output reports/postmarket-report.md
     python scripts/generate_report.py --type weekly --output reports/weekly-report.md
 
-After each pre/postmarket report, a signal JSON and Markdown file are
-written to reports/signals/YYYY-MM-DD-signals.{json,md}.
+After each premarket/intraday/postmarket report, a signal JSON and Markdown file
+is written to reports/signals/YYYY-MM-DD-signals.{json,md}.
 """
 
 from __future__ import annotations
@@ -28,7 +29,7 @@ from src.reporting.report_formatter import format_report
 from src.reporting.screener_engine import build_screener_snapshot
 from src.reporting.weekly_summary import build_weekly_summary
 
-VALID_REPORT_TYPES = {"premarket", "postmarket", "weekly"}
+VALID_REPORT_TYPES = {"premarket", "intraday", "postmarket", "weekly"}
 
 
 def parse_args() -> argparse.Namespace:
@@ -98,12 +99,9 @@ def generate_signals(decision_payload: dict) -> None:
         # Try to load scanner metrics for Entry/Stop/Target levels
         scanner_metrics_map: dict | None = None
         try:
-            from src.data.polygon_client import PolygonClient
-            from src.config import SYMBOLS, BENCHMARK_MAP
             from src.scanner import build_symbol_metrics, get_daily_bars, calculate_20d_return
             import time
 
-            client = PolygonClient()
             benchmark_returns: dict = {}
             for bench in ["QQQ", "SPY", "GLD"]:
                 df = get_daily_bars(bench)
@@ -118,14 +116,15 @@ def generate_signals(decision_payload: dict) -> None:
             scanner_metrics_map = {}
             for sym in watchlist_symbols:
                 try:
-                    m = build_symbol_metrics(sym, benchmark_returns)
-                    scanner_metrics_map[sym] = m
+                    metrics = build_symbol_metrics(sym, benchmark_returns)
+                    scanner_metrics_map[sym] = metrics
                     time.sleep(2)
                 except Exception:
                     pass
 
         except Exception:
-            # Scanner metrics unavailable — signals will use ATR-derived levels only
+            # Scanner metrics unavailable — signals will be created without levels
+            # unless the signal generator can derive them from available fields.
             pass
 
         signals = build_signals(
@@ -157,8 +156,8 @@ def main() -> int:
     else:
         print(report)
 
-    # Generate signals for pre/postmarket reports
-    if args.type in {"premarket", "postmarket"} and decision_payload is not None:
+    # Generate signals for market reports. Weekly is strategic-only.
+    if args.type in {"premarket", "intraday", "postmarket"} and decision_payload is not None:
         generate_signals(decision_payload)
 
     return 0
