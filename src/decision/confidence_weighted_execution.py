@@ -19,14 +19,14 @@ class ConfidenceWeightedExecution:
     ) -> ExecutionPlan:
         confidence = decision.confidence_score
 
-        if confidence >= 80:
+        if confidence >= 70:
             return ExecutionPlan(
                 exposure_percent=100,
                 execution_aggressiveness="high",
                 reasoning="high_confidence_environment",
             )
 
-        if confidence >= 60:
+        if confidence >= 55:
             return ExecutionPlan(
                 exposure_percent=70,
                 execution_aggressiveness="moderate",
