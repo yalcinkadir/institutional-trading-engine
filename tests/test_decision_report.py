@@ -70,7 +70,7 @@ def test_decision_report_detects_panic_dislocation_environment():
     assert "reversal_asymmetry" in report["allowed_setups"]
 
 
-def test_decision_report_uses_liquidity_stress_when_data_fallback_active():
+def test_decision_report_reduces_confidence_when_fallback_active():
     market_regime = {
         "regime": "Bullish",
         "market_health_score": "DATA_UNAVAILABLE",
@@ -85,4 +85,6 @@ def test_decision_report_uses_liquidity_stress_when_data_fallback_active():
 
     report = build_decision_report(market_regime, screener)
 
-    assert report["blocked_count"] >= 1
+    assert len(report["decisions"]) == 1
+    assert report["decisions"][0]["data_confidence"] == 0.65
+    assert report["data_quality_note"]
