@@ -1,7 +1,6 @@
 import json
 from pathlib import Path
 
-import src.reporting.decision_report as decision_report_module
 from src.reporting.decision_report import build_decision_report
 
 
@@ -35,11 +34,14 @@ def _write_history(path: Path, result_5d: float, classification: str = "WIN") ->
     return path
 
 
-def test_decision_report_uses_positive_expectancy_adjustment(tmp_path: Path, monkeypatch):
+def test_decision_report_uses_positive_expectancy_adjustment(tmp_path: Path):
     history = _write_history(tmp_path / "outcome-history.json", result_5d=2.0)
-    monkeypatch.setattr(decision_report_module, "DEFAULT_OUTCOME_HISTORY", history)
 
-    report = build_decision_report(_market_regime(), _screener())
+    report = build_decision_report(
+        _market_regime(),
+        _screener(),
+        outcome_history_path=history,
+    )
     decision = report["decisions"][0]
 
     assert decision["base_setup_score"] == 82
@@ -49,11 +51,14 @@ def test_decision_report_uses_positive_expectancy_adjustment(tmp_path: Path, mon
     assert report["expectancy_adjustments_used"]
 
 
-def test_decision_report_uses_negative_expectancy_adjustment(tmp_path: Path, monkeypatch):
+def test_decision_report_uses_negative_expectancy_adjustment(tmp_path: Path):
     history = _write_history(tmp_path / "outcome-history.json", result_5d=-2.5, classification="LOSS")
-    monkeypatch.setattr(decision_report_module, "DEFAULT_OUTCOME_HISTORY", history)
 
-    report = build_decision_report(_market_regime(), _screener())
+    report = build_decision_report(
+        _market_regime(),
+        _screener(),
+        outcome_history_path=history,
+    )
     decision = report["decisions"][0]
 
     assert decision["setup_score"] == 70.0
@@ -61,14 +66,17 @@ def test_decision_report_uses_negative_expectancy_adjustment(tmp_path: Path, mon
     assert decision["position_size_multiplier"] <= decision["base_position_size_multiplier"]
 
 
-def test_positive_expectancy_is_ignored_when_data_quality_is_partial(tmp_path: Path, monkeypatch):
+def test_positive_expectancy_is_ignored_when_data_quality_is_partial(tmp_path: Path):
     history = _write_history(tmp_path / "outcome-history.json", result_5d=2.0)
-    monkeypatch.setattr(decision_report_module, "DEFAULT_OUTCOME_HISTORY", history)
 
     market = _market_regime()
     market["data_status"] = "PARTIAL"
 
-    report = build_decision_report(market, _screener())
+    report = build_decision_report(
+        market,
+        _screener(),
+        outcome_history_path=history,
+    )
     decision = report["decisions"][0]
 
     assert decision["setup_score"] == decision["base_setup_score"]
