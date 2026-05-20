@@ -98,6 +98,16 @@ def _sorted_profiles(groups: dict[str, list[float]]) -> tuple[ExpectancyProfile,
     )
 
 
+def _qualified_profile_keys(
+    profiles: tuple[ExpectancyProfile, ...],
+) -> tuple[str, ...]:
+    return tuple(
+        profile.key
+        for profile in profiles
+        if profile.trades >= MIN_SAMPLE_SIZE
+    )
+
+
 def build_adaptive_expectancy_report(records: list[dict]) -> AdaptiveExpectancyReport:
     by_setup: dict[str, list[float]] = defaultdict(list)
     by_regime: dict[str, list[float]] = defaultdict(list)
@@ -135,17 +145,11 @@ def build_adaptive_expectancy_report(records: list[dict]) -> AdaptiveExpectancyR
     combined_profiles = _sorted_profiles(by_combination)
     setup_regime_entry_profiles = _sorted_profiles(by_setup_regime_entry)
 
-    strongest_edges = tuple(
-        profile.key
-        for profile in setup_regime_entry_profiles[:5]
-        if profile.trades >= MIN_SAMPLE_SIZE
-    )
-
-    weakest_edges = tuple(
-        profile.key
-        for profile in setup_regime_entry_profiles[-5:]
-        if profile.trades >= MIN_SAMPLE_SIZE
-    )
+    # Public edge keys remain regime::setup for backward compatibility.
+    # The more granular regime::setup::entry_type profiles stay available in
+    # setup_regime_entry_profiles for newer adaptive-scoring consumers.
+    strongest_edges = _qualified_profile_keys(combined_profiles[:5])
+    weakest_edges = _qualified_profile_keys(combined_profiles[-5:])
 
     return AdaptiveExpectancyReport(
         setup_profiles=setup_profiles,
