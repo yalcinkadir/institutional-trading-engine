@@ -14,11 +14,31 @@ def _format_decision_item(item: dict) -> list[str]:
     lines = [f"#### {item['symbol']}"]
     lines.append(f"- Decision: **{item['decision']}** | Risk Tier: {item['risk_tier']}")
     lines.append(f"- Setup Type: {item['setup_type']} | Size: {item['position_size_multiplier']}x")
+
+    base_score = item.get("base_setup_score")
+    setup_score = item.get("setup_score")
+    score_text = f"{setup_score}"
+    if base_score is not None and base_score != setup_score:
+        score_text = f"{setup_score} (base {base_score})"
+
     lines.append(
-        f"- Setup Score: {item['setup_score']} | "
+        f"- Setup Score: {score_text} | "
         f"Regime Alignment: {item['regime_alignment']} | "
         f"Data Confidence: {item['data_confidence']}"
     )
+
+    expectancy = item.get("expectancy") or {}
+    if expectancy and expectancy.get("score_delta") not in {None, 0, 0.0}:
+        lines.append(
+            "- Expectancy Adjustment: "
+            f"score {expectancy.get('score_delta'):+.1f} | "
+            f"size×{expectancy.get('size_multiplier')} | "
+            f"samples {expectancy.get('sample_size')} | "
+            f"win rate {expectancy.get('win_rate')} | "
+            f"expectancy {expectancy.get('expectancy')} | "
+            f"source {expectancy.get('source')}"
+        )
+        lines.append(f"- Expectancy Profile: `{expectancy.get('profile_key')}`")
 
     # Entry / Stop / Target levels (only present when signals module ran)
     entry = item.get("entry_trigger")
@@ -175,6 +195,21 @@ def format_report(payload: dict) -> str:
         lines.append("### ⚠️ Hard Overrides Active")
         for override in hard_overrides:
             lines.append(f"- {override}")
+        lines.append("")
+
+    expectancy_adjustments = decision_report.get("expectancy_adjustments_used", [])
+    if expectancy_adjustments:
+        lines.append("### Adaptive Expectancy Adjustments")
+        lines.append("")
+        for adjustment in expectancy_adjustments[:10]:
+            lines.append(
+                f"- `{adjustment.get('profile_key')}`: "
+                f"score {adjustment.get('score_delta'):+.1f}, "
+                f"size×{adjustment.get('size_multiplier')}, "
+                f"samples {adjustment.get('sample_size')}, "
+                f"expectancy {adjustment.get('expectancy')}, "
+                f"recommendation {adjustment.get('recommendation')}"
+            )
         lines.append("")
 
     data_note = decision_report.get("data_quality_note", "")
