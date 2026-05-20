@@ -708,6 +708,25 @@ def build_data_warnings_section(metrics_map):
     return lines
 
 
+
+def build_setup_score_section(metrics_map: dict, top_n: int = 5) -> list[str]:
+    """Phase 3: Institutional setup score ranking — top N highest-conviction setups."""
+    try:
+        from src.scoring.setup_score_engine import rank_universe
+        ranked = rank_universe(metrics_map, min_score=50.0)
+        if not ranked:
+            return ["## Top Institutional Setups", "", "- No setups above threshold.", ""]
+        lines = ["## Top Institutional Setups (Score ≥ 50)", ""]
+        for r in ranked[:top_n]:
+            lines.append(
+                f"- **{r.symbol}** — {r.label} ({r.score:.0f}/100) | "
+                f"RS: {r.contributions.get('relative_strength', 0):.0f}pt | "
+                f"Trend: {r.contributions.get('trend_quality', 0):.0f}pt"
+            )
+        return lines + [""]
+    except Exception as e:
+        return ["## Top Institutional Setups", "", f"- Score engine error: {e}", ""]
+
 def main():
     if not API_KEY:
         raise RuntimeError("POLYGON_API_KEY fehlt.")
@@ -748,6 +767,8 @@ def main():
     lines.append("")
     lines.extend(build_watchlist_section(metrics_map))
     lines.append("")
+    lines.extend(build_setup_score_section(metrics_map))
+    lines.append("")
     lines.extend(build_leaders_section(metrics_map))
     lines.append("")
     lines.extend(build_weak_names_section(metrics_map))
@@ -769,6 +790,26 @@ def main():
     Path(report_path).write_text("\n".join(lines), encoding="utf-8")
 
     print(f"Report created: {report_path}")
+
+    # ── Phase 1: Institutional Runtime Cycle ────────────────────────────────
+    # Runs AFTER report is written — report is never blocked by cycle errors.
+    # VIX is passed as-is; if None (Free Polygon tier), bridge uses fallback.
+    try:
+        from src.runtime.live_runtime_cycle import (
+            GovernanceBlockedError,
+            live_runtime_cycle,
+        )
+        snapshot = live_runtime_cycle.run(
+            metrics_map=metrics_map,
+            vix_data=vix_data,
+        )
+        print(f"[Runtime] {snapshot.snapshot_id} | {snapshot.regime_summary}")
+    except GovernanceBlockedError as e:
+        print(f"[Runtime] GOVERNANCE BLOCK: {e.reasons}")
+    except Exception as e:
+        print(f"[Runtime] cycle error (non-fatal): {type(e).__name__}: {e}")
+    # ─────────────────────────────────────────────────────────────────────────
+
 
 
 if __name__ == "__main__":
