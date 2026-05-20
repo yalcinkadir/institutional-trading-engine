@@ -33,15 +33,14 @@ def _format_decision_item(item: dict) -> list[str]:
         lines.append(
             "- Expectancy Adjustment: "
             f"score {expectancy.get('score_delta'):+.1f} | "
-            f"size×{expectancy.get('size_multiplier')} | "
-            f"samples {expectancy.get('sample_size')} | "
-            f"win rate {expectancy.get('win_rate')} | "
-            f"expectancy {expectancy.get('expectancy')} | "
+            f"size×{expectancy.get('size_multiplier')}, "
+            f"samples {expectancy.get('sample_size')}, "
+            f"win rate {expectancy.get('win_rate')}, "
+            f"expectancy {expectancy.get('expectancy')}, "
             f"source {expectancy.get('source')}"
         )
         lines.append(f"- Expectancy Profile: `{expectancy.get('profile_key')}`")
 
-    # Entry / Stop / Target levels (only present when signals module ran)
     entry = item.get("entry_trigger")
     stop = item.get("stop_loss")
     t1 = item.get("target_1")
@@ -65,6 +64,28 @@ def _format_decision_item(item: dict) -> list[str]:
 
     lines.append("")
     return lines
+
+
+def _format_market_snapshot(ticker: str, snapshot: dict) -> list[str]:
+    return [
+        f"#### {ticker}",
+        f"- Close: {snapshot.get('close', 'DATA_UNAVAILABLE')}",
+        f"- SMA50: {snapshot.get('sma50', 'DATA_UNAVAILABLE')} {_bool_icon(bool(snapshot.get('above_sma50')))}",
+        f"- SMA200: {snapshot.get('sma200', 'DATA_UNAVAILABLE')} {_bool_icon(bool(snapshot.get('above_sma200')))}",
+        f"- ATR14: {snapshot.get('atr14', 'DATA_UNAVAILABLE')}",
+        "",
+    ]
+
+
+def _format_unavailable_market_snapshot(ticker: str) -> list[str]:
+    return [
+        f"#### {ticker}",
+        "- Close: DATA_UNAVAILABLE",
+        "- SMA50: DATA_UNAVAILABLE",
+        "- SMA200: DATA_UNAVAILABLE",
+        "- ATR14: DATA_UNAVAILABLE",
+        "",
+    ]
 
 
 def format_report(payload: dict) -> str:
@@ -99,7 +120,6 @@ def format_report(payload: dict) -> str:
     decision_report = payload.get("decision_report", {})
     cross_asset = payload.get("cross_asset", {})
 
-    # ── Market Regime ──────────────────────────────────────────────────────
     lines.append("## Market Regime")
     lines.append("")
     lines.append(f"- Data Status: {market.get('data_status', 'unknown')}")
@@ -112,28 +132,18 @@ def format_report(payload: dict) -> str:
     lines.append("### Core Market Metrics")
     lines.append("")
 
-    if symbols:
-        for ticker, snapshot in symbols.items():
-            lines.append(f"#### {ticker}")
-            lines.append(f"- Close: {snapshot['close']}")
-            lines.append(
-                f"- SMA50: {snapshot['sma50']} {_bool_icon(snapshot['above_sma50'])}"
-            )
-            lines.append(
-                f"- SMA200: {snapshot['sma200']} {_bool_icon(snapshot['above_sma200'])}"
-            )
-            lines.append(f"- ATR14: {snapshot['atr14']}")
-            lines.append("")
-    else:
-        lines += [
-            "- SPY: DATA_UNAVAILABLE",
-            "- QQQ: DATA_UNAVAILABLE",
-            "- VIX: DATA_UNAVAILABLE",
-            "- SMA50: DATA_UNAVAILABLE",
-            "- SMA200: DATA_UNAVAILABLE",
-            "- ATR14: DATA_UNAVAILABLE",
-            "",
-        ]
+    rendered = set()
+    for core_ticker in ("SPY", "QQQ", "VIX"):
+        if core_ticker in symbols:
+            lines.extend(_format_market_snapshot(core_ticker, symbols[core_ticker]))
+        else:
+            lines.extend(_format_unavailable_market_snapshot(core_ticker))
+        rendered.add(core_ticker)
+
+    for ticker, snapshot in symbols.items():
+        if ticker in rendered:
+            continue
+        lines.extend(_format_market_snapshot(ticker, snapshot))
 
     breadth = market.get("breadth") or {}
     lines.append("### Market Breadth")
@@ -145,7 +155,6 @@ def format_report(payload: dict) -> str:
         lines.append("- Breadth data unavailable during fallback mode.")
     lines.append("")
 
-    # ── Cross-Asset ────────────────────────────────────────────────────────
     lines.append("## Cross-Asset Regime")
     lines.append("")
     lines.append(f"- Data Status: {cross_asset.get('data_status', 'unknown')}")
@@ -171,25 +180,16 @@ def format_report(payload: dict) -> str:
         lines.append("")
 
     lines.append("### Focus Areas")
-    for item in market.get(
-        "focus_areas", ["Monitor institutional risk conditions and trend quality."]
-    ):
+    for item in market.get("focus_areas", ["Monitor institutional risk conditions and trend quality."]):
         lines.append(f"- {item}")
     lines.append("")
 
-    # ── Decision Engine ────────────────────────────────────────────────────
     lines.append("## Decision Engine")
     lines.append("")
     lines.append(f"- Market State: {decision_report.get('market_state', 'unknown')}")
-    lines.append(
-        f"- Portfolio Heat Limit: {decision_report.get('portfolio_heat_limit', 'n/a')}"
-    )
-    lines.append(
-        f"- Approved / Reduced Size: {decision_report.get('approved_count', 0)}"
-    )
-    lines.append(
-        f"- Blocked / No Trade: {decision_report.get('blocked_count', 0)}"
-    )
+    lines.append(f"- Portfolio Heat Limit: {decision_report.get('portfolio_heat_limit', 'n/a')}")
+    lines.append(f"- Approved / Reduced Size: {decision_report.get('approved_count', 0)}")
+    lines.append(f"- Blocked / No Trade: {decision_report.get('blocked_count', 0)}")
     lines.append("")
 
     hard_overrides = decision_report.get("hard_overrides", [])
@@ -229,14 +229,8 @@ def format_report(payload: dict) -> str:
     lines.append("")
 
     decisions = decision_report.get("decisions", [])
-    approved = [
-        d for d in decisions
-        if d["decision"] in {"approved", "reduced_size", "watch"}
-    ]
-    blocked = [
-        d for d in decisions
-        if d["decision"] in {"blocked", "no_trade"}
-    ]
+    approved = [d for d in decisions if d["decision"] in {"approved", "reduced_size", "watch"}]
+    blocked = [d for d in decisions if d["decision"] in {"blocked", "no_trade"}]
 
     lines.append("### Ranked Opportunities")
     lines.append("")
@@ -244,10 +238,7 @@ def format_report(payload: dict) -> str:
         for item in approved:
             lines.extend(_format_decision_item(item))
     else:
-        lines.append(
-            "- No ranked opportunities qualified for active risk. "
-            "Decision remains No-Trade / watch mode until setup quality improves."
-        )
+        lines.append("- No ranked opportunities qualified for active risk. Decision remains No-Trade / watch mode until setup quality improves.")
         lines.append("- Asymmetry Score: n/a — no approved asymmetric setup available.")
         lines.append("")
 
@@ -255,18 +246,11 @@ def format_report(payload: dict) -> str:
         lines.append("### 🚫 Blocked / No Trade")
         lines.append("")
         for item in blocked[:5]:
-            reason = (
-                ", ".join(item.get("blocked_reasons", []))
-                or "regime/quality filter"
-            )
+            reason = ", ".join(item.get("blocked_reasons", [])) or "regime/quality filter"
             asymmetry = item.get("asymmetry_score", "n/a")
-            lines.append(
-                f"- **{item['symbol']}**: {item['decision']} — {reason} "
-                f"| Asymmetry Score: {asymmetry}"
-            )
+            lines.append(f"- **{item['symbol']}**: {item['decision']} — {reason} | Asymmetry Score: {asymmetry}")
         lines.append("")
 
-    # ── Screener Watchlist ─────────────────────────────────────────────────
     lines.append(f"## {screener['title']}")
     lines.append("")
 
@@ -286,9 +270,7 @@ def format_report(payload: dict) -> str:
     lines.append("")
 
     lines.append("### Notes")
-    for note in market.get(
-        "notes", ["Fallback mode active when live market data is unavailable."]
-    ):
+    for note in market.get("notes", ["Fallback mode active when live market data is unavailable."]):
         lines.append(f"- {note}")
 
     return "\n".join(lines)
