@@ -4,9 +4,9 @@
 ![CI](https://img.shields.io/badge/CI-enabled-brightgreen.svg)
 ![Status](https://img.shields.io/badge/status-production--oriented-orange.svg)
 
-Institutional Trading Engine is a production-oriented market intelligence, screening, reporting, runtime orchestration and outcome-learning platform.
+Institutional Trading Engine is a production-oriented market intelligence, screening, reporting, runtime orchestration, signal lifecycle and outcome-learning platform.
 
-The long-term goal is to become a high-quality institutional market screener that does more than generate reports:
+The long-term goal is to become a high-quality institutional market screener that does more than generate static reports:
 
 ```text
 Market analysis
@@ -15,7 +15,9 @@ Market analysis
 → Lifecycle tracking
 → Outcome evaluation
 → Expectancy learning
-→ Better future scoring
+→ Adaptive score / size adjustment
+→ Adjustment audit history
+→ Better future signals
 ```
 
 The system is NOT a black-box trading bot and does NOT place live trades.
@@ -33,8 +35,9 @@ It is designed as an institutional decision-support and research platform that:
 - evaluates triggered vs expired vs pending signals separately
 - tracks real outcomes from market data
 - builds adaptive expectancy profiles
-- prepares future scoring improvements
-- persists runtime and decision history for auditability
+- feeds historical expectancy back into future scoring
+- persists scoring adjustments for auditability
+- persists runtime and decision history for reproducibility
 
 ---
 
@@ -64,6 +67,7 @@ Therefore:
 - triggered signals are evaluated with real outcomes
 - stop/target events are stored as lifecycle data
 - historical learning is based on lifecycle-aware outcomes
+- adaptive score changes are persisted in an audit log
 
 ---
 
@@ -86,16 +90,18 @@ Lifecycle-Aware Outcome Tracking
     ↓
 Adaptive Expectancy Profiles
     ↓
-Future Scoring Adjustments
+Expectancy-Based Score / Size Adjustment
+    ↓
+Scoring Adjustment History
+    ↓
+Future Reports and Signals
 ```
 
-The current implementation already supports the full structural flow:
+The current implementation supports this full structural flow:
 
 ```text
-Reports → Signals → Watcher → Alerts → Lifecycle → Outcomes → Expectancy
+Reports → Signals → Watcher → Alerts → Lifecycle → Outcomes → Expectancy → Scoring → Audit History
 ```
-
-The next major future step is to feed expectancy results back into scoring.
 
 ---
 
@@ -118,23 +124,11 @@ Optional:
 
 ## Installation
 
-Clone repository:
-
 ```bash
 git clone https://github.com/yalcinkadir/institutional-trading-engine.git
 cd institutional-trading-engine
-```
-
-Create virtual environment:
-
-```bash
 python -m venv .venv
 source .venv/bin/activate
-```
-
-Install dependencies:
-
-```bash
 pip install -r requirements.txt
 ```
 
@@ -155,37 +149,24 @@ REPORT_WEBHOOK_URL=optional_webhook_url
 
 # Main Commands
 
-## Generate a Premarket Report
+## Generate Reports
 
 ```bash
-python scripts/generate_report.py \
-  --type premarket \
-  --output reports/premarket/test-report.md
+python scripts/generate_report.py --type premarket --output reports/premarket/test-report.md
+python scripts/generate_report.py --type intraday --output reports/intraday/test-report.md
+python scripts/generate_report.py --type postmarket --output reports/postmarket/test-report.md
+python scripts/generate_report.py --type weekly --output reports/weekly/test-report.md
 ```
 
-## Generate an Intraday Report
+Market reports generate:
 
-```bash
-python scripts/generate_report.py \
-  --type intraday \
-  --output reports/intraday/test-report.md
+```text
+Markdown report
+Signal JSON / Markdown files
+Scoring adjustment history when expectancy adjustments are used
 ```
 
-## Generate a Postmarket Report
-
-```bash
-python scripts/generate_report.py \
-  --type postmarket \
-  --output reports/postmarket/test-report.md
-```
-
-## Generate a Weekly Report
-
-```bash
-python scripts/generate_report.py \
-  --type weekly \
-  --output reports/weekly/test-report.md
-```
+Weekly reports are strategic-only and do not generate signals.
 
 ## Run the Entry / Exit Watcher
 
@@ -230,12 +211,17 @@ institutional-trading-engine/
 │       └── daily-backup.yml
 │
 ├── data/
-│   ├── decision_log.csv              # CSV decision history when produced
-│   ├── decision_log.jsonl            # JSONL runtime/audit history when produced
-│   └── signal_lifecycle.jsonl        # Entry/exit lifecycle events
+│   ├── decision_log.csv
+│   ├── decision_log.jsonl
+│   ├── signal_lifecycle.jsonl
+│   └── scoring_adjustment_history.json
 │
 ├── docs/
 │   └── architecture/
+│       ├── adaptive_scoring_feedback_loop.md
+│       ├── live_runtime_integration.md
+│       ├── runtime_loop.md
+│       └── decision_log_store.md
 │
 ├── reports/
 │   ├── premarket/
@@ -274,6 +260,10 @@ institutional-trading-engine/
 │   ├── outcomes/
 │   ├── reporting/
 │   ├── runtime/
+│   ├── scoring/
+│   │   ├── setup_score_engine.py
+│   │   ├── expectancy_adjuster.py
+│   │   └── adjustment_history.py
 │   ├── signals/
 │   ├── simulation/
 │   ├── storage/
@@ -303,6 +293,8 @@ Current state:
 | Signal Lifecycle JSONL | Implemented |
 | Lifecycle-Aware Outcomes | Implemented |
 | Entry-Type Expectancy Profiles | Implemented |
+| Expectancy-Based Score Adjustment | Implemented |
+| Scoring Adjustment Audit History | Implemented |
 | Runtime Loop | Implemented |
 | Decision Persistence | Implemented |
 | End-to-End Institutional Flow | Partially implemented |
@@ -336,6 +328,7 @@ Market reports generate both:
 ```text
 Markdown report
 Signal JSON / Markdown files
+Scoring adjustment history when historical expectancy changes score or size
 ```
 
 Weekly reports are strategic-only and do not generate signals.
@@ -359,6 +352,7 @@ Contains:
 - actionable setups
 - blocked / no-trade names
 - Entry / Stop / Target levels when available
+- adaptive expectancy adjustments when used
 
 ---
 
@@ -393,6 +387,7 @@ Contains:
 - leaders / weak names where available
 - risk warnings
 - signal candidates for future monitoring
+- adaptive expectancy adjustments when used
 
 ---
 
@@ -560,24 +555,6 @@ reports/alerts/latest-alerts.json
 data/signal_lifecycle.jsonl
 ```
 
-Example alert:
-
-```json
-{
-  "alert_type": "ENTRY_TRIGGERED",
-  "symbol": "NVDA",
-  "timestamp": "2026-05-21T15:00:00Z",
-  "signal_date": "2026-05-20",
-  "price": 228.4,
-  "trigger_price": 228.4,
-  "stop_loss": 219.8,
-  "target_1": 240.0,
-  "target_2": 252.0,
-  "previous_status": "PENDING",
-  "new_status": "TRIGGERED"
-}
-```
-
 ---
 
 # Outcome Tracking
@@ -597,7 +574,7 @@ reports/outcomes/latest-outcomes.md
 reports/outcomes/outcome-history.json
 ```
 
-The outcome system is now lifecycle-aware.
+The outcome system is lifecycle-aware.
 
 It separates:
 
@@ -669,7 +646,7 @@ Generated file:
 reports/expectancy-report.md
 ```
 
-The system now builds expectancy profiles by:
+The system builds expectancy profiles by:
 
 ```text
 setup_type
@@ -679,28 +656,12 @@ setup_type + regime
 setup_type + regime + entry_type
 ```
 
-Examples of future learning targets:
+Examples:
 
 ```text
 bullish::momentum_breakout::break_above
 neutral::pullback_continuation::pullback_to
 risk_off::defensive_rotation::at_market
-```
-
-The goal is to learn patterns such as:
-
-```text
-Momentum breakout + bullish regime + break_above
-→ positive expectancy
-→ future score can be increased
-```
-
-or:
-
-```text
-Momentum breakout + neutral regime + break_above
-→ negative expectancy
-→ future score should be reduced
 ```
 
 Current adaptive recommendations:
@@ -713,11 +674,82 @@ avoid_or_block
 insufficient_data
 ```
 
-The next major future step is:
+---
+
+# Expectancy-Based Scoring Feedback Loop
+
+The feedback loop is implemented through:
 
 ```text
-Feed expectancy profiles back into the scoring engine.
+src/scoring/expectancy_adjuster.py
+src/scoring/adjustment_history.py
+src/reporting/decision_report.py
+scripts/generate_report.py
 ```
+
+Flow:
+
+```text
+reports/outcomes/outcome-history.json
+    ↓
+expectancy_adjuster.py
+    ↓
+decision_report.py
+    ↓
+setup_score / position_size adjusted
+    ↓
+report_formatter.py displays adjustment
+    ↓
+generate_report.py persists history
+    ↓
+data/scoring_adjustment_history.json
+```
+
+Profile matching hierarchy:
+
+```text
+1. market_state::setup_type::entry_type
+2. market_state::setup_type
+3. setup_type
+```
+
+Rules:
+
+- minimum 5 evaluated samples required
+- no evidence means no adjustment
+- positive expectancy can increase score/size conservatively
+- negative expectancy reduces score/size more aggressively
+- expired/untriggered/pending signals are ignored for trade expectancy
+- positive expectancy is ignored when data quality is only PARTIAL
+- negative expectancy remains effective even during partial data
+
+Example adjustment:
+
+```json
+{
+  "timestamp_utc": "2026-05-20T21:00:00+00:00",
+  "run_id": "postmarket-2026-05-20T21:00:00Z",
+  "report_type": "postmarket",
+  "symbol": "NVDA",
+  "setup_type": "momentum_breakout",
+  "market_state": "low_vol_bull",
+  "entry_type": "break_above",
+  "profile_key": "regime_setup_entry::low_vol_bull::momentum_breakout::break_above",
+  "sample_size": 6,
+  "win_rate": 0.67,
+  "expectancy": 2.0,
+  "base_score": 82,
+  "score_delta": 4,
+  "final_score": 86,
+  "base_size": 1.0,
+  "size_multiplier": 1.05,
+  "final_size": 1.05,
+  "recommendation": "maintain_or_slightly_increase",
+  "reason": "positive_expectancy"
+}
+```
+
+This prevents adaptive scoring from becoming a black box.
 
 ---
 
@@ -732,8 +764,6 @@ src/runtime/in_memory_state_cache.py
 src/runtime/runtime_market_snapshot.py
 src/runtime/live_runtime_cycle.py
 ```
-
-The runtime system is designed around deterministic institutional cycles.
 
 Runtime flow:
 
@@ -787,6 +817,7 @@ reports/expectancy-report.md
 data/decision_log.csv
 data/decision_log.jsonl
 data/signal_lifecycle.jsonl
+data/scoring_adjustment_history.json
 ```
 
 Current persistence style:
@@ -828,12 +859,6 @@ Main workflows:
 
 ## Institutional Reports Workflow
 
-File:
-
-```text
-.github/workflows/institutional-reports.yml
-```
-
 Schedule:
 
 ```text
@@ -847,6 +872,7 @@ Responsibilities:
 
 - generate reports
 - generate signals
+- persist scoring adjustment history
 - validate report quality
 - commit reports and data
 - upload artifacts
@@ -861,12 +887,6 @@ Intraday output is stored separately and does not overwrite postmarket output.
 ---
 
 ## Entry / Exit Watcher Workflow
-
-File:
-
-```text
-.github/workflows/entry-exit-watcher.yml
-```
 
 Schedule:
 
@@ -889,12 +909,6 @@ Responsibilities:
 ---
 
 ## Outcome Tracking Workflow
-
-File:
-
-```text
-.github/workflows/outcome-tracking.yml
-```
 
 Schedule:
 
@@ -998,7 +1012,6 @@ Current limitations:
 - Git-based persistence is not final production storage
 - no dashboard UI yet
 - no Postgres persistence yet
-- expectancy results are not yet automatically fed back into scoring
 - no regime similarity memory yet
 - no ML inference layer yet
 - no full observability dashboard yet
@@ -1006,7 +1019,7 @@ Current limitations:
 Important:
 
 ```text
-This project currently supports research, screening, alerting and lifecycle analysis.
+This project currently supports research, screening, alerting, lifecycle analysis and adaptive scoring.
 It does not execute trades.
 ```
 
@@ -1032,6 +1045,9 @@ pytest tests/test_live_runtime_cycle.py
 pytest tests/test_scanner_market_snapshot_builder.py
 pytest tests/test_end_to_end_institutional_flow.py
 pytest tests/test_entry_exit_watcher.py
+pytest tests/test_expectancy_adjuster.py
+pytest tests/test_decision_report_expectancy_integration.py
+pytest tests/test_adjustment_history.py
 ```
 
 Test coverage includes:
@@ -1043,23 +1059,12 @@ Test coverage includes:
 - lifecycle persistence
 - outcome tracking
 - adaptive expectancy
+- expectancy-based score adjustment
+- scoring adjustment history persistence
 - runtime state handling
 - decision persistence
 - scanner-to-runtime bridge logic
 - end-to-end institutional flow
-
-Watcher tests specifically cover:
-
-- entry trigger detection
-- stop hit detection
-- target 1 detection
-- target 2 detection
-- expiry detection
-- terminal status protection
-- symbol-specific updates
-- alert persistence
-- lifecycle JSONL persistence
-- updated signal file persistence
 
 ---
 
@@ -1070,6 +1075,7 @@ No new feature should be added without:
 ```text
 - tests
 - architecture documentation
+- integration with existing pipeline
 - explainability
 - operational notes
 - deterministic behavior
@@ -1082,6 +1088,7 @@ For market intelligence features, also require:
 - lifecycle-aware state handling
 - non-fatal failure mode
 - clear audit trail
+- communication with existing reports/signals/outcomes/scoring features
 ```
 
 ---
@@ -1098,6 +1105,8 @@ For market intelligence features, also require:
 - lifecycle JSONL
 - lifecycle-aware outcomes
 - entry-type expectancy profiles
+- expectancy-based score adjustment
+- scoring adjustment history
 - runtime loop
 - decision persistence
 - VIX-aware runtime context
@@ -1105,16 +1114,16 @@ For market intelligence features, also require:
 
 ## Next High-Value Steps
 
-1. Feed expectancy profiles back into the scoring engine.
-2. Add explicit `signal_id` to every generated signal.
-3. Prevent duplicate lifecycle events for the same signal/event pair.
-4. Improve intraday data support with higher-frequency bars if Polygon plan allows.
-5. Add stronger portfolio state tracking.
-6. Add dashboard or static HTML reporting.
-7. Move long-term persistence from Git files to Postgres.
-8. Add structured JSON logging.
-9. Add regime similarity memory.
-10. Add scoring adjustment history.
+1. Add explicit `signal_id` to every generated signal.
+2. Prevent duplicate lifecycle events for the same signal/event pair.
+3. Improve intraday data support with higher-frequency bars if Polygon plan allows.
+4. Add stronger portfolio state tracking.
+5. Add dashboard or static HTML reporting.
+6. Move long-term persistence from Git files to Postgres.
+7. Add structured JSON logging.
+8. Add regime similarity memory.
+9. Add scoring adjustment quality review.
+10. Add adaptive scoring guardrails by market regime.
 
 ---
 
@@ -1124,6 +1133,7 @@ For market intelligence features, also require:
 12:30 UTC — Premarket report
   → reports/premarket/YYYY-MM-DD-premarket.md
   → reports/signals/YYYY-MM-DD-signals.json
+  → data/scoring_adjustment_history.json when adjustments are used
 
 15:00 UTC — Intraday report + watcher
   → reports/intraday/YYYY-MM-DD-intraday.md
@@ -1138,6 +1148,7 @@ For market intelligence features, also require:
   → reports/postmarket/YYYY-MM-DD-postmarket.md
   → updated signals
   → updated lifecycle
+  → data/scoring_adjustment_history.json when adjustments are used
 
 02:00 UTC — Outcome tracking
   → reports/outcomes/YYYY-MM-DD-outcomes.md/json
@@ -1167,6 +1178,7 @@ This project is intended for:
 - institutional analysis experiments
 - systematic market screening
 - signal lifecycle analysis
+- adaptive scoring research
 
 It is not financial advice.
 
