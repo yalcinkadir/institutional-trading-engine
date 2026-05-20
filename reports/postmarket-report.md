@@ -1,26 +1,26 @@
 # Institutional Trading Engine — POSTMARKET REPORT
 
-Generated: 2026-05-20 21:40 UTC
+Generated: 2026-05-20 21:47 UTC
 
 ## Market Regime
 
-- Data Status: PARTIAL
-- Regime: Bullish (VIX missing)
-- Market Health Score: 75
+- Data Status: FALLBACK
+- Regime: Unknown
+- Market Health Score: DATA_UNAVAILABLE
 
 ### Core Market Metrics
 
 #### SPY
-- Close: 687.01
-- SMA50: 678.29 ✅
-- SMA200: 626.34 ✅
-- ATR14: 5.81
+- Close: DATA_UNAVAILABLE
+- SMA50: DATA_UNAVAILABLE
+- SMA200: DATA_UNAVAILABLE
+- ATR14: DATA_UNAVAILABLE
 
 #### QQQ
-- Close: 619.43
-- SMA50: 616.32 ✅
-- SMA200: 557.14 ✅
-- ATR14: 7.48
+- Close: DATA_UNAVAILABLE
+- SMA50: DATA_UNAVAILABLE
+- SMA200: DATA_UNAVAILABLE
+- ATR14: DATA_UNAVAILABLE
 
 #### VIX
 - Close: DATA_UNAVAILABLE
@@ -29,9 +29,9 @@ Generated: 2026-05-20 21:40 UTC
 - ATR14: DATA_UNAVAILABLE
 
 ### Market Breadth
-- Universe Size: 7
-- Above SMA50: 4
-- Breadth %: 57.14%
+- Universe Size: 0
+- Above SMA50: 0
+- Breadth %: 0.0%
 
 ## Cross-Asset Regime
 
@@ -52,7 +52,7 @@ Generated: 2026-05-20 21:40 UTC
 
 ## Decision Engine
 
-- Market State: low_vol_bull
+- Market State: neutral
 - Portfolio Heat Limit: 1.0
 - Approved / Reduced Size: 6
 - Blocked / No Trade: 0
@@ -60,9 +60,8 @@ Generated: 2026-05-20 21:40 UTC
 > ℹ️ Data feeds partial (Free Polygon tier — VIX unavailable). Data confidence reduced; sizing conservative.
 
 ### Active Strategy Types
-- momentum_breakout
 - pullback_continuation
-- speculative_growth
+- mean_reversion
 
 ### Decision Summary
 - Decision context allows selective risk-taking in regime-aligned setups.
@@ -71,42 +70,42 @@ Generated: 2026-05-20 21:40 UTC
 
 #### MSFT
 - Decision: **approved** | Risk Tier: tier_2
-- Setup Type: momentum_breakout | Size: 0.5x
+- Setup Type: pullback_continuation | Size: 0.5x
 - Setup Score: 82.0 | Regime Alignment: 0.82 | Asymmetry Score: 0.72 | Data Confidence: 0.65
 
 #### NVDA
 - Decision: **approved** | Risk Tier: tier_2
-- Setup Type: momentum_breakout | Size: 0.5x
+- Setup Type: pullback_continuation | Size: 0.5x
 - Setup Score: 79.0 | Regime Alignment: 0.78 | Asymmetry Score: 0.69 | Data Confidence: 0.65
 
 #### META
 - Decision: **approved** | Risk Tier: tier_2
-- Setup Type: momentum_breakout | Size: 0.5x
+- Setup Type: pullback_continuation | Size: 0.5x
 - Setup Score: 76.0 | Regime Alignment: 0.74 | Asymmetry Score: 0.66 | Data Confidence: 0.65
 
 #### AAPL
 - Decision: **approved** | Risk Tier: tier_2
-- Setup Type: momentum_breakout | Size: 0.5x
+- Setup Type: pullback_continuation | Size: 0.5x
 - Setup Score: 73.0 | Regime Alignment: 0.7 | Asymmetry Score: 0.63 | Data Confidence: 0.65
 
 #### MU
 - Decision: **approved** | Risk Tier: tier_2
-- Setup Type: momentum_breakout | Size: 0.5x
+- Setup Type: pullback_continuation | Size: 0.5x
 - Setup Score: 70.0 | Regime Alignment: 0.66 | Asymmetry Score: 0.6 | Data Confidence: 0.65
 
 #### QQQ
 - Decision: **approved** | Risk Tier: tier_2
-- Setup Type: momentum_breakout | Size: 0.5x
+- Setup Type: pullback_continuation | Size: 0.5x
 - Setup Score: 67.0 | Regime Alignment: 0.62 | Asymmetry Score: 0.57 | Data Confidence: 0.65
 
 #### GLD
 - Decision: **watch** | Risk Tier: tier_3
-- Setup Type: momentum_breakout | Size: 0.25x
+- Setup Type: pullback_continuation | Size: 0.25x
 - Setup Score: 64.0 | Regime Alignment: 0.58 | Asymmetry Score: 0.54 | Data Confidence: 0.65
 
 #### SLV
 - Decision: **watch** | Risk Tier: tier_3
-- Setup Type: momentum_breakout | Size: 0.25x
+- Setup Type: pullback_continuation | Size: 0.25x
 - Setup Score: 61.0 | Regime Alignment: 0.54 | Asymmetry Score: 0.51 | Data Confidence: 0.65
 
 ## Post-Market Review
