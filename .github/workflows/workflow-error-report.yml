@@ -16,12 +16,15 @@ on:
         required: false
         default: "24"
   schedule:
-    # Daily at 07:15 UTC
     - cron: "15 7 * * *"
 
 permissions:
   actions: read
   contents: write
+
+concurrency:
+  group: workflow-error-report-main
+  cancel-in-progress: false
 
 jobs:
   workflow-error-report:
@@ -56,20 +59,16 @@ jobs:
           LOOKBACK_HOURS="${{ github.event.inputs.lookback_hours || '24' }}"
 
           if [[ -n "$SINCE_DATE" ]]; then
-            python scripts/generate_workflow_error_report.py \
-              --limit "$LIMIT" \
-              --since-date "$SINCE_DATE"
+            python scripts/generate_workflow_error_report.py --limit "$LIMIT" --since-date "$SINCE_DATE"
           else
-            python scripts/generate_workflow_error_report.py \
-              --limit "$LIMIT" \
-              --lookback-hours "$LOOKBACK_HOURS"
+            python scripts/generate_workflow_error_report.py --limit "$LIMIT" --lookback-hours "$LOOKBACK_HOURS"
           fi
 
       - name: Commit workflow error report
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
+          git pull --rebase origin "${GITHUB_REF_NAME}"
           git add reports/workflow-errors/ 2>/dev/null || true
 
           if git diff --cached --quiet; then
@@ -78,7 +77,6 @@ jobs:
           fi
 
           git commit -m "Update workflow error report $(date -u +'%Y-%m-%d_%H-%M-%S_UTC')"
-          git pull --rebase origin "${GITHUB_REF_NAME}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
 
       - name: Upload workflow error report artifact
