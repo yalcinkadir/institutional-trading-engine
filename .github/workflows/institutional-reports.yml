@@ -2,12 +2,15 @@ name: Institutional Reports
 
 on:
   schedule:
-    # Premarket report: Sunday to Friday before US market open.
+    # Premarket: Sunday–Friday, 12:30 UTC (before US open)
     - cron: "30 12 * * 0-5"
-    # Postmarket report: Monday to Friday after US market close, with buffer for close data.
+    # Mid-session: Monday–Friday, 15:00 UTC (~1h after US open)
+    - cron: "0 15 * * 1-5"
+    # Postmarket: Monday–Friday, 21:00 UTC (after US close + buffer)
     - cron: "0 21 * * 1-5"
-    # Weekly report: Saturday strategic review.
+    # Weekly: Saturday 08:00 UTC
     - cron: "0 8 * * 6"
+
   workflow_dispatch:
     inputs:
       report_type:
@@ -27,7 +30,7 @@ jobs:
   report:
     name: Generate ${{ github.event.inputs.report_type || 'scheduled' }} report
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     env:
       POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
@@ -60,6 +63,8 @@ jobs:
             REPORT_TYPE="${{ github.event.inputs.report_type }}"
           elif [[ "${{ github.event.schedule }}" == "30 12 * * 0-5" ]]; then
             REPORT_TYPE="premarket"
+          elif [[ "${{ github.event.schedule }}" == "0 15 * * 1-5" ]]; then
+            REPORT_TYPE="postmarket"
           elif [[ "${{ github.event.schedule }}" == "0 21 * * 1-5" ]]; then
             REPORT_TYPE="postmarket"
           else
@@ -90,13 +95,19 @@ jobs:
           echo "LATEST_FILE=${LATEST_FILE}" >> "$GITHUB_ENV"
           echo "RUN_TIMESTAMP=${RUN_TIMESTAMP}" >> "$GITHUB_ENV"
 
-      - name: Generate report
+      - name: Generate report (+ signals)
         shell: bash
         run: |
           mkdir -p "$(dirname "$REPORT_FILE")"
+          mkdir -p reports/signals
+          mkdir -p data
+
+          # generate_report.py now also writes reports/signals/YYYY-MM-DD-signals.{json,md}
           python scripts/generate_report.py --type "$REPORT_TYPE" --output "$REPORT_FILE"
           cp "$REPORT_FILE" "$LATEST_FILE"
-          find reports -maxdepth 3 -type f -print
+
+          echo "--- Generated files ---"
+          find reports -maxdepth 3 -type f -name "*.md" -o -name "*.json" | sort
 
       - name: Validate report quality
         shell: bash
@@ -106,18 +117,21 @@ jobs:
             --file "$REPORT_FILE" \
             --min-score 75
 
-      - name: Commit generated reports to repository
+      - name: Commit all outputs to repository
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+          # ── Commit reports AND data (decision log, signals, outcomes) ────
+          # data/ must be committed so decision history survives across runs.
           git add reports/
+          git add data/ 2>/dev/null || true  # non-fatal if data/ is empty
 
           if git diff --cached --quiet; then
-            echo "No report changes to commit."
+            echo "No changes to commit."
           else
-            git commit -m "Archive ${REPORT_TYPE} report ${RUN_TIMESTAMP}"
+            git commit -m "Archive ${REPORT_TYPE} report + signals ${RUN_TIMESTAMP}"
             git pull --rebase origin "${GITHUB_REF_NAME}"
             git push origin "HEAD:${GITHUB_REF_NAME}"
           fi
@@ -127,6 +141,13 @@ jobs:
         with:
           name: ${{ steps.report_type.outputs.report_type }}-${{ steps.report_type.outputs.run_timestamp }}
           path: ${{ steps.report_type.outputs.report_file }}
+          retention-days: 90
+
+      - name: Upload signals artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: signals-${{ steps.report_type.outputs.run_timestamp }}
+          path: reports/signals/
           retention-days: 90
 
       - name: Upload full reports archive artifact
@@ -140,13 +161,29 @@ jobs:
         if: env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_CHAT_ID != ''
         shell: bash
         run: |
-          SUMMARY=$(grep -E "Market Regime|Final Recommendation|Risk Warning|Leaders|Weak Names" "$REPORT_FILE" | head -20 || true)
+          # Build structured Telegram message from report sections
+          REGIME=$(grep -m1 "^- Regime:" "$REPORT_FILE" | sed 's/- Regime: //' || true)
+          HEALTH=$(grep -m1 "^- Market Health Score:" "$REPORT_FILE" | sed 's/- Market Health Score: //' || true)
+          APPROVED=$(grep -m1 "^- Approved" "$REPORT_FILE" | sed 's/- Approved.*: //' || true)
+          SUMMARY_LINE=$(grep -m1 "^- Decision context\|^- No high-quality\|^- Hard risk" "$REPORT_FILE" | sed 's/^- //' || true)
+
+          # Actionable setups
+          SETUPS=$(grep "^#### " "$REPORT_FILE" | head -3 | sed 's/#### //' | tr '\n' ', ' | sed 's/, $//' || true)
 
           {
             echo "TELEGRAM_SUMMARY<<EOF"
-            echo "📊 Institutional ${REPORT_TYPE^} Report"
+            echo "📊 ITE ${REPORT_TYPE^} Report — $(date -u +'%Y-%m-%d %H:%M UTC')"
             echo ""
-            echo "$SUMMARY"
+            echo "📈 Regime: ${REGIME}"
+            echo "🏥 Health Score: ${HEALTH}"
+            echo "✅ Approved: ${APPROVED}"
+            if [[ -n "$SETUPS" ]]; then
+              echo "🎯 Setups: ${SETUPS}"
+            fi
+            if [[ -n "$SUMMARY_LINE" ]]; then
+              echo ""
+              echo "💬 ${SUMMARY_LINE}"
+            fi
             echo "EOF"
           } >> "$GITHUB_ENV"
 
@@ -162,8 +199,7 @@ jobs:
         if: env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_CHAT_ID != ''
         shell: bash
         run: |
-          TITLE="Institutional Trading Engine - ${REPORT_TYPE} report"
-
+          TITLE="ITE ${REPORT_TYPE} report — ${RUN_TIMESTAMP}"
           curl -sS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
             -F chat_id="${TELEGRAM_CHAT_ID}" \
             -F document="@${REPORT_FILE}" \
