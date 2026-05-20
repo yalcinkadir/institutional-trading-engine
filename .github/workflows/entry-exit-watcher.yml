@@ -18,6 +18,7 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
 concurrency:
   group: entry-exit-watcher-${{ github.ref }}
@@ -51,13 +52,25 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Resolve watcher inputs
+        shell: bash
+        run: |
+          SIGNALS_FILE="reports/signals/latest-signals.json"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            SIGNALS_FILE="${{ github.event.inputs.signals_file }}"
+          fi
+          if [[ -z "$SIGNALS_FILE" ]]; then
+            SIGNALS_FILE="reports/signals/latest-signals.json"
+          fi
+          echo "SIGNALS_FILE=$SIGNALS_FILE" >> "$GITHUB_ENV"
+          echo "Using signals file: $SIGNALS_FILE"
+
       - name: Run watcher
         shell: bash
         run: |
           mkdir -p reports/alerts
           mkdir -p reports/signals
           mkdir -p data
-          SIGNALS_FILE="${{ github.event.inputs.signals_file || 'reports/signals/latest-signals.json' }}"
           python scripts/run_entry_exit_watcher.py --signals-file "$SIGNALS_FILE"
 
       - name: Commit watcher outputs
@@ -72,11 +85,12 @@ jobs:
 
           if git diff --cached --quiet; then
             echo "No watcher changes to commit."
-          else
-            git pull --rebase origin "${GITHUB_REF_NAME}"
-            git commit -m "Update entry exit watcher events $(date -u +'%Y-%m-%d_%H-%M-%S_UTC')"
-            git push origin "HEAD:${GITHUB_REF_NAME}"
+            exit 0
           fi
+
+          git commit -m "Update entry exit watcher events $(date -u +'%Y-%m-%d_%H-%M-%S_UTC')"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
 
       - name: Build Telegram alert summary
         if: env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_CHAT_ID != ''
@@ -108,9 +122,9 @@ import json
 from pathlib import Path
 path = Path('reports/alerts/latest-alerts.json')
 data = json.loads(path.read_text())
-lines = ["🚨 Entry/Exit Watcher Alerts", ""]
+lines = ["Entry/Exit Watcher Alerts", ""]
 for item in data[:10]:
-    lines.append(f"{item.get('symbol')}: {item.get('alert_type')} @ {item.get('price')} ({item.get('previous_status')} → {item.get('new_status')})")
+    lines.append(f"{item.get('symbol')}: {item.get('alert_type')} @ {item.get('price')} ({item.get('previous_status')} -> {item.get('new_status')})")
 print("\n".join(lines))
 PY
 )
