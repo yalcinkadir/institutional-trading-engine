@@ -9,14 +9,19 @@ Usage:
 
 After each premarket/intraday/postmarket report, a signal JSON and Markdown file
 is written to reports/signals/YYYY-MM-DD-signals.{json,md}.
+
+Signal levels are also merged back into the decision payload before rendering,
+so Entry/Stop/Target/R:R are visible in the main report.
 """
 
 from __future__ import annotations
 
 import argparse
 import sys
+from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
@@ -30,6 +35,7 @@ from src.reporting.screener_engine import build_screener_snapshot
 from src.reporting.weekly_summary import build_weekly_summary
 
 VALID_REPORT_TYPES = {"premarket", "intraday", "postmarket", "weekly"}
+MARKET_REPORT_TYPES = {"premarket", "intraday", "postmarket"}
 
 
 def parse_args() -> argparse.Namespace:
@@ -48,6 +54,122 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _load_scanner_metrics(decision_report: dict) -> dict[str, Any] | None:
+    """
+    Best-effort scanner metric loading for Entry/Stop/Target levels.
+
+    This is intentionally non-fatal. If scanner metrics are unavailable, the
+    report still renders and signal generation falls back to no explicit levels.
+    """
+    try:
+        from src.scanner import build_symbol_metrics, calculate_20d_return, get_daily_bars
+        import time
+
+        benchmark_returns: dict[str, Any] = {}
+        for bench in ["QQQ", "SPY", "GLD"]:
+            df = get_daily_bars(bench)
+            if df is not None and not df.empty:
+                benchmark_returns[bench] = calculate_20d_return(df["close"])
+            time.sleep(2)
+
+        watchlist_symbols = [
+            item["symbol"]
+            for item in decision_report.get("decisions", [])
+            if item.get("symbol")
+        ]
+
+        scanner_metrics_map: dict[str, Any] = {}
+        for symbol in watchlist_symbols:
+            try:
+                scanner_metrics_map[symbol] = build_symbol_metrics(
+                    symbol,
+                    benchmark_returns,
+                )
+                time.sleep(2)
+            except Exception:
+                scanner_metrics_map[symbol] = None
+
+        return scanner_metrics_map
+
+    except Exception:
+        return None
+
+
+def _merge_signal_levels_into_decisions(
+    decision_report: dict,
+    signals: list[Any],
+) -> None:
+    """
+    Merge generated signal levels into decision_report in-place.
+
+    report_formatter.py already knows how to render entry_trigger, stop_loss,
+    target_1, target_2 and risk_reward from decision items. This function makes
+    those fields available before the main report is formatted.
+    """
+    signals_by_symbol = {signal.symbol: signal for signal in signals}
+
+    for item in decision_report.get("decisions", []):
+        signal = signals_by_symbol.get(item.get("symbol"))
+        if not signal:
+            continue
+
+        signal_payload = asdict(signal)
+        for key in (
+            "action",
+            "close",
+            "entry_trigger",
+            "entry_type",
+            "stop_loss",
+            "target_1",
+            "target_2",
+            "risk_reward",
+            "atr_pct",
+            "valid_until",
+        ):
+            item[key] = signal_payload.get(key)
+
+
+def _build_market_payload(report_type: str) -> tuple[dict, dict | None]:
+    market_regime = build_market_regime_summary(report_type)
+    screener = build_screener_snapshot(report_type)
+    cross_asset = build_cross_asset_report()
+    decision_report = build_decision_report(
+        market_regime=market_regime,
+        screener=screener,
+    )
+
+    decision_payload = {
+        "decision_report": decision_report,
+        "market_regime": market_regime.get("regime", "Unknown"),
+    }
+
+    scanner_metrics_map = _load_scanner_metrics(decision_report)
+
+    try:
+        from src.signals.signal_generator import build_signals
+
+        signals = build_signals(
+            decision_report=decision_report,
+            scanner_metrics_map=scanner_metrics_map,
+            market_regime=decision_payload["market_regime"],
+        )
+        _merge_signal_levels_into_decisions(decision_report, signals)
+        decision_payload["signals"] = signals
+    except Exception as exc:
+        print(f"WARNING: Signal level preparation failed (non-fatal): {type(exc).__name__}: {exc}")
+        decision_payload["signals"] = []
+
+    payload = {
+        "report_type": report_type,
+        "market_regime": market_regime,
+        "cross_asset": cross_asset,
+        "screener": screener,
+        "decision_report": decision_report,
+    }
+
+    return payload, decision_payload
+
+
 def build_report(report_type: str) -> tuple[str, dict | None]:
     """
     Build report content.
@@ -62,31 +184,13 @@ def build_report(report_type: str) -> tuple[str, dict | None]:
         }
         return format_report(payload), None
 
-    market_regime = build_market_regime_summary(report_type)
-    screener = build_screener_snapshot(report_type)
-    cross_asset = build_cross_asset_report()
-    decision_report = build_decision_report(
-        market_regime=market_regime,
-        screener=screener,
-    )
-
-    payload = {
-        "report_type": report_type,
-        "market_regime": market_regime,
-        "cross_asset": cross_asset,
-        "screener": screener,
-        "decision_report": decision_report,
-    }
-
-    return format_report(payload), {
-        "decision_report": decision_report,
-        "market_regime": market_regime.get("regime", "Unknown"),
-    }
+    payload, decision_payload = _build_market_payload(report_type)
+    return format_report(payload), decision_payload
 
 
 def generate_signals(decision_payload: dict) -> None:
     """
-    Generate signal JSON and Markdown from the decision report.
+    Save signal JSON and Markdown from the decision payload.
     Non-fatal: if signal generation fails, the report is still saved.
     """
     try:
@@ -96,48 +200,19 @@ def generate_signals(decision_payload: dict) -> None:
         market_regime = decision_payload["market_regime"]
         date_str = datetime.now(UTC).strftime("%Y-%m-%d")
 
-        # Try to load scanner metrics for Entry/Stop/Target levels
-        scanner_metrics_map: dict | None = None
-        try:
-            from src.scanner import build_symbol_metrics, get_daily_bars, calculate_20d_return
-            import time
-
-            benchmark_returns: dict = {}
-            for bench in ["QQQ", "SPY", "GLD"]:
-                df = get_daily_bars(bench)
-                if df is not None and not df.empty:
-                    benchmark_returns[bench] = calculate_20d_return(df["close"])
-                time.sleep(2)
-
-            # Only fetch symbols in the watchlist to stay within rate limits
-            watchlist = decision_report.get("decisions", [])
-            watchlist_symbols = [d["symbol"] for d in watchlist]
-
-            scanner_metrics_map = {}
-            for sym in watchlist_symbols:
-                try:
-                    metrics = build_symbol_metrics(sym, benchmark_returns)
-                    scanner_metrics_map[sym] = metrics
-                    time.sleep(2)
-                except Exception:
-                    pass
-
-        except Exception:
-            # Scanner metrics unavailable — signals will be created without levels
-            # unless the signal generator can derive them from available fields.
-            pass
-
-        signals = build_signals(
-            decision_report=decision_report,
-            scanner_metrics_map=scanner_metrics_map,
-            market_regime=market_regime,
-        )
+        signals = decision_payload.get("signals")
+        if signals is None:
+            signals = build_signals(
+                decision_report=decision_report,
+                scanner_metrics_map=None,
+                market_regime=market_regime,
+            )
 
         json_path, md_path = save_signals(signals, date_str=date_str)
         print(f"Signals written: {json_path}, {md_path}")
         print(
-            f"  {sum(1 for s in signals if s.action == 'BUY_WATCH')} actionable, "
-            f"{sum(1 for s in signals if s.action != 'BUY_WATCH')} no-trade"
+            f"  {sum(1 for signal in signals if signal.action == 'BUY_WATCH')} actionable, "
+            f"{sum(1 for signal in signals if signal.action != 'BUY_WATCH')} no-trade"
         )
 
     except Exception as exc:
@@ -156,8 +231,7 @@ def main() -> int:
     else:
         print(report)
 
-    # Generate signals for market reports. Weekly is strategic-only.
-    if args.type in {"premarket", "intraday", "postmarket"} and decision_payload is not None:
+    if args.type in MARKET_REPORT_TYPES and decision_payload is not None:
         generate_signals(decision_payload)
 
     return 0
