@@ -13,6 +13,7 @@ It is designed as an institutional decision-support and research platform that:
 - analyzes market regimes
 - evaluates risk conditions
 - ranks opportunities
+- scans a diversified symbol universe across indices, sectors, bonds, commodities and leaders
 - generates premarket, intraday, postmarket and weekly reports
 - produces machine-readable signal files
 - stores signal history in the repository
@@ -32,6 +33,7 @@ It is designed as an institutional decision-support and research platform that:
 
 ```text
 Market analysis
+→ Diversified universe scan
 → Signal generation
 → Entry / Exit monitoring
 → Lifecycle tracking
@@ -139,6 +141,34 @@ Scoring adjustment history when expectancy adjustments are used
 ```
 
 Weekly reports are strategic-only and do not generate signals.
+
+## Symbol Universe
+
+The default scanner universe is centralized in:
+
+```text
+src/config.py
+```
+
+It includes:
+
+- core indices: `SPY`, `QQQ`, `IWM`, `DIA`
+- rates / bonds: `TLT`, `IEF`, `SHY`
+- sectors: `XLK`, `XLF`, `XLE`, `XLV`, `XLY`, `XLP`, `XLI`
+- mega caps: `AAPL`, `MSFT`, `NVDA`, `AMZN`, `GOOGL`, `META`, `TSLA`
+- semiconductors: `SMH`, `MU`, `AMD`, `AVGO`
+- commodities: `GLD`, `SLV`, `USO`
+- legacy quality: `CSCO`
+
+Benchmark and group metadata are maintained through:
+
+```text
+BENCHMARK_MAP
+SYMBOL_GROUP_MAP
+SYMBOL_UNIVERSE_GROUPS
+```
+
+Tests protect the universe from duplicate symbols, missing benchmark mappings and missing group metadata.
 
 ## Run the Entry / Exit Watcher
 
@@ -321,6 +351,7 @@ Current state:
 | Report Automation | Implemented |
 | Premarket / Intraday / Postmarket / Weekly Reports | Implemented |
 | Machine-Readable Signals | Implemented |
+| Expanded Symbol Universe | Implemented |
 | Entry / Exit Watcher | Implemented and workflow-hardened |
 | Watcher Runtime Validation | Implemented |
 | Watcher Telegram Success Alerts | Implemented |
@@ -722,6 +753,7 @@ pytest tests/test_live_runtime_cycle_portfolio_state.py
 pytest tests/test_portfolio_state.py
 pytest tests/test_historical_validation.py
 pytest tests/test_polygon_client_historical_range.py
+pytest tests/test_symbol_universe.py
 pytest tests/test_scanner_market_snapshot_builder.py
 pytest tests/test_end_to_end_institutional_flow.py
 pytest tests/test_entry_exit_watcher.py
@@ -735,6 +767,7 @@ Test coverage includes:
 
 - governance
 - portfolio-state governance integration
+- expanded symbol universe integrity
 - historical validation
 - Polygon historical range fetcher behavior
 - reporting
@@ -785,6 +818,7 @@ For market intelligence features, also require:
 - report automation
 - signal generation
 - signal persistence
+- expanded cross-asset symbol universe
 - Entry / Exit Watcher V1
 - watcher runtime validation
 - watcher workflow hardening
@@ -816,15 +850,14 @@ For market intelligence features, also require:
 1. Add explicit `signal_id` to every generated signal.
 2. Prevent duplicate lifecycle events for the same signal/event pair.
 3. Improve intraday data support with higher-frequency bars if Polygon plan allows.
-4. Expand symbol universe beyond tech-heavy coverage.
-5. Add dashboard or static HTML reporting.
-6. Move long-term persistence from Git files to Postgres.
-7. Add structured JSON logging.
-8. Add regime similarity memory.
-9. Add scoring adjustment quality review.
-10. Add adaptive scoring guardrails by market regime.
-11. Add broker/account integration for automatic portfolio-state calculation.
-12. Add weekly automated expectancy feedback reports.
+4. Add dashboard or static HTML reporting.
+5. Move long-term persistence from Git files to Postgres.
+6. Add structured JSON logging.
+7. Add regime similarity memory.
+8. Add scoring adjustment quality review.
+9. Add adaptive scoring guardrails by market regime.
+10. Add broker/account integration for automatic portfolio-state calculation.
+11. Add weekly automated expectancy feedback reports.
 
 ## Known Limitations
 
