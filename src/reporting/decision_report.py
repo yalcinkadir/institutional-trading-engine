@@ -61,7 +61,16 @@ def _map_regime_to_market_state(
     return MarketState.RISK_OFF
 
 
-def _build_market_context(market_regime: dict) -> MarketContext:
+def _build_market_context(market_regime: dict) -> tuple[MarketContext, bool]:
+    """
+    Build market context plus a data-quality flag.
+
+    Returns:
+        tuple[
+            MarketContext,
+            bool  # data_quality_ok
+        ]
+    """
     market_state = _map_regime_to_market_state(
         market_regime.get("regime", "Unknown"),
         market_regime.get("market_health_score", "DATA_UNAVAILABLE"),
@@ -76,13 +85,17 @@ def _build_market_context(market_regime: dict) -> MarketContext:
 
     breadth_collapse = breadth_percent < 35
 
-    # ── Corrected liquidity_stress logic ─────────────────────────────────
-    # OLD (buggy): liquidity_stress = market_regime.get("data_status") != "LIVE"
-    # This fired on EVERY run because Free Polygon tier always returns PARTIAL
-    # (VIX missing), blocking all recommendations via hard override.
+    # Corrected liquidity_stress logic.
     #
-    # NEW (correct): liquidity_stress only when there is genuine market
-    # liquidity risk. Data quality degradation reduces data_confidence instead.
+    # OLD (buggy):
+    #   liquidity_stress = market_regime.get("data_status") != "LIVE"
+    #
+    # This fired on every run because the Free Polygon tier frequently
+    # operates in PARTIAL mode (e.g. VIX unavailable), causing permanent
+    # hard overrides and blocking all recommendations.
+    #
+    # NEW:
+    # liquidity_stress only reflects genuine market stress.
     liquidity_stress = (vix_close >= 30) or (breadth_percent < 25)
 
     volatility_stress = vix_close >= 25
@@ -93,10 +106,10 @@ def _build_market_context(market_regime: dict) -> MarketContext:
     if vix_close >= 35:
         market_state = MarketState.PANIC_DISLOCATION
 
-    # Data quality → data_confidence reduction (not hard override)
+    # Data quality affects confidence/sizing, not hard overrides.
     data_quality_ok = market_regime.get("data_status") == "LIVE"
 
-    return MarketContext(
+    context = MarketContext(
         market_state=market_state,
         breadth_collapse=breadth_collapse,
         liquidity_stress=liquidity_stress,
@@ -107,7 +120,9 @@ def _build_market_context(market_regime: dict) -> MarketContext:
             in {MarketState.RISK_OFF, MarketState.HIGH_VOL_TRANSITION}
             else 1.0
         ),
-    ), data_quality_ok
+    )
+
+    return context, data_quality_ok
 
 
 def _candidate_for_symbol(
