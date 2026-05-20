@@ -1,0 +1,82 @@
+name: Entry Exit Watcher Manual
+
+on:
+  workflow_dispatch:
+    inputs:
+      signals_file:
+        description: "Signal file to evaluate"
+        required: false
+        default: "reports/signals/latest-signals.json"
+        type: string
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: entry-exit-watcher-manual-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  watcher:
+    name: Run Entry Exit Watcher Manually
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      SIGNALS_FILE: ${{ github.event.inputs.signals_file || 'reports/signals/latest-signals.json' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run watcher
+        shell: bash
+        run: |
+          mkdir -p reports/alerts
+          mkdir -p reports/signals
+          mkdir -p data
+          echo "Using signals file: $SIGNALS_FILE"
+          python scripts/run_entry_exit_watcher.py --signals-file "$SIGNALS_FILE"
+
+      - name: Commit watcher outputs
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add reports/alerts/ 2>/dev/null || true
+          git add reports/signals/ 2>/dev/null || true
+          git add data/ 2>/dev/null || true
+
+          if git diff --cached --quiet; then
+            echo "No watcher changes to commit."
+            exit 0
+          fi
+
+          git commit -m "Update manual entry exit watcher events $(date -u +'%Y-%m-%d_%H-%M-%S_UTC')"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+
+      - name: Upload alert artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: manual-entry-exit-alerts-${{ github.run_id }}
+          path: reports/alerts/
+          retention-days: 90
