@@ -20,6 +20,7 @@ It is designed as an institutional decision-support and research platform that:
 - records signal lifecycle events
 - evaluates triggered vs expired vs pending signals separately
 - tracks real outcomes from market data
+- validates setups against historical Polygon aggregate bars
 - builds adaptive expectancy profiles
 - feeds historical expectancy back into future scoring
 - persists scoring adjustments for auditability
@@ -34,6 +35,7 @@ Market analysis
 → Signal generation
 → Entry / Exit monitoring
 → Lifecycle tracking
+→ Historical validation
 → Outcome evaluation
 → Expectancy learning
 → Adaptive score / size adjustment
@@ -182,6 +184,30 @@ The portfolio state is consumed by:
 
 Current limitation: the state is file-backed and must be updated by a caller, workflow or future broker/account integration. The system does not yet calculate account equity automatically from live broker execution data.
 
+## Run Historical Validation
+
+```bash
+python scripts/run_historical_validation.py \
+  --signals-file data/backtest_signals.json \
+  --symbols AAPL,MSFT,NVDA \
+  --start-date 2024-01-01 \
+  --end-date 2024-12-31 \
+  --horizons 5,10,20 \
+  --output reports/backtests/backtest_summary.json
+```
+
+Historical validation uses Polygon daily aggregate bars and produces:
+
+```text
+reports/backtests/backtest_summary.json
+```
+
+Documentation:
+
+```text
+docs/architecture/historical_validation.md
+```
+
 ## Generate Lifecycle-Aware Outcomes
 
 ```bash
@@ -234,6 +260,7 @@ institutional-trading-engine/
 ├── docs/
 │   └── architecture/
 │       ├── adaptive_scoring_feedback_loop.md
+│       ├── historical_validation.md
 │       ├── live_runtime_integration.md
 │       ├── runtime_loop.md
 │       ├── runtime_portfolio_state.md
@@ -246,12 +273,14 @@ institutional-trading-engine/
 │   ├── weekly/
 │   ├── signals/
 │   ├── alerts/
+│   ├── backtests/
 │   ├── outcomes/
 │   └── expectancy-report.md
 │
 ├── scripts/
 │   ├── generate_report.py
 │   ├── run_entry_exit_watcher.py
+│   ├── run_historical_validation.py
 │   ├── generate_outcomes.py
 │   └── update_outcomes.py
 │
@@ -299,6 +328,7 @@ Current state:
 | Alerts Persistence | Implemented |
 | Signal Lifecycle JSONL | Implemented |
 | Lifecycle-Aware Outcomes | Implemented |
+| Historical Polygon Validation | Implemented |
 | Entry-Type Expectancy Profiles | Implemented |
 | Expectancy-Based Score Adjustment | Implemented |
 | Scoring Adjustment Audit History | Implemented |
@@ -313,6 +343,36 @@ Current state:
 | Broker Execution | Not implemented |
 | Streaming Intraday Data | Not implemented |
 | Dashboard UI | Not implemented |
+
+---
+
+# Historical Validation
+
+Historical validation is implemented through:
+
+```text
+src/data/polygon_client.py
+src/historical_validation.py
+scripts/run_historical_validation.py
+```
+
+It fetches Polygon daily aggregate bars, validates BacktestSignal-like inputs and writes machine-readable summaries.
+
+Default output:
+
+```text
+reports/backtests/backtest_summary.json
+```
+
+Metrics by horizon:
+
+- sample size
+- win rate
+- average return
+- max adverse excursion
+- false-positive rate
+
+Tests use mocked historical bars and do not require real Polygon network calls.
 
 ---
 
@@ -447,6 +507,7 @@ Key persisted files:
 ```text
 reports/signals/*.json
 reports/alerts/*.json
+reports/backtests/backtest_summary.json
 reports/outcomes/*.json
 reports/expectancy-report.md
 data/portfolio_state.json
@@ -622,6 +683,8 @@ Current limitations:
 - portfolio state is file-backed and must be maintained by a caller/workflow/integration
 - no real-time websocket watcher
 - no streaming intraday bars in the core implementation
+- historical validation uses daily bars only in the first implementation
+- signal extraction into historical-validation input is not fully automated yet
 - Git-based persistence is not final production storage
 - no dashboard UI yet
 - no Postgres persistence yet
@@ -632,7 +695,7 @@ Current limitations:
 Important:
 
 ```text
-This project currently supports research, screening, alerting, lifecycle analysis, file-backed portfolio-state governance and adaptive scoring.
+This project currently supports research, screening, alerting, lifecycle analysis, file-backed portfolio-state governance, historical validation and adaptive scoring.
 It does not execute trades.
 ```
 
@@ -657,6 +720,8 @@ pytest tests/test_runtime_market_snapshot.py
 pytest tests/test_live_runtime_cycle.py
 pytest tests/test_live_runtime_cycle_portfolio_state.py
 pytest tests/test_portfolio_state.py
+pytest tests/test_historical_validation.py
+pytest tests/test_polygon_client_historical_range.py
 pytest tests/test_scanner_market_snapshot_builder.py
 pytest tests/test_end_to_end_institutional_flow.py
 pytest tests/test_entry_exit_watcher.py
@@ -670,6 +735,8 @@ Test coverage includes:
 
 - governance
 - portfolio-state governance integration
+- historical validation
+- Polygon historical range fetcher behavior
 - reporting
 - signal generation
 - entry/exit watcher logic
@@ -726,6 +793,7 @@ For market intelligence features, also require:
 - alerts persistence
 - lifecycle JSONL
 - lifecycle-aware outcomes
+- historical Polygon aggregate validation
 - entry-type expectancy profiles
 - expectancy-based score adjustment
 - scoring adjustment history
@@ -742,23 +810,21 @@ For market intelligence features, also require:
 
 - unified continuous runtime maturity
 - operational observation of watcher stability across real scheduled runs
-- documentation / roadmap synchronization
 
 ## Planned Next
 
 1. Add explicit `signal_id` to every generated signal.
 2. Prevent duplicate lifecycle events for the same signal/event pair.
 3. Improve intraday data support with higher-frequency bars if Polygon plan allows.
-4. Connect backtesting to real historical Polygon aggregate data.
-5. Expand symbol universe beyond tech-heavy coverage.
-6. Add dashboard or static HTML reporting.
-7. Move long-term persistence from Git files to Postgres.
-8. Add structured JSON logging.
-9. Add regime similarity memory.
-10. Add scoring adjustment quality review.
-11. Add adaptive scoring guardrails by market regime.
-12. Add broker/account integration for automatic portfolio-state calculation.
-13. Add weekly automated expectancy feedback reports.
+4. Expand symbol universe beyond tech-heavy coverage.
+5. Add dashboard or static HTML reporting.
+6. Move long-term persistence from Git files to Postgres.
+7. Add structured JSON logging.
+8. Add regime similarity memory.
+9. Add scoring adjustment quality review.
+10. Add adaptive scoring guardrails by market regime.
+11. Add broker/account integration for automatic portfolio-state calculation.
+12. Add weekly automated expectancy feedback reports.
 
 ## Known Limitations
 
@@ -768,7 +834,8 @@ For market intelligence features, also require:
 - no streaming intraday bars in the core implementation
 - no dashboard UI
 - no Postgres persistence
-- no real historical-data-backed setup validation yet
+- historical validation uses daily bars only
+- signal extraction into historical-validation input is not fully automated yet
 
 ---
 
