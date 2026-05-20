@@ -5,8 +5,8 @@ The script uses the GitHub REST API with GITHUB_TOKEN and writes:
 - reports/workflow-errors/YYYY-MM-DD-workflow-errors.md
 - reports/workflow-errors/latest-workflow-errors.md
 
-It is intentionally dependency-light and uses requests, which is already in
-requirements.txt.
+By default it only includes failed runs from the last 24 hours. Use
+--since-date to provide an explicit ISO timestamp.
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ from __future__ import annotations
 import argparse
 import os
 import re
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -63,14 +63,38 @@ def _request_text(url: str, token: str) -> str:
     return response.text
 
 
-def _list_recent_failed_runs(repo: str, token: str, limit: int) -> list[dict[str, Any]]:
+def _parse_datetime(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    normalized = value.strip().replace("Z", "+00:00")
+    parsed = datetime.fromisoformat(normalized)
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
+
+
+def _list_recent_failed_runs(
+    repo: str,
+    token: str,
+    limit: int,
+    since: datetime | None,
+) -> list[dict[str, Any]]:
+    # Fetch more than the display limit so date filtering has enough candidates.
+    per_page = min(100, max(limit * 3, 30))
     url = (
         f"https://api.github.com/repos/{repo}/actions/runs"
-        f"?per_page={max(limit, 10)}&status=completed"
+        f"?per_page={per_page}&status=completed"
     )
     payload = _request_json(url, token)
     runs = payload.get("workflow_runs", [])
     failed = [run for run in runs if run.get("conclusion") == "failure"]
+
+    if since is not None:
+        failed = [
+            run for run in failed
+            if (_parse_datetime(run.get("created_at")) or datetime.min.replace(tzinfo=UTC)) >= since
+        ]
+
     return failed[:limit]
 
 
@@ -108,21 +132,23 @@ def _failed_steps(job: dict[str, Any]) -> list[str]:
     return result
 
 
-def build_report(repo: str, token: str, limit: int) -> str:
+def build_report(repo: str, token: str, limit: int, since: datetime | None) -> str:
     now = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
-    runs = _list_recent_failed_runs(repo, token, limit)
+    runs = _list_recent_failed_runs(repo, token, limit, since)
+    since_text = since.strftime("%Y-%m-%d %H:%M UTC") if since else "not set"
 
     lines: list[str] = [
         "# GitHub Actions Workflow Error Report",
         "",
         f"Generated: {now}",
         f"Repository: `{repo}`",
+        f"Filter since: {since_text}",
         f"Failed runs included: {len(runs)}",
         "",
     ]
 
     if not runs:
-        lines.append("✅ No recent failed workflow runs found.")
+        lines.append("✅ No failed workflow runs found for the selected time window.")
         return "\n".join(lines)
 
     for run in runs:
@@ -200,6 +226,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--repo", default=os.getenv("GITHUB_REPOSITORY"), help="Repository in owner/name format")
     parser.add_argument("--token", default=os.getenv("GITHUB_TOKEN"), help="GitHub token")
     parser.add_argument("--limit", type=int, default=10, help="Number of failed runs to include")
+    parser.add_argument("--since-date", default=None, help="Only include failed runs created at/after this ISO timestamp")
+    parser.add_argument("--lookback-hours", type=int, default=24, help="Default lookback window when --since-date is not supplied")
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR), help="Output directory")
     return parser.parse_args()
 
@@ -211,10 +239,14 @@ def main() -> int:
     if not args.token:
         raise SystemExit("GITHUB_TOKEN or --token is required")
 
+    since = _parse_datetime(args.since_date)
+    if since is None and args.lookback_hours > 0:
+        since = datetime.now(UTC) - timedelta(hours=args.lookback_hours)
+
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    report = build_report(args.repo, args.token, args.limit)
+    report = build_report(args.repo, args.token, args.limit, since)
     date_str = datetime.now(UTC).strftime("%Y-%m-%d")
 
     dated = output_dir / f"{date_str}-workflow-errors.md"
