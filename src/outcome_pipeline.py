@@ -17,7 +17,7 @@ It supports three core operations:
 from __future__ import annotations
 
 import csv
-from dataclasses import asdict, replace
+from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -211,7 +211,11 @@ def build_expectancy_summary(path: str | Path = DEFAULT_DECISION_LOG) -> dict[st
     return {
         "setup_profiles": [asdict(profile) for profile in report.setup_profiles],
         "regime_profiles": [asdict(profile) for profile in report.regime_profiles],
+        "entry_type_profiles": [asdict(profile) for profile in report.entry_type_profiles],
         "combined_profiles": [asdict(profile) for profile in report.combined_profiles],
+        "setup_regime_entry_profiles": [
+            asdict(profile) for profile in report.setup_regime_entry_profiles
+        ],
         "strongest_edges": list(report.strongest_edges),
         "weakest_edges": list(report.weakest_edges),
     }
