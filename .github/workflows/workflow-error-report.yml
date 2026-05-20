@@ -7,6 +7,14 @@ on:
         description: "Number of failed workflow runs to include"
         required: false
         default: "10"
+      since_date:
+        description: "Only include failed runs after this ISO date, e.g. 2026-05-20T20:50:00Z"
+        required: false
+        default: ""
+      lookback_hours:
+        description: "Default lookback window when since_date is empty"
+        required: false
+        default: "24"
   schedule:
     # Daily at 07:15 UTC
     - cron: "15 7 * * *"
@@ -44,7 +52,18 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
           LIMIT="${{ github.event.inputs.limit || '10' }}"
-          python scripts/generate_workflow_error_report.py --limit "$LIMIT"
+          SINCE_DATE="${{ github.event.inputs.since_date || '' }}"
+          LOOKBACK_HOURS="${{ github.event.inputs.lookback_hours || '24' }}"
+
+          if [[ -n "$SINCE_DATE" ]]; then
+            python scripts/generate_workflow_error_report.py \
+              --limit "$LIMIT" \
+              --since-date "$SINCE_DATE"
+          else
+            python scripts/generate_workflow_error_report.py \
+              --limit "$LIMIT" \
+              --lookback-hours "$LOOKBACK_HOURS"
+          fi
 
       - name: Commit workflow error report
         run: |
