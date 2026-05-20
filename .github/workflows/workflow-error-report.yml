@@ -68,7 +68,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git pull --rebase origin "${GITHUB_REF_NAME}"
           git add reports/workflow-errors/ 2>/dev/null || true
 
           if git diff --cached --quiet; then
