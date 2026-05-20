@@ -24,7 +24,7 @@ class LiquidityIntelligence:
         inputs: LiquidityInputs,
     ) -> LiquidityAssessment:
         score = (
-            (inputs.average_daily_volume_millions * 0.4)
+            (inputs.average_daily_volume_millions * 1.6)
             - (inputs.bid_ask_spread_percent * 15)
             - (inputs.volatility_percent * 0.5)
             - (inputs.order_size_percent_adv * 0.8)
