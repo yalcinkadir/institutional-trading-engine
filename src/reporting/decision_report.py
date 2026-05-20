@@ -3,15 +3,13 @@ Decision Report Builder.
 
 Builds the institutional decision report from market regime and screener data.
 
-Fix applied: liquidity_stress was permanently True because it was set
-whenever data_status != 'LIVE' — which is always the case on Free Polygon
-tier (VIX missing → PARTIAL). This triggered a Hard Override on every run,
-blocking all recommendations.
+Important integrations:
+- Data quality degradation reduces confidence instead of causing a hard override.
+- Historical expectancy profiles are fed back into setup scoring before ranking.
 
-Corrected logic: liquidity_stress is now only True when there is genuine
-market liquidity risk (VIX >= 30 OR breadth < 25%), not from data quality
-degradation. Data quality is tracked separately and produces reduced
-data_confidence, not a hard override.
+The expectancy integration closes the loop:
+
+signals → lifecycle → outcomes → expectancy → future scoring
 """
 
 from __future__ import annotations
@@ -26,6 +24,11 @@ from src.decision_engine import (
     evaluate_candidate,
     get_allowed_setups,
     rank_candidates,
+)
+from src.scoring.expectancy_adjuster import (
+    apply_expectancy_to_score,
+    default_entry_type_for_setup,
+    find_expectancy_adjustment,
 )
 
 
@@ -130,14 +133,12 @@ def _candidate_for_symbol(
     index: int,
     context: MarketContext,
     data_quality_ok: bool,
-) -> SetupCandidate:
+) -> tuple[SetupCandidate, dict]:
     """
-    Build report candidates from current market context.
+    Build report candidate and apply historical expectancy adjustment.
 
-    data_confidence reflects actual data quality: full confidence when
-    all feeds are live, reduced when running in degraded/partial mode.
-    This ensures data quality issues reduce sizing rather than blocking
-    everything via hard override.
+    The candidate remains a normal Decision Engine candidate, but its setup_score
+    is adjusted by lifecycle-aware historical evidence where available.
     """
     preferred_setup = {
         MarketState.LOW_VOL_BULL: SetupType.MOMENTUM_BREAKOUT,
@@ -147,21 +148,54 @@ def _candidate_for_symbol(
         MarketState.NEUTRAL: SetupType.PULLBACK_CONTINUATION,
     }[context.market_state]
 
-    setup_score = max(55, 82 - index * 3)
+    base_setup_score = max(55, 82 - index * 3)
     regime_alignment = max(0.50, 0.82 - index * 0.04)
     asymmetry_score = max(0.50, 0.72 - index * 0.03)
 
     # Full confidence when all feeds live; reduced (but not blocking) when partial
     data_confidence = 0.85 if data_quality_ok else 0.65
 
-    return SetupCandidate(
+    entry_type = default_entry_type_for_setup(preferred_setup.value)
+    adjustment = find_expectancy_adjustment(
+        setup_type=preferred_setup.value,
+        market_state=context.market_state.value,
+        entry_type=entry_type,
+    )
+    adjusted_setup_score = apply_expectancy_to_score(base_setup_score, adjustment)
+
+    # Positive expectancy should not compensate for poor data quality too much.
+    # Negative expectancy remains fully effective.
+    if not data_quality_ok and adjustment.score_delta > 0:
+        adjusted_setup_score = base_setup_score
+        adjustment_note = "positive_expectancy_ignored_due_to_partial_data"
+    else:
+        adjustment_note = adjustment.reason
+
+    candidate = SetupCandidate(
         symbol=symbol,
         setup_type=preferred_setup,
-        setup_score=setup_score,
+        setup_score=adjusted_setup_score,
         regime_alignment=regime_alignment,
         asymmetry_score=asymmetry_score,
         data_confidence=data_confidence,
     )
+
+    meta = {
+        "base_setup_score": base_setup_score,
+        "expectancy_adjusted_score": adjusted_setup_score,
+        "expectancy_score_delta": round(adjusted_setup_score - base_setup_score, 2),
+        "expectancy_size_multiplier": adjustment.size_multiplier,
+        "expectancy_profile_key": adjustment.profile_key,
+        "expectancy_source": adjustment.source,
+        "expectancy_sample_size": adjustment.sample_size,
+        "expectancy_win_rate": adjustment.win_rate,
+        "expectancy_value": adjustment.expectancy,
+        "expectancy_recommendation": adjustment.recommendation,
+        "expectancy_reason": adjustment_note,
+        "entry_type_assumption": entry_type,
+    }
+
+    return candidate, meta
 
 
 def build_decision_report(market_regime: dict, screener: dict) -> dict:
@@ -169,28 +203,61 @@ def build_decision_report(market_regime: dict, screener: dict) -> dict:
     allowed_setups = get_allowed_setups(context.market_state)
     hard_overrides = detect_hard_overrides(context)
 
-    candidates = [
+    candidate_pairs = [
         _candidate_for_symbol(symbol, index, context, data_quality_ok)
         for index, symbol in enumerate(screener.get("watchlist", []))
     ]
+    candidates = [candidate for candidate, _meta in candidate_pairs]
+    meta_by_symbol = {candidate.symbol: meta for candidate, meta in candidate_pairs}
 
     ranked = rank_candidates(context, candidates)
 
     decisions = []
     for candidate, result in ranked:
+        meta = meta_by_symbol.get(candidate.symbol, {})
+        adjusted_size = round(
+            result.position_size_multiplier
+            * float(meta.get("expectancy_size_multiplier", 1.0)),
+            4,
+        )
+
+        notes = list(result.notes)
+        expectancy_delta = float(meta.get("expectancy_score_delta", 0.0))
+        if expectancy_delta != 0:
+            notes.append(
+                "expectancy_adjustment: "
+                f"{expectancy_delta:+.1f} score, "
+                f"size×{meta.get('expectancy_size_multiplier')} "
+                f"({meta.get('expectancy_reason')})"
+            )
+
         decisions.append(
             {
                 "symbol": candidate.symbol,
                 "setup_type": candidate.setup_type.value,
                 "decision": result.decision.value,
                 "risk_tier": result.risk_tier,
-                "position_size_multiplier": result.position_size_multiplier,
+                "position_size_multiplier": adjusted_size,
+                "base_position_size_multiplier": result.position_size_multiplier,
                 "setup_score": candidate.setup_score,
+                "base_setup_score": meta.get("base_setup_score", candidate.setup_score),
                 "regime_alignment": round(candidate.regime_alignment, 2),
                 "asymmetry_score": round(candidate.asymmetry_score, 2),
                 "data_confidence": round(candidate.data_confidence, 2),
                 "blocked_reasons": list(result.blocked_reasons),
-                "notes": list(result.notes),
+                "notes": notes,
+                "expectancy": {
+                    "profile_key": meta.get("expectancy_profile_key"),
+                    "source": meta.get("expectancy_source"),
+                    "sample_size": meta.get("expectancy_sample_size"),
+                    "win_rate": meta.get("expectancy_win_rate"),
+                    "expectancy": meta.get("expectancy_value"),
+                    "score_delta": meta.get("expectancy_score_delta"),
+                    "size_multiplier": meta.get("expectancy_size_multiplier"),
+                    "recommendation": meta.get("expectancy_recommendation"),
+                    "reason": meta.get("expectancy_reason"),
+                    "entry_type_assumption": meta.get("entry_type_assumption"),
+                },
             }
         )
 
@@ -232,6 +299,12 @@ def build_decision_report(market_regime: dict, screener: dict) -> dict:
              "Data confidence reduced; sizing conservative."
     )
 
+    expectancy_adjustments_used = [
+        item["expectancy"]
+        for item in decisions
+        if item["expectancy"].get("score_delta") not in {None, 0, 0.0}
+    ]
+
     return {
         "market_state": context.market_state.value,
         "allowed_setups": [setup.value for setup in allowed_setups],
@@ -239,6 +312,7 @@ def build_decision_report(market_regime: dict, screener: dict) -> dict:
         "portfolio_heat_limit": context.max_portfolio_heat,
         "summary": summary,
         "data_quality_note": data_quality_note,
+        "expectancy_adjustments_used": expectancy_adjustments_used,
         "approved_count": approved_count,
         "blocked_count": blocked_count,
         "decisions": decisions,
