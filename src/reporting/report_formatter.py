@@ -24,6 +24,7 @@ def _format_decision_item(item: dict) -> list[str]:
     lines.append(
         f"- Setup Score: {score_text} | "
         f"Regime Alignment: {item['regime_alignment']} | "
+        f"Asymmetry Score: {item.get('asymmetry_score', 'n/a')} | "
         f"Data Confidence: {item['data_confidence']}"
     )
 
@@ -126,6 +127,7 @@ def format_report(payload: dict) -> str:
     else:
         lines += [
             "- SPY: DATA_UNAVAILABLE",
+            "- QQQ: DATA_UNAVAILABLE",
             "- VIX: DATA_UNAVAILABLE",
             "- SMA50: DATA_UNAVAILABLE",
             "- SMA200: DATA_UNAVAILABLE",
@@ -227,33 +229,42 @@ def format_report(payload: dict) -> str:
     lines.append("")
 
     decisions = decision_report.get("decisions", [])
-    if decisions:
-        # Approved / Watch first
-        approved = [
-            d for d in decisions
-            if d["decision"] in {"approved", "reduced_size", "watch"}
-        ]
-        blocked = [
-            d for d in decisions
-            if d["decision"] in {"blocked", "no_trade"}
-        ]
+    approved = [
+        d for d in decisions
+        if d["decision"] in {"approved", "reduced_size", "watch"}
+    ]
+    blocked = [
+        d for d in decisions
+        if d["decision"] in {"blocked", "no_trade"}
+    ]
 
-        if approved:
-            lines.append("### ✅ Actionable Setups")
-            lines.append("")
-            for item in approved:
-                lines.extend(_format_decision_item(item))
+    lines.append("### Ranked Opportunities")
+    lines.append("")
+    if approved:
+        for item in approved:
+            lines.extend(_format_decision_item(item))
+    else:
+        lines.append(
+            "- No ranked opportunities qualified for active risk. "
+            "Decision remains No-Trade / watch mode until setup quality improves."
+        )
+        lines.append("- Asymmetry Score: n/a — no approved asymmetric setup available.")
+        lines.append("")
 
-        if blocked:
-            lines.append("### 🚫 Blocked / No Trade")
-            lines.append("")
-            for item in blocked[:5]:
-                reason = (
-                    ", ".join(item.get("blocked_reasons", []))
-                    or "regime/quality filter"
-                )
-                lines.append(f"- **{item['symbol']}**: {item['decision']} — {reason}")
-            lines.append("")
+    if blocked:
+        lines.append("### 🚫 Blocked / No Trade")
+        lines.append("")
+        for item in blocked[:5]:
+            reason = (
+                ", ".join(item.get("blocked_reasons", []))
+                or "regime/quality filter"
+            )
+            asymmetry = item.get("asymmetry_score", "n/a")
+            lines.append(
+                f"- **{item['symbol']}**: {item['decision']} — {reason} "
+                f"| Asymmetry Score: {asymmetry}"
+            )
+        lines.append("")
 
     # ── Screener Watchlist ─────────────────────────────────────────────────
     lines.append(f"## {screener['title']}")
