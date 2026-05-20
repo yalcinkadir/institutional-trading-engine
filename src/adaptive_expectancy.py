@@ -7,7 +7,8 @@ The goal is not machine learning hype. The goal is practical adaptive weighting.
 Questions answered:
 - Which setup types currently work?
 - Which regimes have positive expectancy?
-- Which combinations are deteriorating?
+- Which entry types work best?
+- Which setup/regime/entry combinations are deteriorating?
 - Should risk be expanded or reduced?
 """
 
@@ -32,7 +33,9 @@ class ExpectancyProfile:
 class AdaptiveExpectancyReport:
     setup_profiles: tuple[ExpectancyProfile, ...]
     regime_profiles: tuple[ExpectancyProfile, ...]
+    entry_type_profiles: tuple[ExpectancyProfile, ...]
     combined_profiles: tuple[ExpectancyProfile, ...]
+    setup_regime_entry_profiles: tuple[ExpectancyProfile, ...]
     strongest_edges: tuple[str, ...]
     weakest_edges: tuple[str, ...]
 
@@ -85,64 +88,71 @@ def _profile(key: str, results: list[float]) -> ExpectancyProfile:
     )
 
 
+def _sorted_profiles(groups: dict[str, list[float]]) -> tuple[ExpectancyProfile, ...]:
+    return tuple(
+        sorted(
+            (_profile(key, values) for key, values in groups.items()),
+            key=lambda profile: profile.expectancy,
+            reverse=True,
+        )
+    )
+
+
 def build_adaptive_expectancy_report(records: list[dict]) -> AdaptiveExpectancyReport:
     by_setup: dict[str, list[float]] = defaultdict(list)
     by_regime: dict[str, list[float]] = defaultdict(list)
+    by_entry_type: dict[str, list[float]] = defaultdict(list)
     by_combination: dict[str, list[float]] = defaultdict(list)
+    by_setup_regime_entry: dict[str, list[float]] = defaultdict(list)
 
     for record in records:
+        # Use 5d as primary adaptive horizon.
         result = _safe_float(record.get("result_5d"))
         if result is None:
             continue
 
+        # Only evaluate signals/trades that actually triggered.
+        lifecycle_status = str(record.get("lifecycle_status") or record.get("status") or "").upper()
+        if lifecycle_status and lifecycle_status in {"PENDING", "EXPIRED", "UNTRIGGERED"}:
+            continue
+
         setup = str(record.get("setup_type", "unknown"))
-        regime = str(record.get("market_state", "unknown"))
+        regime = str(record.get("market_state") or record.get("market_regime") or "unknown")
+        entry_type = str(record.get("entry_type") or "unknown")
+
         combo = f"{regime}::{setup}"
+        setup_regime_entry = f"{regime}::{setup}::{entry_type}"
 
         by_setup[setup].append(result)
         by_regime[regime].append(result)
+        by_entry_type[entry_type].append(result)
         by_combination[combo].append(result)
+        by_setup_regime_entry[setup_regime_entry].append(result)
 
-    setup_profiles = tuple(
-        sorted(
-            (_profile(key, values) for key, values in by_setup.items()),
-            key=lambda profile: profile.expectancy,
-            reverse=True,
-        )
-    )
-
-    regime_profiles = tuple(
-        sorted(
-            (_profile(key, values) for key, values in by_regime.items()),
-            key=lambda profile: profile.expectancy,
-            reverse=True,
-        )
-    )
-
-    combined_profiles = tuple(
-        sorted(
-            (_profile(key, values) for key, values in by_combination.items()),
-            key=lambda profile: profile.expectancy,
-            reverse=True,
-        )
-    )
+    setup_profiles = _sorted_profiles(by_setup)
+    regime_profiles = _sorted_profiles(by_regime)
+    entry_type_profiles = _sorted_profiles(by_entry_type)
+    combined_profiles = _sorted_profiles(by_combination)
+    setup_regime_entry_profiles = _sorted_profiles(by_setup_regime_entry)
 
     strongest_edges = tuple(
         profile.key
-        for profile in combined_profiles[:3]
+        for profile in setup_regime_entry_profiles[:5]
         if profile.trades >= MIN_SAMPLE_SIZE
     )
 
     weakest_edges = tuple(
         profile.key
-        for profile in combined_profiles[-3:]
+        for profile in setup_regime_entry_profiles[-5:]
         if profile.trades >= MIN_SAMPLE_SIZE
     )
 
     return AdaptiveExpectancyReport(
         setup_profiles=setup_profiles,
         regime_profiles=regime_profiles,
+        entry_type_profiles=entry_type_profiles,
         combined_profiles=combined_profiles,
+        setup_regime_entry_profiles=setup_regime_entry_profiles,
         strongest_edges=strongest_edges,
         weakest_edges=weakest_edges,
     )
