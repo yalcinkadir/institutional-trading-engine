@@ -2,14 +2,16 @@
 """
 Generate outcome reports from committed signal JSON files.
 
-Replaces the previous mock-based implementation with real Polygon EOD lookbacks.
-
 For each signal in reports/signals/YYYY-MM-DD-signals.json:
-  1. Fetches EOD price bars for the symbol.
-  2. Finds the bar on signal date (= price_at_signal).
-  3. Calculates 1d, 5d, 20d performance vs signal close.
-  4. Classifies: WIN (>+1%), LOSS (<-1%), NEUTRAL.
+  1. Reads lifecycle status from the signal file.
+  2. Separates TRIGGERED / EXPIRED / UNTRIGGERED / PENDING states.
+  3. Fetches EOD price bars only for triggered/actionable signals.
+  4. Calculates 1d, 5d, 20d performance from actual entry price when available.
   5. Writes outcome to reports/outcomes/YYYY-MM-DD-outcomes.{json,md}.
+
+Important:
+Untriggered or expired signals are not counted as trading losses. They are
+tracked separately as signal-quality information.
 
 Usage:
     python scripts/generate_outcomes.py [--days 7]
@@ -22,6 +24,7 @@ import os
 import sys
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import Any
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
@@ -35,6 +38,8 @@ OUTCOMES_DIR = REPORTS_DIR / "outcomes"
 
 WIN_THRESHOLD = 1.0    # % gain to classify as WIN
 LOSS_THRESHOLD = -1.0  # % loss to classify as LOSS
+TRIGGERED_STATUSES = {"TRIGGERED", "TARGET_1_HIT", "TARGET_2_HIT", "STOP_HIT"}
+NON_TRADE_STATUSES = {"EXPIRED", "UNTRIGGERED"}
 
 
 def _pct(entry: float, exit_price: float) -> float:
@@ -43,10 +48,18 @@ def _pct(entry: float, exit_price: float) -> float:
     return round((exit_price - entry) / entry * 100, 2)
 
 
+def _safe_float(value: Any) -> float | None:
+    if value in {None, "", "None"}:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
 def _find_bar_index(bars: list[dict], target_date: str) -> int | None:
     """Find the index of the bar on or after target_date."""
     for i, bar in enumerate(bars):
-        # Polygon returns timestamps in ms
         ts = bar.get("t", 0)
         bar_date = datetime.utcfromtimestamp(ts / 1000).strftime("%Y-%m-%d")
         if bar_date >= target_date:
@@ -54,14 +67,34 @@ def _find_bar_index(bars: list[dict], target_date: str) -> int | None:
     return None
 
 
+def _signal_lifecycle_status(signal: dict) -> str:
+    return str(signal.get("status") or "PENDING").upper()
+
+
+def _signal_entry_date(signal_date: str, signal: dict) -> str:
+    entry_at = str(signal.get("entry_triggered_at") or "")
+    if entry_at:
+        return entry_at[:10]
+    return signal_date
+
+
+def _entry_price(signal: dict) -> float:
+    return (
+        _safe_float(signal.get("entry_price"))
+        or _safe_float(signal.get("entry_trigger"))
+        or _safe_float(signal.get("close"))
+        or 0.0
+    )
+
+
 def fetch_real_outcomes(
     signal_date: str,
     symbol: str,
-    close_at_signal: float,
+    entry_price: float,
     client,
 ) -> dict:
     """
-    Fetch real EOD outcomes for a signal.
+    Fetch real EOD outcomes for a triggered signal.
 
     Returns dict with result_1d, result_5d, result_20d, classification.
     """
@@ -110,13 +143,12 @@ def fetch_real_outcomes(
     close_20d = _close_at(20)
 
     if close_1d:
-        result_1d = _pct(close_at_signal, close_1d)
+        result_1d = _pct(entry_price, close_1d)
     if close_5d:
-        result_5d = _pct(close_at_signal, close_5d)
+        result_5d = _pct(entry_price, close_5d)
     if close_20d:
-        result_20d = _pct(close_at_signal, close_20d)
+        result_20d = _pct(entry_price, close_20d)
 
-    # Primary classification on 5d result (first meaningful outcome window)
     primary = result_5d if result_5d is not None else result_1d
     if primary is None:
         classification = "PENDING"
@@ -131,6 +163,7 @@ def fetch_real_outcomes(
         "result_1d": result_1d,
         "result_5d": result_5d,
         "result_20d": result_20d,
+        "performance_percent": result_5d if result_5d is not None else result_1d,
         "classification": classification,
     }
 
@@ -145,7 +178,6 @@ def load_signal_files(days: int = 7) -> list[tuple[str, list[dict]]]:
     result = []
 
     for json_file in sorted(SIGNALS_DIR.glob("*-signals.json")):
-        # Skip latest-signals.json
         if json_file.stem == "latest-signals":
             continue
         date_str = json_file.stem.replace("-signals", "")
@@ -154,7 +186,6 @@ def load_signal_files(days: int = 7) -> list[tuple[str, list[dict]]]:
         try:
             payload = json.loads(json_file.read_text(encoding="utf-8"))
             signals = payload.get("signals", [])
-            # Only actionable signals have outcomes to track
             actionable = [s for s in signals if s.get("action") == "BUY_WATCH"]
             if actionable:
                 result.append((date_str, actionable))
@@ -164,12 +195,39 @@ def load_signal_files(days: int = 7) -> list[tuple[str, list[dict]]]:
     return result
 
 
+def _outcome_for_non_trade_signal(date_str: str, sig: dict, lifecycle_status: str) -> dict:
+    return {
+        "signal_date": date_str,
+        "symbol": sig.get("symbol"),
+        "action": sig.get("action"),
+        "setup_type": sig.get("setup_type"),
+        "entry_type": sig.get("entry_type"),
+        "entry_trigger": sig.get("entry_trigger"),
+        "entry_price": sig.get("entry_price"),
+        "close_at_signal": sig.get("close"),
+        "market_regime": sig.get("market_regime"),
+        "lifecycle_status": lifecycle_status,
+        "result_1d": None,
+        "result_5d": None,
+        "result_20d": None,
+        "performance_percent": None,
+        "classification": lifecycle_status,
+    }
+
+
 def write_outcome_reports(outcomes: list[dict], date_str: str) -> None:
     OUTCOMES_DIR.mkdir(parents=True, exist_ok=True)
 
-    summary = summarize_outcomes(
-        [o for o in outcomes if o["classification"] != "PENDING"]
-    )
+    evaluated = [
+        outcome for outcome in outcomes
+        if outcome.get("classification") in {"WIN", "LOSS", "NEUTRAL"}
+    ]
+    summary = summarize_outcomes(evaluated)
+
+    lifecycle_counts: dict[str, int] = {}
+    for outcome in outcomes:
+        status = str(outcome.get("lifecycle_status") or outcome.get("classification") or "UNKNOWN")
+        lifecycle_counts[status] = lifecycle_counts.get(status, 0) + 1
 
     now_iso = datetime.now(UTC).isoformat()
 
@@ -182,23 +240,29 @@ def write_outcome_reports(outcomes: list[dict], date_str: str) -> None:
         "## Summary",
         "",
         f"- Total Signals: {len(outcomes)}",
-        f"- Evaluated: {summary['total_outcomes']}",
-        f"- Pending: {len(outcomes) - summary['total_outcomes']}",
+        f"- Evaluated Trades: {summary['total_outcomes']}",
+        f"- Pending / Non-trade Signals: {len(outcomes) - summary['total_outcomes']}",
         f"- Win Rate: {summary['win_rate']}%",
         f"- Average Performance (5d): {summary['average_performance']}%",
         "",
-        "## Signal Outcomes",
+        "## Lifecycle Counts",
         "",
     ]
 
-    for o in outcomes:
-        status = o["classification"]
-        r1 = f"{o['result_1d']:+.2f}%" if o["result_1d"] is not None else "pending"
-        r5 = f"{o['result_5d']:+.2f}%" if o["result_5d"] is not None else "pending"
-        r20 = f"{o['result_20d']:+.2f}%" if o["result_20d"] is not None else "pending"
+    for status, count in sorted(lifecycle_counts.items()):
+        lines.append(f"- {status}: {count}")
+
+    lines += ["", "## Signal Outcomes", ""]
+
+    for outcome in outcomes:
+        status = outcome["classification"]
+        lifecycle = outcome.get("lifecycle_status", status)
+        r1 = f"{outcome['result_1d']:+.2f}%" if outcome["result_1d"] is not None else "n/a"
+        r5 = f"{outcome['result_5d']:+.2f}%" if outcome["result_5d"] is not None else "n/a"
+        r20 = f"{outcome['result_20d']:+.2f}%" if outcome["result_20d"] is not None else "n/a"
         lines.append(
-            f"- **{o['symbol']}** [{status}] "
-            f"Entry: {o.get('entry_trigger', 'N/A')} | "
+            f"- **{outcome['symbol']}** [{status} / {lifecycle}] "
+            f"Entry: {outcome.get('entry_trigger', 'N/A')} | "
             f"1d: {r1} | 5d: {r5} | 20d: {r20}"
         )
 
@@ -213,7 +277,6 @@ def write_outcome_reports(outcomes: list[dict], date_str: str) -> None:
     latest_md.write_text(markdown, encoding="utf-8")
     dated_json.write_text(json.dumps(outcomes, indent=2), encoding="utf-8")
 
-    # Append to rolling history
     history: list[dict] = []
     if history_json.exists():
         try:
@@ -221,11 +284,8 @@ def write_outcome_reports(outcomes: list[dict], date_str: str) -> None:
         except Exception:
             history = []
 
-    # Remove existing entries for this date to avoid duplicates
     history = [h for h in history if h.get("signal_date") != date_str]
     history.append({"signal_date": date_str, "outcomes": outcomes})
-
-    # Keep last 90 days
     history = sorted(history, key=lambda x: x.get("signal_date", ""), reverse=True)[:90]
     history_json.write_text(json.dumps(history, indent=2), encoding="utf-8")
 
@@ -243,7 +303,7 @@ def main() -> int:
     api_key = os.getenv("POLYGON_API_KEY")
     if not api_key:
         print("WARNING: POLYGON_API_KEY not set. Cannot fetch real outcomes.")
-        print("Outcome files will contain PENDING status for all signals.")
+        print("Outcome files will contain PENDING status for triggered signals.")
 
     signal_batches = load_signal_files(days=args.days)
 
@@ -264,17 +324,30 @@ def main() -> int:
 
         for sig in signals:
             symbol = sig["symbol"]
-            close = sig.get("close") or 0.0
+            lifecycle_status = _signal_lifecycle_status(sig)
+            entry_price = _entry_price(sig)
+            entry_date = _signal_entry_date(date_str, sig)
 
-            if client and close > 0:
-                result = fetch_real_outcomes(date_str, symbol, float(close), client)
+            if lifecycle_status in NON_TRADE_STATUSES:
+                outcomes.append(_outcome_for_non_trade_signal(date_str, sig, lifecycle_status))
+                total_processed += 1
+                continue
+
+            if lifecycle_status == "PENDING":
+                outcomes.append(_outcome_for_non_trade_signal(date_str, sig, "PENDING"))
+                total_processed += 1
+                continue
+
+            if client and entry_price > 0 and lifecycle_status in TRIGGERED_STATUSES:
+                result = fetch_real_outcomes(entry_date, symbol, float(entry_price), client)
             else:
                 result = {
                     "result_1d": None,
                     "result_5d": None,
                     "result_20d": None,
+                    "performance_percent": None,
                     "classification": "PENDING",
-                    "error": "no_api_key_or_no_close",
+                    "error": "no_api_key_or_no_entry_price_or_not_triggered",
                 }
 
             outcomes.append({
@@ -282,9 +355,12 @@ def main() -> int:
                 "symbol": symbol,
                 "action": sig.get("action"),
                 "setup_type": sig.get("setup_type"),
+                "entry_type": sig.get("entry_type"),
                 "entry_trigger": sig.get("entry_trigger"),
-                "close_at_signal": close,
+                "entry_price": entry_price,
+                "close_at_signal": sig.get("close"),
                 "market_regime": sig.get("market_regime"),
+                "lifecycle_status": lifecycle_status,
                 **result,
             })
             total_processed += 1
