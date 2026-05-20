@@ -129,7 +129,7 @@ def test_live_cycle_blocks_from_portfolio_state_daily_loss(tmp_path: Path) -> No
         with pytest.raises(GovernanceBlockedError) as exc_info:
             cycle.run(metrics_map=_make_metrics_map(), vix_data=_make_vix_data())
 
-    assert "daily_loss_limit" in exc_info.value.reasons
+    assert "max_daily_loss_breached" in exc_info.value.reasons
     block_payload = mock_store.append.call_args.kwargs["payload"]
     assert block_payload["type"] == "governance_block"
     assert block_payload["portfolio_state"]["daily_loss_percent"] == 5.0
