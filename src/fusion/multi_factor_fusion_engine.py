@@ -29,7 +29,7 @@ class MultiFactorFusionEngine:
         fusion_score = (
             (inputs.regime_score * 0.25)
             + (inputs.liquidity_score * 0.15)
-            + (inputs.feature_alpha_score * 0.25)
+            + (inputs.feature_alpha_score * 0.28)
             + (inputs.execution_confidence * 0.2)
             - (inputs.tail_risk_score * 0.1)
             - (inputs.portfolio_risk_score * 0.05)
