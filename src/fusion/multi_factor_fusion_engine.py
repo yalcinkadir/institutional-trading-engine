@@ -37,7 +37,7 @@ class MultiFactorFusionEngine:
 
         confidence = max(0.0, min(100.0, fusion_score))
 
-        if confidence >= 75:
+        if confidence >= 70:
             classification = "high_conviction"
             reasoning = "strong multi-factor alignment"
         elif confidence >= 55:
