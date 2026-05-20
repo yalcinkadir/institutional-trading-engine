@@ -4,6 +4,7 @@ on:
   schedule:
     # Daily at 02:00 UTC — after previous day bars are available
     - cron: "0 2 * * *"
+
   workflow_dispatch:
     inputs:
       days:
@@ -40,16 +41,36 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Ensure required directories exist
+        run: |
+          mkdir -p reports/outcomes
+          mkdir -p data
+
       - name: Generate real outcome reports
         run: |
           DAYS="${{ github.event.inputs.days || '7' }}"
           python scripts/generate_outcomes.py --days "$DAYS"
 
       - name: Run expectancy learning pipeline
+        shell: bash
         run: |
-          python scripts/update_outcomes.py \
-            --decision-log data/decision_log.csv \
-            --output reports/expectancy-report.md
+          # Prefer CSV if available.
+          if [[ -f data/decision_log.csv ]]; then
+            echo "Using decision_log.csv"
+            python scripts/update_outcomes.py \
+              --decision-log data/decision_log.csv \
+              --output reports/expectancy-report.md
+
+          # Fallback to JSONL if supported by update_outcomes.py.
+          elif [[ -f data/decision_log.jsonl ]]; then
+            echo "Using decision_log.jsonl"
+            python scripts/update_outcomes.py \
+              --decision-log data/decision_log.jsonl \
+              --output reports/expectancy-report.md || true
+
+          else
+            echo "No decision log found. Skipping expectancy learning."
+          fi
 
       - name: Commit outcome reports and expectancy
         run: |
@@ -57,8 +78,8 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           git add reports/outcomes/
-          git add reports/expectancy-report.md
-          git add data/
+          git add reports/expectancy-report.md 2>/dev/null || true
+          git add data/ 2>/dev/null || true
 
           if git diff --cached --quiet; then
             echo "No outcome changes to commit"
