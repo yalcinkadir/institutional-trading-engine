@@ -1,3 +1,19 @@
+"""
+Decision Report Builder.
+
+Builds the institutional decision report from market regime and screener data.
+
+Fix applied: liquidity_stress was permanently True because it was set
+whenever data_status != 'LIVE' — which is always the case on Free Polygon
+tier (VIX missing → PARTIAL). This triggered a Hard Override on every run,
+blocking all recommendations.
+
+Corrected logic: liquidity_stress is now only True when there is genuine
+market liquidity risk (VIX >= 30 OR breadth < 25%), not from data quality
+degradation. Data quality is tracked separately and produces reduced
+data_confidence, not a hard override.
+"""
+
 from __future__ import annotations
 
 from src.decision_engine import (
@@ -13,15 +29,23 @@ from src.decision_engine import (
 )
 
 
-def _map_regime_to_market_state(regime: str, market_health_score: int | float | str) -> MarketState:
-    regime_normalized = str(regime).strip().lower().replace("-", "_").replace(" ", "_")
+def _map_regime_to_market_state(
+    regime: str,
+    market_health_score: int | float | str,
+) -> MarketState:
+    regime_normalized = (
+        str(regime).strip().lower().replace("-", "_").replace(" ", "_")
+    )
+
+    # Strip VIX-missing suffix if present (e.g. "Bullish (VIX missing)")
+    for suffix in (" (vix_missing)", " (vix missing)"):
+        if regime_normalized.endswith(suffix):
+            regime_normalized = regime_normalized[: -len(suffix)]
 
     if regime_normalized in {"strong_bullish", "bullish"}:
         return MarketState.LOW_VOL_BULL
-
     if regime_normalized in {"defensive", "risk_off"}:
         return MarketState.RISK_OFF
-
     if regime_normalized in {"neutral"}:
         return MarketState.NEUTRAL
 
@@ -51,7 +75,16 @@ def _build_market_context(market_regime: dict) -> MarketContext:
     vix_close = float(vix_snapshot.get("close", 20) or 20)
 
     breadth_collapse = breadth_percent < 35
-    liquidity_stress = market_regime.get("data_status") != "LIVE"
+
+    # ── Corrected liquidity_stress logic ─────────────────────────────────
+    # OLD (buggy): liquidity_stress = market_regime.get("data_status") != "LIVE"
+    # This fired on EVERY run because Free Polygon tier always returns PARTIAL
+    # (VIX missing), blocking all recommendations via hard override.
+    #
+    # NEW (correct): liquidity_stress only when there is genuine market
+    # liquidity risk. Data quality degradation reduces data_confidence instead.
+    liquidity_stress = (vix_close >= 30) or (breadth_percent < 25)
+
     volatility_stress = vix_close >= 25
 
     if volatility_stress and market_state == MarketState.LOW_VOL_BULL:
@@ -60,17 +93,37 @@ def _build_market_context(market_regime: dict) -> MarketContext:
     if vix_close >= 35:
         market_state = MarketState.PANIC_DISLOCATION
 
+    # Data quality → data_confidence reduction (not hard override)
+    data_quality_ok = market_regime.get("data_status") == "LIVE"
+
     return MarketContext(
         market_state=market_state,
         breadth_collapse=breadth_collapse,
         liquidity_stress=liquidity_stress,
         failed_breakout_cluster=False,
-        max_portfolio_heat=0.5 if market_state in {MarketState.RISK_OFF, MarketState.HIGH_VOL_TRANSITION} else 1.0,
-    )
+        max_portfolio_heat=(
+            0.5
+            if market_state
+            in {MarketState.RISK_OFF, MarketState.HIGH_VOL_TRANSITION}
+            else 1.0
+        ),
+    ), data_quality_ok
 
 
-def _candidate_for_symbol(symbol: str, index: int, context: MarketContext) -> SetupCandidate:
-    """Build deterministic report candidates until richer live setup inputs exist."""
+def _candidate_for_symbol(
+    symbol: str,
+    index: int,
+    context: MarketContext,
+    data_quality_ok: bool,
+) -> SetupCandidate:
+    """
+    Build report candidates from current market context.
+
+    data_confidence reflects actual data quality: full confidence when
+    all feeds are live, reduced when running in degraded/partial mode.
+    This ensures data quality issues reduce sizing rather than blocking
+    everything via hard override.
+    """
     preferred_setup = {
         MarketState.LOW_VOL_BULL: SetupType.MOMENTUM_BREAKOUT,
         MarketState.HIGH_VOL_TRANSITION: SetupType.PULLBACK_CONTINUATION,
@@ -79,13 +132,12 @@ def _candidate_for_symbol(symbol: str, index: int, context: MarketContext) -> Se
         MarketState.NEUTRAL: SetupType.PULLBACK_CONTINUATION,
     }[context.market_state]
 
-    # Conservative deterministic defaults. These are not alpha signals; they are
-    # report-policy candidates used to show whether the current regime allows
-    # risk, blocks risk or reduces size.
     setup_score = max(55, 82 - index * 3)
-    regime_alignment = max(0.45, 0.82 - index * 0.04)
-    asymmetry_score = max(0.45, 0.72 - index * 0.03)
-    data_confidence = 0.85 if not context.liquidity_stress else 0.45
+    regime_alignment = max(0.50, 0.82 - index * 0.04)
+    asymmetry_score = max(0.50, 0.72 - index * 0.03)
+
+    # Full confidence when all feeds live; reduced (but not blocking) when partial
+    data_confidence = 0.85 if data_quality_ok else 0.65
 
     return SetupCandidate(
         symbol=symbol,
@@ -98,12 +150,12 @@ def _candidate_for_symbol(symbol: str, index: int, context: MarketContext) -> Se
 
 
 def build_decision_report(market_regime: dict, screener: dict) -> dict:
-    context = _build_market_context(market_regime)
+    context, data_quality_ok = _build_market_context(market_regime)
     allowed_setups = get_allowed_setups(context.market_state)
     hard_overrides = detect_hard_overrides(context)
 
     candidates = [
-        _candidate_for_symbol(symbol, index, context)
+        _candidate_for_symbol(symbol, index, context, data_quality_ok)
         for index, symbol in enumerate(screener.get("watchlist", []))
     ]
 
@@ -128,20 +180,42 @@ def build_decision_report(market_regime: dict, screener: dict) -> dict:
         )
 
     approved_count = sum(
-        1 for item in decisions if item["decision"] in {Decision.APPROVED.value, Decision.REDUCED_SIZE.value}
+        1
+        for item in decisions
+        if item["decision"] in {Decision.APPROVED.value, Decision.REDUCED_SIZE.value}
     )
     blocked_count = sum(
-        1 for item in decisions if item["decision"] in {Decision.BLOCKED.value, Decision.NO_TRADE.value}
+        1
+        for item in decisions
+        if item["decision"] in {Decision.BLOCKED.value, Decision.NO_TRADE.value}
     )
 
     if hard_overrides:
-        summary = "Hard risk override active. The report should prioritize defense and avoid new aggressive exposure."
+        summary = (
+            "Hard risk override active. "
+            "The report should prioritize defense and avoid new aggressive exposure."
+        )
     elif approved_count == 0:
-        summary = "No high-quality asymmetric opportunity found. No-trade or watch mode is preferred."
+        summary = (
+            "No high-quality asymmetric opportunity found. "
+            "No-trade or watch mode is preferred."
+        )
     elif context.market_state == MarketState.HIGH_VOL_TRANSITION:
-        summary = "Opportunities exist, but high-volatility transition requires reduced position sizing."
+        summary = (
+            "Opportunities exist, but high-volatility transition "
+            "requires reduced position sizing."
+        )
     else:
-        summary = "Decision context allows selective risk-taking in regime-aligned setups."
+        summary = (
+            "Decision context allows selective risk-taking "
+            "in regime-aligned setups."
+        )
+
+    data_quality_note = (
+        "" if data_quality_ok
+        else "Data feeds partial (Free Polygon tier — VIX unavailable). "
+             "Data confidence reduced; sizing conservative."
+    )
 
     return {
         "market_state": context.market_state.value,
@@ -149,6 +223,7 @@ def build_decision_report(market_regime: dict, screener: dict) -> dict:
         "hard_overrides": list(hard_overrides),
         "portfolio_heat_limit": context.max_portfolio_heat,
         "summary": summary,
+        "data_quality_note": data_quality_note,
         "approved_count": approved_count,
         "blocked_count": blocked_count,
         "decisions": decisions,
