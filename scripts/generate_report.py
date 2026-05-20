@@ -12,6 +12,10 @@ is written to reports/signals/YYYY-MM-DD-signals.{json,md}.
 
 Signal levels are also merged back into the decision payload before rendering,
 so Entry/Stop/Target/R:R are visible in the main report.
+
+Expectation-based scoring adjustments are persisted to:
+
+data/scoring_adjustment_history.json
 """
 
 from __future__ import annotations
@@ -188,6 +192,23 @@ def build_report(report_type: str) -> tuple[str, dict | None]:
     return format_report(payload), decision_payload
 
 
+def persist_scoring_adjustments(report_type: str, decision_payload: dict) -> None:
+    """Persist expectancy-based scoring adjustments for auditability."""
+    try:
+        from src.scoring.adjustment_history import append_scoring_adjustments
+
+        decision_report = decision_payload["decision_report"]
+        run_id = f"{report_type}-{datetime.now(UTC).strftime('%Y-%m-%dT%H:%M:%SZ')}"
+        path = append_scoring_adjustments(
+            decision_report=decision_report,
+            report_type=report_type,
+            run_id=run_id,
+        )
+        print(f"Scoring adjustment history updated: {path}")
+    except Exception as exc:
+        print(f"WARNING: Scoring adjustment history failed (non-fatal): {type(exc).__name__}: {exc}")
+
+
 def generate_signals(decision_payload: dict) -> None:
     """
     Save signal JSON and Markdown from the decision payload.
@@ -232,6 +253,7 @@ def main() -> int:
         print(report)
 
     if args.type in MARKET_REPORT_TYPES and decision_payload is not None:
+        persist_scoring_adjustments(args.type, decision_payload)
         generate_signals(decision_payload)
 
     return 0
