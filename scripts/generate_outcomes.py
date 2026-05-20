@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -40,6 +41,19 @@ WIN_THRESHOLD = 1.0    # % gain to classify as WIN
 LOSS_THRESHOLD = -1.0  # % loss to classify as LOSS
 TRIGGERED_STATUSES = {"TRIGGERED", "TARGET_1_HIT", "TARGET_2_HIT", "STOP_HIT"}
 NON_TRADE_STATUSES = {"EXPIRED", "UNTRIGGERED"}
+
+
+def extract_signals(text: str) -> list[str]:
+    """
+    Extract uppercase ticker-like symbols from free text.
+
+    The function preserves first-seen order and removes duplicates.
+    """
+    if not text:
+        return []
+
+    matches = re.findall(r"\b[A-Z]{1,5}\b", text)
+    return list(dict.fromkeys(matches))
 
 
 def _pct(entry: float, exit_price: float) -> float:
