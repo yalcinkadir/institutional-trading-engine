@@ -2,17 +2,26 @@ name: Outcome Tracking
 
 on:
   schedule:
-    # Daily outcome generation
+    # Daily at 02:00 UTC — after previous day bars are available
     - cron: "0 2 * * *"
   workflow_dispatch:
+    inputs:
+      days:
+        description: "Number of past days to evaluate"
+        required: false
+        default: "7"
 
 permissions:
   contents: write
 
 jobs:
   outcomes:
-    name: Generate Institutional Outcomes
+    name: Generate Real Institutional Outcomes
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
 
     steps:
       - name: Checkout repository
@@ -31,21 +40,30 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Generate outcome reports
+      - name: Generate real outcome reports
         run: |
-          python scripts/generate_outcomes.py
+          DAYS="${{ github.event.inputs.days || '7' }}"
+          python scripts/generate_outcomes.py --days "$DAYS"
 
-      - name: Commit outcome reports
+      - name: Run expectancy learning pipeline
+        run: |
+          python scripts/update_outcomes.py \
+            --decision-log data/decision_log.csv \
+            --output reports/expectancy-report.md
+
+      - name: Commit outcome reports and expectancy
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           git add reports/outcomes/
+          git add reports/expectancy-report.md
+          git add data/
 
           if git diff --cached --quiet; then
             echo "No outcome changes to commit"
           else
-            git commit -m "Update institutional outcomes"
+            git commit -m "Update outcomes and expectancy $(date -u +'%Y-%m-%d')"
             git pull --rebase origin "${GITHUB_REF_NAME}"
             git push origin "HEAD:${GITHUB_REF_NAME}"
           fi
@@ -53,6 +71,6 @@ jobs:
       - name: Upload outcome artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: institutional-outcomes
+          name: institutional-outcomes-$(date -u +'%Y-%m-%d')
           path: reports/outcomes/
           retention-days: 90
