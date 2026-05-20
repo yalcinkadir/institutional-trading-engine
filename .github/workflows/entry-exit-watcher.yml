@@ -1,0 +1,132 @@
+name: Entry Exit Watcher
+
+on:
+  schedule:
+    # Approx. 1h after US open
+    - cron: "0 15 * * 1-5"
+    # Mid-session check
+    - cron: "30 17 * * 1-5"
+    # Postmarket lifecycle check
+    - cron: "0 21 * * 1-5"
+
+  workflow_dispatch:
+    inputs:
+      signals_file:
+        description: "Signal file to evaluate"
+        required: false
+        default: "reports/signals/latest-signals.json"
+
+permissions:
+  contents: write
+
+jobs:
+  watcher:
+    name: Run Entry Exit Watcher
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run watcher
+        shell: bash
+        run: |
+          mkdir -p reports/alerts
+          mkdir -p data
+          SIGNALS_FILE="${{ github.event.inputs.signals_file || 'reports/signals/latest-signals.json' }}"
+          python scripts/run_entry_exit_watcher.py --signals-file "$SIGNALS_FILE"
+
+      - name: Commit watcher outputs
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add reports/alerts/
+          git add reports/signals/
+          git add data/ 2>/dev/null || true
+
+          if git diff --cached --quiet; then
+            echo "No watcher changes to commit."
+          else
+            git commit -m "Update entry exit watcher events $(date -u +'%Y-%m-%d_%H-%M-%S_UTC')"
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
+
+      - name: Build Telegram alert summary
+        if: env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_CHAT_ID != ''
+        shell: bash
+        run: |
+          if [[ -f reports/alerts/latest-alerts.json ]]; then
+            ALERT_COUNT=$(python - <<'PY'
+import json
+from pathlib import Path
+path = Path('reports/alerts/latest-alerts.json')
+try:
+    data = json.loads(path.read_text())
+    print(len(data) if isinstance(data, list) else 0)
+except Exception:
+    print(0)
+PY
+)
+          else
+            ALERT_COUNT=0
+          fi
+
+          if [[ "$ALERT_COUNT" == "0" ]]; then
+            echo "No alerts to send."
+            echo "SEND_ALERTS=false" >> "$GITHUB_ENV"
+          else
+            echo "SEND_ALERTS=true" >> "$GITHUB_ENV"
+            SUMMARY=$(python - <<'PY'
+import json
+from pathlib import Path
+path = Path('reports/alerts/latest-alerts.json')
+data = json.loads(path.read_text())
+lines = ["🚨 Entry/Exit Watcher Alerts", ""]
+for item in data[:10]:
+    lines.append(f"{item.get('symbol')}: {item.get('alert_type')} @ {item.get('price')} ({item.get('previous_status')} → {item.get('new_status')})")
+print("\n".join(lines))
+PY
+)
+            {
+              echo "WATCHER_ALERT_SUMMARY<<EOF"
+              echo "$SUMMARY"
+              echo "EOF"
+            } >> "$GITHUB_ENV"
+          fi
+
+      - name: Send Telegram alerts
+        if: env.SEND_ALERTS == 'true' && env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_CHAT_ID != ''
+        shell: bash
+        run: |
+          curl -sS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d chat_id="${TELEGRAM_CHAT_ID}" \
+            --data-urlencode text="$WATCHER_ALERT_SUMMARY"
+
+      - name: Upload alert artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: entry-exit-alerts-${{ github.run_id }}
+          path: reports/alerts/
+          retention-days: 90
