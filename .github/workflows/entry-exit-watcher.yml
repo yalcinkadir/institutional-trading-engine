@@ -87,16 +87,16 @@ jobs:
           fi
 
           python - <<'PY'
-          import json
-          import os
-          from pathlib import Path
+import json
+import os
+from pathlib import Path
 
-          path = Path(os.environ["SIGNALS_FILE"])
-          data = json.loads(path.read_text(encoding="utf-8"))
-          if not isinstance(data, list):
-              raise SystemExit(f"Signals file must contain a JSON list: {path}")
-          print(f"Signals file validated: {path} ({len(data)} signals)")
-          PY
+path = Path(os.environ["SIGNALS_FILE"])
+data = json.loads(path.read_text(encoding="utf-8"))
+if not isinstance(data, list):
+    raise SystemExit(f"Signals file must contain a JSON list: {path}")
+print(f"Signals file validated: {path} ({len(data)} signals)")
+PY
 
       - name: Run watcher
         shell: bash
