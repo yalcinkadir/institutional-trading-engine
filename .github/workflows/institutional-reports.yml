@@ -4,7 +4,7 @@ on:
   schedule:
     # Premarket: Sunday–Friday, 12:30 UTC (before US open)
     - cron: "30 12 * * 0-5"
-    # Mid-session: Monday–Friday, 15:00 UTC (~1h after US open)
+    # Intraday: Monday–Friday, 15:00 UTC (~1h after US open)
     - cron: "0 15 * * 1-5"
     # Postmarket: Monday–Friday, 21:00 UTC (after US close + buffer)
     - cron: "0 21 * * 1-5"
@@ -20,6 +20,7 @@ on:
         type: choice
         options:
           - premarket
+          - intraday
           - postmarket
           - weekly
 
@@ -64,7 +65,7 @@ jobs:
           elif [[ "${{ github.event.schedule }}" == "30 12 * * 0-5" ]]; then
             REPORT_TYPE="premarket"
           elif [[ "${{ github.event.schedule }}" == "0 15 * * 1-5" ]]; then
-            REPORT_TYPE="postmarket"
+            REPORT_TYPE="intraday"
           elif [[ "${{ github.event.schedule }}" == "0 21 * * 1-5" ]]; then
             REPORT_TYPE="postmarket"
           else
@@ -102,18 +103,30 @@ jobs:
           mkdir -p reports/signals
           mkdir -p data
 
-          # generate_report.py now also writes reports/signals/YYYY-MM-DD-signals.{json,md}
-          python scripts/generate_report.py --type "$REPORT_TYPE" --output "$REPORT_FILE"
+          # generate_report.py currently supports premarket/postmarket/weekly.
+          # Intraday uses the same report engine as premarket, but is stored separately
+          # to avoid overwriting postmarket reports.
+          GENERATOR_TYPE="$REPORT_TYPE"
+          if [[ "$REPORT_TYPE" == "intraday" ]]; then
+            GENERATOR_TYPE="premarket"
+          fi
+
+          python scripts/generate_report.py --type "$GENERATOR_TYPE" --output "$REPORT_FILE"
           cp "$REPORT_FILE" "$LATEST_FILE"
 
           echo "--- Generated files ---"
-          find reports -maxdepth 3 -type f -name "*.md" -o -name "*.json" | sort
+          find reports -maxdepth 3 -type f \( -name "*.md" -o -name "*.json" \) | sort
 
       - name: Validate report quality
         shell: bash
         run: |
+          VALIDATION_TYPE="$REPORT_TYPE"
+          if [[ "$VALIDATION_TYPE" == "intraday" ]]; then
+            VALIDATION_TYPE="premarket"
+          fi
+
           python scripts/validate_report_quality.py \
-            --type "$REPORT_TYPE" \
+            --type "$VALIDATION_TYPE" \
             --file "$REPORT_FILE" \
             --min-score 75
 
@@ -123,10 +136,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          # ── Commit reports AND data (decision log, signals, outcomes) ────
+          # Commit reports AND data (decision log, signals, outcomes).
           # data/ must be committed so decision history survives across runs.
           git add reports/
-          git add data/ 2>/dev/null || true  # non-fatal if data/ is empty
+          git add data/ 2>/dev/null || true
 
           if git diff --cached --quiet; then
             echo "No changes to commit."
@@ -161,13 +174,10 @@ jobs:
         if: env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_CHAT_ID != ''
         shell: bash
         run: |
-          # Build structured Telegram message from report sections
           REGIME=$(grep -m1 "^- Regime:" "$REPORT_FILE" | sed 's/- Regime: //' || true)
           HEALTH=$(grep -m1 "^- Market Health Score:" "$REPORT_FILE" | sed 's/- Market Health Score: //' || true)
           APPROVED=$(grep -m1 "^- Approved" "$REPORT_FILE" | sed 's/- Approved.*: //' || true)
           SUMMARY_LINE=$(grep -m1 "^- Decision context\|^- No high-quality\|^- Hard risk" "$REPORT_FILE" | sed 's/^- //' || true)
-
-          # Actionable setups
           SETUPS=$(grep "^#### " "$REPORT_FILE" | head -3 | sed 's/#### //' | tr '\n' ', ' | sed 's/, $//' || true)
 
           {
