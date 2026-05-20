@@ -32,7 +32,7 @@ class MacroRegimeFusionEngine:
 
         macro_score = max(0.0, min(100.0, macro_score))
 
-        if macro_score >= 70:
+        if macro_score >= 65:
             regime = "macro_risk_on"
             bias = "growth_offense"
             explanation = "market, liquidity and cross-asset conditions are strongly aligned"
