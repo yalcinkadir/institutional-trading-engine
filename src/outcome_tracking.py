@@ -10,6 +10,7 @@ expectancy.
 from __future__ import annotations
 
 import csv
+import json
 from dataclasses import asdict, dataclass, fields
 from datetime import UTC, datetime
 from pathlib import Path
@@ -104,13 +105,58 @@ def append_decision_record(path: str | Path, record: DecisionRecord) -> Path:
     return output_path
 
 
+def _read_csv_records(input_path: Path) -> list[dict[str, Any]]:
+    with input_path.open("r", newline="", encoding="utf-8") as csvfile:
+        return list(csv.DictReader(csvfile))
+
+
+def _read_jsonl_records(input_path: Path) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+
+    with input_path.open("r", encoding="utf-8") as jsonlfile:
+        for line in jsonlfile:
+            line = line.strip()
+            if not line:
+                continue
+
+            try:
+                payload = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+
+            # Runtime snapshots may wrap the actual decision payload.
+            if isinstance(payload, dict):
+                if "decision" in payload and isinstance(payload["decision"], dict):
+                    payload = payload["decision"]
+
+                records.append(payload)
+
+    return records
+
+
 def read_decision_records(path: str | Path) -> list[dict[str, Any]]:
+    """
+    Read decision records from CSV or JSONL.
+
+    Supported:
+    - decision_log.csv
+    - decision_log.jsonl
+    - runtime snapshot JSONL streams
+    """
     input_path = Path(path)
     if not input_path.exists():
         return []
 
-    with input_path.open("r", newline="", encoding="utf-8") as csvfile:
-        return list(csv.DictReader(csvfile))
+    suffix = input_path.suffix.lower()
+
+    try:
+        if suffix == ".jsonl":
+            return _read_jsonl_records(input_path)
+
+        return _read_csv_records(input_path)
+
+    except Exception:
+        return []
 
 
 def calculate_basic_expectancy(records: list[dict[str, Any]], result_field: str = "result_5d") -> dict[str, float | int]:
