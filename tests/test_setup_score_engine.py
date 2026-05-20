@@ -234,7 +234,7 @@ class TestLabelAssignment:
             _m(trend="Strong Uptrend", rsi14=60, rs_spread=15, rs_label="Leader", rvol=2.0, atr_pct=1.5),
             _m(trend="Uptrend", rsi14=55, rs_spread=4, rs_label="Neutral", rvol=1.1, atr_pct=2.0),
             _m(trend="Mixed", rsi14=50, rs_spread=0, rs_label="Neutral", rvol=0.9, atr_pct=2.5),
-            _m(trend="Mixed", rsi14=42, rs_spread=-5, rs_label="Weak", rvol=0.7, atr_pct=4.0),
+            _m(trend="Mixed", rsi14=50, rs_spread=-5, rs_label="Weak", rvol=0.7, atr_pct=4.0),
             _m(trend="Downtrend", rsi14=28, rs_spread=-15, rs_label="Weak", rvol=0.2, atr_pct=12.0,
                warnings=["w1", "w2", "w3"]),
         ]
