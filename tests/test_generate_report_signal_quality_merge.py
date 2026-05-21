@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from types import SimpleNamespace
-
 from scripts.generate_report import _merge_signal_levels_into_decisions
+from src.signals.signal_generator import Signal
 
 
 def test_merge_signal_quality_fields_into_decisions() -> None:
@@ -11,10 +10,14 @@ def test_merge_signal_quality_fields_into_decisions() -> None:
             {"symbol": "NVDA", "decision": "approved"},
         ]
     }
-    signal = SimpleNamespace(
-        symbol="NVDA",
+    signal = Signal(
         signal_id="sig_NVDA_test",
+        symbol="NVDA",
         action="BUY_WATCH",
+        setup_type="momentum_breakout",
+        decision="approved",
+        risk_tier="tier_1",
+        position_size=1.0,
         close=100.0,
         entry_trigger=102.0,
         entry_type="breakout",
@@ -26,7 +29,12 @@ def test_merge_signal_quality_fields_into_decisions() -> None:
         target_2=122.0,
         risk_reward=1.5,
         atr_pct=4.0,
+        setup_score=91.0,
+        regime_alignment=0.8,
         valid_until="2026-05-24",
+        market_regime="Bullish",
+        generated_at="2026-05-21T08:00:00+00:00",
+        notes="",
     )
 
     _merge_signal_levels_into_decisions(decision_report, [signal])
