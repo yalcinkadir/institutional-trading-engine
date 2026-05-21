@@ -19,6 +19,7 @@ It is designed as an institutional decision-support and research platform that:
 - emits structured JSON logs from operational scripts and runtime cycles
 - produces machine-readable signal files with native `signal_id`
 - prevents fake actionable signals without executable trade levels
+- prioritizes excellent Entry / Stop Loss / Exit decision quality
 - assigns stable signal identity for lifecycle tracking
 - stores signal history in the repository
 - monitors entries, stops and targets
@@ -41,6 +42,7 @@ Market analysis
 → Diversified universe scan
 → Signal generation with native signal_id
 → Executable signal quality gate
+→ Entry / Stop / Exit quality validation
 → Entry / Exit monitoring
 → Central notification delivery
 → Structured operational logging
@@ -201,6 +203,41 @@ Key behavior:
 
 ---
 
+# Entry / Stop / Exit Decision Quality
+
+The next roadmap priority is documented in:
+
+```text
+docs/roadmap/entry-stop-exit-quality.md
+```
+
+Operating rule:
+
+```text
+A high setup score is not enough.
+A BUY_WATCH requires a complete, valid and explainable trade plan.
+```
+
+A complete trade plan requires:
+
+```text
+entry_trigger + entry_reason
+stop_loss + stop_reason
+target_1 + exit_reason
+risk_reward validation
+quality gate passed
+```
+
+Planned quality modules:
+
+- Trade Plan Validator
+- Entry Quality Engine
+- Stop-Loss Quality Engine
+- Exit / Target Quality Engine
+- Entry/Stop/Exit backtest feedback grouped by entry_type and setup_type
+
+---
+
 # Structured Runtime Logging
 
 Structured logging is implemented in:
@@ -286,6 +323,7 @@ tests/test_entry_exit_watcher_workflow_notifications.py
 | Watcher Workflow Notification Migration | Implemented |
 | Native Signal ID Generation | Implemented |
 | Executable Signal Quality Gate | Implemented |
+| Entry / Stop / Exit Quality Roadmap | Planned |
 | Entry / Exit Watcher | Implemented and workflow-hardened |
 | Watcher Runtime Validation | Implemented |
 | Signal Identity Fallback | Implemented |
@@ -330,6 +368,16 @@ For market intelligence, lifecycle, observability and communication features, al
 - communication with existing reports/signals/outcomes/scoring features
 ```
 
+For Entry / Stop / Exit decision logic, also require:
+
+```text
+- complete executable trade plan
+- explicit entry_reason, stop_reason and exit_reason
+- risk/reward validation
+- downgrade behavior for invalid plans
+- tests for positive and negative cases
+```
+
 ---
 
 # Roadmap
@@ -370,6 +418,7 @@ For market intelligence, lifecycle, observability and communication features, al
 
 ## In Progress
 
+- Entry / Stop / Exit decision quality hardening
 - observability hardening
 - connection and communication hardening
 - unified continuous runtime maturity
@@ -377,13 +426,18 @@ For market intelligence, lifecycle, observability and communication features, al
 
 ## Planned Next
 
-1. Improve intraday data support with higher-frequency bars if Polygon plan allows.
-2. Add dashboard or static HTML reporting.
-3. Move long-term persistence from Git files to Postgres.
-4. Add regime similarity memory.
-5. Add scoring adjustment quality review.
-6. Add adaptive scoring guardrails by market regime.
-7. Add broker/account integration for automatic portfolio-state calculation.
+1. Implement Trade Plan Validator.
+2. Implement Entry Quality Engine.
+3. Implement Stop-Loss Quality Engine.
+4. Implement Exit / Target Quality Engine.
+5. Add Entry/Stop/Exit backtest feedback by entry_type and setup_type.
+6. Improve intraday data support with higher-frequency bars if Polygon plan allows.
+7. Add dashboard or static HTML reporting.
+8. Move long-term persistence from Git files to Postgres.
+9. Add regime similarity memory.
+10. Add scoring adjustment quality review.
+11. Add adaptive scoring guardrails by market regime.
+12. Add broker/account integration for automatic portfolio-state calculation.
 
 ---
 
