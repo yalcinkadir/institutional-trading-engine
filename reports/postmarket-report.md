@@ -1,6 +1,6 @@
 # Institutional Trading Engine — POSTMARKET REPORT
 
-Generated: 2026-05-21 19:44 UTC
+Generated: 2026-05-21 19:50 UTC
 
 ## Market Regime
 
@@ -29,9 +29,9 @@ Generated: 2026-05-21 19:44 UTC
 - ATR14: DATA_UNAVAILABLE
 
 ### Market Breadth
-- Universe Size: 4
-- Above SMA50: 2
-- Breadth %: 50.0%
+- Universe Size: 1
+- Above SMA50: 0
+- Breadth %: 0.0%
 
 ## Cross-Asset Regime
 
