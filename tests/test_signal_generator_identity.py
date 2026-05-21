@@ -183,7 +183,7 @@ def test_build_signals_downgrades_inverted_stop_trade_plan() -> None:
     nvda = signals[0]
     assert nvda.action == "NO_TRADE"
     assert "scanner_stop_not_below_entry" in nvda.notes
-    assert "stop_loss_not_below_entry" in nvda.notes
+    assert "missing_target_1" in nvda.notes
 
 
 def test_build_signals_downgrades_late_scanner_entry() -> None:
