@@ -81,15 +81,18 @@ def test_apply_regime_invalidation_noops_when_regime_not_risk_off() -> None:
     assert result.signal["status"] == "TARGET_1_HIT"
 
 
-def test_apply_regime_invalidation_ignores_pending_signal() -> None:
+def test_apply_regime_invalidation_cancels_pending_signal() -> None:
     result = apply_regime_invalidation(
         _signal(status="PENDING"),
         regime="Risk-Off",
         timestamp="2026-05-21T20:00:00Z",
     )
 
-    assert not result.invalidated
-    assert result.reasons == ["signal_not_active"]
+    assert result.invalidated
+    assert result.event_type == REGIME_INVALIDATION_EVENT
+    assert result.previous_status == "PENDING"
+    assert result.new_status == REGIME_INVALIDATION_STATUS
+    assert result.signal["status"] == REGIME_INVALIDATION_STATUS
 
 
 def test_apply_regime_invalidation_ignores_terminal_signal() -> None:
