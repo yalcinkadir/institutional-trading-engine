@@ -25,6 +25,7 @@ OPTIONAL_SIGNAL_METRICS = (
     "volume",
     "rvol",
     "vwap",
+    "swing_low_3bar",
 )
 
 
