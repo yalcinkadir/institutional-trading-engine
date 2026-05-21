@@ -182,6 +182,7 @@ PY
         if: failure()
         shell: bash
         run: |
+          mkdir -p reports
           cat > reports/watcher-failure-message.txt <<EOF
 Entry/Exit Watcher FAILED
 Cycle: ${WATCHER_CYCLE_ID:-unknown}
