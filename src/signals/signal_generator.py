@@ -83,8 +83,8 @@ def _derive_levels(
         return (
             round(close + 0.5 * atr, 2), "break_above",
             round(close - 1.5 * atr, 2),
-            round(close + 2.0 * atr, 2),
-            round(close + 4.0 * atr, 2),
+            round(close + 3.0 * atr, 2),
+            round(close + 5.0 * atr, 2),
         )
     if setup_type == "pullback_continuation":
         return (
@@ -97,12 +97,12 @@ def _derive_levels(
         return (
             round(close, 2), "at_market",
             round(close - 2.0 * atr, 2),
-            round(close + 1.5 * atr, 2),
+            round(close + 2.5 * atr, 2),
             None,
         )
     return (
         round(close + 0.3 * atr, 2), "break_above",
-        round(close - 3.0 * atr, 2),
+        round(close - 2.0 * atr, 2),
         round(close + 3.0 * atr, 2),
         None,
     )
