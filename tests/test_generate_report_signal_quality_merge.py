@@ -27,6 +27,8 @@ def test_merge_signal_quality_fields_into_decisions() -> None:
         stop_reason="ATR stop 2 ATR below entry",
         target_1=114.0,
         target_2=122.0,
+        exit_model="momentum_targets",
+        exit_reason="momentum targets at 1.5R and 2.5R",
         risk_reward=1.5,
         atr_pct=4.0,
         setup_score=91.0,
@@ -45,3 +47,5 @@ def test_merge_signal_quality_fields_into_decisions() -> None:
     assert item["stop_model"] == "atr_stop"
     assert item["stop_reason"] == "ATR stop 2 ATR below entry"
     assert item["target_1"] == 114.0
+    assert item["exit_model"] == "momentum_targets"
+    assert item["exit_reason"] == "momentum targets at 1.5R and 2.5R"
