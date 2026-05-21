@@ -27,6 +27,7 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from src.data.polygon_client import PolygonClient
+from src.structured_logging import emit_structured_log
 from src.watchers.entry_exit_watcher import (
     append_lifecycle_updates,
     evaluate_signals,
@@ -65,6 +66,24 @@ def _build_cycle_id() -> str:
     if run_id:
         return f"entry-exit-watcher-{run_id}-{run_attempt}"
     return f"entry-exit-watcher-local-{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}"
+
+
+def _log(
+    *,
+    level: str,
+    event_type: str,
+    message: str,
+    cycle_id: str,
+    context: dict | None = None,
+) -> None:
+    emit_structured_log(
+        level=level,
+        event_type=event_type,
+        component="entry_exit_watcher_runner",
+        message=message,
+        cycle_id=cycle_id,
+        context=context or {},
+    )
 
 
 def _validate_runtime(signals_file: Path, days: int) -> None:
@@ -108,12 +127,34 @@ def main() -> int:
     print(f"WATCHER_CYCLE_ID={cycle_id}")
     print(f"Using signals file: {signals_file}")
     print(f"Using lookback days: {args.days}")
+    _log(
+        level="INFO",
+        event_type="watcher_runner_started",
+        message="Entry/exit watcher runner started.",
+        cycle_id=cycle_id,
+        context={"signals_file": str(signals_file), "days": args.days},
+    )
 
     try:
         _validate_runtime(signals_file=signals_file, days=args.days)
     except WatcherRuntimeConfigurationError as exc:
         print(f"WATCHER_RUNTIME_CONFIGURATION_ERROR: {exc}", file=sys.stderr)
+        _log(
+            level="ERROR",
+            event_type="watcher_runtime_validation_failed",
+            message="Watcher runtime validation failed.",
+            cycle_id=cycle_id,
+            context={"error": str(exc), "signals_file": str(signals_file), "days": args.days},
+        )
         return 2
+
+    _log(
+        level="INFO",
+        event_type="watcher_runtime_validation_succeeded",
+        message="Watcher runtime validation succeeded.",
+        cycle_id=cycle_id,
+        context={"signals_file": str(signals_file)},
+    )
 
     signals = load_signal_file(signals_file)
     actionable = [
@@ -121,9 +162,23 @@ def main() -> int:
         if signal.get("action") == "BUY_WATCH"
         and signal.get("status", "PENDING") not in {"STOP_HIT", "TARGET_2_HIT", "EXPIRED"}
     ]
+    _log(
+        level="INFO",
+        event_type="watcher_signals_loaded",
+        message="Watcher signals loaded.",
+        cycle_id=cycle_id,
+        context={"signals": len(signals), "actionable": len(actionable)},
+    )
 
     if not actionable:
         print("No actionable open signals found.")
+        _log(
+            level="INFO",
+            event_type="watcher_no_actionable_signals",
+            message="No actionable open signals found.",
+            cycle_id=cycle_id,
+            context={"signals": len(signals)},
+        )
         return 0
 
     client = PolygonClient()
@@ -137,10 +192,24 @@ def main() -> int:
             bars_by_symbol[symbol] = client.get_daily_bars(symbol, days=args.days)
         except Exception as exc:
             print(f"WARNING: Could not fetch bars for {symbol}: {type(exc).__name__}: {exc}")
+            _log(
+                level="WARNING",
+                event_type="watcher_symbol_fetch_failed",
+                message="Could not fetch daily bars for symbol.",
+                cycle_id=cycle_id,
+                context={"symbol": symbol, "error_type": type(exc).__name__, "error": str(exc)},
+            )
             bars_by_symbol[symbol] = []
 
     price_map = latest_bars_to_price_map(bars_by_symbol)
     alerts, updates, updated_signals = evaluate_signals(signals, price_map)
+    _log(
+        level="INFO",
+        event_type="watcher_evaluation_completed",
+        message="Watcher evaluation completed.",
+        cycle_id=cycle_id,
+        context={"alerts": len(alerts), "updates": len(updates), "price_symbols": len(price_map)},
+    )
 
     if alerts:
         current_date = datetime.now(UTC).strftime("%Y-%m-%d")
@@ -153,10 +222,36 @@ def main() -> int:
         print(f"Events: {len(alerts)}")
         for alert in alerts:
             print(f"- {alert.symbol}: {alert.alert_type} ({alert.previous_status} -> {alert.new_status})")
+        _log(
+            level="INFO",
+            event_type="watcher_events_persisted",
+            message="Watcher events persisted.",
+            cycle_id=cycle_id,
+            context={
+                "alerts": len(alerts),
+                "alerts_path": str(alerts_path),
+                "latest_path": str(latest_path),
+                "lifecycle_path": str(lifecycle_path),
+            },
+        )
     else:
         print("No entry/exit events detected.")
         save_updated_signal_file(signals_file, updated_signals)
+        _log(
+            level="INFO",
+            event_type="watcher_no_events_detected",
+            message="No entry/exit events detected.",
+            cycle_id=cycle_id,
+            context={"updated_signals": len(updated_signals)},
+        )
 
+    _log(
+        level="INFO",
+        event_type="watcher_runner_completed",
+        message="Entry/exit watcher runner completed.",
+        cycle_id=cycle_id,
+        context={"alerts": len(alerts), "updates": len(updates)},
+    )
     return 0
 
 
