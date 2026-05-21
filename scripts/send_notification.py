@@ -13,6 +13,7 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from src.notifications import NotificationClient
+from src.structured_logging import emit_structured_log
 
 
 def parse_args() -> argparse.Namespace:
@@ -22,6 +23,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--telegram", action="store_true", help="Send to Telegram.")
     parser.add_argument("--webhook", action="store_true", help="Send to generic REPORT_WEBHOOK_URL.")
     parser.add_argument("--dry-run", action="store_true", help="Do not send; return dry-run results.")
+    parser.add_argument("--cycle-id", help="Optional operational cycle id for structured logs.")
     parser.add_argument(
         "--strict",
         action="store_true",
@@ -45,6 +47,26 @@ def main() -> int:
     if not args.telegram and not args.webhook:
         args.telegram = True
 
+    requested_channels = []
+    if args.telegram:
+        requested_channels.append("telegram")
+    if args.webhook:
+        requested_channels.append("webhook")
+
+    emit_structured_log(
+        level="INFO",
+        event_type="notification_send_started",
+        component="notification_cli",
+        message="Notification delivery started.",
+        cycle_id=args.cycle_id,
+        context={
+            "channels": requested_channels,
+            "dry_run": args.dry_run,
+            "strict": args.strict,
+            "message_source": "file" if args.message_file else "argument",
+        },
+    )
+
     client = NotificationClient(dry_run=args.dry_run)
     results = []
 
@@ -56,7 +78,20 @@ def main() -> int:
     for result in results:
         print(json.dumps(result.to_dict(), sort_keys=True))
 
-    if args.strict and any(result.status == "failed" for result in results):
+    failed = any(result.status == "failed" for result in results)
+    emit_structured_log(
+        level="ERROR" if failed else "INFO",
+        event_type="notification_send_completed",
+        component="notification_cli",
+        message="Notification delivery completed.",
+        cycle_id=args.cycle_id,
+        context={
+            "results": [result.to_dict() for result in results],
+            "failed": failed,
+        },
+    )
+
+    if args.strict and failed:
         return 1
 
     return 0
