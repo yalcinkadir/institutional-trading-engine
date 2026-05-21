@@ -31,7 +31,7 @@ scripts/send_notification.py
 
 | Variable | Purpose |
 |---|---|
-| `TELEGRAM_BOT_TOKEN` | Telegram bot token for `sendMessage` |
+| `TELEGRAM_BOT_TOKEN` | Telegram bot token for Telegram delivery |
 | `TELEGRAM_CHAT_ID` | Telegram chat id |
 | `REPORT_WEBHOOK_URL` | Optional generic webhook endpoint |
 
@@ -106,15 +106,15 @@ Possible statuses:
 
 ---
 
-## Current Workflow Integration
+## Current Workflow Integrations
 
-The first migrated workflow is:
+Weekly expectancy feedback:
 
 ```text
 .github/workflows/weekly-expectancy-feedback.yml
 ```
 
-It now calls:
+uses:
 
 ```bash
 python scripts/send_notification.py \
@@ -123,11 +123,46 @@ python scripts/send_notification.py \
   --webhook
 ```
 
-The next migration target is:
+Entry/exit watcher:
 
 ```text
 .github/workflows/entry-exit-watcher.yml
 ```
+
+uses the same CLI for both success alerts and failure notifications:
+
+```bash
+python scripts/send_notification.py \
+  --message-file reports/alerts/watcher-alert-summary.txt \
+  --telegram \
+  --webhook \
+  --cycle-id "$WATCHER_CYCLE_ID"
+```
+
+```bash
+python scripts/send_notification.py \
+  --message-file reports/watcher-failure-message.txt \
+  --telegram \
+  --webhook \
+  --cycle-id "${WATCHER_CYCLE_ID:-unknown}"
+```
+
+---
+
+## Regression Guard
+
+The watcher workflow migration is protected by:
+
+```text
+tests/test_entry_exit_watcher_workflow_notifications.py
+```
+
+The test checks that:
+
+- the workflow uses `scripts/send_notification.py`
+- alert and failure message files are passed via `--message-file`
+- webhook delivery is supported
+- direct Telegram HTTP calls are not reintroduced
 
 ---
 
