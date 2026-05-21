@@ -96,11 +96,12 @@ jobs:
           else
             echo "POLYGON_API_KEY is not set. Skipping outcome price refresh and generating report from existing log only."
             python - <<'PY'
+import os
 from pathlib import Path
 from scripts.update_outcomes import write_expectancy_report
 from src.outcome_pipeline import build_expectancy_summary
 
-path = Path("${DECISION_LOG}")
+path = Path(os.environ.get("DECISION_LOG", "data/decision_log.csv"))
 summary = build_expectancy_summary(path)
 write_expectancy_report(summary, "reports/expectancy-report.md")
 PY
