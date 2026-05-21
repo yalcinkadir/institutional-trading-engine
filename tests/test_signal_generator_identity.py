@@ -45,6 +45,19 @@ def _scanner_metrics() -> dict:
     }
 
 
+def _breakout_context_metrics() -> dict:
+    return {
+        "NVDA": {
+            "close": 100.0,
+            "atr14": 4.0,
+            "atr_pct": 4.0,
+            "high": 101.0,
+            "rvol": 1.2,
+            "vwap": 99.0,
+        }
+    }
+
+
 def test_build_signals_assigns_native_signal_id() -> None:
     signals = build_signals(_decision_report(), _scanner_metrics(), "Bullish")
 
@@ -71,6 +84,38 @@ def test_build_signals_produces_buy_watch_only_with_valid_trade_plan() -> None:
     assert nvda.risk_reward is not None
     assert nvda.risk_reward >= 1.2
     assert nvda.position_size == 1.0
+
+
+def test_build_signals_uses_high_trigger_for_breakout_context() -> None:
+    signals = build_signals(_decision_report(), _breakout_context_metrics(), "Bullish")
+
+    nvda = signals[0]
+    assert nvda.action == "BUY_WATCH"
+    assert nvda.entry_trigger == 101.1
+    assert "scanner high" in nvda.entry_reason
+
+
+def test_build_signals_downgrades_low_rvol_breakout() -> None:
+    metrics = _breakout_context_metrics()
+    metrics["NVDA"]["rvol"] = 0.7
+
+    signals = build_signals(_decision_report(), metrics, "Bullish")
+
+    nvda = signals[0]
+    assert nvda.action == "NO_TRADE"
+    assert "insufficient_volume_for_breakout" in nvda.notes
+
+
+def test_build_signals_downgrades_breakout_below_vwap() -> None:
+    metrics = _breakout_context_metrics()
+    metrics["NVDA"]["close"] = 99.0
+    metrics["NVDA"]["vwap"] = 100.0
+
+    signals = build_signals(_decision_report(), metrics, "Bullish")
+
+    nvda = signals[0]
+    assert nvda.action == "NO_TRADE"
+    assert "breakout_entry_below_vwap" in nvda.notes
 
 
 def test_build_signals_supports_pullback_entry_stop_and_exit_reason() -> None:
