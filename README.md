@@ -20,6 +20,7 @@ It is designed as an institutional decision-support and research platform that:
 - produces machine-readable signal files with native `signal_id`
 - prevents fake actionable signals without executable trade levels
 - derives entry triggers through a deterministic Entry Quality Engine
+- derives stop losses through a deterministic Stop-Loss Quality Engine
 - validates trade plans before allowing `BUY_WATCH`
 - prioritizes excellent Entry / Stop Loss / Exit decision quality
 - assigns stable signal identity for lifecycle tracking
@@ -44,6 +45,7 @@ Market analysis
 → Diversified universe scan
 → Signal generation with native signal_id
 → Entry Quality Engine
+→ Stop-Loss Quality Engine
 → Trade Plan Validator
 → Entry / Stop / Exit quality validation
 → Entry / Exit monitoring
@@ -158,6 +160,7 @@ pytest
 Targeted tests:
 
 ```bash
+pytest tests/test_stop_loss_quality.py
 pytest tests/test_entry_quality.py
 pytest tests/test_trade_plan_validator.py
 pytest tests/test_signal_identity.py
@@ -184,27 +187,31 @@ Signal identity, signal executability and lifecycle deduplication are implemente
 ```text
 src/signals/signal_identity.py
 src/signals/entry_quality.py
+src/signals/stop_loss_quality.py
 src/signals/signal_generator.py
 src/signals/trade_plan_validator.py
 src/watchers/entry_exit_watcher.py
 docs/architecture/signal_identity_lifecycle.md
 docs/architecture/entry_quality_engine.md
+docs/architecture/stop_loss_quality_engine.md
 docs/architecture/trade_plan_validator.md
 ```
 
 Key behavior:
 
 - newly generated signals include native `signal_id`
-- `BUY_WATCH` requires a valid entry and long trade plan
-- actionable signals include `entry_trigger`, `entry_type` and `entry_reason`
+- `BUY_WATCH` requires a valid entry, valid stop and long trade plan
+- actionable signals include `entry_trigger`, `entry_type`, `entry_reason`, `stop_loss`, `stop_model` and `stop_reason`
 - Entry Quality supports breakout, pullback, retest, gap-fill and explicitly allowed at-market entries
+- Stop-Loss Quality supports ATR stops, pullback structure stops, retest structure stops, gap-fill stops and scanner-provided stops
 - late breakout entries are rejected before reaching the watcher
+- scanner-provided stops are rejected if they are not below entry for long signals
 - long trade plans validate entry, stop, target, ordering, risk/reward and ATR stop distance
-- incomplete or invalid entries/trade plans downgrade the signal to `NO_TRADE`
+- incomplete or invalid entries/stops/trade plans downgrade the signal to `NO_TRADE`
 - downgraded signals keep `signal_id`, context and explanatory notes
 - downgraded signals use `position_size = 0.0`
-- generated signal JSON files include `signal_id` and `entry_reason`
-- generated signal Markdown files include `signal_id` and entry reason
+- generated signal JSON files include `signal_id`, `entry_reason` and `stop_reason`
+- generated signal Markdown files include `signal_id`, entry reason and stop reason
 - decision payloads used by reports include `signal_id`
 - existing `signal_id` values are preserved
 - missing older `signal_id` values are generated deterministically by the watcher fallback
@@ -228,6 +235,7 @@ Implemented foundation:
 
 ```text
 src/signals/entry_quality.py
+src/signals/stop_loss_quality.py
 src/signals/trade_plan_validator.py
 ```
 
@@ -260,6 +268,18 @@ late breakout rejection
 missing close / ATR rejection
 ```
 
+Current Stop-Loss Quality checks:
+
+```text
+ATR stop
+pullback structure stop
+retest structure stop
+gap-fill stop
+scanner-provided stop validation
+missing entry / close / ATR rejection
+inverted scanner stop rejection
+```
+
 Current Trade Plan Validator checks:
 
 ```text
@@ -275,7 +295,6 @@ stop distance is not too tight or too wide when ATR is available
 
 Planned next modules:
 
-- Stop-Loss Quality Engine
 - Exit / Target Quality Engine
 - Entry/Stop/Exit backtest feedback grouped by entry_type and setup_type
 
@@ -367,6 +386,7 @@ tests/test_entry_exit_watcher_workflow_notifications.py
 | Native Signal ID Generation | Implemented |
 | Executable Signal Quality Gate | Implemented |
 | Entry Quality Engine | Implemented |
+| Stop-Loss Quality Engine | Implemented |
 | Trade Plan Validator | Implemented |
 | Entry / Stop / Exit Quality Roadmap | Planned |
 | Entry / Exit Watcher | Implemented and workflow-hardened |
@@ -434,6 +454,7 @@ For Entry / Stop / Exit decision logic, also require:
 - native signal_id generation
 - executable signal quality gate
 - entry quality engine
+- stop-loss quality engine
 - trade plan validator
 - signal persistence
 - expanded cross-asset symbol universe
@@ -473,16 +494,15 @@ For Entry / Stop / Exit decision logic, also require:
 
 ## Planned Next
 
-1. Implement Stop-Loss Quality Engine.
-2. Implement Exit / Target Quality Engine.
-3. Add Entry/Stop/Exit backtest feedback by entry_type and setup_type.
-4. Improve intraday data support with higher-frequency bars if Polygon plan allows.
-5. Add dashboard or static HTML reporting.
-6. Move long-term persistence from Git files to Postgres.
-7. Add regime similarity memory.
-8. Add scoring adjustment quality review.
-9. Add adaptive scoring guardrails by market regime.
-10. Add broker/account integration for automatic portfolio-state calculation.
+1. Implement Exit / Target Quality Engine.
+2. Add Entry/Stop/Exit backtest feedback by entry_type and setup_type.
+3. Improve intraday data support with higher-frequency bars if Polygon plan allows.
+4. Add dashboard or static HTML reporting.
+5. Move long-term persistence from Git files to Postgres.
+6. Add regime similarity memory.
+7. Add scoring adjustment quality review.
+8. Add adaptive scoring guardrails by market regime.
+9. Add broker/account integration for automatic portfolio-state calculation.
 
 ---
 
