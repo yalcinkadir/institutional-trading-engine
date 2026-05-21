@@ -13,12 +13,34 @@ from dataclasses import asdict, dataclass, field
 from typing import Any, Iterable, Literal
 
 
-GroupField = Literal["entry_type", "setup_type", "stop_model", "exit_model"]
+GroupField = Literal[
+    "entry_type",
+    "setup_type",
+    "stop_model",
+    "exit_model",
+    "market_regime",
+    "risk_state",
+    "volatility_regime",
+]
 DEFAULT_GROUP_FIELDS: tuple[GroupField, ...] = (
     "entry_type",
     "setup_type",
     "stop_model",
     "exit_model",
+)
+REGIME_AWARE_GROUP_FIELDS: tuple[GroupField, ...] = (
+    "entry_type",
+    "setup_type",
+    "stop_model",
+    "exit_model",
+    "market_regime",
+    "risk_state",
+    "volatility_regime",
+)
+REGIME_ONLY_GROUP_FIELDS: tuple[GroupField, ...] = (
+    "market_regime",
+    "risk_state",
+    "volatility_regime",
 )
 
 ENTRY_HIT_STATUSES = {"ENTRY_TRIGGERED", "TARGET_1_HIT", "TARGET_2_HIT", "STOP_HIT"}
@@ -190,6 +212,16 @@ def aggregate_entry_stop_exit_feedback(
         total_records=len(rows),
         overall=overall,
         grouped=grouped,
+    )
+
+
+def aggregate_regime_aware_entry_stop_exit_feedback(
+    records: Iterable[dict[str, Any]],
+) -> EntryStopExitFeedbackReport:
+    """Aggregate feedback using model and regime dimensions."""
+    return aggregate_entry_stop_exit_feedback(
+        records,
+        group_fields=REGIME_AWARE_GROUP_FIELDS,
     )
 
 
