@@ -39,6 +39,7 @@ from src.runtime.portfolio_state import PortfolioState, PortfolioStateStore
 from src.runtime.runtime_market_snapshot import RuntimeMarketSnapshot
 from src.runtime.runtime_state import runtime_state
 from src.storage.decision_log_store import decision_log_store
+from src.structured_logging import emit_structured_log
 
 
 # ── Governance thresholds ──────────────────────────────────────────────────
@@ -71,6 +72,24 @@ class LiveRuntimeCycle:
     def __init__(self, portfolio_state_store: PortfolioStateStore | None = None) -> None:
         self.portfolio_state_store = portfolio_state_store or PortfolioStateStore()
 
+    def _log(
+        self,
+        *,
+        level: str,
+        event_type: str,
+        message: str,
+        cycle_id: str | None = None,
+        context: dict[str, Any] | None = None,
+    ) -> None:
+        emit_structured_log(
+            level=level,
+            event_type=event_type,
+            component="live_runtime_cycle",
+            message=message,
+            cycle_id=cycle_id,
+            context=context or {},
+        )
+
     def run(
         self,
         metrics_map: dict[str, Any],
@@ -96,6 +115,19 @@ class LiveRuntimeCycle:
             GovernanceBlockedError — if governance halts execution.
         """
         cycle_start = time.monotonic()
+        preliminary_cycle_id = f"live-runtime-cycle-{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}"
+        self._log(
+            level="INFO",
+            event_type="live_runtime_cycle_started",
+            message="Live runtime cycle started.",
+            cycle_id=preliminary_cycle_id,
+            context={
+                "symbols": len(metrics_map),
+                "has_vix_data": vix_data is not None,
+                "portfolio_override": portfolio_drawdown_percent is not None or daily_loss_percent is not None,
+            },
+        )
+
         portfolio_state = self._resolve_portfolio_state(
             portfolio_drawdown_percent=portfolio_drawdown_percent,
             daily_loss_percent=daily_loss_percent,
@@ -129,6 +161,7 @@ class LiveRuntimeCycle:
                 details=kill_result["reasons"],
                 vix_level=vix_level,
                 portfolio_state=portfolio_state,
+                cycle_id=preliminary_cycle_id,
             )
             raise GovernanceBlockedError(kill_result["reasons"])
 
@@ -145,8 +178,21 @@ class LiveRuntimeCycle:
                 details=risk_result["breaches"],
                 vix_level=vix_level,
                 portfolio_state=portfolio_state,
+                cycle_id=preliminary_cycle_id,
             )
             raise GovernanceBlockedError(risk_result["breaches"])
+
+        self._log(
+            level="INFO",
+            event_type="live_runtime_governance_passed",
+            message="Live runtime governance checks passed.",
+            cycle_id=preliminary_cycle_id,
+            context={
+                "vix_level": vix_level,
+                "portfolio_drawdown_percent": portfolio_state.drawdown_percent,
+                "daily_loss_percent": portfolio_state.daily_loss_percent,
+            },
+        )
 
         # ── Step 2: Translate scanner → institutional inputs ───────────────
         bridge = translate(metrics_map, vix_data)
@@ -166,6 +212,7 @@ class LiveRuntimeCycle:
             orchestrator_result=orchestrator_result,
             cycle_duration_ms=cycle_duration_ms,
         )
+        cycle_id = snapshot.snapshot_id
 
         # ── Step 5: Persist decision ───────────────────────────────────────
         payload = snapshot.to_persistence_payload()
@@ -198,14 +245,27 @@ class LiveRuntimeCycle:
         in_memory_state_cache.set("latest_portfolio_drawdown_percent", portfolio_state.drawdown_percent)
         in_memory_state_cache.set("latest_daily_loss_percent", portfolio_state.daily_loss_percent)
 
-        # Log warnings to stdout (structured logging integration comes in Phase 3)
         if bridge.data_quality_warnings:
             for warning in bridge.data_quality_warnings:
                 print(f"[LiveRuntimeCycle] DATA WARNING: {warning}")
+            self._log(
+                level="WARNING",
+                event_type="live_runtime_data_quality_warning",
+                message="Live runtime bridge produced data quality warnings.",
+                cycle_id=cycle_id,
+                context={"warnings": bridge.data_quality_warnings},
+            )
 
         if portfolio_state.warnings:
             for warning in portfolio_state.warnings:
                 print(f"[LiveRuntimeCycle] PORTFOLIO STATE WARNING: {warning}")
+            self._log(
+                level="WARNING",
+                event_type="live_runtime_portfolio_state_warning",
+                message="Live runtime portfolio state warning.",
+                cycle_id=cycle_id,
+                context={"warnings": portfolio_state.warnings, "source": portfolio_state.source},
+            )
 
         print(
             f"[LiveRuntimeCycle] cycle={snapshot.snapshot_id} | "
@@ -213,6 +273,18 @@ class LiveRuntimeCycle:
             f"portfolio_drawdown={portfolio_state.drawdown_percent:.2f}% | "
             f"daily_loss={portfolio_state.daily_loss_percent:.2f}% | "
             f"duration={snapshot.cycle_duration_ms:.1f}ms"
+        )
+        self._log(
+            level="INFO",
+            event_type="live_runtime_cycle_completed",
+            message="Live runtime cycle completed.",
+            cycle_id=cycle_id,
+            context={
+                "macro_regime": orchestrator_result.macro_regime,
+                "fusion_classification": orchestrator_result.fusion_classification,
+                "final_exposure_percent": orchestrator_result.final_exposure_percent,
+                "cycle_duration_ms": snapshot.cycle_duration_ms,
+            },
         )
 
         return snapshot
@@ -245,6 +317,7 @@ class LiveRuntimeCycle:
         details: list[str],
         vix_level: float | None,
         portfolio_state: PortfolioState,
+        cycle_id: str | None = None,
     ) -> None:
         """Persist governance block event for audit trail."""
         block_payload = {
@@ -259,6 +332,20 @@ class LiveRuntimeCycle:
         decision_log_store.append(
             decision_id=block_id,
             payload=block_payload,
+        )
+        self._log(
+            level="ERROR",
+            event_type="live_runtime_governance_blocked",
+            message="Live runtime cycle blocked by governance.",
+            cycle_id=cycle_id or block_id,
+            context={
+                "reason": reason,
+                "details": details,
+                "vix_level": vix_level,
+                "portfolio_source": portfolio_state.source,
+                "portfolio_drawdown_percent": portfolio_state.drawdown_percent,
+                "daily_loss_percent": portfolio_state.daily_loss_percent,
+            },
         )
         print(f"[LiveRuntimeCycle] GOVERNANCE BLOCK: {reason} — {details}")
 
