@@ -94,7 +94,7 @@ def test_build_signals_downgrades_approved_signal_without_executable_levels() ->
     assert "missing_target_1" in nvda.notes
 
 
-def test_build_signals_downgrades_when_only_partial_levels_exist() -> None:
+def test_build_signals_downgrades_when_entry_stop_exist_but_atr_missing() -> None:
     partial_metrics = {
         "NVDA": {
             "close": 100.0,
