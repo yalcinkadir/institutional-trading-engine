@@ -6,7 +6,7 @@ from __future__ import annotations
 import argparse
 import sys
 from dataclasses import asdict
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -20,6 +20,7 @@ from src.reporting.market_regime import build_market_regime_summary
 from src.reporting.report_formatter import format_report
 from src.reporting.screener_engine import build_screener_snapshot
 from src.reporting.weekly_summary import build_weekly_summary
+from src.signals.intraday_vwap import enrich_metrics_with_vwap
 from src.signals.scanner_metrics_pipeline import normalize_scanner_metrics_map
 from src.signals.structure_levels import latest_confirmed_swing_low_3bar
 
@@ -51,6 +52,48 @@ def _enrich_metrics_with_structure(metrics: dict[str, Any] | None, bars_df: Any)
     return enriched
 
 
+def _load_intraday_bars(symbol: str, *, minutes: int = 5) -> list[dict[str, Any]]:
+    """Load recent intraday Polygon bars when available.
+
+    This is deliberately non-fatal. Free/limited Polygon plans may not provide
+    the requested intraday aggregates.
+    """
+    try:
+        from src.scanner import API_KEY
+        import requests
+
+        if not API_KEY:
+            return []
+
+        end_date = datetime.now(UTC).date()
+        start_date = end_date - timedelta(days=5)
+        url = f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/{minutes}/minute/{start_date}/{end_date}"
+        params = {
+            "adjusted": "true",
+            "sort": "asc",
+            "limit": 5000,
+            "apiKey": API_KEY,
+        }
+        response = requests.get(url, params=params, timeout=30)
+        if response.status_code == 429:
+            print(f"WARNING: intraday VWAP rate limit for {symbol}")
+            return []
+        response.raise_for_status()
+        payload = response.json()
+        results = payload.get("results", []) if isinstance(payload, dict) else []
+        return results if isinstance(results, list) else []
+    except Exception as exc:
+        print(f"WARNING: intraday VWAP unavailable for {symbol}: {type(exc).__name__}: {exc}")
+        return []
+
+
+def _enrich_metrics_with_intraday_context(
+    metrics: dict[str, Any] | None,
+    intraday_bars: list[dict[str, Any]] | None,
+) -> dict[str, Any] | None:
+    return enrich_metrics_with_vwap(metrics, intraday_bars)
+
+
 def _load_scanner_metrics(decision_report: dict) -> dict[str, Any] | None:
     try:
         from src.scanner import build_symbol_metrics, calculate_20d_return, get_daily_bars
@@ -70,7 +113,9 @@ def _load_scanner_metrics(decision_report: dict) -> dict[str, Any] | None:
             try:
                 metrics = build_symbol_metrics(symbol, benchmark_returns)
                 bars_df = get_daily_bars(symbol)
-                scanner_metrics_map[symbol] = _enrich_metrics_with_structure(metrics, bars_df)
+                metrics = _enrich_metrics_with_structure(metrics, bars_df)
+                intraday_bars = _load_intraday_bars(symbol)
+                scanner_metrics_map[symbol] = _enrich_metrics_with_intraday_context(metrics, intraday_bars)
                 time.sleep(2)
             except Exception as exc:
                 print(f"WARNING: scanner metric build failed for {symbol}: {type(exc).__name__}: {exc}")
