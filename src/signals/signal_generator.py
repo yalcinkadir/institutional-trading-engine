@@ -5,33 +5,9 @@ Converts Decision Engine output + scanner metrics into structured,
 maschinenlesbare signal records with concrete Entry, Stop, Target levels and
 native deterministic signal identity.
 
-These signals are:
-  1. Written to reports/signals/YYYY-MM-DD-signals.json  (maschinenlesbar)
-  2. Written to reports/signals/YYYY-MM-DD-signals.md    (menschenlesbar)
-  3. Committed to the repo by GitHub Actions
-  4. Read by the Entry/Exit Watcher and Outcome Tracker
-
-Signal schema per symbol:
-  signal_id        deterministic signal identity
-  symbol           ticker
-  action           BUY_WATCH | SELL_WATCH | NO_TRADE | AVOID
-  setup_type       momentum_breakout | pullback_continuation | ...
-  setup_score      0–100
-  decision         approved | reduced_size | watch | blocked | no_trade
-  risk_tier        tier_1 | tier_2 | tier_3 | no_trade
-  position_size    0.0–1.0 multiplier
-  close            closing price at signal time
-  entry_trigger    price level that activates the trade
-  entry_type       break_above | pullback_to | gap_fill
-  stop_loss        invalidation price
-  target_1         first target
-  target_2         second target (or None)
-  risk_reward      R:R ratio
-  atr_pct          ATR% at signal time
-  valid_until      ISO date — signal expires if not triggered
-  market_regime    regime at signal generation
-  generated_at     ISO UTC timestamp
-  notes            human-readable context
+Signals are only actionable when executable trade levels are complete.
+A signal may be analytically interesting, but it is not a BUY_WATCH unless
+entry_trigger, stop_loss and target_1 are all present.
 """
 
 from __future__ import annotations
@@ -47,6 +23,7 @@ from src.signals.signal_identity import build_signal_id
 
 
 SIGNALS_DIR = Path("reports/signals")
+_REQUIRED_EXECUTABLE_LEVELS = ("entry_trigger", "stop_loss", "target_1")
 
 
 @dataclass
@@ -154,6 +131,19 @@ def _action_for_decision(decision: str) -> str:
     }.get(decision, "NO_TRADE")
 
 
+def _missing_executable_levels(
+    entry_trigger: float | None,
+    stop_loss: float | None,
+    target_1: float | None,
+) -> list[str]:
+    level_values = {
+        "entry_trigger": entry_trigger,
+        "stop_loss": stop_loss,
+        "target_1": target_1,
+    }
+    return [name for name in _REQUIRED_EXECUTABLE_LEVELS if level_values[name] is None]
+
+
 def _build_signal_payload_for_identity(
     *,
     symbol: str,
@@ -185,6 +175,10 @@ def build_signals(
 ) -> list[Signal]:
     """
     Build Signal list from Decision Engine output.
+
+    Quality gate:
+    A BUY_WATCH signal is only emitted when entry_trigger, stop_loss and
+    target_1 are all present. Otherwise the signal is downgraded to NO_TRADE.
     """
     now_iso = datetime.now(UTC).isoformat()
     signals: list[Signal] = []
@@ -194,6 +188,7 @@ def build_signals(
         decision = item["decision"]
         setup_type = item["setup_type"]
         action = _action_for_decision(decision)
+        original_action = action
 
         scanner = (scanner_metrics_map or {}).get(symbol) or {}
         close = _safe(scanner.get("close"))
@@ -216,6 +211,17 @@ def build_signals(
             notes_parts.append(f"blocked: {', '.join(item['blocked_reasons'])}")
         if item.get("notes"):
             notes_parts.append(f"notes: {', '.join(item['notes'])}")
+
+        missing_levels = _missing_executable_levels(entry, stop, t1)
+        if original_action == "BUY_WATCH" and missing_levels:
+            action = "NO_TRADE"
+            entry_type = "n/a"
+            rr = None
+            notes_parts.append(
+                "downgraded: incomplete executable levels "
+                f"missing {', '.join(missing_levels)}"
+            )
+
         if action == "NO_TRADE" and not notes_parts:
             notes_parts.append("regime or quality filter")
         notes = "; ".join(notes_parts) if notes_parts else ""
@@ -240,7 +246,7 @@ def build_signals(
             setup_type=setup_type,
             decision=decision,
             risk_tier=item["risk_tier"],
-            position_size=item["position_size_multiplier"],
+            position_size=item["position_size_multiplier"] if action == "BUY_WATCH" else 0.0,
             close=close,
             entry_trigger=entry,
             entry_type=entry_type,
@@ -328,7 +334,7 @@ def save_signals(
                 lines.append(f"- Notes: {s.notes}")
             lines.append("")
     else:
-        lines += ["## No Actionable Setups", "", "- No BUY_WATCH signals generated.", ""]
+        lines += ["## No Actionable Setups", "", "- No executable BUY_WATCH signals generated.", ""]
 
     if no_trade:
         lines += ["## No-Trade / Blocked", ""]
@@ -341,8 +347,9 @@ def save_signals(
         "---",
         "## Signal Validity",
         f"- Signals valid until: {signals[0].valid_until if signals else 'N/A'}",
-        "- Check next-day open price vs entry_trigger.",
-        "- Stop and targets are ATR-derived; adjust to structure as appropriate.",
+        "- BUY_WATCH requires entry_trigger, stop_loss and target_1.",
+        "- Signals with incomplete executable levels are downgraded to NO_TRADE.",
+        "- Stop and targets are ATR-derived unless supplied by scanner metrics.",
     ]
 
     md_path.write_text("\n".join(lines), encoding="utf-8")
