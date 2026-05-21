@@ -6,6 +6,8 @@ from src.signals.signal_identity import build_signal_id, ensure_signal_identity
 from src.watchers.entry_exit_watcher import (
     PriceBar,
     append_lifecycle_updates,
+    evaluate_regime_invalidation,
+    evaluate_regime_invalidations,
     evaluate_signal_against_bar,
     evaluate_signals,
     load_signal_file,
@@ -133,6 +135,62 @@ def test_terminal_signal_does_not_emit_new_alert():
     assert update is None
 
 
+def test_regime_invalidation_emits_alert_and_lifecycle_update():
+    signal = _signal(status="TARGET_1_HIT", signal_id="stable-id", last_event_price=110.0)
+
+    alert, update = evaluate_regime_invalidation(
+        signal,
+        regime={"risk_state": "Risk-Off"},
+        timestamp="2026-05-21T20:00:00Z",
+    )
+
+    assert alert is not None
+    assert update is not None
+    assert alert.alert_type == "REGIME_INVALIDATION_EXIT"
+    assert alert.previous_status == "TARGET_1_HIT"
+    assert alert.new_status == "CANCELLED_BY_REGIME_CHANGE"
+    assert alert.price == 110.0
+    assert update.event_type == "REGIME_INVALIDATION_EXIT"
+    assert update.signal["status"] == "CANCELLED_BY_REGIME_CHANGE"
+    assert update.signal["regime_invalidation_reason"] == "risk off"
+
+
+def test_regime_invalidation_ignores_non_risk_off_regime():
+    signal = _signal(status="TARGET_1_HIT")
+
+    alert, update = evaluate_regime_invalidation(
+        signal,
+        regime="Bullish",
+        timestamp="2026-05-21T20:00:00Z",
+    )
+
+    assert alert is None
+    assert update is None
+
+
+def test_evaluate_regime_invalidations_updates_only_active_signals():
+    signals = [
+        _signal(symbol="NVDA", signal_id="nvda-id", status="TRIGGERED"),
+        _signal(symbol="MSFT", signal_id="msft-id", status="TARGET_1_HIT"),
+        _signal(symbol="AAPL", signal_id="aapl-id", status="PENDING"),
+        _signal(symbol="TSLA", signal_id="tsla-id", status="STOP_HIT"),
+    ]
+
+    alerts, updates, updated_signals = evaluate_regime_invalidations(
+        signals,
+        regime="Defensive",
+        timestamp="2026-05-21T20:00:00Z",
+    )
+
+    assert len(alerts) == 2
+    assert len(updates) == 2
+    statuses = {signal["signal_id"]: signal["status"] for signal in updated_signals}
+    assert statuses["nvda-id"] == "CANCELLED_BY_REGIME_CHANGE"
+    assert statuses["msft-id"] == "CANCELLED_BY_REGIME_CHANGE"
+    assert statuses["aapl-id"] == "PENDING"
+    assert statuses["tsla-id"] == "STOP_HIT"
+
+
 def test_evaluate_signals_updates_only_matching_symbols_and_preserves_ids():
     signals = [_signal(symbol="NVDA"), _signal(symbol="AAPL", signal_id="aapl-id")]
     bars = {
@@ -164,6 +222,24 @@ def test_append_lifecycle_updates_deduplicates_by_signal_id_and_event_type(tmp_p
     payload = json.loads(lines[0])
     assert payload["signal_id"] == "stable-id"
     assert payload["event_type"] == "ENTRY_TRIGGERED"
+
+
+def test_append_lifecycle_updates_deduplicates_regime_invalidation(tmp_path: Path):
+    signal = _signal(signal_id="stable-id", status="TARGET_1_HIT")
+    _, update = evaluate_regime_invalidation(
+        signal,
+        regime="Risk-Off",
+        timestamp="2026-05-21T20:00:00Z",
+    )
+    assert update is not None
+
+    lifecycle_path = tmp_path / "signal_lifecycle.jsonl"
+    append_lifecycle_updates([update], log_path=lifecycle_path)
+    append_lifecycle_updates([update], log_path=lifecycle_path)
+
+    lines = lifecycle_path.read_text(encoding="utf-8").splitlines()
+    assert len(lines) == 1
+    assert json.loads(lines[0])["event_type"] == "REGIME_INVALIDATION_EXIT"
 
 
 def test_append_lifecycle_updates_allows_different_events_for_same_signal(tmp_path: Path):
