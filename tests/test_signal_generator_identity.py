@@ -72,12 +72,14 @@ def test_build_signals_produces_buy_watch_only_with_valid_trade_plan() -> None:
     assert nvda.target_1 is not None
     assert nvda.entry_type == "breakout"
     assert nvda.entry_reason
+    assert nvda.stop_model == "atr_stop"
+    assert nvda.stop_reason
     assert nvda.risk_reward is not None
     assert nvda.risk_reward >= 1.2
     assert nvda.position_size == 1.0
 
 
-def test_build_signals_supports_pullback_entry_reason() -> None:
+def test_build_signals_supports_pullback_entry_and_stop_reason() -> None:
     signals = build_signals(
         decision_report=_decision_report(setup_type="pullback_continuation"),
         scanner_metrics_map=_scanner_metrics(),
@@ -88,6 +90,8 @@ def test_build_signals_supports_pullback_entry_reason() -> None:
     assert nvda.action == "BUY_WATCH"
     assert nvda.entry_type == "pullback"
     assert "pullback entry" in nvda.entry_reason
+    assert nvda.stop_model == "pullback_structure_stop"
+    assert "pullback structure stop" in nvda.stop_reason
 
 
 def test_build_signals_downgrades_approved_signal_without_executable_levels() -> None:
@@ -178,6 +182,7 @@ def test_build_signals_downgrades_inverted_stop_trade_plan() -> None:
 
     nvda = signals[0]
     assert nvda.action == "NO_TRADE"
+    assert "scanner_stop_not_below_entry" in nvda.notes
     assert "stop_loss_not_below_entry" in nvda.notes
 
 
@@ -235,9 +240,11 @@ def test_save_signals_writes_signal_id_to_json_and_markdown(tmp_path: Path) -> N
 
     assert all(item.get("signal_id") for item in payload["signals"])
     assert all(item.get("entry_reason") for item in payload["signals"])
+    assert all(item.get("stop_reason") for item in payload["signals"])
     assert all(item.get("signal_id") for item in latest_payload["signals"])
     assert "Signal ID" in markdown
     assert "Reason:" in markdown
+    assert "Stop Reason:" in markdown
     assert signals[0].signal_id in markdown
 
 
