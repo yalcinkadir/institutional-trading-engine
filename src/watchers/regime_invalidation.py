@@ -12,7 +12,8 @@ from typing import Any
 
 REGIME_INVALIDATION_EVENT = "REGIME_INVALIDATION_EXIT"
 REGIME_INVALIDATION_STATUS = "CANCELLED_BY_REGIME_CHANGE"
-ACTIVE_STATUSES = {"TRIGGERED", "TARGET_1_HIT"}
+ELIGIBLE_STATUSES = {"PENDING", "TRIGGERED", "TARGET_1_HIT"}
+ACTIVE_STATUSES = ELIGIBLE_STATUSES
 TERMINAL_STATUSES = {
     "STOP_HIT",
     "TARGET_2_HIT",
@@ -68,7 +69,13 @@ def apply_regime_invalidation(
     regime: Any,
     timestamp: str,
 ) -> RegimeInvalidationResult:
-    """Invalidate an active signal when the regime is defensive/risk-off."""
+    """Invalidate an actionable open signal when regime is defensive/risk-off.
+
+    Eligible statuses:
+    - PENDING: setup has not triggered yet and should no longer be watched.
+    - TRIGGERED: active signal should be cancelled by regime deterioration.
+    - TARGET_1_HIT: runner should be cancelled by regime deterioration.
+    """
     updated = dict(signal)
     previous_status = str(updated.get("status") or "PENDING")
     action = str(updated.get("action") or "")
@@ -89,12 +96,12 @@ def apply_regime_invalidation(
             reasons=["terminal_signal"],
         )
 
-    if previous_status not in ACTIVE_STATUSES:
+    if previous_status not in ELIGIBLE_STATUSES:
         return RegimeInvalidationResult(
             signal=updated,
             invalidated=False,
             previous_status=previous_status,
-            reasons=["signal_not_active"],
+            reasons=["signal_not_eligible_for_regime_invalidation"],
         )
 
     if not is_risk_off_regime(regime):
@@ -117,5 +124,5 @@ def apply_regime_invalidation(
         event_type=REGIME_INVALIDATION_EVENT,
         previous_status=previous_status,
         new_status=REGIME_INVALIDATION_STATUS,
-        reasons=["risk_off_regime_invalidated_active_signal"],
+        reasons=["risk_off_regime_invalidated_open_signal"],
     )
