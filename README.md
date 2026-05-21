@@ -16,6 +16,7 @@ It is designed as an institutional decision-support and research platform that:
 - scans a diversified symbol universe across indices, sectors, bonds, commodities and leaders
 - normalizes scanner metrics before signal generation
 - enriches signal metrics with confirmed 3-bar swing-low structure levels
+- enriches signal metrics with intraday VWAP when intraday bars are available
 - generates premarket, intraday, postmarket and weekly reports
 - communicates alerts and failures through a central notification layer
 - emits structured JSON logs from operational scripts and runtime cycles
@@ -53,6 +54,7 @@ Market analysis
 → Diversified universe scan
 → Scanner metrics normalization
 → Structure level enrichment
+→ Intraday VWAP enrichment
 → Signal generation with native signal_id
 → Entry Quality Engine
 → Breakout context validation
@@ -110,6 +112,8 @@ pytest
 Targeted tests:
 
 ```bash
+pytest tests/test_intraday_vwap.py
+pytest tests/test_generate_report_intraday_vwap.py
 pytest tests/test_regime_invalidation.py
 pytest tests/test_entry_exit_watcher.py
 pytest tests/test_entry_stop_exit_feedback.py
@@ -148,8 +152,10 @@ Implemented in:
 src/scanner.py
 src/signals/scanner_metrics_pipeline.py
 src/signals/structure_levels.py
+src/signals/intraday_vwap.py
 scripts/generate_report.py
 docs/architecture/scanner_to_signal_pipeline.md
+docs/architecture/intraday_vwap_support.md
 ```
 
 Required signal metrics:
@@ -180,10 +186,12 @@ Pipeline behavior:
 
 - scanner output is normalized before `build_signals()`
 - report generation enriches metrics with `swing_low_3bar` when bar lows are available
+- report generation enriches metrics with VWAP when intraday bars are available
 - `NaN`, `inf`, invalid values and missing values become `None`
 - missing symbols and incomplete metrics are reported through diagnostics
 - report generation prints warnings such as `scanner_metrics_missing:NVDA`
 - missing scanner data is non-fatal but visible
+- missing intraday data is non-fatal
 - valid scanner metrics can produce non-null `close`, `entry_trigger`, `stop_loss` and `target_1`
 - breakout context metrics `high`, `rvol` and `vwap` are preserved when available
 
@@ -199,6 +207,7 @@ src/signals/entry_quality.py
 src/signals/stop_loss_quality.py
 src/signals/exit_target_quality.py
 src/signals/structure_levels.py
+src/signals/intraday_vwap.py
 src/signals/signal_generator.py
 src/signals/trade_plan_validator.py
 src/watchers/entry_exit_watcher.py
@@ -211,6 +220,7 @@ docs/architecture/exit_target_quality_engine.md
 docs/architecture/trade_plan_validator.md
 docs/architecture/trailing_stop_management.md
 docs/architecture/regime_invalidation_exit.md
+docs/architecture/intraday_vwap_support.md
 ```
 
 Key behavior:
@@ -222,7 +232,7 @@ Key behavior:
 - momentum breakout prefers `high * 1.001` when scanner high is available
 - weak RVOL breakouts are rejected when `rvol` is below threshold
 - breakouts below VWAP are rejected when `vwap` is available
-- missing VWAP is non-fatal until intraday VWAP support is added
+- missing VWAP is non-fatal when intraday data is unavailable
 - Stop-Loss Quality supports swing-low structure stops, ATR stops, pullback structure stops, retest structure stops, gap-fill stops and scanner-provided stops
 - valid `swing_low_3bar` stops are preferred before ATR/setup fallback stops
 - too-wide, missing or invalid swing lows fall back to ATR/setup stop logic
@@ -301,6 +311,7 @@ src/signals/entry_quality.py
 src/signals/stop_loss_quality.py
 src/signals/exit_target_quality.py
 src/signals/structure_levels.py
+src/signals/intraday_vwap.py
 src/signals/trade_plan_validator.py
 src/watchers/trailing_stop_manager.py
 src/watchers/regime_invalidation.py
@@ -332,6 +343,7 @@ Current Entry Quality checks:
 breakout high-trigger
 breakout RVOL confirmation
 optional breakout VWAP filter
+intraday VWAP enrichment when bars are available
 pullback entry
 retest entry
 gap-fill entry
@@ -411,8 +423,8 @@ stop distance is not too tight or too wide when ATR is available
 
 Planned next modules:
 
-- intraday data support
 - regime-aware feedback grouping
+- session-aware VWAP and intraday entry confirmation
 
 ---
 
@@ -422,6 +434,7 @@ Planned next modules:
 |---|---|
 | Report Automation | Implemented |
 | Scanner-to-Signal Metrics Pipeline | Implemented |
+| Intraday VWAP Support | Implemented |
 | Structure-Aware Stops | Implemented |
 | Breakout Entry Context Upgrade | Implemented |
 | Trailing Stop / Partial Exit Management | Implemented |
@@ -496,6 +509,7 @@ For Entry / Stop / Exit decision logic, also require:
 - report automation
 - signal generation
 - scanner-to-signal metrics pipeline
+- intraday VWAP support
 - breakout entry context upgrade
 - structure-aware stops
 - trailing stop and partial exit management
@@ -545,8 +559,8 @@ For Entry / Stop / Exit decision logic, also require:
 
 ## Planned Next
 
-1. Improve intraday data support with higher-frequency bars if Polygon plan allows.
-2. Add regime-aware feedback grouping.
+1. Add regime-aware feedback grouping.
+2. Add session-aware VWAP and intraday entry confirmation.
 3. Add dashboard or static HTML reporting.
 4. Move long-term persistence from Git files to Postgres.
 5. Add regime similarity memory.
