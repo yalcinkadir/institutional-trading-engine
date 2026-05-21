@@ -5,9 +5,8 @@ Converts Decision Engine output + scanner metrics into structured,
 maschinenlesbare signal records with concrete Entry, Stop, Target levels and
 native deterministic signal identity.
 
-Signals are only actionable when executable trade levels are complete.
-A signal may be analytically interesting, but it is not a BUY_WATCH unless
-entry_trigger, stop_loss and target_1 are all present.
+Signals are only actionable when executable trade levels are complete and the
+central Trade Plan Validator approves ordering, stop distance and risk/reward.
 """
 
 from __future__ import annotations
@@ -20,10 +19,10 @@ from pathlib import Path
 from typing import Any
 
 from src.signals.signal_identity import build_signal_id
+from src.signals.trade_plan_validator import validate_long_trade_plan
 
 
 SIGNALS_DIR = Path("reports/signals")
-_REQUIRED_EXECUTABLE_LEVELS = ("entry_trigger", "stop_loss", "target_1")
 
 
 @dataclass
@@ -109,14 +108,6 @@ def _derive_levels(
     )
 
 
-def _risk_reward(entry: float, stop: float, target: float) -> float | None:
-    risk = abs(entry - stop)
-    reward = abs(target - entry)
-    if risk < 0.01:
-        return None
-    return round(reward / risk, 2)
-
-
 def _valid_until(days: int = 3) -> str:
     return (datetime.now(UTC).date() + timedelta(days=days)).isoformat()
 
@@ -129,19 +120,6 @@ def _action_for_decision(decision: str) -> str:
         "blocked": "NO_TRADE",
         "no_trade": "NO_TRADE",
     }.get(decision, "NO_TRADE")
-
-
-def _missing_executable_levels(
-    entry_trigger: float | None,
-    stop_loss: float | None,
-    target_1: float | None,
-) -> list[str]:
-    level_values = {
-        "entry_trigger": entry_trigger,
-        "stop_loss": stop_loss,
-        "target_1": target_1,
-    }
-    return [name for name in _REQUIRED_EXECUTABLE_LEVELS if level_values[name] is None]
 
 
 def _build_signal_payload_for_identity(
@@ -177,8 +155,8 @@ def build_signals(
     Build Signal list from Decision Engine output.
 
     Quality gate:
-    A BUY_WATCH signal is only emitted when entry_trigger, stop_loss and
-    target_1 are all present. Otherwise the signal is downgraded to NO_TRADE.
+    A BUY_WATCH signal is only emitted when the central Trade Plan Validator
+    approves the executable levels. Otherwise it is downgraded to NO_TRADE.
     """
     now_iso = datetime.now(UTC).isoformat()
     signals: list[Signal] = []
@@ -201,10 +179,18 @@ def build_signals(
             entry, entry_type, stop, t1, t2 = _derive_levels(
                 close, atr14, setup_type, scanner
             )
-            if entry and stop and t1:
-                rr = _risk_reward(entry, stop, t1)
         else:
             entry_type = "n/a"
+
+        validation = validate_long_trade_plan(
+            entry_trigger=entry,
+            stop_loss=stop,
+            target_1=t1,
+            target_2=t2,
+            atr=atr14,
+        )
+        if validation.risk_reward is not None:
+            rr = round(validation.risk_reward, 2)
 
         notes_parts = []
         if item.get("blocked_reasons"):
@@ -212,14 +198,13 @@ def build_signals(
         if item.get("notes"):
             notes_parts.append(f"notes: {', '.join(item['notes'])}")
 
-        missing_levels = _missing_executable_levels(entry, stop, t1)
-        if original_action == "BUY_WATCH" and missing_levels:
+        if original_action == "BUY_WATCH" and not validation.is_valid:
             action = "NO_TRADE"
             entry_type = "n/a"
             rr = None
             notes_parts.append(
-                "downgraded: incomplete executable levels "
-                f"missing {', '.join(missing_levels)}"
+                "downgraded: invalid trade plan "
+                f"reasons {', '.join(validation.reasons)}"
             )
 
         if action == "NO_TRADE" and not notes_parts:
@@ -347,8 +332,8 @@ def save_signals(
         "---",
         "## Signal Validity",
         f"- Signals valid until: {signals[0].valid_until if signals else 'N/A'}",
-        "- BUY_WATCH requires entry_trigger, stop_loss and target_1.",
-        "- Signals with incomplete executable levels are downgraded to NO_TRADE.",
+        "- BUY_WATCH requires a valid trade plan: entry, stop, target, ordering, stop distance and risk/reward.",
+        "- Invalid trade plans are downgraded to NO_TRADE with validation reasons.",
         "- Stop and targets are ATR-derived unless supplied by scanner metrics.",
     ]
 
