@@ -3,7 +3,21 @@ from __future__ import annotations
 from src.signals.entry_quality import derive_entry_quality
 
 
-def test_breakout_entry_for_momentum_breakout() -> None:
+def test_breakout_entry_prefers_scanner_high_trigger() -> None:
+    result = derive_entry_quality(
+        setup_type="momentum_breakout",
+        close=100.0,
+        atr=4.0,
+        scanner_metrics={"high": 101.0},
+    )
+
+    assert result.is_valid
+    assert result.entry_trigger == 101.1
+    assert result.entry_type == "breakout"
+    assert "scanner high" in result.entry_reason
+
+
+def test_breakout_entry_falls_back_to_atr_when_high_missing() -> None:
     result = derive_entry_quality(
         setup_type="momentum_breakout",
         close=100.0,
@@ -14,6 +28,70 @@ def test_breakout_entry_for_momentum_breakout() -> None:
     assert result.entry_trigger == 102.0
     assert result.entry_type == "breakout"
     assert "0.5 ATR" in result.entry_reason
+
+
+def test_breakout_entry_passes_with_sufficient_rvol() -> None:
+    result = derive_entry_quality(
+        setup_type="momentum_breakout",
+        close=100.0,
+        atr=4.0,
+        scanner_metrics={"high": 101.0, "rvol": 1.2},
+    )
+
+    assert result.is_valid
+    assert result.entry_trigger == 101.1
+
+
+def test_breakout_entry_rejects_low_rvol_when_available() -> None:
+    result = derive_entry_quality(
+        setup_type="momentum_breakout",
+        close=100.0,
+        atr=4.0,
+        scanner_metrics={"high": 101.0, "rvol": 0.7},
+    )
+
+    assert not result.is_valid
+    assert result.entry_type == "breakout"
+    assert result.reasons == ["insufficient_volume_for_breakout"]
+
+
+def test_breakout_entry_rejects_close_below_vwap_when_available() -> None:
+    result = derive_entry_quality(
+        setup_type="momentum_breakout",
+        close=99.0,
+        atr=4.0,
+        scanner_metrics={"high": 101.0, "vwap": 100.0},
+    )
+
+    assert not result.is_valid
+    assert result.reasons == ["breakout_entry_below_vwap"]
+
+
+def test_breakout_entry_allows_missing_vwap() -> None:
+    result = derive_entry_quality(
+        setup_type="momentum_breakout",
+        close=100.0,
+        atr=4.0,
+        scanner_metrics={"high": 101.0},
+    )
+
+    assert result.is_valid
+    assert result.entry_trigger == 101.1
+
+
+def test_breakout_entry_reports_multiple_context_failures() -> None:
+    result = derive_entry_quality(
+        setup_type="momentum_breakout",
+        close=99.0,
+        atr=4.0,
+        scanner_metrics={"high": 101.0, "rvol": 0.7, "vwap": 100.0},
+    )
+
+    assert not result.is_valid
+    assert result.reasons == [
+        "insufficient_volume_for_breakout",
+        "breakout_entry_below_vwap",
+    ]
 
 
 def test_pullback_entry_for_pullback_continuation() -> None:
@@ -93,6 +171,19 @@ def test_scanner_provided_entry_is_used() -> None:
     assert result.entry_trigger == 103.0
     assert result.entry_type == "breakout"
     assert result.entry_reason == "scanner provided executable entry level"
+
+
+def test_scanner_provided_entry_rejects_low_breakout_rvol() -> None:
+    result = derive_entry_quality(
+        setup_type="momentum_breakout",
+        close=100.0,
+        atr=4.0,
+        scanner_metrics={"entry": 103.0, "entry_type": "breakout", "rvol": 0.7},
+    )
+
+    assert not result.is_valid
+    assert result.entry_trigger == 103.0
+    assert result.reasons == ["insufficient_volume_for_breakout"]
 
 
 def test_late_breakout_entry_is_rejected() -> None:
