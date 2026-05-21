@@ -23,6 +23,8 @@ OPTIONAL_SIGNAL_METRICS = (
     "high",
     "low",
     "volume",
+    "rvol",
+    "vwap",
 )
 
 
