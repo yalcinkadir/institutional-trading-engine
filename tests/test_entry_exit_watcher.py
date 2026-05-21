@@ -1,9 +1,12 @@
 from datetime import date
+import json
 from pathlib import Path
 
 from src.watchers.entry_exit_watcher import (
     PriceBar,
     append_lifecycle_updates,
+    build_signal_id,
+    ensure_signal_identity,
     evaluate_signal_against_bar,
     evaluate_signals,
     load_signal_file,
@@ -28,6 +31,27 @@ def _signal(**overrides):
     return payload
 
 
+def test_build_signal_id_is_deterministic_for_same_signal():
+    signal = _signal()
+
+    assert build_signal_id(signal) == build_signal_id(dict(signal))
+
+
+def test_build_signal_id_changes_for_material_signal_fields():
+    signal = _signal()
+    changed = _signal(entry_trigger=102.0)
+
+    assert build_signal_id(signal) != build_signal_id(changed)
+
+
+def test_ensure_signal_identity_preserves_existing_signal_id():
+    signal = _signal(signal_id="existing-id")
+
+    result = ensure_signal_identity(signal)
+
+    assert result["signal_id"] == "existing-id"
+
+
 def test_pending_signal_triggers_entry_when_high_crosses_entry():
     signal = _signal()
     bar = PriceBar(symbol="NVDA", timestamp="2026-05-21T15:00:00Z", high=102.0, low=99.0, close=101.5)
@@ -39,6 +63,9 @@ def test_pending_signal_triggers_entry_when_high_crosses_entry():
     assert alert.alert_type == "ENTRY_TRIGGERED"
     assert alert.previous_status == "PENDING"
     assert alert.new_status == "TRIGGERED"
+    assert alert.signal_id.startswith("sig_NVDA_")
+    assert update.signal_id == alert.signal_id
+    assert update.signal["signal_id"] == alert.signal_id
     assert update.signal["status"] == "TRIGGERED"
     assert update.signal["entry_price"] == 101.0
 
@@ -101,8 +128,8 @@ def test_terminal_signal_does_not_emit_new_alert():
     assert update is None
 
 
-def test_evaluate_signals_updates_only_matching_symbols():
-    signals = [_signal(symbol="NVDA"), _signal(symbol="AAPL")]
+def test_evaluate_signals_updates_only_matching_symbols_and_preserves_ids():
+    signals = [_signal(symbol="NVDA"), _signal(symbol="AAPL", signal_id="aapl-id")]
     bars = {
         "NVDA": PriceBar(symbol="NVDA", timestamp="2026-05-21T15:00:00Z", high=102.0, low=100.0, close=101.0)
     }
@@ -112,7 +139,45 @@ def test_evaluate_signals_updates_only_matching_symbols():
     assert len(alerts) == 1
     assert len(updates) == 1
     assert updated_signals[0]["status"] == "TRIGGERED"
+    assert updated_signals[0]["signal_id"].startswith("sig_NVDA_")
     assert updated_signals[1]["status"] == "PENDING"
+    assert updated_signals[1]["signal_id"] == "aapl-id"
+
+
+def test_append_lifecycle_updates_deduplicates_by_signal_id_and_event_type(tmp_path: Path):
+    signal = _signal(signal_id="stable-id")
+    bar = PriceBar(symbol="NVDA", timestamp="2026-05-21T15:00:00Z", high=102.0, low=100.0, close=101.5)
+    _, update = evaluate_signal_against_bar(signal, bar, today=date(2026, 5, 21))
+
+    assert update is not None
+    lifecycle_path = tmp_path / "signal_lifecycle.jsonl"
+    append_lifecycle_updates([update], log_path=lifecycle_path)
+    append_lifecycle_updates([update], log_path=lifecycle_path)
+
+    lines = lifecycle_path.read_text(encoding="utf-8").splitlines()
+    assert len(lines) == 1
+    payload = json.loads(lines[0])
+    assert payload["signal_id"] == "stable-id"
+    assert payload["event_type"] == "ENTRY_TRIGGERED"
+
+
+def test_append_lifecycle_updates_allows_different_events_for_same_signal(tmp_path: Path):
+    signal = _signal(signal_id="stable-id")
+    entry_bar = PriceBar(symbol="NVDA", timestamp="2026-05-21T15:00:00Z", high=102.0, low=100.0, close=101.5)
+    _, entry_update = evaluate_signal_against_bar(signal, entry_bar, today=date(2026, 5, 21))
+    assert entry_update is not None
+
+    stop_signal = dict(entry_update.signal)
+    stop_bar = PriceBar(symbol="NVDA", timestamp="2026-05-22T15:00:00Z", high=102.0, low=94.0, close=95.0)
+    _, stop_update = evaluate_signal_against_bar(stop_signal, stop_bar, today=date(2026, 5, 22))
+    assert stop_update is not None
+
+    lifecycle_path = tmp_path / "signal_lifecycle.jsonl"
+    append_lifecycle_updates([entry_update, stop_update], log_path=lifecycle_path)
+
+    lines = lifecycle_path.read_text(encoding="utf-8").splitlines()
+    assert len(lines) == 2
+    assert {json.loads(line)["event_type"] for line in lines} == {"ENTRY_TRIGGERED", "STOP_HIT"}
 
 
 def test_persistence_helpers_write_alerts_lifecycle_and_updated_signals(tmp_path: Path):
@@ -127,10 +192,12 @@ def test_persistence_helpers_write_alerts_lifecycle_and_updated_signals(tmp_path
     dated, latest = save_alerts([alert], alerts_dir=alerts_dir, date_str="2026-05-21")
     assert dated.exists()
     assert latest.exists()
+    assert "signal_id" in latest.read_text(encoding="utf-8")
 
     lifecycle_path = append_lifecycle_updates([update], log_path=tmp_path / "signal_lifecycle.jsonl")
     assert lifecycle_path.exists()
     assert "ENTRY_TRIGGERED" in lifecycle_path.read_text(encoding="utf-8")
+    assert "signal_id" in lifecycle_path.read_text(encoding="utf-8")
 
     signal_file = tmp_path / "signals.json"
     signal_file.write_text('{"signals": []}', encoding="utf-8")
@@ -138,4 +205,5 @@ def test_persistence_helpers_write_alerts_lifecycle_and_updated_signals(tmp_path
 
     loaded = load_signal_file(signal_file)
     assert loaded[0]["status"] == "TRIGGERED"
+    assert loaded[0]["signal_id"] == update.signal_id
     assert (tmp_path / "latest-signals.json").exists()
