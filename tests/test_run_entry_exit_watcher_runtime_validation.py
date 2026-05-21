@@ -34,6 +34,11 @@ def test_extract_signal_records_accepts_generated_object_payload() -> None:
     assert _extract_signal_records(payload) == [{"symbol": "AAPL"}]
 
 
+def test_extract_signal_records_rejects_object_without_signals_key() -> None:
+    with pytest.raises(WatcherRuntimeConfigurationError, match="must contain a 'signals' list"):
+        _extract_signal_records({"symbol": "AAPL"})
+
+
 def test_extract_signal_records_rejects_non_object_records() -> None:
     with pytest.raises(WatcherRuntimeConfigurationError, match="non-object"):
         _extract_signal_records({"signals": ["bad-record"]})
@@ -90,7 +95,7 @@ def test_validate_runtime_requires_valid_signal_container(
     signals_file = tmp_path / "signals.json"
     signals_file.write_text(json.dumps({"symbol": "AAPL"}), encoding="utf-8")
 
-    with pytest.raises(WatcherRuntimeConfigurationError, match="Signals payload"):
+    with pytest.raises(WatcherRuntimeConfigurationError, match="signals"):
         _validate_runtime(signals_file=signals_file, days=5)
 
 
