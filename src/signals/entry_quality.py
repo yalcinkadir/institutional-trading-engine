@@ -42,6 +42,24 @@ def _reject(reason: str, *, entry_type: str = "n/a") -> EntryQualityResult:
     )
 
 
+def _validate_breakout_context(
+    *,
+    close: float,
+    scanner_metrics: dict[str, Any],
+    min_breakout_rvol: float,
+) -> list[str]:
+    reasons: list[str] = []
+    rvol = _safe_float(scanner_metrics.get("rvol"))
+    vwap = _safe_float(scanner_metrics.get("vwap"))
+
+    if rvol is not None and rvol < min_breakout_rvol:
+        reasons.append("insufficient_volume_for_breakout")
+    if vwap is not None and close < vwap:
+        reasons.append("breakout_entry_below_vwap")
+
+    return reasons
+
+
 def derive_entry_quality(
     *,
     setup_type: str,
@@ -50,6 +68,7 @@ def derive_entry_quality(
     scanner_metrics: dict[str, Any] | None = None,
     allow_at_market: bool = False,
     max_breakout_extension_atr: float = 1.5,
+    min_breakout_rvol: float = 0.8,
 ) -> EntryQualityResult:
     """Derive and validate an entry trigger.
 
@@ -67,6 +86,7 @@ def derive_entry_quality(
         return _reject("missing_or_invalid_atr")
 
     scanner = scanner_metrics or {}
+    normalized_setup = setup_type.lower().strip()
     explicit_entry = _safe_float(scanner.get("entry"))
     explicit_entry_type = str(scanner.get("entry_type") or "").strip()
 
@@ -74,6 +94,20 @@ def derive_entry_quality(
         entry_type = explicit_entry_type or "scanner_provided"
         if explicit_entry <= 0:
             return _reject("invalid_scanner_entry", entry_type=entry_type)
+        if normalized_setup == "momentum_breakout":
+            context_reasons = _validate_breakout_context(
+                close=close,
+                scanner_metrics=scanner,
+                min_breakout_rvol=min_breakout_rvol,
+            )
+            if context_reasons:
+                return EntryQualityResult(
+                    is_valid=False,
+                    entry_trigger=_round_price(explicit_entry),
+                    entry_type=entry_type,
+                    entry_reason="invalid_entry: " + ", ".join(context_reasons),
+                    reasons=context_reasons,
+                )
         extension_atr = (close - explicit_entry) / atr
         if entry_type in {"breakout", "break_above", "scanner_provided"} and extension_atr > max_breakout_extension_atr:
             return EntryQualityResult(
@@ -90,9 +124,31 @@ def derive_entry_quality(
             entry_reason="scanner provided executable entry level",
         )
 
-    normalized_setup = setup_type.lower().strip()
-
     if normalized_setup == "momentum_breakout":
+        context_reasons = _validate_breakout_context(
+            close=close,
+            scanner_metrics=scanner,
+            min_breakout_rvol=min_breakout_rvol,
+        )
+        if context_reasons:
+            return EntryQualityResult(
+                is_valid=False,
+                entry_trigger=None,
+                entry_type="breakout",
+                entry_reason="invalid_entry: " + ", ".join(context_reasons),
+                reasons=context_reasons,
+            )
+
+        high = _safe_float(scanner.get("high"))
+        if high is not None and high > 0:
+            entry = high * 1.001
+            return EntryQualityResult(
+                is_valid=True,
+                entry_trigger=_round_price(entry),
+                entry_type="breakout",
+                entry_reason="breakout above scanner high with 0.1 percent buffer",
+            )
+
         entry = close + 0.5 * atr
         return EntryQualityResult(
             is_valid=True,
