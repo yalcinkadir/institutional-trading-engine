@@ -15,6 +15,7 @@ It is designed as an institutional decision-support and research platform that:
 - ranks opportunities
 - scans a diversified symbol universe across indices, sectors, bonds, commodities and leaders
 - normalizes scanner metrics before signal generation
+- enriches signal metrics with confirmed 3-bar swing-low structure levels
 - generates premarket, intraday, postmarket and weekly reports
 - communicates alerts and failures through a central notification layer
 - emits structured JSON logs from operational scripts and runtime cycles
@@ -23,6 +24,7 @@ It is designed as an institutional decision-support and research platform that:
 - derives entry triggers through a deterministic Entry Quality Engine
 - validates breakout entries with high-trigger, RVOL and optional VWAP context
 - derives stop losses through a deterministic Stop-Loss Quality Engine
+- prefers valid swing-low structure stops before ATR fallback
 - derives targets through a deterministic Exit / Target Quality Engine
 - validates trade plans before allowing `BUY_WATCH`
 - manages partial exits and runner stops after target 1
@@ -48,10 +50,12 @@ It is designed as an institutional decision-support and research platform that:
 Market analysis
 → Diversified universe scan
 → Scanner metrics normalization
+→ Structure level enrichment
 → Signal generation with native signal_id
 → Entry Quality Engine
 → Breakout context validation
 → Stop-Loss Quality Engine
+→ Structure-aware stop selection
 → Exit / Target Quality Engine
 → Trade Plan Validator
 → Entry / Stop / Exit quality validation
@@ -101,6 +105,8 @@ pytest
 Targeted tests:
 
 ```bash
+pytest tests/test_structure_levels.py
+pytest tests/test_generate_report_structure_enrichment.py
 pytest tests/test_trailing_stop_manager.py
 pytest tests/test_entry_exit_watcher.py
 pytest tests/test_scanner_metrics_pipeline.py
@@ -133,6 +139,7 @@ Implemented in:
 ```text
 src/scanner.py
 src/signals/scanner_metrics_pipeline.py
+src/signals/structure_levels.py
 scripts/generate_report.py
 docs/architecture/scanner_to_signal_pipeline.md
 ```
@@ -158,11 +165,13 @@ low
 volume
 rvol
 vwap
+swing_low_3bar
 ```
 
 Pipeline behavior:
 
 - scanner output is normalized before `build_signals()`
+- report generation enriches metrics with `swing_low_3bar` when bar lows are available
 - `NaN`, `inf`, invalid values and missing values become `None`
 - missing symbols and incomplete metrics are reported through diagnostics
 - report generation prints warnings such as `scanner_metrics_missing:NVDA`
@@ -181,6 +190,7 @@ src/signals/signal_identity.py
 src/signals/entry_quality.py
 src/signals/stop_loss_quality.py
 src/signals/exit_target_quality.py
+src/signals/structure_levels.py
 src/signals/signal_generator.py
 src/signals/trade_plan_validator.py
 src/watchers/entry_exit_watcher.py
@@ -203,7 +213,9 @@ Key behavior:
 - weak RVOL breakouts are rejected when `rvol` is below threshold
 - breakouts below VWAP are rejected when `vwap` is available
 - missing VWAP is non-fatal until intraday VWAP support is added
-- Stop-Loss Quality supports ATR stops, pullback structure stops, retest structure stops, gap-fill stops and scanner-provided stops
+- Stop-Loss Quality supports swing-low structure stops, ATR stops, pullback structure stops, retest structure stops, gap-fill stops and scanner-provided stops
+- valid `swing_low_3bar` stops are preferred before ATR/setup fallback stops
+- too-wide, missing or invalid swing lows fall back to ATR/setup stop logic
 - Exit / Target Quality supports momentum, pullback, retest, gap-fill, scanner-provided and default risk targets
 - after `TARGET_1_HIT`, partial exit is marked and runner state is activated
 - after `TARGET_1_HIT`, stop moves to at least breakeven
@@ -233,6 +245,7 @@ Implemented foundation:
 src/signals/entry_quality.py
 src/signals/stop_loss_quality.py
 src/signals/exit_target_quality.py
+src/signals/structure_levels.py
 src/signals/trade_plan_validator.py
 src/watchers/trailing_stop_manager.py
 ```
@@ -272,7 +285,8 @@ missing close / ATR rejection
 Current Stop-Loss Quality checks:
 
 ```text
-ATR stop
+swing-low structure stop
+ATR stop fallback
 pullback structure stop
 retest structure stop
 gap-fill stop
@@ -319,7 +333,6 @@ stop distance is not too tight or too wide when ATR is available
 
 Planned next modules:
 
-- structure-aware stops
 - Entry/Stop/Exit backtest feedback grouped by entry_type and setup_type
 - regime invalidation exit
 
@@ -331,6 +344,7 @@ Planned next modules:
 |---|---|
 | Report Automation | Implemented |
 | Scanner-to-Signal Metrics Pipeline | Implemented |
+| Structure-Aware Stops | Implemented |
 | Breakout Entry Context Upgrade | Implemented |
 | Trailing Stop / Partial Exit Management | Implemented |
 | Expanded Symbol Universe | Implemented |
@@ -403,6 +417,7 @@ For Entry / Stop / Exit decision logic, also require:
 - signal generation
 - scanner-to-signal metrics pipeline
 - breakout entry context upgrade
+- structure-aware stops
 - trailing stop and partial exit management
 - native signal_id generation
 - executable signal quality gate
@@ -448,16 +463,15 @@ For Entry / Stop / Exit decision logic, also require:
 
 ## Planned Next
 
-1. Add structure-aware stops.
-2. Add Entry/Stop/Exit backtest feedback by entry_type and setup_type.
-3. Improve intraday data support with higher-frequency bars if Polygon plan allows.
-4. Add regime invalidation exit.
-5. Add dashboard or static HTML reporting.
-6. Move long-term persistence from Git files to Postgres.
-7. Add regime similarity memory.
-8. Add scoring adjustment quality review.
-9. Add adaptive scoring guardrails by market regime.
-10. Add broker/account integration for automatic portfolio-state calculation.
+1. Add Entry/Stop/Exit backtest feedback by entry_type and setup_type.
+2. Improve intraday data support with higher-frequency bars if Polygon plan allows.
+3. Add regime invalidation exit.
+4. Add dashboard or static HTML reporting.
+5. Move long-term persistence from Git files to Postgres.
+6. Add regime similarity memory.
+7. Add scoring adjustment quality review.
+8. Add adaptive scoring guardrails by market regime.
+9. Add broker/account integration for automatic portfolio-state calculation.
 
 ---
 
