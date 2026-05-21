@@ -46,11 +46,7 @@ def _scanner_metrics() -> dict:
 
 
 def test_build_signals_assigns_native_signal_id() -> None:
-    signals = build_signals(
-        decision_report=_decision_report(),
-        scanner_metrics_map=_scanner_metrics(),
-        market_regime="Bullish",
-    )
+    signals = build_signals(_decision_report(), _scanner_metrics(), "Bullish")
 
     assert len(signals) == 2
     assert all(signal.signal_id for signal in signals)
@@ -59,11 +55,7 @@ def test_build_signals_assigns_native_signal_id() -> None:
 
 
 def test_build_signals_produces_buy_watch_only_with_valid_trade_plan() -> None:
-    signals = build_signals(
-        decision_report=_decision_report(),
-        scanner_metrics_map=_scanner_metrics(),
-        market_regime="Bullish",
-    )
+    signals = build_signals(_decision_report(), _scanner_metrics(), "Bullish")
 
     nvda = signals[0]
     assert nvda.action == "BUY_WATCH"
@@ -74,16 +66,18 @@ def test_build_signals_produces_buy_watch_only_with_valid_trade_plan() -> None:
     assert nvda.entry_reason
     assert nvda.stop_model == "atr_stop"
     assert nvda.stop_reason
+    assert nvda.exit_model == "momentum_targets"
+    assert nvda.exit_reason
     assert nvda.risk_reward is not None
     assert nvda.risk_reward >= 1.2
     assert nvda.position_size == 1.0
 
 
-def test_build_signals_supports_pullback_entry_and_stop_reason() -> None:
+def test_build_signals_supports_pullback_entry_stop_and_exit_reason() -> None:
     signals = build_signals(
-        decision_report=_decision_report(setup_type="pullback_continuation"),
-        scanner_metrics_map=_scanner_metrics(),
-        market_regime="Bullish",
+        _decision_report(setup_type="pullback_continuation"),
+        _scanner_metrics(),
+        "Bullish",
     )
 
     nvda = signals[0]
@@ -92,14 +86,12 @@ def test_build_signals_supports_pullback_entry_and_stop_reason() -> None:
     assert "pullback entry" in nvda.entry_reason
     assert nvda.stop_model == "pullback_structure_stop"
     assert "pullback structure stop" in nvda.stop_reason
+    assert nvda.exit_model == "pullback_targets"
+    assert "pullback continuation targets" in nvda.exit_reason
 
 
 def test_build_signals_downgrades_approved_signal_without_executable_levels() -> None:
-    signals = build_signals(
-        decision_report=_decision_report(),
-        scanner_metrics_map={},
-        market_regime="Bullish",
-    )
+    signals = build_signals(_decision_report(), {}, "Bullish")
 
     nvda = signals[0]
     assert nvda.action == "NO_TRADE"
@@ -123,11 +115,7 @@ def test_build_signals_downgrades_when_entry_stop_exist_but_atr_missing() -> Non
         }
     }
 
-    signals = build_signals(
-        decision_report=_decision_report(),
-        scanner_metrics_map=partial_metrics,
-        market_regime="Bullish",
-    )
+    signals = build_signals(_decision_report(), partial_metrics, "Bullish")
 
     nvda = signals[0]
     assert nvda.action == "NO_TRADE"
@@ -150,11 +138,7 @@ def test_build_signals_downgrades_low_risk_reward_trade_plan() -> None:
         }
     }
 
-    signals = build_signals(
-        decision_report=_decision_report(),
-        scanner_metrics_map=low_rr_metrics,
-        market_regime="Bullish",
-    )
+    signals = build_signals(_decision_report(), low_rr_metrics, "Bullish")
 
     nvda = signals[0]
     assert nvda.action == "NO_TRADE"
@@ -174,16 +158,31 @@ def test_build_signals_downgrades_inverted_stop_trade_plan() -> None:
         }
     }
 
-    signals = build_signals(
-        decision_report=_decision_report(),
-        scanner_metrics_map=inverted_stop_metrics,
-        market_regime="Bullish",
-    )
+    signals = build_signals(_decision_report(), inverted_stop_metrics, "Bullish")
 
     nvda = signals[0]
     assert nvda.action == "NO_TRADE"
     assert "scanner_stop_not_below_entry" in nvda.notes
     assert "missing_target_1" in nvda.notes
+
+
+def test_build_signals_downgrades_invalid_scanner_target() -> None:
+    invalid_target_metrics = {
+        "NVDA": {
+            "close": 100.0,
+            "atr14": 4.0,
+            "atr_pct": 4.0,
+            "entry": 102.0,
+            "stop_loss": 94.0,
+            "exit_1": 101.0,
+        }
+    }
+
+    signals = build_signals(_decision_report(), invalid_target_metrics, "Bullish")
+
+    nvda = signals[0]
+    assert nvda.action == "NO_TRADE"
+    assert "target_1_not_above_entry" in nvda.notes
 
 
 def test_build_signals_downgrades_late_scanner_entry() -> None:
@@ -199,11 +198,7 @@ def test_build_signals_downgrades_late_scanner_entry() -> None:
         }
     }
 
-    signals = build_signals(
-        decision_report=_decision_report(),
-        scanner_metrics_map=late_metrics,
-        market_regime="Bullish",
-    )
+    signals = build_signals(_decision_report(), late_metrics, "Bullish")
 
     nvda = signals[0]
     assert nvda.action == "NO_TRADE"
@@ -225,12 +220,8 @@ def test_build_signals_produces_stable_ids_when_time_is_fixed(monkeypatch) -> No
     assert [signal.signal_id for signal in first] == [signal.signal_id for signal in second]
 
 
-def test_save_signals_writes_signal_id_to_json_and_markdown(tmp_path: Path) -> None:
-    signals = build_signals(
-        decision_report=_decision_report(),
-        scanner_metrics_map=_scanner_metrics(),
-        market_regime="Bullish",
-    )
+def test_save_signals_writes_quality_fields_to_json_and_markdown(tmp_path: Path) -> None:
+    signals = build_signals(_decision_report(), _scanner_metrics(), "Bullish")
 
     json_path, md_path = save_signals(signals, date_str="2026-05-21", signals_dir=tmp_path)
 
@@ -241,19 +232,17 @@ def test_save_signals_writes_signal_id_to_json_and_markdown(tmp_path: Path) -> N
     assert all(item.get("signal_id") for item in payload["signals"])
     assert all(item.get("entry_reason") for item in payload["signals"])
     assert all(item.get("stop_reason") for item in payload["signals"])
+    assert all(item.get("exit_reason") for item in payload["signals"])
     assert all(item.get("signal_id") for item in latest_payload["signals"])
     assert "Signal ID" in markdown
-    assert "Reason:" in markdown
+    assert "Entry Reason:" in markdown
     assert "Stop Reason:" in markdown
+    assert "Exit Reason:" in markdown
     assert signals[0].signal_id in markdown
 
 
 def test_save_signals_actionable_count_excludes_downgraded_signals(tmp_path: Path) -> None:
-    signals = build_signals(
-        decision_report=_decision_report(),
-        scanner_metrics_map={},
-        market_regime="Bullish",
-    )
+    signals = build_signals(_decision_report(), {}, "Bullish")
 
     json_path, md_path = save_signals(signals, date_str="2026-05-21", signals_dir=tmp_path)
     payload = json.loads(json_path.read_text(encoding="utf-8"))
