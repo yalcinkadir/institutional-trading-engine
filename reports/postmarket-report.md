@@ -1,12 +1,12 @@
 # Institutional Trading Engine — POSTMARKET REPORT
 
-Generated: 2026-05-21 10:31 UTC
+Generated: 2026-05-21 11:00 UTC
 
 ## Market Regime
 
 - Data Status: PARTIAL
-- Regime: Bullish (VIX missing)
-- Market Health Score: 65
+- Regime: Neutral (VIX missing)
+- Market Health Score: 55
 
 ### Core Market Metrics
 
@@ -29,9 +29,9 @@ Generated: 2026-05-21 10:31 UTC
 - ATR14: DATA_UNAVAILABLE
 
 ### Market Breadth
-- Universe Size: 1
-- Above SMA50: 1
-- Breadth %: 100.0%
+- Universe Size: 5
+- Above SMA50: 2
+- Breadth %: 40.0%
 
 ## Cross-Asset Regime
 
