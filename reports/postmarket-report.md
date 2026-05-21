@@ -1,10 +1,10 @@
 # Institutional Trading Engine — POSTMARKET REPORT
 
-Generated: 2026-05-21 12:16 UTC
+Generated: 2026-05-21 12:21 UTC
 
 ## Market Regime
 
-- Data Status: PARTIAL
+- Data Status: FALLBACK
 - Regime: Unknown
 - Market Health Score: DATA_UNAVAILABLE
 
@@ -29,9 +29,9 @@ Generated: 2026-05-21 12:16 UTC
 - ATR14: DATA_UNAVAILABLE
 
 ### Market Breadth
-- Universe Size: 5
-- Above SMA50: 2
-- Breadth %: 40.0%
+- Universe Size: 0
+- Above SMA50: 0
+- Breadth %: 0.0%
 
 ## Cross-Asset Regime
 
