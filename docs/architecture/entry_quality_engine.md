@@ -2,7 +2,7 @@
 
 The Entry Quality Engine is the second concrete implementation step of the Entry / Stop / Exit Decision Quality roadmap.
 
-The system should not only store an `entry_trigger`; it should explain why that entry exists and reject invalid or late entries.
+The system should not only store an `entry_trigger`; it should explain why that entry exists and reject invalid, late or weak-context entries.
 
 ---
 
@@ -49,8 +49,6 @@ reasons
 
 ## Supported Entry Types
 
-Initial deterministic support:
-
 ```text
 breakout
 pullback
@@ -61,15 +59,59 @@ at_market only when explicitly allowed
 
 ---
 
-## Default Rules
+## Breakout Context Rules
 
-### Momentum Breakout
+Momentum breakout entries now prefer a scanner-provided high trigger when available.
+
+### Preferred Breakout Trigger
+
+```text
+entry_type: breakout
+entry_trigger: high * 1.001
+entry_reason: breakout above scanner high with 0.1 percent buffer
+```
+
+### Fallback Breakout Trigger
+
+If `high` is unavailable:
 
 ```text
 entry_type: breakout
 entry_trigger: close + 0.5 ATR
 entry_reason: breakout entry above current close using 0.5 ATR buffer
 ```
+
+### Relative Volume Confirmation
+
+When `rvol` is available, weak breakout volume is rejected.
+
+Default threshold:
+
+```text
+min_breakout_rvol = 0.8
+```
+
+Failure reason:
+
+```text
+insufficient_volume_for_breakout
+```
+
+### Optional VWAP Filter
+
+When `vwap` is available, breakout entries below VWAP are rejected.
+
+Failure reason:
+
+```text
+breakout_entry_below_vwap
+```
+
+Missing VWAP is currently non-fatal. Full intraday VWAP calculation is planned separately.
+
+---
+
+## Other Default Rules
 
 ### Pullback Continuation
 
@@ -125,14 +167,17 @@ notes include entry_quality reasons
 trade plan validation also records missing levels when applicable
 ```
 
-This prevents late or impossible entries from becoming actionable watcher signals.
+This prevents late, weak-volume, below-VWAP or otherwise invalid entries from becoming actionable watcher signals.
 
 ---
 
 ## Design Rules
 
 - Every actionable signal must have `entry_trigger`, `entry_type` and `entry_reason`.
-- Entry derivation must be deterministic.
+- Momentum breakouts prefer scanner `high * 1.001` over ATR fallback.
+- Low RVOL breakouts are rejected when RVOL exists.
+- Breakouts below VWAP are rejected when VWAP exists.
+- Missing VWAP is non-fatal until intraday VWAP support is added.
 - At-market entries are blocked unless explicitly allowed.
 - Late breakout entries must be rejected.
 - Entry failure reasons must be visible in signal notes.
@@ -142,12 +187,12 @@ This prevents late or impossible entries from becoming actionable watcher signal
 
 ## Next Steps
 
-The Entry Quality Engine is intentionally deterministic first. Next improvements should add richer structure awareness:
+The next entry improvements should add richer intraday structure and confirmation:
 
 ```text
-recent resistance / breakout level
-recent support / pullback level
-retest of prior breakout
-gap boundary detection
-late-entry blocking by current price vs entry trigger
+intraday VWAP calculation
+close-above-VWAP confirmation
+breakout confirmation fields
+support/resistance breakout level
+false-breakout feedback
 ```
