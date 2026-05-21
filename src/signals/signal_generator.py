@@ -42,8 +42,6 @@ class Signal:
     stop_reason: str
     target_1: float | None
     target_2: float | None
-    exit_model: str
-    exit_reason: str
     risk_reward: float | None
     atr_pct: float | None
     setup_score: float
@@ -52,6 +50,8 @@ class Signal:
     market_regime: str
     generated_at: str
     notes: str
+    exit_model: str = "n/a"
+    exit_reason: str = "n/a"
 
 
 def _safe(v: Any, fallback: float | None = None) -> float | None:
@@ -231,8 +231,6 @@ def build_signals(
             stop_reason=stop_reason,
             target_1=t1,
             target_2=t2,
-            exit_model=exit_model,
-            exit_reason=exit_reason,
             risk_reward=rr,
             atr_pct=atr_pct,
             setup_score=item["setup_score"],
@@ -241,6 +239,8 @@ def build_signals(
             market_regime=market_regime,
             generated_at=now_iso,
             notes="; ".join(notes_parts),
+            exit_model=exit_model,
+            exit_reason=exit_reason,
         ))
 
     return signals
