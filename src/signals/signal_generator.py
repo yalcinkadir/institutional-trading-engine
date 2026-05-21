@@ -8,7 +8,8 @@ native deterministic signal identity.
 Signals are only actionable when executable trade levels are complete and the
 central Trade Plan Validator approves ordering, stop distance and risk/reward.
 Entry triggers are derived by the Entry Quality Engine and must include an
-entry reason.
+entry reason. Stops are derived by the Stop-Loss Quality Engine and must include
+a stop reason.
 """
 
 from __future__ import annotations
@@ -22,6 +23,7 @@ from typing import Any
 
 from src.signals.entry_quality import derive_entry_quality
 from src.signals.signal_identity import build_signal_id
+from src.signals.stop_loss_quality import derive_stop_loss_quality
 from src.signals.trade_plan_validator import validate_long_trade_plan
 
 
@@ -42,6 +44,8 @@ class Signal:
     entry_type: str
     entry_reason: str
     stop_loss: float | None
+    stop_model: str
+    stop_reason: str
     target_1: float | None
     target_2: float | None
     risk_reward: float | None
@@ -64,56 +68,32 @@ def _safe(v: Any, fallback: float | None = None) -> float | None:
         return fallback
 
 
-def _derive_stop_targets(
+def _derive_targets(
     entry: float,
-    close: float,
+    stop: float,
     atr: float,
     setup_type: str,
     scanner_metrics: dict | None,
-) -> tuple[float, float, float | None]:
-    """Derive Stop and Target levels after entry quality has produced entry."""
+) -> tuple[float, float | None]:
+    """Derive target levels after entry and stop quality have produced levels."""
     if scanner_metrics:
-        sc_stop = _safe(scanner_metrics.get("stop_loss"))
         sc_t1 = _safe(scanner_metrics.get("exit_1"))
         sc_t2 = _safe(scanner_metrics.get("exit_2"))
-        if sc_stop is not None:
-            return sc_stop, sc_t1 or round(entry + 2.5 * abs(entry - sc_stop), 2), sc_t2
+        if sc_t1 is not None:
+            return sc_t1, sc_t2
 
+    risk = abs(entry - stop)
     if setup_type == "momentum_breakout":
-        return (
-            round(close - 1.5 * atr, 2),
-            round(close + 3.0 * atr, 2),
-            round(close + 5.0 * atr, 2),
-        )
+        return round(entry + 1.5 * risk, 2), round(entry + 2.5 * risk, 2)
     if setup_type == "pullback_continuation":
-        return (
-            round(entry - 1.5 * atr, 2),
-            round(entry + 2.0 * atr, 2),
-            round(entry + 3.5 * atr, 2),
-        )
+        return round(entry + 1.35 * risk, 2), round(entry + 2.25 * risk, 2)
     if setup_type == "retest_continuation":
-        return (
-            round(entry - 1.25 * atr, 2),
-            round(entry + 2.0 * atr, 2),
-            round(entry + 3.5 * atr, 2),
-        )
+        return round(entry + 1.4 * risk, 2), round(entry + 2.3 * risk, 2)
     if setup_type == "gap_fill":
-        return (
-            round(entry - 1.5 * atr, 2),
-            round(entry + 2.0 * atr, 2),
-            round(entry + 3.0 * atr, 2),
-        )
+        return round(entry + 1.35 * risk, 2), round(entry + 2.0 * risk, 2)
     if setup_type in ("defensive_rotation", "mean_reversion"):
-        return (
-            round(entry - 2.0 * atr, 2),
-            round(entry + 2.5 * atr, 2),
-            None,
-        )
-    return (
-        round(entry - 2.0 * atr, 2),
-        round(entry + 3.0 * atr, 2),
-        None,
-    )
+        return round(entry + 1.5 * risk, 2), None
+    return round(entry + max(1.5 * risk, 2.0 * atr), 2), None
 
 
 def _valid_until(days: int = 3) -> str:
@@ -163,8 +143,8 @@ def build_signals(
     Build Signal list from Decision Engine output.
 
     Quality gate:
-    A BUY_WATCH signal is only emitted when Entry Quality and Trade Plan
-    validation both pass. Otherwise it is downgraded to NO_TRADE.
+    A BUY_WATCH signal is only emitted when Entry Quality, Stop-Loss Quality
+    and Trade Plan validation pass. Otherwise it is downgraded to NO_TRADE.
     """
     now_iso = datetime.now(UTC).isoformat()
     signals: list[Signal] = []
@@ -184,7 +164,10 @@ def build_signals(
         entry = stop = t1 = t2 = rr = None
         entry_type = "n/a"
         entry_reason = "n/a"
+        stop_model = "n/a"
+        stop_reason = "n/a"
         entry_quality_reasons: list[str] = []
+        stop_quality_reasons: list[str] = []
 
         if action == "BUY_WATCH":
             entry_quality = derive_entry_quality(
@@ -198,8 +181,22 @@ def build_signals(
             entry_type = entry_quality.entry_type
             entry_reason = entry_quality.entry_reason
             entry_quality_reasons = entry_quality.reasons
-            if entry_quality.is_valid and entry is not None and close is not None and atr14 is not None:
-                stop, t1, t2 = _derive_stop_targets(entry, close, atr14, setup_type, scanner)
+
+            stop_quality = derive_stop_loss_quality(
+                setup_type=setup_type,
+                entry_trigger=entry,
+                close=close,
+                atr=atr14,
+                entry_type=entry_type,
+                scanner_metrics=scanner,
+            )
+            stop = stop_quality.stop_loss
+            stop_model = stop_quality.stop_model
+            stop_reason = stop_quality.stop_reason
+            stop_quality_reasons = stop_quality.reasons
+
+            if entry_quality.is_valid and stop_quality.is_valid and entry is not None and stop is not None and atr14 is not None:
+                t1, t2 = _derive_targets(entry, stop, atr14, setup_type, scanner)
 
         validation = validate_long_trade_plan(
             entry_trigger=entry,
@@ -218,9 +215,9 @@ def build_signals(
             notes_parts.append(f"notes: {', '.join(item['notes'])}")
 
         if original_action == "BUY_WATCH" and entry_quality_reasons:
-            notes_parts.append(
-                "entry_quality: " + ", ".join(entry_quality_reasons)
-            )
+            notes_parts.append("entry_quality: " + ", ".join(entry_quality_reasons))
+        if original_action == "BUY_WATCH" and stop_quality_reasons:
+            notes_parts.append("stop_quality: " + ", ".join(stop_quality_reasons))
 
         if original_action == "BUY_WATCH" and not validation.is_valid:
             action = "NO_TRADE"
@@ -260,6 +257,8 @@ def build_signals(
             entry_type=entry_type,
             entry_reason=entry_reason,
             stop_loss=stop,
+            stop_model=stop_model,
+            stop_reason=stop_reason,
             target_1=t1,
             target_2=t2,
             risk_reward=rr,
@@ -334,7 +333,8 @@ def save_signals(
                 lines.append(
                     f"- **Entry**: {s.entry_trigger} ({s.entry_type}) | "
                     f"Reason: {s.entry_reason} | "
-                    f"**Stop**: {s.stop_loss} | **T1**: {s.target_1}"
+                    f"**Stop**: {s.stop_loss} ({s.stop_model}) | "
+                    f"Stop Reason: {s.stop_reason} | **T1**: {s.target_1}"
                     + (f" | **T2**: {s.target_2}" if s.target_2 else "")
                     + rr_str
                 )
@@ -357,9 +357,9 @@ def save_signals(
         "---",
         "## Signal Validity",
         f"- Signals valid until: {signals[0].valid_until if signals else 'N/A'}",
-        "- BUY_WATCH requires a valid entry from Entry Quality plus a valid trade plan.",
-        "- Invalid entries or trade plans are downgraded to NO_TRADE with validation reasons.",
-        "- Stop and targets are ATR-derived unless supplied by scanner metrics.",
+        "- BUY_WATCH requires valid entry quality, stop-loss quality and trade-plan validation.",
+        "- Invalid entries, stops or trade plans are downgraded to NO_TRADE with validation reasons.",
+        "- Stops and targets are ATR-derived unless supplied by scanner metrics.",
     ]
 
     md_path.write_text("\n".join(lines), encoding="utf-8")
