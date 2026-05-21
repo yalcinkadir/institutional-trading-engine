@@ -31,6 +31,7 @@ It is designed as an institutional decision-support and research platform that:
 - validates trade plans before allowing `BUY_WATCH`
 - manages partial exits and runner stops after target 1
 - invalidates pending and active signals when the regime turns defensive / risk-off
+- reads file-backed portfolio state for governance and drawdown checks
 - aggregates Entry / Stop / Exit feedback by decision-quality model
 - groups Entry / Stop / Exit feedback by market regime, risk state and volatility regime
 - prioritizes excellent Entry / Stop Loss / Exit decision quality
@@ -57,6 +58,7 @@ Market analysis
 → Scanner metrics normalization
 → Native scanner structure level
 → Intraday VWAP enrichment
+→ Portfolio-state governance context
 → Signal generation with native signal_id
 → E2E dry-run artifact validation
 → Entry Quality Engine
@@ -130,6 +132,32 @@ Dry-run validates:
 - `data` is writable for lifecycle JSONL output
 
 The dry-run does not fetch Polygon data, send Telegram messages, place trades or execute broker orders.
+
+## Portfolio State
+
+Initial file:
+
+```text
+data/portfolio_state.json
+```
+
+The file-backed portfolio state is used by governance/runtime checks for drawdown and daily-loss context.
+
+Initial Decision-Support state:
+
+```json
+{
+  "equity_start": 100000.0,
+  "equity_current": 100000.0,
+  "drawdown_percent": 0.0,
+  "daily_loss_percent": 0.0,
+  "open_positions": [],
+  "source": "manual_initial_live_decision_support_state",
+  "warnings": []
+}
+```
+
+This is **not** broker synchronization. Until broker/account integration exists, the portfolio file must be maintained manually or by a trusted external process.
 
 ## Run Tests
 
@@ -598,6 +626,7 @@ For Entry / Stop / Exit decision logic, also require:
 - scanner-to-signal metrics pipeline
 - native scanner structure metric
 - intraday VWAP support
+- initial file-backed portfolio state
 - End-to-End Dry Run
 - breakout entry context upgrade
 - structure-aware stops
