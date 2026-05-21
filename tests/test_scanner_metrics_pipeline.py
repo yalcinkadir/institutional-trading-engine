@@ -19,6 +19,9 @@ def test_normalize_symbol_metrics_preserves_required_signal_fields() -> None:
         "stop_loss": "94",
         "exit_1": "114",
         "exit_2": "122",
+        "high": "101",
+        "rvol": "1.25",
+        "vwap": "99.8",
         "warnings": ["test"],
     })
 
@@ -31,6 +34,9 @@ def test_normalize_symbol_metrics_preserves_required_signal_fields() -> None:
         "stop_loss": 94.0,
         "exit_1": 114.0,
         "exit_2": 122.0,
+        "high": 101.0,
+        "rvol": 1.25,
+        "vwap": 99.8,
         "symbol": "NVDA",
         "warnings": ["test"],
     }
@@ -42,17 +48,21 @@ def test_normalize_symbol_metrics_converts_nan_to_none() -> None:
         "close": math.nan,
         "atr14": float("inf"),
         "atr_pct": None,
+        "rvol": math.nan,
+        "vwap": float("inf"),
     })
 
     assert row["close"] is None
     assert row["atr14"] is None
     assert row["atr_pct"] is None
+    assert row["rvol"] is None
+    assert row["vwap"] is None
 
 
 def test_normalize_scanner_metrics_map_reports_valid_and_missing_symbols() -> None:
     normalized, diagnostics = normalize_scanner_metrics_map(
         {
-            "NVDA": {"close": 100.0, "atr14": 4.0, "atr_pct": 4.0},
+            "NVDA": {"close": 100.0, "atr14": 4.0, "atr_pct": 4.0, "rvol": 1.2},
             "MSFT": {"close": 200.0},
             "AAPL": None,
         },
@@ -61,6 +71,7 @@ def test_normalize_scanner_metrics_map_reports_valid_and_missing_symbols() -> No
 
     assert normalized["NVDA"]["close"] == 100.0
     assert normalized["NVDA"]["atr14"] == 4.0
+    assert normalized["NVDA"]["rvol"] == 1.2
     assert diagnostics.total_symbols == 4
     assert diagnostics.valid_symbols == 1
     assert diagnostics.missing_symbols == ["AAPL", "QQQ"]
