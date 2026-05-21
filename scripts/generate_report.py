@@ -11,7 +11,7 @@ After each premarket/intraday/postmarket report, a signal JSON and Markdown file
 is written to reports/signals/YYYY-MM-DD-signals.{json,md}.
 
 Signal levels are also merged back into the decision payload before rendering,
-so Entry/Stop/Target/R:R and signal_id are visible to downstream report logic.
+so Entry/Stop/Target/R:R, quality reasons and signal_id are visible to downstream report logic.
 
 Expectation-based scoring adjustments are persisted to:
 
@@ -108,7 +108,8 @@ def _merge_signal_levels_into_decisions(
 
     report_formatter.py already knows how to render entry_trigger, stop_loss,
     target_1, target_2 and risk_reward from decision items. This function makes
-    those fields available before the main report is formatted.
+    those fields and the quality explanations available before the main report
+    is formatted.
     """
     signals_by_symbol = {signal.symbol: signal for signal in signals}
 
@@ -124,7 +125,10 @@ def _merge_signal_levels_into_decisions(
             "close",
             "entry_trigger",
             "entry_type",
+            "entry_reason",
             "stop_loss",
+            "stop_model",
+            "stop_reason",
             "target_1",
             "target_2",
             "risk_reward",
