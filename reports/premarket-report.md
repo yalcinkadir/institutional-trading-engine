@@ -1,6 +1,6 @@
 # Institutional Trading Engine — PREMARKET REPORT
 
-Generated: 2026-05-21 10:26 UTC
+Generated: 2026-05-21 10:31 UTC
 
 ## Market Regime
 
@@ -29,9 +29,9 @@ Generated: 2026-05-21 10:26 UTC
 - ATR14: DATA_UNAVAILABLE
 
 ### Market Breadth
-- Universe Size: 7
-- Above SMA50: 2
-- Breadth %: 28.57%
+- Universe Size: 1
+- Above SMA50: 0
+- Breadth %: 0.0%
 
 ## Cross-Asset Regime
 
