@@ -21,6 +21,7 @@ import os
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
@@ -86,6 +87,30 @@ def _log(
     )
 
 
+def _extract_signal_records(payload: Any) -> list[dict[str, Any]]:
+    """Return signal records from either legacy list or generated signal payload."""
+
+    if isinstance(payload, list):
+        signals = payload
+    elif isinstance(payload, dict):
+        signals = payload.get("signals", [])
+    else:
+        signals = []
+
+    if not isinstance(signals, list):
+        raise WatcherRuntimeConfigurationError(
+            f"Signals payload must contain a JSON list or an object with a 'signals' list, got {type(signals).__name__}."
+        )
+
+    invalid_count = sum(1 for item in signals if not isinstance(item, dict))
+    if invalid_count:
+        raise WatcherRuntimeConfigurationError(
+            f"Signals payload contains {invalid_count} non-object signal records."
+        )
+
+    return signals
+
+
 def _validate_runtime(signals_file: Path, days: int) -> None:
     """Fail fast for missing runtime inputs instead of crashing later."""
 
@@ -113,10 +138,7 @@ def _validate_runtime(signals_file: Path, days: int) -> None:
             f"Signals file contains invalid JSON: {signals_file}: {exc}"
         ) from exc
 
-    if not isinstance(payload, list):
-        raise WatcherRuntimeConfigurationError(
-            f"Signals file must contain a JSON list, got {type(payload).__name__}: {signals_file}"
-        )
+    _extract_signal_records(payload)
 
 
 def main() -> int:
