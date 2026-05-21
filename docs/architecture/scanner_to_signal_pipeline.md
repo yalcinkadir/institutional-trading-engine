@@ -1,6 +1,6 @@
 # Scanner-to-Signal Metrics Pipeline
 
-P15 repairs and hardens the scanner-to-signal data path.
+P15 repairs and hardens the scanner-to-signal data path. P18A extends the path with breakout context metrics.
 
 Entry / Stop / Exit quality engines require live scanner metrics. If `close` and `atr14` do not reach signal generation, candidates are correctly downgraded to `NO_TRADE`, but the system is not operationally useful.
 
@@ -20,6 +20,8 @@ Tests:
 ```text
 tests/test_scanner_metrics_pipeline.py
 tests/test_generate_report_scanner_metrics_pipeline.py
+tests/test_entry_quality.py
+tests/test_signal_generator_identity.py
 ```
 
 ---
@@ -45,6 +47,16 @@ exit_2
 high
 low
 volume
+rvol
+vwap
+```
+
+Breakout context metrics:
+
+```text
+high  -> preferred breakout trigger source
+rvol  -> relative volume confirmation
+vwap  -> optional breakout context filter
 ```
 
 ---
@@ -105,7 +117,7 @@ format_report()
 save_signals()
 ```
 
-The regression test verifies that valid scanner metrics produce non-null:
+The regression tests verify that valid scanner metrics produce non-null:
 
 ```text
 close
@@ -115,6 +127,30 @@ target_1
 ```
 
 both in generated signals and merged decision report items.
+
+---
+
+## Breakout Context Behavior
+
+When `high` exists, momentum breakout entry uses:
+
+```text
+entry_trigger = high * 1.001
+```
+
+When `rvol` exists and is below the configured threshold, momentum breakout is rejected:
+
+```text
+insufficient_volume_for_breakout
+```
+
+When `vwap` exists and `close < vwap`, momentum breakout is rejected:
+
+```text
+breakout_entry_below_vwap
+```
+
+Missing VWAP is non-fatal until intraday VWAP generation is implemented.
 
 ---
 
@@ -139,6 +175,7 @@ This is intentional. Operational visibility improves without making report gener
 - Never silently swallow scanner metric failures.
 - Normalize scanner metrics before signal generation.
 - Preserve scanner-provided entry, stop and target levels when available.
+- Preserve breakout context metrics when available.
 - Missing live data should be visible as pipeline diagnostics.
 - Quality engines remain defensive and downgrade incomplete trade plans.
 
@@ -146,7 +183,7 @@ This is intentional. Operational visibility improves without making report gener
 
 ## Next Steps
 
-After P15, the next operational layer is:
+After P18A, the next operational layer is:
 
 ```text
 P16 Trailing Stop and Partial Exit Management
