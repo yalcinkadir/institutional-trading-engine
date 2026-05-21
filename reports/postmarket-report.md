@@ -1,26 +1,26 @@
 # Institutional Trading Engine — POSTMARKET REPORT
 
-Generated: 2026-05-21 20:46 UTC
+Generated: 2026-05-21 21:29 UTC
 
 ## Market Regime
 
 - Data Status: PARTIAL
-- Regime: Unknown
-- Market Health Score: DATA_UNAVAILABLE
+- Regime: Neutral (VIX missing)
+- Market Health Score: 60
 
 ### Core Market Metrics
 
 #### SPY
-- Close: DATA_UNAVAILABLE
-- SMA50: DATA_UNAVAILABLE
-- SMA200: DATA_UNAVAILABLE
-- ATR14: DATA_UNAVAILABLE
+- Close: 681.92
+- SMA50: 678.5 ✅
+- SMA200: 626.91 ✅
+- ATR14: 5.66
 
 #### QQQ
-- Close: DATA_UNAVAILABLE
-- SMA50: DATA_UNAVAILABLE
-- SMA200: DATA_UNAVAILABLE
-- ATR14: DATA_UNAVAILABLE
+- Close: 614.31
+- SMA50: 616.37 ❌
+- SMA200: 557.8 ✅
+- ATR14: 7.31
 
 #### VIX
 - Close: DATA_UNAVAILABLE
@@ -30,8 +30,8 @@ Generated: 2026-05-21 20:46 UTC
 
 ### Market Breadth
 - Universe Size: 4
-- Above SMA50: 1
-- Breadth %: 25.0%
+- Above SMA50: 2
+- Breadth %: 50.0%
 
 ## Cross-Asset Regime
 
