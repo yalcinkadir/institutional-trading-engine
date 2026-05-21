@@ -8,7 +8,7 @@ signal records against injected price bars/snapshots and returns deterministic
 alerts + lifecycle updates.
 
 Responsibilities:
-- assign deterministic signal identity
+- assign deterministic signal identity as fallback for legacy signals
 - detect ENTRY_TRIGGERED
 - detect STOP_HIT
 - detect TARGET_1_HIT
@@ -22,12 +22,17 @@ Data fetching belongs to scripts/run_entry_exit_watcher.py or another adapter.
 
 from __future__ import annotations
 
-import hashlib
 import json
 from dataclasses import asdict, dataclass
 from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any, Iterable
+
+from src.signals.signal_identity import (
+    build_signal_id,
+    ensure_signal_identity,
+    signal_date_from_payload,
+)
 
 ALERTS_DIR = Path("reports/alerts")
 LIFECYCLE_LOG = Path("data/signal_lifecycle.jsonl")
@@ -39,18 +44,6 @@ TERMINAL_STATUSES = {
     "EXPIRED",
     "CANCELLED_BY_REGIME_CHANGE",
 }
-
-_SIGNAL_ID_FIELDS = (
-    "symbol",
-    "action",
-    "signal_date",
-    "generated_at",
-    "entry_trigger",
-    "stop_loss",
-    "target_1",
-    "target_2",
-    "valid_until",
-)
 
 
 @dataclass(frozen=True)
@@ -120,48 +113,11 @@ def _parse_date(value: str | None) -> date | None:
 
 
 def _signal_date(signal: dict[str, Any]) -> str:
-    generated_at = str(signal.get("generated_at") or "")
-    if generated_at:
-        return generated_at[:10]
-    return str(signal.get("signal_date") or signal.get("date") or "unknown")
+    return signal_date_from_payload(signal)
 
 
 def _current_status(signal: dict[str, Any]) -> str:
     return str(signal.get("status") or "PENDING")
-
-
-def build_signal_id(signal: dict[str, Any]) -> str:
-    """Build a deterministic signal id from stable signal fields.
-
-    Existing `signal_id` values are preserved elsewhere by
-    `ensure_signal_identity()`. This function only defines how missing ids are
-    derived.
-    """
-
-    normalized = dict(signal)
-    normalized.setdefault("signal_date", _signal_date(signal))
-
-    identity_payload = {
-        field: normalized.get(field)
-        for field in _SIGNAL_ID_FIELDS
-    }
-    raw = json.dumps(identity_payload, sort_keys=True, separators=(",", ":"), default=str)
-    digest = hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
-    symbol = str(signal.get("symbol") or "UNKNOWN").upper().replace("/", "_")
-    return f"sig_{symbol}_{digest}"
-
-
-def ensure_signal_identity(signal: dict[str, Any]) -> dict[str, Any]:
-    """Return a copy of a signal with a stable `signal_id` field."""
-
-    result = dict(signal)
-    existing = result.get("signal_id")
-    if existing:
-        result["signal_id"] = str(existing)
-        return result
-
-    result["signal_id"] = build_signal_id(result)
-    return result
 
 
 def load_signal_file(path: str | Path) -> list[dict[str, Any]]:
