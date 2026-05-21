@@ -34,6 +34,7 @@ jobs:
       POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      REPORT_WEBHOOK_URL: ${{ secrets.REPORT_WEBHOOK_URL }}
 
     steps:
       - name: Checkout repository
@@ -126,8 +127,8 @@ PY
           git pull --rebase origin "${GITHUB_REF_NAME}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
 
-      - name: Build Telegram alert summary
-        if: success() && env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_CHAT_ID != ''
+      - name: Build watcher alert summary
+        if: success()
         shell: bash
         run: |
           if [[ -f reports/alerts/latest-alerts.json ]]; then
@@ -151,50 +152,61 @@ PY
             echo "SEND_ALERTS=false" >> "$GITHUB_ENV"
           else
             echo "SEND_ALERTS=true" >> "$GITHUB_ENV"
-            SUMMARY=$(python - <<'PY'
+            python - <<'PY' > reports/alerts/watcher-alert-summary.txt
 import json
 from pathlib import Path
 path = Path('reports/alerts/latest-alerts.json')
 data = json.loads(path.read_text())
 lines = ["Entry/Exit Watcher Alerts", ""]
 for item in data[:10]:
-    lines.append(f"{item.get('symbol')}: {item.get('alert_type')} @ {item.get('price')} ({item.get('previous_status')} -> {item.get('new_status')})")
+    signal_id = item.get('signal_id', 'unknown')
+    lines.append(
+        f"{item.get('symbol')}: {item.get('alert_type')} @ {item.get('price')} "
+        f"({item.get('previous_status')} -> {item.get('new_status')}) | signal_id={signal_id}"
+    )
 print("\n".join(lines))
 PY
-)
-            {
-              echo "WATCHER_ALERT_SUMMARY<<EOF"
-              echo "$SUMMARY"
-              echo "EOF"
-            } >> "$GITHUB_ENV"
           fi
 
-      - name: Send Telegram alerts
-        if: success() && env.SEND_ALERTS == 'true' && env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_CHAT_ID != ''
+      - name: Send watcher alert notification
+        if: success() && env.SEND_ALERTS == 'true'
         shell: bash
         run: |
-          curl -sS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-            -d chat_id="${TELEGRAM_CHAT_ID}" \
-            --data-urlencode text="$WATCHER_ALERT_SUMMARY"
+          python scripts/send_notification.py \
+            --message-file reports/alerts/watcher-alert-summary.txt \
+            --telegram \
+            --webhook \
+            --cycle-id "$WATCHER_CYCLE_ID"
 
-      - name: Send Telegram failure notification
-        if: failure() && env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_CHAT_ID != ''
+      - name: Build watcher failure message
+        if: failure()
         shell: bash
         run: |
-          FAILURE_MESSAGE="Entry/Exit Watcher FAILED
+          cat > reports/watcher-failure-message.txt <<EOF
+Entry/Exit Watcher FAILED
 Cycle: ${WATCHER_CYCLE_ID:-unknown}
 Repository: ${GITHUB_REPOSITORY}
 Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
-Signals file: ${SIGNALS_FILE:-unknown}"
-          curl -sS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-            -d chat_id="${TELEGRAM_CHAT_ID}" \
-            --data-urlencode text="$FAILURE_MESSAGE"
+Signals file: ${SIGNALS_FILE:-unknown}
+EOF
+
+      - name: Send watcher failure notification
+        if: failure()
+        shell: bash
+        run: |
+          python scripts/send_notification.py \
+            --message-file reports/watcher-failure-message.txt \
+            --telegram \
+            --webhook \
+            --cycle-id "${WATCHER_CYCLE_ID:-unknown}"
 
       - name: Upload alert artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: entry-exit-alerts-${{ github.run_id }}
-          path: reports/alerts/
+          path: |
+            reports/alerts/
+            reports/watcher-failure-message.txt
           if-no-files-found: ignore
           retention-days: 90
