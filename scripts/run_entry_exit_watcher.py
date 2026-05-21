@@ -93,9 +93,15 @@ def _extract_signal_records(payload: Any) -> list[dict[str, Any]]:
     if isinstance(payload, list):
         signals = payload
     elif isinstance(payload, dict):
-        signals = payload.get("signals", [])
+        if "signals" not in payload:
+            raise WatcherRuntimeConfigurationError(
+                "Signals object payload must contain a 'signals' list."
+            )
+        signals = payload["signals"]
     else:
-        signals = []
+        raise WatcherRuntimeConfigurationError(
+            f"Signals file must contain a JSON list or object payload, got {type(payload).__name__}."
+        )
 
     if not isinstance(signals, list):
         raise WatcherRuntimeConfigurationError(
