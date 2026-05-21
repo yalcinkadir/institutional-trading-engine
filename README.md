@@ -28,6 +28,7 @@ It is designed as an institutional decision-support and research platform that:
 - derives targets through a deterministic Exit / Target Quality Engine
 - validates trade plans before allowing `BUY_WATCH`
 - manages partial exits and runner stops after target 1
+- invalidates active signals when the regime turns defensive / risk-off
 - aggregates Entry / Stop / Exit feedback by decision-quality model
 - prioritizes excellent Entry / Stop Loss / Exit decision quality
 - assigns stable signal identity for lifecycle tracking
@@ -62,6 +63,7 @@ Market analysis
 → Entry / Stop / Exit quality validation
 → Entry / Exit monitoring
 → Target 1 partial-exit and runner management
+→ Regime invalidation exit
 → Central notification delivery
 → Structured operational logging
 → Deduplicated lifecycle tracking
@@ -97,6 +99,7 @@ The watcher validates runtime configuration before execution:
 - missing legacy `signal_id` values are assigned deterministically as fallback
 - lifecycle events are deduplicated by `signal_id` + `event_type`
 - `TARGET_1_HIT` activates partial-exit and runner state
+- `REGIME_INVALIDATION_EXIT` cancels active signals when regime turns defensive
 
 ## Run Tests
 
@@ -107,12 +110,13 @@ pytest
 Targeted tests:
 
 ```bash
+pytest tests/test_regime_invalidation.py
+pytest tests/test_entry_exit_watcher.py
 pytest tests/test_entry_stop_exit_feedback.py
 pytest tests/test_entry_stop_exit_report.py
 pytest tests/test_structure_levels.py
 pytest tests/test_generate_report_structure_enrichment.py
 pytest tests/test_trailing_stop_manager.py
-pytest tests/test_entry_exit_watcher.py
 pytest tests/test_scanner_metrics_pipeline.py
 pytest tests/test_generate_report_scanner_metrics_pipeline.py
 pytest tests/test_exit_target_quality.py
@@ -199,12 +203,14 @@ src/signals/signal_generator.py
 src/signals/trade_plan_validator.py
 src/watchers/entry_exit_watcher.py
 src/watchers/trailing_stop_manager.py
+src/watchers/regime_invalidation.py
 docs/architecture/signal_identity_lifecycle.md
 docs/architecture/entry_quality_engine.md
 docs/architecture/stop_loss_quality_engine.md
 docs/architecture/exit_target_quality_engine.md
 docs/architecture/trade_plan_validator.md
 docs/architecture/trailing_stop_management.md
+docs/architecture/regime_invalidation_exit.md
 ```
 
 Key behavior:
@@ -225,6 +231,8 @@ Key behavior:
 - after `TARGET_1_HIT`, stop moves to at least breakeven
 - when high and ATR are available, runner trail uses `latest_high - 1.5 * ATR`
 - runner stop never moves downward for long signals
+- active `TRIGGERED` / `TARGET_1_HIT` signals can be cancelled by defensive regime
+- regime invalidation emits `REGIME_INVALIDATION_EXIT` and terminal status `CANCELLED_BY_REGIME_CHANGE`
 - late breakout entries are rejected before reaching the watcher
 - scanner-provided stops are rejected if they are not below entry for long signals
 - scanner-provided targets are rejected if `target_1 <= entry` or `target_2 <= target_1`
@@ -295,6 +303,7 @@ src/signals/exit_target_quality.py
 src/signals/structure_levels.py
 src/signals/trade_plan_validator.py
 src/watchers/trailing_stop_manager.py
+src/watchers/regime_invalidation.py
 src/feedback/entry_stop_exit_feedback.py
 ```
 
@@ -314,6 +323,7 @@ target_1 + exit_reason
 risk_reward validation
 quality gate passed
 runner management after target_1
+regime invalidation monitoring
 ```
 
 Current Entry Quality checks:
@@ -366,6 +376,16 @@ stop_loss = max(existing_stop, entry_trigger, latest_high - 1.5 * ATR when avail
 trail_stop = stop_loss
 ```
 
+Current Regime Invalidation:
+
+```text
+risk-off / defensive regime
+active BUY_WATCH signal
+TRIGGERED or TARGET_1_HIT
+→ REGIME_INVALIDATION_EXIT
+→ CANCELLED_BY_REGIME_CHANGE
+```
+
 Current Feedback Checks:
 
 ```text
@@ -391,8 +411,8 @@ stop distance is not too tight or too wide when ATR is available
 
 Planned next modules:
 
-- regime invalidation exit
 - intraday data support
+- regime-aware feedback grouping
 
 ---
 
@@ -405,6 +425,7 @@ Planned next modules:
 | Structure-Aware Stops | Implemented |
 | Breakout Entry Context Upgrade | Implemented |
 | Trailing Stop / Partial Exit Management | Implemented |
+| Regime Invalidation Exit | Implemented |
 | Entry / Stop / Exit Feedback Aggregation | Implemented |
 | Expanded Symbol Universe | Implemented |
 | Central Notification Client | Implemented |
@@ -478,6 +499,7 @@ For Entry / Stop / Exit decision logic, also require:
 - breakout entry context upgrade
 - structure-aware stops
 - trailing stop and partial exit management
+- regime invalidation exit
 - Entry / Stop / Exit feedback aggregation
 - native signal_id generation
 - executable signal quality gate
@@ -523,8 +545,8 @@ For Entry / Stop / Exit decision logic, also require:
 
 ## Planned Next
 
-1. Add regime invalidation exit.
-2. Improve intraday data support with higher-frequency bars if Polygon plan allows.
+1. Improve intraday data support with higher-frequency bars if Polygon plan allows.
+2. Add regime-aware feedback grouping.
 3. Add dashboard or static HTML reporting.
 4. Move long-term persistence from Git files to Postgres.
 5. Add regime similarity memory.
