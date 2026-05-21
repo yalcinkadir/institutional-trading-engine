@@ -25,6 +25,7 @@ It is designed as an institutional decision-support and research platform that:
 - derives stop losses through a deterministic Stop-Loss Quality Engine
 - derives targets through a deterministic Exit / Target Quality Engine
 - validates trade plans before allowing `BUY_WATCH`
+- manages partial exits and runner stops after target 1
 - prioritizes excellent Entry / Stop Loss / Exit decision quality
 - assigns stable signal identity for lifecycle tracking
 - stores signal history in the repository
@@ -55,6 +56,7 @@ Market analysis
 → Trade Plan Validator
 → Entry / Stop / Exit quality validation
 → Entry / Exit monitoring
+→ Target 1 partial-exit and runner management
 → Central notification delivery
 → Structured operational logging
 → Deduplicated lifecycle tracking
@@ -88,6 +90,7 @@ The watcher validates runtime configuration before execution:
 - native `signal_id` values are preserved
 - missing legacy `signal_id` values are assigned deterministically as fallback
 - lifecycle events are deduplicated by `signal_id` + `event_type`
+- `TARGET_1_HIT` activates partial-exit and runner state
 
 ## Run Tests
 
@@ -98,6 +101,8 @@ pytest
 Targeted tests:
 
 ```bash
+pytest tests/test_trailing_stop_manager.py
+pytest tests/test_entry_exit_watcher.py
 pytest tests/test_scanner_metrics_pipeline.py
 pytest tests/test_generate_report_scanner_metrics_pipeline.py
 pytest tests/test_exit_target_quality.py
@@ -111,7 +116,6 @@ pytest tests/test_structured_logging.py
 pytest tests/test_run_entry_exit_watcher_runtime_validation.py
 pytest tests/test_entry_exit_watcher_workflow_notifications.py
 pytest tests/test_live_runtime_cycle_portfolio_state.py
-pytest tests/test_entry_exit_watcher.py
 pytest tests/test_notifications.py
 pytest tests/test_expectancy_feedback_summary.py
 pytest tests/test_historical_validation.py
@@ -180,11 +184,13 @@ src/signals/exit_target_quality.py
 src/signals/signal_generator.py
 src/signals/trade_plan_validator.py
 src/watchers/entry_exit_watcher.py
+src/watchers/trailing_stop_manager.py
 docs/architecture/signal_identity_lifecycle.md
 docs/architecture/entry_quality_engine.md
 docs/architecture/stop_loss_quality_engine.md
 docs/architecture/exit_target_quality_engine.md
 docs/architecture/trade_plan_validator.md
+docs/architecture/trailing_stop_management.md
 ```
 
 Key behavior:
@@ -199,6 +205,10 @@ Key behavior:
 - missing VWAP is non-fatal until intraday VWAP support is added
 - Stop-Loss Quality supports ATR stops, pullback structure stops, retest structure stops, gap-fill stops and scanner-provided stops
 - Exit / Target Quality supports momentum, pullback, retest, gap-fill, scanner-provided and default risk targets
+- after `TARGET_1_HIT`, partial exit is marked and runner state is activated
+- after `TARGET_1_HIT`, stop moves to at least breakeven
+- when high and ATR are available, runner trail uses `latest_high - 1.5 * ATR`
+- runner stop never moves downward for long signals
 - late breakout entries are rejected before reaching the watcher
 - scanner-provided stops are rejected if they are not below entry for long signals
 - scanner-provided targets are rejected if `target_1 <= entry` or `target_2 <= target_1`
@@ -224,6 +234,7 @@ src/signals/entry_quality.py
 src/signals/stop_loss_quality.py
 src/signals/exit_target_quality.py
 src/signals/trade_plan_validator.py
+src/watchers/trailing_stop_manager.py
 ```
 
 Operating rule:
@@ -241,6 +252,7 @@ stop_loss + stop_reason
 target_1 + exit_reason
 risk_reward validation
 quality gate passed
+runner management after target_1
 ```
 
 Current Entry Quality checks:
@@ -281,6 +293,17 @@ default risk targets
 invalid / inverted target rejection
 ```
 
+Current Runner Management:
+
+```text
+TARGET_1_HIT
+partial_exit_completed = true
+partial_exit_ratio = 0.50
+runner_status = active
+stop_loss = max(existing_stop, entry_trigger, latest_high - 1.5 * ATR when available)
+trail_stop = stop_loss
+```
+
 Current Trade Plan Validator checks:
 
 ```text
@@ -296,9 +319,9 @@ stop distance is not too tight or too wide when ATR is available
 
 Planned next modules:
 
-- trailing stop and partial exit management
 - structure-aware stops
 - Entry/Stop/Exit backtest feedback grouped by entry_type and setup_type
+- regime invalidation exit
 
 ---
 
@@ -309,6 +332,7 @@ Planned next modules:
 | Report Automation | Implemented |
 | Scanner-to-Signal Metrics Pipeline | Implemented |
 | Breakout Entry Context Upgrade | Implemented |
+| Trailing Stop / Partial Exit Management | Implemented |
 | Expanded Symbol Universe | Implemented |
 | Central Notification Client | Implemented |
 | Notification CLI | Implemented |
@@ -379,6 +403,7 @@ For Entry / Stop / Exit decision logic, also require:
 - signal generation
 - scanner-to-signal metrics pipeline
 - breakout entry context upgrade
+- trailing stop and partial exit management
 - native signal_id generation
 - executable signal quality gate
 - entry quality engine
@@ -423,10 +448,10 @@ For Entry / Stop / Exit decision logic, also require:
 
 ## Planned Next
 
-1. Add trailing stop and partial exit management.
-2. Add structure-aware stops.
-3. Add Entry/Stop/Exit backtest feedback by entry_type and setup_type.
-4. Improve intraday data support with higher-frequency bars if Polygon plan allows.
+1. Add structure-aware stops.
+2. Add Entry/Stop/Exit backtest feedback by entry_type and setup_type.
+3. Improve intraday data support with higher-frequency bars if Polygon plan allows.
+4. Add regime invalidation exit.
 5. Add dashboard or static HTML reporting.
 6. Move long-term persistence from Git files to Postgres.
 7. Add regime similarity memory.
