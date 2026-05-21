@@ -91,6 +91,35 @@ def test_live_cycle_persists_loaded_portfolio_state(tmp_path: Path) -> None:
     assert payload["portfolio_state"]["source"] == "portfolio_state_json"
 
 
+def test_live_cycle_emits_structured_logs_for_success(tmp_path: Path) -> None:
+    portfolio_path = tmp_path / "portfolio_state.json"
+    _write_portfolio_state(
+        portfolio_path,
+        drawdown_percent=-2.5,
+        daily_loss_percent=-0.7,
+    )
+    cycle = LiveRuntimeCycle(portfolio_state_store=PortfolioStateStore(portfolio_path))
+    events: list[dict] = []
+
+    def fake_log(**kwargs):
+        events.append(kwargs)
+
+    with patch("src.runtime.live_runtime_cycle.decision_log_store") as mock_store, \
+         patch("src.runtime.live_runtime_cycle.runtime_state"), \
+         patch("src.runtime.live_runtime_cycle.in_memory_state_cache"), \
+         patch("src.runtime.live_runtime_cycle.emit_structured_log", side_effect=fake_log):
+        mock_store.append.return_value = None
+        cycle.run(metrics_map=_make_metrics_map(), vix_data=_make_vix_data())
+
+    event_types = [event["event_type"] for event in events]
+    assert "live_runtime_cycle_started" in event_types
+    assert "live_runtime_governance_passed" in event_types
+    assert "live_runtime_cycle_completed" in event_types
+    assert all(event["component"] == "live_runtime_cycle" for event in events)
+    completed = [event for event in events if event["event_type"] == "live_runtime_cycle_completed"][0]
+    assert "final_exposure_percent" in completed["context"]
+
+
 def test_live_cycle_blocks_from_portfolio_state_drawdown(tmp_path: Path) -> None:
     portfolio_path = tmp_path / "portfolio_state.json"
     _write_portfolio_state(
@@ -111,6 +140,36 @@ def test_live_cycle_blocks_from_portfolio_state_drawdown(tmp_path: Path) -> None
     block_payload = mock_store.append.call_args.kwargs["payload"]
     assert block_payload["type"] == "governance_block"
     assert block_payload["portfolio_state"]["drawdown_percent"] == 20.0
+
+
+def test_live_cycle_emits_structured_log_for_governance_block(tmp_path: Path) -> None:
+    portfolio_path = tmp_path / "portfolio_state.json"
+    _write_portfolio_state(
+        portfolio_path,
+        drawdown_percent=20.0,
+        daily_loss_percent=0.0,
+    )
+    cycle = LiveRuntimeCycle(portfolio_state_store=PortfolioStateStore(portfolio_path))
+    events: list[dict] = []
+
+    def fake_log(**kwargs):
+        events.append(kwargs)
+
+    with patch("src.runtime.live_runtime_cycle.decision_log_store") as mock_store, \
+         patch("src.runtime.live_runtime_cycle.runtime_state"), \
+         patch("src.runtime.live_runtime_cycle.in_memory_state_cache"), \
+         patch("src.runtime.live_runtime_cycle.emit_structured_log", side_effect=fake_log):
+        mock_store.append.return_value = None
+        with pytest.raises(GovernanceBlockedError):
+            cycle.run(metrics_map=_make_metrics_map(), vix_data=_make_vix_data())
+
+    event_types = [event["event_type"] for event in events]
+    assert "live_runtime_cycle_started" in event_types
+    assert "live_runtime_governance_blocked" in event_types
+    blocked = [event for event in events if event["event_type"] == "live_runtime_governance_blocked"][0]
+    assert blocked["level"] == "ERROR"
+    assert blocked["context"]["reason"] == "kill_switch"
+    assert blocked["context"]["portfolio_drawdown_percent"] == 20.0
 
 
 def test_live_cycle_blocks_from_portfolio_state_daily_loss(tmp_path: Path) -> None:
