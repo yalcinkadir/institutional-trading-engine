@@ -20,6 +20,7 @@ from src.reporting.market_regime import build_market_regime_summary
 from src.reporting.report_formatter import format_report
 from src.reporting.screener_engine import build_screener_snapshot
 from src.reporting.weekly_summary import build_weekly_summary
+from src.signals.scanner_metrics_pipeline import normalize_scanner_metrics_map
 
 VALID_REPORT_TYPES = {"premarket", "intraday", "postmarket", "weekly"}
 MARKET_REPORT_TYPES = {"premarket", "intraday", "postmarket"}
@@ -32,6 +33,14 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _decision_symbols(decision_report: dict) -> list[str]:
+    return [
+        item["symbol"]
+        for item in decision_report.get("decisions", [])
+        if item.get("symbol")
+    ]
+
+
 def _load_scanner_metrics(decision_report: dict) -> dict[str, Any] | None:
     try:
         from src.scanner import build_symbol_metrics, calculate_20d_return, get_daily_bars
@@ -42,20 +51,21 @@ def _load_scanner_metrics(decision_report: dict) -> dict[str, Any] | None:
             df = get_daily_bars(bench)
             if df is not None and not df.empty:
                 benchmark_returns[bench] = calculate_20d_return(df["close"])
+            else:
+                benchmark_returns[bench] = None
             time.sleep(2)
 
         scanner_metrics_map: dict[str, Any] = {}
-        for item in decision_report.get("decisions", []):
-            symbol = item.get("symbol")
-            if not symbol:
-                continue
+        for symbol in _decision_symbols(decision_report):
             try:
                 scanner_metrics_map[symbol] = build_symbol_metrics(symbol, benchmark_returns)
                 time.sleep(2)
-            except Exception:
+            except Exception as exc:
+                print(f"WARNING: scanner metric build failed for {symbol}: {type(exc).__name__}: {exc}")
                 scanner_metrics_map[symbol] = None
         return scanner_metrics_map
-    except Exception:
+    except Exception as exc:
+        print(f"WARNING: scanner metric loading failed: {type(exc).__name__}: {exc}")
         return None
 
 
@@ -93,11 +103,24 @@ def _build_market_payload(report_type: str) -> tuple[dict, dict | None]:
     cross_asset = build_cross_asset_report()
     decision_report = build_decision_report(market_regime=market_regime, screener=screener)
     decision_payload = {"decision_report": decision_report, "market_regime": market_regime.get("regime", "Unknown")}
-    scanner_metrics_map = _load_scanner_metrics(decision_report)
+
+    raw_scanner_metrics = _load_scanner_metrics(decision_report)
+    scanner_metrics_map, scanner_diagnostics = normalize_scanner_metrics_map(
+        raw_scanner_metrics,
+        _decision_symbols(decision_report),
+    )
+    decision_payload["scanner_metrics_diagnostics"] = scanner_diagnostics
+    if scanner_diagnostics.has_warnings:
+        for warning in scanner_diagnostics.warning_lines():
+            print(f"WARNING: {warning}")
 
     try:
         from src.signals.signal_generator import build_signals
-        signals = build_signals(decision_report=decision_report, scanner_metrics_map=scanner_metrics_map, market_regime=decision_payload["market_regime"])
+        signals = build_signals(
+            decision_report=decision_report,
+            scanner_metrics_map=scanner_metrics_map,
+            market_regime=decision_payload["market_regime"],
+        )
         _merge_signal_levels_into_decisions(decision_report, signals)
         decision_payload["signals"] = signals
     except Exception as exc:
@@ -136,7 +159,11 @@ def generate_signals(decision_payload: dict) -> None:
         from src.signals.signal_generator import build_signals, save_signals
         signals = decision_payload.get("signals")
         if signals is None:
-            signals = build_signals(decision_report=decision_payload["decision_report"], scanner_metrics_map=None, market_regime=decision_payload["market_regime"])
+            signals = build_signals(
+                decision_report=decision_payload["decision_report"],
+                scanner_metrics_map=None,
+                market_regime=decision_payload["market_regime"],
+            )
         json_path, md_path = save_signals(signals, date_str=datetime.now(UTC).strftime("%Y-%m-%d"))
         print(f"Signals written: {json_path}, {md_path}")
         print(f"  {sum(1 for signal in signals if signal.action == 'BUY_WATCH')} actionable, {sum(1 for signal in signals if signal.action != 'BUY_WATCH')} no-trade")
