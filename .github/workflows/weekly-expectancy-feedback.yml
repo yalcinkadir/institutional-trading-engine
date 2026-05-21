@@ -1,0 +1,159 @@
+name: Weekly Expectancy Feedback
+
+on:
+  schedule:
+    # Sunday 08:00 UTC
+    - cron: "0 8 * * 0"
+  workflow_dispatch:
+    inputs:
+      decision_log:
+        description: "Decision log path"
+        required: false
+        default: "data/decision_log.csv"
+      days:
+        description: "Daily bars lookback for outcome updates"
+        required: false
+        default: "120"
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: weekly-expectancy-feedback-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  weekly-expectancy:
+    name: Generate Weekly Expectancy Feedback
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Resolve inputs
+        shell: bash
+        run: |
+          DECISION_LOG="data/decision_log.csv"
+          LOOKBACK_DAYS="120"
+
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            DECISION_LOG="${{ github.event.inputs.decision_log }}"
+            LOOKBACK_DAYS="${{ github.event.inputs.days }}"
+          fi
+
+          if [[ -z "$DECISION_LOG" ]]; then
+            DECISION_LOG="data/decision_log.csv"
+          fi
+          if [[ -z "$LOOKBACK_DAYS" ]]; then
+            LOOKBACK_DAYS="120"
+          fi
+
+          EXPECTANCY_CYCLE_ID="weekly-expectancy-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+
+          echo "DECISION_LOG=$DECISION_LOG" >> "$GITHUB_ENV"
+          echo "LOOKBACK_DAYS=$LOOKBACK_DAYS" >> "$GITHUB_ENV"
+          echo "EXPECTANCY_CYCLE_ID=$EXPECTANCY_CYCLE_ID" >> "$GITHUB_ENV"
+
+          echo "DECISION_LOG=$DECISION_LOG"
+          echo "LOOKBACK_DAYS=$LOOKBACK_DAYS"
+          echo "EXPECTANCY_CYCLE_ID=$EXPECTANCY_CYCLE_ID"
+
+      - name: Generate expectancy report
+        shell: bash
+        run: |
+          mkdir -p reports
+          if [[ ! -f "$DECISION_LOG" ]]; then
+            echo "Decision log not found: $DECISION_LOG"
+            echo "Creating expectancy report with insufficient-data message."
+          fi
+
+          if [[ -n "${POLYGON_API_KEY:-}" ]]; then
+            python scripts/update_outcomes.py \
+              --decision-log "$DECISION_LOG" \
+              --output reports/expectancy-report.md \
+              --days "$LOOKBACK_DAYS"
+          else
+            echo "POLYGON_API_KEY is not set. Skipping outcome price refresh and generating report from existing log only."
+            python - <<'PY'
+from pathlib import Path
+from scripts.update_outcomes import write_expectancy_report
+from src.outcome_pipeline import build_expectancy_summary
+
+path = Path("${DECISION_LOG}")
+summary = build_expectancy_summary(path)
+write_expectancy_report(summary, "reports/expectancy-report.md")
+PY
+          fi
+
+      - name: Build weekly summary
+        shell: bash
+        run: |
+          python scripts/build_weekly_expectancy_summary.py \
+            --decision-log "$DECISION_LOG" \
+            --output reports/weekly-expectancy-summary.txt
+
+          {
+            echo "WEEKLY_EXPECTANCY_SUMMARY<<EOF"
+            cat reports/weekly-expectancy-summary.txt
+            echo "EOF"
+          } >> "$GITHUB_ENV"
+
+      - name: Commit expectancy outputs
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add reports/expectancy-report.md 2>/dev/null || true
+          git add reports/weekly-expectancy-summary.txt 2>/dev/null || true
+          git add data/decision_log.csv 2>/dev/null || true
+          git add data/decision_log.jsonl 2>/dev/null || true
+
+          if git diff --cached --quiet; then
+            echo "No expectancy output changes to commit."
+            exit 0
+          fi
+
+          git commit -m "Update weekly expectancy feedback ${EXPECTANCY_CYCLE_ID}"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+
+      - name: Send Telegram summary
+        if: success() && env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_CHAT_ID != ''
+        shell: bash
+        run: |
+          curl -sS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d chat_id="${TELEGRAM_CHAT_ID}" \
+            --data-urlencode text="$WEEKLY_EXPECTANCY_SUMMARY"
+
+      - name: Upload expectancy artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: weekly-expectancy-feedback-${{ github.run_id }}
+          path: |
+            reports/expectancy-report.md
+            reports/weekly-expectancy-summary.txt
+          if-no-files-found: ignore
+          retention-days: 90
