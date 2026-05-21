@@ -34,6 +34,7 @@ Implemented so far:
 - Stop-Loss Quality Engine
 - Exit / Target Quality Engine
 - Trade Plan Validator
+- Scanner-to-Signal Metrics Pipeline normalizer
 
 The executable-level quality gate means:
 
@@ -77,6 +78,10 @@ That makes the whole Entry / Stop / Exit stack operationally useless, even if th
 - Missing `close` / `atr14` is visible as a data-pipeline warning, not only as a downgraded signal note.
 - Real report generation no longer produces all `NO_TRADE` solely because all `close` values are null when data is available.
 
+#### Status
+
+Implemented. CI verification pending.
+
 ---
 
 ## P14 — Excellent Entry / Stop / Exit Decision Quality
@@ -91,6 +96,7 @@ The engine should only produce actionable signals when the trade plan is:
 - explainable
 - risk-valid
 - structure-aware
+- context-aware
 - test-covered
 - falsifiable through outcomes and backtests
 
@@ -161,6 +167,70 @@ Implemented and CI-green.
 
 ---
 
+## P18A — Breakout Entry Context Upgrade
+
+### Problem
+
+Current breakout entry derivation is deterministic and ATR-based. That is testable, but it is still weak for excellent entry quality because it can ignore market context.
+
+Current baseline:
+
+```text
+momentum_breakout entry = close + 0.5 ATR
+```
+
+This is acceptable as a fallback, but not as the preferred breakout trigger.
+
+### Requirements
+
+#### High-of-Day / Daily High Trigger
+
+Use scanner-provided `high` as preferred breakout trigger when available:
+
+```text
+entry = high * 1.001
+entry_type = breakout
+entry_reason = breakout above recent high with 0.1% buffer
+```
+
+Fallback remains:
+
+```text
+entry = close + 0.5 ATR
+```
+
+#### Relative Volume Confirmation
+
+For `momentum_breakout`, require enough volume context when `rvol` exists:
+
+```text
+if rvol < 0.8:
+    reject insufficient_volume_for_breakout
+```
+
+If `rvol` is missing, do not silently pass as excellent; either downgrade or add a configurable fallback policy.
+
+#### VWAP Context
+
+VWAP should be supported as an optional strict filter when available:
+
+```text
+if vwap exists and close < vwap and setup_type == momentum_breakout:
+    reject breakout_entry_below_vwap
+```
+
+Important: current daily scanner output does not reliably provide VWAP. VWAP requires either intraday bars or scanner enhancement. Therefore VWAP must be implemented as optional first and strict only when the data source is available.
+
+### Acceptance Criteria
+
+- Momentum breakout prefers `high * 1.001` over `close + 0.5 ATR` when `high` is available.
+- Low `rvol` breakout is rejected with `insufficient_volume_for_breakout`.
+- VWAP filter rejects breakout below VWAP when `vwap` is available.
+- Missing VWAP does not crash entry generation.
+- Tests cover high-trigger, ATR fallback, RVOL pass/fail, VWAP pass/fail and missing VWAP.
+
+---
+
 ## P16 — Trailing Stop and Partial Exit Management
 
 ### Problem
@@ -182,6 +252,7 @@ Target levels exist, but the lifecycle engine does not yet manage the position a
 After T1 hit:
 partial_exit_ratio = 0.50
 new_stop = max(existing_stop, entry_trigger)
+runner_status = active
 runner_trail = max(current_stop, latest_high - 1.5 * ATR)
 ```
 
@@ -198,40 +269,77 @@ runner_trail = max(current_stop, latest_high - 1.5 * ATR)
 
 ### Problem
 
-Current stops are deterministic and ATR-based, but not yet based on real market structure.
+Current stops are deterministic and ATR-based, but not yet based on real market structure. The label `structure_stop` is only partially true until real pivots / swing lows are used.
 
 ### Requirements
 
-- Detect recent 3-bar swing lows for long setups.
-- Use structure stop when it improves risk quality without violating max stop distance.
+- Detect recent 3-bar swing lows for long setups in scanner metrics.
+- Preserve `swing_low_3bar` through the scanner-to-signal metrics pipeline.
+- Use swing-low stop before ATR fallback when valid.
+- Apply a wick/structure buffer below the swing low.
 - Store `stop_model = swing_low_structure_stop` when used.
 - Add support-zone / invalidation-level hooks for later enrichment.
 
+### Initial Rule
+
+```text
+swing_low = scanner_metrics["swing_low_3bar"]
+if swing_low and swing_low < entry_trigger:
+    stop = swing_low * 0.998
+    if (entry_trigger - stop) / atr <= 3.0:
+        use swing_low_structure_stop
+    else:
+        fallback to ATR stop
+```
+
 ### Acceptance Criteria
 
+- Scanner can produce `swing_low_3bar`.
+- Metrics pipeline preserves `swing_low_3bar`.
 - Stop quality can choose a swing-low stop.
 - Invalid or too-wide structure stops are rejected or ignored.
 - Tests cover valid swing low, missing swing low and too-wide swing low stop.
 
 ---
 
-## P18 — Entry Timing Upgrade
+## P18B — VWAP / Intraday Entry Timing Upgrade
 
 ### Problem
 
-Entry Quality is deterministic, but not yet intraday-aware.
+Entry Quality is deterministic, but not fully intraday-aware. P18A supports VWAP only when available. P18B makes VWAP/intraday timing a first-class data source.
 
 ### Requirements
 
-- Add VWAP-relative entry filter where intraday data is available.
+- Add VWAP calculation from intraday bars where Polygon plan allows.
+- Add close-above-VWAP confirmation for breakout setups.
 - Add late-breakout rejection against VWAP/context, not only ATR extension.
-- Add entry confirmation fields.
+- Add `entry_confirmation` fields.
 
 ### Acceptance Criteria
 
 - Entry quality can attach `entry_confirmation`.
 - Breakout entries can require price above VWAP when configured.
 - Tests cover VWAP pass/fail and missing VWAP fallback.
+
+---
+
+## P20 — Regime Invalidation Exit
+
+### Problem
+
+Open positions and runner states are not yet force-exited when the broader regime invalidates the original thesis.
+
+### Requirements
+
+- Detect regime shift into `risk_off` / equivalent defensive state.
+- Mark runner or open signal as regime-invalidated.
+- Emit lifecycle event such as `REGIME_INVALIDATION_EXIT`.
+- Do not duplicate the event.
+
+### Acceptance Criteria
+
+- Watcher or runtime cycle can close/invalidate active runner state on regime deterioration.
+- Tests cover regime change, no-change and duplicate-event prevention.
 
 ---
 
@@ -279,13 +387,15 @@ The current system is long-only. That limits hedge, downside and market-neutral 
 ## Updated Implementation Order
 
 ```text
-1. P15 Scanner-to-Signal Data Pipeline Repair
-2. P16 Trailing Stop and Partial Exit Management
-3. P17 Structure-Aware Stops
-4. P14.5 Entry/Stop/Exit Backtest Feedback
-5. P18 Entry Timing Upgrade with VWAP
-6. P19 Short-Side Decision Path
-7. README + architecture documentation after every patch
+1. Finish P15 CI verification and close scanner-to-signal data pipeline repair
+2. P18A Breakout Entry Context Upgrade: high-trigger + RVOL + optional VWAP filter
+3. P16 Trailing Stop and Partial Exit Management
+4. P17 Structure-Aware Stops with 3-bar swing low
+5. P14.5 Entry/Stop/Exit Backtest Feedback
+6. P18B VWAP / Intraday Entry Timing Upgrade
+7. P20 Regime Invalidation Exit
+8. P19 Short-Side Decision Path
+9. README + architecture documentation after every patch
 ```
 
 ---
