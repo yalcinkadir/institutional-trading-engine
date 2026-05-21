@@ -30,18 +30,52 @@ Implemented so far:
 - central notification CLI
 - structured runtime logs
 - executable-level quality gate
+- Entry Quality Engine
+- Stop-Loss Quality Engine
+- Exit / Target Quality Engine
+- Trade Plan Validator
 
 The executable-level quality gate means:
 
 ```text
-BUY_WATCH requires entry_trigger, stop_loss and target_1.
+BUY_WATCH requires entry_trigger, stop_loss, target_1 and a valid quality gate result.
 ```
 
-If those fields are incomplete, the signal is downgraded to:
+If those fields or quality gates are incomplete, the signal is downgraded to:
 
 ```text
 NO_TRADE
 ```
+
+---
+
+## Immediate Operational Priority
+
+### P15 — Scanner-to-Signal Data Pipeline Repair
+
+#### Problem
+
+If live `close` and `atr14` do not reach signal generation, Entry Quality fails with:
+
+```text
+entry_quality: missing_close
+```
+
+That makes the whole Entry / Stop / Exit stack operationally useless, even if the quality engines are correct.
+
+#### Requirements
+
+- Verify scanner output contains `close`, `atr14`, `atr_pct` for every candidate.
+- Verify bridge/orchestrator passes those fields into `scanner_metrics_map`.
+- Add regression test: generated report candidate with scanner metrics must produce non-null `close`, `entry_trigger`, `stop_loss`, `target_1`.
+- Add failure visibility when scanner metrics are missing.
+- Do not silently produce empty scanner metrics for symbols that should have live data.
+
+#### Acceptance Criteria
+
+- At least one test proves scanner metrics reach `build_signals()` through the report path.
+- Missing `close` / `atr14` is visible as a data-pipeline warning, not only as a downgraded signal note.
+- Real report generation no longer produces all `NO_TRADE` solely because all `close` values are null when data is available.
 
 ---
 
@@ -62,11 +96,7 @@ The engine should only produce actionable signals when the trade plan is:
 
 ---
 
-## P14.1 Trade Plan Validator
-
-### Problem
-
-Signal generation needs a central validator after levels are derived.
+## P14.1 Trade Plan Validator — Implemented
 
 ### Required Checks
 
@@ -74,21 +104,17 @@ Signal generation needs a central validator after levels are derived.
 - entry, stop and target ordering is valid
 - risk/reward is acceptable
 - stop distance is acceptable
-- entry is not already too late
 - reasons exist for entry, stop and exit
 
-### Acceptance Criteria
+### Status
 
-- Validator returns a structured result.
-- Invalid trade plans downgrade to `NO_TRADE`.
-- Validation reasons are persisted in notes or quality fields.
-- Tests cover all validation failure modes.
+Implemented and CI-green.
 
 ---
 
-## P14.2 Entry Quality Engine
+## P14.2 Entry Quality Engine — Implemented
 
-### Required Entry Types
+### Supported Entry Types
 
 - breakout entry
 - pullback entry
@@ -96,56 +122,141 @@ Signal generation needs a central validator after levels are derived.
 - gap-fill entry
 - at-market only when explicitly allowed
 
-### Acceptance Criteria
+### Status
 
-- Every `BUY_WATCH` has `entry_trigger` and `entry_type`.
-- Every entry has `entry_reason`.
-- Late entries are blocked or downgraded.
-- Entry accounts for volatility and recent structure.
-- Tests cover valid and invalid entry cases.
+Implemented and CI-green.
 
 ---
 
-## P14.3 Stop-Loss Quality Engine
+## P14.3 Stop-Loss Quality Engine — Implemented
 
-### Required Stop Models
+### Supported Stop Models
 
 - ATR stop
-- recent swing low/high stop
-- structure invalidation stop
-- volatility-adjusted stop
+- pullback structure stop
+- retest structure stop
+- gap-fill stop
+- scanner-provided stop
 
-### Acceptance Criteria
+### Status
 
-- Every `BUY_WATCH` has `stop_loss` and `stop_reason`.
-- Long-signal stop must be below entry.
-- Stop distance must not be too tight or too wide.
-- Invalid stops downgrade to `NO_TRADE`.
-- Tests cover too-tight, too-wide, inverted and valid stops.
+Implemented and CI-green.
 
 ---
 
-## P14.4 Exit / Target Quality Engine
+## P14.4 Exit / Target Quality Engine — Implemented
 
-### Required Exit Models
+### Supported Exit Models
 
-- target_1 partial exit
-- target_2 runner exit
-- trailing stop after target_1
-- time stop / expiry
-- regime invalidation exit
+- momentum targets
+- pullback targets
+- retest targets
+- gap-fill targets
+- scanner-provided targets
+- default risk targets
 
-### Acceptance Criteria
+### Status
 
-- Every `BUY_WATCH` has `target_1`.
-- `target_2` is optional but must be valid if present.
-- Target must be above entry for long signals.
-- Risk/reward must meet configured minimum.
-- Tests cover valid target, invalid target, low risk/reward and runner cases.
+Implemented and CI-green.
 
 ---
 
-## P14.5 Entry / Stop / Exit Backtest Feedback
+## P16 — Trailing Stop and Partial Exit Management
+
+### Problem
+
+Target levels exist, but the lifecycle engine does not yet manage the position after `TARGET_1_HIT`.
+
+### Requirements
+
+- After `target_1` hit, mark partial exit event.
+- Support configurable partial exit ratio, default 50%.
+- Move stop to breakeven or breakeven plus buffer after target_1 hit.
+- Add ATR trailing stop for runner position.
+- Persist updated stop in signal state.
+- Deduplicate lifecycle events.
+
+### Initial Trailing Rules
+
+```text
+After T1 hit:
+partial_exit_ratio = 0.50
+new_stop = max(existing_stop, entry_trigger)
+runner_trail = max(current_stop, latest_high - 1.5 * ATR)
+```
+
+### Acceptance Criteria
+
+- Watcher records `TARGET_1_HIT` and a partial-exit lifecycle update.
+- Updated signal state contains adjusted stop.
+- Runner stop only moves upward for long signals.
+- Tests cover T1 hit, breakeven stop move, ATR trail move and no duplicate partial-exit events.
+
+---
+
+## P17 — Structure-Aware Stops
+
+### Problem
+
+Current stops are deterministic and ATR-based, but not yet based on real market structure.
+
+### Requirements
+
+- Detect recent 3-bar swing lows for long setups.
+- Use structure stop when it improves risk quality without violating max stop distance.
+- Store `stop_model = swing_low_structure_stop` when used.
+- Add support-zone / invalidation-level hooks for later enrichment.
+
+### Acceptance Criteria
+
+- Stop quality can choose a swing-low stop.
+- Invalid or too-wide structure stops are rejected or ignored.
+- Tests cover valid swing low, missing swing low and too-wide swing low stop.
+
+---
+
+## P18 — Entry Timing Upgrade
+
+### Problem
+
+Entry Quality is deterministic, but not yet intraday-aware.
+
+### Requirements
+
+- Add VWAP-relative entry filter where intraday data is available.
+- Add late-breakout rejection against VWAP/context, not only ATR extension.
+- Add entry confirmation fields.
+
+### Acceptance Criteria
+
+- Entry quality can attach `entry_confirmation`.
+- Breakout entries can require price above VWAP when configured.
+- Tests cover VWAP pass/fail and missing VWAP fallback.
+
+---
+
+## P19 — Short-Side Decision Path
+
+### Problem
+
+The current system is long-only. That limits hedge, downside and market-neutral use cases.
+
+### Requirements
+
+- Add short entry quality derivation.
+- Add short stop quality derivation using stop above entry.
+- Add short target quality derivation using targets below entry.
+- Add validator support for short trade plans.
+
+### Acceptance Criteria
+
+- `SELL_WATCH` or equivalent short action can be generated.
+- Short plan validates entry > target and stop > entry.
+- Long and short validation paths are tested separately.
+
+---
+
+## P14.5 — Entry / Stop / Exit Backtest Feedback
 
 ### Required Measurements
 
@@ -155,25 +266,26 @@ Signal generation needs a central validator after levels are derived.
 - target_2 hit rate
 - false breakout rate
 - expired-without-entry rate
-- results grouped by `entry_type` and `setup_type`
+- results grouped by `entry_type`, `setup_type`, `stop_model`, `exit_model`
 
 ### Acceptance Criteria
 
 - Reports include Entry / Stop / Exit statistics.
-- Weekly expectancy includes entry-type breakdown.
-- Poor entry types can reduce future score or downgrade setups.
+- Weekly expectancy includes entry-type and exit-model breakdown.
+- Poor entry or exit models can reduce future score or downgrade setups.
 
 ---
 
-## Implementation Order
+## Updated Implementation Order
 
 ```text
-1. Trade Plan Validator
-2. Entry Quality Engine
-3. Stop-Loss Quality Engine
-4. Exit / Target Quality Engine
-5. Entry/Stop/Exit Backtest Feedback
-6. README + architecture documentation after every patch
+1. P15 Scanner-to-Signal Data Pipeline Repair
+2. P16 Trailing Stop and Partial Exit Management
+3. P17 Structure-Aware Stops
+4. P14.5 Entry/Stop/Exit Backtest Feedback
+5. P18 Entry Timing Upgrade with VWAP
+6. P19 Short-Side Decision Path
+7. README + architecture documentation after every patch
 ```
 
 ---
@@ -194,7 +306,7 @@ From this point forward, a signal is not good because it has a high score.
 A signal is only actionable when:
 
 ```text
-score + regime + executable trade plan + risk validation
+score + regime + live data + executable trade plan + risk validation + lifecycle management
 ```
 
 all pass together.
