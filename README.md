@@ -14,6 +14,7 @@ It is designed as an institutional decision-support and research platform that:
 - evaluates risk conditions
 - ranks opportunities
 - scans a diversified symbol universe across indices, sectors, bonds, commodities and leaders
+- normalizes scanner metrics before signal generation
 - generates premarket, intraday, postmarket and weekly reports
 - communicates alerts and failures through a central notification layer
 - emits structured JSON logs from operational scripts and runtime cycles
@@ -44,6 +45,7 @@ It is designed as an institutional decision-support and research platform that:
 ```text
 Market analysis
 → Diversified universe scan
+→ Scanner metrics normalization
 → Signal generation with native signal_id
 → Entry Quality Engine
 → Stop-Loss Quality Engine
@@ -94,6 +96,8 @@ pytest
 Targeted tests:
 
 ```bash
+pytest tests/test_scanner_metrics_pipeline.py
+pytest tests/test_generate_report_scanner_metrics_pipeline.py
 pytest tests/test_exit_target_quality.py
 pytest tests/test_stop_loss_quality.py
 pytest tests/test_entry_quality.py
@@ -113,6 +117,49 @@ pytest tests/test_polygon_client_historical_range.py
 pytest tests/test_symbol_universe.py
 pytest tests/test_portfolio_state.py
 ```
+
+---
+
+# Scanner-to-Signal Metrics Pipeline
+
+Implemented in:
+
+```text
+src/scanner.py
+src/signals/scanner_metrics_pipeline.py
+scripts/generate_report.py
+docs/architecture/scanner_to_signal_pipeline.md
+```
+
+Required signal metrics:
+
+```text
+close
+atr14
+```
+
+Optional metrics preserved when available:
+
+```text
+atr_pct
+entry
+entry_type
+stop_loss
+exit_1
+exit_2
+high
+low
+volume
+```
+
+Pipeline behavior:
+
+- scanner output is normalized before `build_signals()`
+- `NaN`, `inf`, invalid values and missing values become `None`
+- missing symbols and incomplete metrics are reported through diagnostics
+- report generation prints warnings such as `scanner_metrics_missing:NVDA`
+- missing scanner data is non-fatal but visible
+- valid scanner metrics can produce non-null `close`, `entry_trigger`, `stop_loss` and `target_1`
 
 ---
 
@@ -238,8 +285,9 @@ stop distance is not too tight or too wide when ATR is available
 
 Planned next modules:
 
+- trailing stop and partial exit management
+- structure-aware stops
 - Entry/Stop/Exit backtest feedback grouped by entry_type and setup_type
-- richer structure-aware entry, stop and target derivation
 
 ---
 
@@ -248,6 +296,7 @@ Planned next modules:
 | Layer | Status |
 |---|---|
 | Report Automation | Implemented |
+| Scanner-to-Signal Metrics Pipeline | Implemented |
 | Expanded Symbol Universe | Implemented |
 | Central Notification Client | Implemented |
 | Notification CLI | Implemented |
@@ -316,6 +365,7 @@ For Entry / Stop / Exit decision logic, also require:
 
 - report automation
 - signal generation
+- scanner-to-signal metrics pipeline
 - native signal_id generation
 - executable signal quality gate
 - entry quality engine
@@ -360,14 +410,16 @@ For Entry / Stop / Exit decision logic, also require:
 
 ## Planned Next
 
-1. Add Entry/Stop/Exit backtest feedback by entry_type and setup_type.
-2. Improve intraday data support with higher-frequency bars if Polygon plan allows.
-3. Add dashboard or static HTML reporting.
-4. Move long-term persistence from Git files to Postgres.
-5. Add regime similarity memory.
-6. Add scoring adjustment quality review.
-7. Add adaptive scoring guardrails by market regime.
-8. Add broker/account integration for automatic portfolio-state calculation.
+1. Add trailing stop and partial exit management.
+2. Add structure-aware stops.
+3. Add Entry/Stop/Exit backtest feedback by entry_type and setup_type.
+4. Improve intraday data support with higher-frequency bars if Polygon plan allows.
+5. Add dashboard or static HTML reporting.
+6. Move long-term persistence from Git files to Postgres.
+7. Add regime similarity memory.
+8. Add scoring adjustment quality review.
+9. Add adaptive scoring guardrails by market regime.
+10. Add broker/account integration for automatic portfolio-state calculation.
 
 ---
 
