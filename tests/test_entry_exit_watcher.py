@@ -2,11 +2,10 @@ from datetime import date
 import json
 from pathlib import Path
 
+from src.signals.signal_identity import build_signal_id, ensure_signal_identity
 from src.watchers.entry_exit_watcher import (
     PriceBar,
     append_lifecycle_updates,
-    build_signal_id,
-    ensure_signal_identity,
     evaluate_signal_against_bar,
     evaluate_signals,
     load_signal_file,
@@ -82,8 +81,8 @@ def test_triggered_signal_hits_stop_before_target_to_avoid_optimistic_bias():
     assert update.signal["status"] == "STOP_HIT"
 
 
-def test_triggered_signal_hits_target_1():
-    signal = _signal(status="TRIGGERED")
+def test_triggered_signal_hits_target_1_and_activates_runner():
+    signal = _signal(status="TRIGGERED", atr14=4.0)
     bar = PriceBar(symbol="NVDA", timestamp="2026-05-21T17:30:00Z", high=110.5, low=100.0, close=110.0)
 
     alert, update = evaluate_signal_against_bar(signal, bar, today=date(2026, 5, 21))
@@ -91,7 +90,13 @@ def test_triggered_signal_hits_target_1():
     assert alert is not None
     assert update is not None
     assert alert.alert_type == "TARGET_1_HIT"
+    assert alert.stop_loss == 104.5
     assert update.signal["status"] == "TARGET_1_HIT"
+    assert update.signal["partial_exit_completed"] is True
+    assert update.signal["partial_exit_ratio"] == 0.5
+    assert update.signal["runner_status"] == "active"
+    assert update.signal["stop_loss"] == 104.5
+    assert update.signal["trail_stop"] == 104.5
 
 
 def test_target_1_signal_hits_target_2():
