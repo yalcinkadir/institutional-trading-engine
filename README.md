@@ -18,6 +18,7 @@ It is designed as an institutional decision-support and research platform that:
 - emits native scanner `swing_low_3bar` structure levels
 - enriches signal metrics with intraday VWAP when intraday bars are available
 - generates premarket, intraday, postmarket and weekly reports
+- validates generated artifacts with an end-to-end dry-run helper before go-live
 - communicates alerts and failures through a central notification layer
 - emits structured JSON logs from operational scripts and runtime cycles
 - produces machine-readable signal files with native `signal_id`
@@ -57,6 +58,7 @@ Market analysis
 → Native scanner structure level
 → Intraday VWAP enrichment
 → Signal generation with native signal_id
+→ E2E dry-run artifact validation
 → Entry Quality Engine
 → Breakout context validation
 → Stop-Loss Quality Engine
@@ -105,6 +107,30 @@ The watcher validates runtime configuration before execution:
 - `TARGET_1_HIT` activates partial-exit and runner state
 - `REGIME_INVALIDATION_EXIT` cancels pending and active signals when regime turns defensive
 
+## Run E2E Dry Run
+
+```bash
+python scripts/run_e2e_dry_run.py \
+  --signals-file reports/signals/latest-signals.json
+```
+
+Machine-readable output:
+
+```bash
+python scripts/run_e2e_dry_run.py --json
+```
+
+Dry-run validates:
+
+- signal artifact exists
+- signal artifact has `signals[]`
+- every signal has `signal_id`, `symbol`, `action`
+- every `BUY_WATCH` has executable trade-plan fields
+- `reports/alerts` is writable
+- `data` is writable for lifecycle JSONL output
+
+The dry-run does not fetch Polygon data, send Telegram messages, place trades or execute broker orders.
+
 ## Run Tests
 
 ```bash
@@ -114,6 +140,7 @@ pytest
 Targeted tests:
 
 ```bash
+pytest tests/test_e2e_dry_run.py
 pytest tests/test_scanner_structure_metrics.py
 pytest tests/test_intraday_vwap.py
 pytest tests/test_generate_report_intraday_vwap.py
@@ -198,6 +225,42 @@ Pipeline behavior:
 - missing intraday data is non-fatal
 - valid scanner metrics can produce non-null `close`, `entry_trigger`, `stop_loss` and `target_1`
 - breakout context metrics `high`, `rvol` and `vwap` are preserved when available
+
+---
+
+# End-to-End Dry Run
+
+Implemented in:
+
+```text
+src/operations/e2e_dry_run.py
+scripts/run_e2e_dry_run.py
+docs/operations/e2e_dry_run.md
+```
+
+Checks:
+
+```text
+latest-signals.json exists
+valid JSON
+signals[] shape
+signal_id / symbol / action present
+BUY_WATCH executable trade-plan fields present
+alerts path writable
+lifecycle path writable
+```
+
+Recommended go-live sequence:
+
+```text
+1. CI green
+2. Generate report/signals
+3. Run E2E dry run
+4. Run watcher once manually
+5. Verify latest-alerts.json / signal_lifecycle.jsonl
+6. Verify Telegram/notification workflow separately
+7. Enable scheduled live Decision-Support workflow
+```
 
 ---
 
@@ -456,6 +519,7 @@ Planned next modules:
 | Scanner-to-Signal Metrics Pipeline | Implemented |
 | Native Scanner Structure Metric | Implemented |
 | Intraday VWAP Support | Implemented |
+| End-to-End Dry Run | Implemented |
 | Structure-Aware Stops | Implemented |
 | Breakout Entry Context Upgrade | Implemented |
 | Trailing Stop / Partial Exit Management | Implemented |
@@ -534,6 +598,7 @@ For Entry / Stop / Exit decision logic, also require:
 - scanner-to-signal metrics pipeline
 - native scanner structure metric
 - intraday VWAP support
+- End-to-End Dry Run
 - breakout entry context upgrade
 - structure-aware stops
 - trailing stop and partial exit management
