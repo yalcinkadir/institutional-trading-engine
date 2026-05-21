@@ -33,6 +33,7 @@ jobs:
       POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      REPORT_WEBHOOK_URL: ${{ secrets.REPORT_WEBHOOK_URL }}
 
     steps:
       - name: Checkout repository
@@ -140,13 +141,14 @@ PY
           git pull --rebase origin "${GITHUB_REF_NAME}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
 
-      - name: Send Telegram summary
-        if: success() && env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_CHAT_ID != ''
+      - name: Send weekly summary notification
+        if: success()
         shell: bash
         run: |
-          curl -sS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-            -d chat_id="${TELEGRAM_CHAT_ID}" \
-            --data-urlencode text="$WEEKLY_EXPECTANCY_SUMMARY"
+          python scripts/send_notification.py \
+            --message-file reports/weekly-expectancy-summary.txt \
+            --telegram \
+            --webhook
 
       - name: Upload expectancy artifacts
         if: always()
