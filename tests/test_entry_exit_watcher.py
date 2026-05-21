@@ -155,6 +155,23 @@ def test_regime_invalidation_emits_alert_and_lifecycle_update():
     assert update.signal["regime_invalidation_reason"] == "risk off"
 
 
+def test_regime_invalidation_cancels_pending_signal():
+    signal = _signal(status="PENDING", signal_id="stable-id")
+
+    alert, update = evaluate_regime_invalidation(
+        signal,
+        regime="Risk-Off",
+        timestamp="2026-05-21T20:00:00Z",
+    )
+
+    assert alert is not None
+    assert update is not None
+    assert alert.alert_type == "REGIME_INVALIDATION_EXIT"
+    assert alert.previous_status == "PENDING"
+    assert alert.new_status == "CANCELLED_BY_REGIME_CHANGE"
+    assert update.signal["status"] == "CANCELLED_BY_REGIME_CHANGE"
+
+
 def test_regime_invalidation_ignores_non_risk_off_regime():
     signal = _signal(status="TARGET_1_HIT")
 
@@ -168,7 +185,7 @@ def test_regime_invalidation_ignores_non_risk_off_regime():
     assert update is None
 
 
-def test_evaluate_regime_invalidations_updates_only_active_signals():
+def test_evaluate_regime_invalidations_updates_open_signals():
     signals = [
         _signal(symbol="NVDA", signal_id="nvda-id", status="TRIGGERED"),
         _signal(symbol="MSFT", signal_id="msft-id", status="TARGET_1_HIT"),
@@ -182,12 +199,12 @@ def test_evaluate_regime_invalidations_updates_only_active_signals():
         timestamp="2026-05-21T20:00:00Z",
     )
 
-    assert len(alerts) == 2
-    assert len(updates) == 2
+    assert len(alerts) == 3
+    assert len(updates) == 3
     statuses = {signal["signal_id"]: signal["status"] for signal in updated_signals}
     assert statuses["nvda-id"] == "CANCELLED_BY_REGIME_CHANGE"
     assert statuses["msft-id"] == "CANCELLED_BY_REGIME_CHANGE"
-    assert statuses["aapl-id"] == "PENDING"
+    assert statuses["aapl-id"] == "CANCELLED_BY_REGIME_CHANGE"
     assert statuses["tsla-id"] == "STOP_HIT"
 
 
