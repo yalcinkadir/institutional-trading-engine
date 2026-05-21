@@ -2,15 +2,17 @@
 Signal Generator.
 
 Converts Decision Engine output + scanner metrics into structured,
-maschinenlesbare signal records with concrete Entry, Stop, and Target levels.
+maschinenlesbare signal records with concrete Entry, Stop, Target levels and
+native deterministic signal identity.
 
 These signals are:
   1. Written to reports/signals/YYYY-MM-DD-signals.json  (maschinenlesbar)
   2. Written to reports/signals/YYYY-MM-DD-signals.md    (menschenlesbar)
   3. Committed to the repo by GitHub Actions
-  4. Read by the Outcome Tracker the next day to check if Entry triggered
+  4. Read by the Entry/Exit Watcher and Outcome Tracker
 
 Signal schema per symbol:
+  signal_id        deterministic signal identity
   symbol           ticker
   action           BUY_WATCH | SELL_WATCH | NO_TRADE | AVOID
   setup_type       momentum_breakout | pullback_continuation | ...
@@ -41,12 +43,15 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+from src.signals.signal_identity import build_signal_id
+
 
 SIGNALS_DIR = Path("reports/signals")
 
 
 @dataclass
 class Signal:
+    signal_id: str
     symbol: str
     action: str
     setup_type: str
@@ -89,35 +94,7 @@ def _derive_levels(
     Derive Entry, Stop, Target levels from close + ATR.
 
     Returns: (entry_trigger, entry_type, stop_loss, target_1, target_2)
-
-    Rules:
-      momentum_breakout:
-        entry  = close + 0.5 * ATR  (break above)
-        stop   = close - 1.5 * ATR
-        t1     = close + 2.0 * ATR
-        t2     = close + 4.0 * ATR
-
-      pullback_continuation:
-        entry  = close - 1.0 * ATR  (wait for pullback)
-        stop   = close - 2.5 * ATR
-        t1     = close + 1.5 * ATR
-        t2     = close + 3.0 * ATR
-
-      defensive_rotation / mean_reversion:
-        entry  = close  (at market)
-        stop   = close - 2.0 * ATR
-        t1     = close + 1.5 * ATR
-        t2     = None
-
-      reversal_asymmetry:
-        entry  = close + 0.3 * ATR
-        stop   = close - 3.0 * ATR
-        t1     = close + 3.0 * ATR
-        t2     = None
-
-    If scanner has explicit entry/stop/exit levels, those take priority.
     """
-    # Scanner-derived levels take priority
     if scanner_metrics:
         sc_entry = _safe(scanner_metrics.get("entry"))
         sc_stop = _safe(scanner_metrics.get("stop_loss"))
@@ -126,7 +103,6 @@ def _derive_levels(
         if sc_entry and sc_stop:
             return sc_entry, "break_above", sc_stop, sc_t1 or (close + 2 * atr), sc_t2
 
-    # ATR-derived levels
     if setup_type == "momentum_breakout":
         return (
             round(close + 0.5 * atr, 2), "break_above",
@@ -148,7 +124,6 @@ def _derive_levels(
             round(close + 1.5 * atr, 2),
             None,
         )
-    # reversal_asymmetry and default
     return (
         round(close + 0.3 * atr, 2), "break_above",
         round(close - 3.0 * atr, 2),
@@ -179,6 +154,30 @@ def _action_for_decision(decision: str) -> str:
     }.get(decision, "NO_TRADE")
 
 
+def _build_signal_payload_for_identity(
+    *,
+    symbol: str,
+    action: str,
+    entry_trigger: float | None,
+    stop_loss: float | None,
+    target_1: float | None,
+    target_2: float | None,
+    valid_until: str,
+    generated_at: str,
+) -> dict[str, Any]:
+    return {
+        "symbol": symbol,
+        "action": action,
+        "signal_date": generated_at[:10],
+        "generated_at": generated_at,
+        "entry_trigger": entry_trigger,
+        "stop_loss": stop_loss,
+        "target_1": target_1,
+        "target_2": target_2,
+        "valid_until": valid_until,
+    }
+
+
 def build_signals(
     decision_report: dict,
     scanner_metrics_map: dict[str, Any] | None = None,
@@ -186,15 +185,6 @@ def build_signals(
 ) -> list[Signal]:
     """
     Build Signal list from Decision Engine output.
-
-    Args:
-        decision_report:    Output of build_decision_report().
-        scanner_metrics_map: Optional full scanner metrics (symbol → dict).
-                            Used to get close price, ATR, and scanner levels.
-        market_regime:      Current market regime string.
-
-    Returns:
-        List of Signal objects, one per decided symbol.
     """
     now_iso = datetime.now(UTC).isoformat()
     signals: list[Signal] = []
@@ -205,7 +195,6 @@ def build_signals(
         setup_type = item["setup_type"]
         action = _action_for_decision(decision)
 
-        # Get scanner metrics for this symbol
         scanner = (scanner_metrics_map or {}).get(symbol) or {}
         close = _safe(scanner.get("close"))
         atr14 = _safe(scanner.get("atr14"))
@@ -222,7 +211,6 @@ def build_signals(
         else:
             entry_type = "n/a"
 
-        # Build notes
         notes_parts = []
         if item.get("blocked_reasons"):
             notes_parts.append(f"blocked: {', '.join(item['blocked_reasons'])}")
@@ -231,8 +219,22 @@ def build_signals(
         if action == "NO_TRADE" and not notes_parts:
             notes_parts.append("regime or quality filter")
         notes = "; ".join(notes_parts) if notes_parts else ""
+        valid_until = _valid_until(days=3)
+        signal_id = build_signal_id(
+            _build_signal_payload_for_identity(
+                symbol=symbol,
+                action=action,
+                entry_trigger=entry,
+                stop_loss=stop,
+                target_1=t1,
+                target_2=t2,
+                valid_until=valid_until,
+                generated_at=now_iso,
+            )
+        )
 
         signals.append(Signal(
+            signal_id=signal_id,
             symbol=symbol,
             action=action,
             setup_type=setup_type,
@@ -249,7 +251,7 @@ def build_signals(
             atr_pct=atr_pct,
             setup_score=item["setup_score"],
             regime_alignment=item["regime_alignment"],
-            valid_until=_valid_until(days=3),
+            valid_until=valid_until,
             market_regime=market_regime,
             generated_at=now_iso,
             notes=notes,
@@ -277,7 +279,6 @@ def save_signals(
     md_path = target_dir / f"{date}-signals.md"
     latest_json = target_dir / "latest-signals.json"
 
-    # ── JSON output ────────────────────────────────────────────────────────
     buy_signals = [s for s in signals if s.action == "BUY_WATCH"]
     no_trade = [s for s in signals if s.action != "BUY_WATCH"]
 
@@ -294,7 +295,6 @@ def save_signals(
     json_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     latest_json.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
-    # ── Markdown output ────────────────────────────────────────────────────
     now_str = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
     lines = [
         f"# Institutional Signals — {date}",
@@ -310,6 +310,7 @@ def save_signals(
             rr_str = f" | R:R {s.risk_reward}" if s.risk_reward else ""
             lines += [
                 f"### {s.symbol} — {s.action} ({s.risk_tier})",
+                f"- Signal ID: `{s.signal_id}`",
                 f"- Setup: {s.setup_type} | Score: {s.setup_score} | "
                 f"Decision: {s.decision} | Size: {s.position_size:.2f}x",
                 f"- Close: {s.close}",
@@ -333,7 +334,7 @@ def save_signals(
         lines += ["## No-Trade / Blocked", ""]
         for s in no_trade:
             reason = s.notes or "regime/quality filter"
-            lines.append(f"- **{s.symbol}**: {s.decision} — {reason}")
+            lines.append(f"- **{s.symbol}**: {s.decision} — `{s.signal_id}` — {reason}")
         lines.append("")
 
     lines += [
