@@ -1,8 +1,8 @@
 # Regime Invalidation Exit
 
-P20 adds deterministic regime invalidation for active long-side signals.
+P20 adds deterministic regime invalidation for long-side signals.
 
-The watcher/runtime layer can now invalidate active signals when the broader market regime deteriorates into a defensive or risk-off state.
+P20B extends this behavior to pending actionable signals. If the broader market regime deteriorates into a defensive or risk-off state before entry, still-pending `BUY_WATCH` signals are cancelled instead of remaining watchable.
 
 This does not execute broker orders. It updates signal state and emits lifecycle-compatible events.
 
@@ -42,17 +42,24 @@ CANCELLED_BY_REGIME_CHANGE
 
 ## Eligible Signals
 
-Only active long-side actionable signals are eligible:
+Open long-side actionable signals are eligible:
 
 ```text
 action = BUY_WATCH
-status in {TRIGGERED, TARGET_1_HIT}
+status in {PENDING, TRIGGERED, TARGET_1_HIT}
+```
+
+Meaning:
+
+```text
+PENDING      -> setup is no longer watchable under risk-off regime
+TRIGGERED    -> active signal is cancelled by regime deterioration
+TARGET_1_HIT -> active runner is cancelled by regime deterioration
 ```
 
 Ignored signals:
 
 ```text
-PENDING
 NO_TRADE
 STOP_HIT
 TARGET_2_HIT
@@ -140,9 +147,10 @@ signal_id + event_type
 
 - No broker execution.
 - No real order placement.
-- Only active signals are invalidated.
-- Pending signals are ignored.
+- Open actionable signals are invalidated.
+- Pending actionable signals are cancelled before entry.
 - Terminal signals are ignored.
+- Non-actionable signals are ignored.
 - Non-risk-off regimes do nothing.
 - Regime invalidation is terminal.
 - Duplicate lifecycle records are prevented by the existing lifecycle deduplication logic.
@@ -155,7 +163,6 @@ Future improvements:
 
 ```text
 wire regime invalidation into scheduled watcher/runtime run
-add regime-aware feedback grouping
 add short-side invalidation rules
 add notification-specific message templates
 ```
