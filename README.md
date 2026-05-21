@@ -29,7 +29,7 @@ It is designed as an institutional decision-support and research platform that:
 - derives targets through a deterministic Exit / Target Quality Engine
 - validates trade plans before allowing `BUY_WATCH`
 - manages partial exits and runner stops after target 1
-- invalidates active signals when the regime turns defensive / risk-off
+- invalidates pending and active signals when the regime turns defensive / risk-off
 - aggregates Entry / Stop / Exit feedback by decision-quality model
 - groups Entry / Stop / Exit feedback by market regime, risk state and volatility regime
 - prioritizes excellent Entry / Stop Loss / Exit decision quality
@@ -66,7 +66,7 @@ Market analysis
 → Entry / Stop / Exit quality validation
 → Entry / Exit monitoring
 → Target 1 partial-exit and runner management
-→ Regime invalidation exit
+→ Pending/active regime invalidation exit
 → Central notification delivery
 → Structured operational logging
 → Deduplicated lifecycle tracking
@@ -103,7 +103,7 @@ The watcher validates runtime configuration before execution:
 - missing legacy `signal_id` values are assigned deterministically as fallback
 - lifecycle events are deduplicated by `signal_id` + `event_type`
 - `TARGET_1_HIT` activates partial-exit and runner state
-- `REGIME_INVALIDATION_EXIT` cancels active signals when regime turns defensive
+- `REGIME_INVALIDATION_EXIT` cancels pending and active signals when regime turns defensive
 
 ## Run Tests
 
@@ -245,7 +245,7 @@ Key behavior:
 - after `TARGET_1_HIT`, stop moves to at least breakeven
 - when high and ATR are available, runner trail uses `latest_high - 1.5 * ATR`
 - runner stop never moves downward for long signals
-- active `TRIGGERED` / `TARGET_1_HIT` signals can be cancelled by defensive regime
+- pending `PENDING` and active `TRIGGERED` / `TARGET_1_HIT` signals can be cancelled by defensive regime
 - regime invalidation emits `REGIME_INVALIDATION_EXIT` and terminal status `CANCELLED_BY_REGIME_CHANGE`
 - late breakout entries are rejected before reaching the watcher
 - scanner-provided stops are rejected if they are not below entry for long signals
@@ -411,8 +411,8 @@ Current Regime Invalidation:
 
 ```text
 risk-off / defensive regime
-active BUY_WATCH signal
-TRIGGERED or TARGET_1_HIT
+open BUY_WATCH signal
+PENDING, TRIGGERED or TARGET_1_HIT
 → REGIME_INVALIDATION_EXIT
 → CANCELLED_BY_REGIME_CHANGE
 ```
@@ -460,6 +460,7 @@ Planned next modules:
 | Breakout Entry Context Upgrade | Implemented |
 | Trailing Stop / Partial Exit Management | Implemented |
 | Regime Invalidation Exit | Implemented |
+| Pending Signal Regime Invalidation | Implemented |
 | Entry / Stop / Exit Feedback Aggregation | Implemented |
 | Regime-Aware Feedback Grouping | Implemented |
 | Expanded Symbol Universe | Implemented |
@@ -537,6 +538,7 @@ For Entry / Stop / Exit decision logic, also require:
 - structure-aware stops
 - trailing stop and partial exit management
 - regime invalidation exit
+- pending signal regime invalidation
 - Entry / Stop / Exit feedback aggregation
 - regime-aware feedback grouping
 - native signal_id generation
