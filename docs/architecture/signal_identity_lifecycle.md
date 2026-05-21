@@ -1,8 +1,8 @@
-# Signal Identity and Lifecycle Deduplication
+# Signal Identity, Executability and Lifecycle Deduplication
 
-Signal lifecycle data is only trustworthy when every signal has a stable identity.
+Signal lifecycle data is only trustworthy when every signal has a stable identity and actionable signals are actually executable.
 
-P12 makes `signal_id` native at signal creation time. The watcher still keeps fallback identity assignment for older signal files.
+P12 made `signal_id` native at signal creation time. P13 adds an executable-level quality gate so incomplete trade setups are not emitted as `BUY_WATCH`.
 
 ---
 
@@ -58,6 +58,30 @@ The generated id is symbol-based and deterministic.
 
 ---
 
+## Executable Signal Quality Gate
+
+A signal is only actionable when it has executable trade levels.
+
+`BUY_WATCH` requires:
+
+```text
+entry_trigger
+stop_loss
+target_1
+```
+
+If a decision would normally produce `BUY_WATCH` but any required executable level is missing, the signal generator downgrades it to:
+
+```text
+NO_TRADE
+```
+
+The signal keeps its context and `signal_id`, but position size becomes `0.0` and `notes` explain the downgrade.
+
+This prevents fake actionable signals from reaching the watcher.
+
+---
+
 ## Where `signal_id` Appears
 
 `signal_id` is included in:
@@ -99,6 +123,8 @@ Different lifecycle events for the same signal are still allowed.
 ## Design Rules
 
 - Signal generation emits `signal_id` natively.
+- `BUY_WATCH` must have `entry_trigger`, `stop_loss` and `target_1`.
+- Incomplete executable levels downgrade the signal to `NO_TRADE`.
 - Existing `signal_id` always wins.
 - Missing older `signal_id` is generated deterministically by the watcher fallback.
 - Watcher updates must preserve `signal_id`.
