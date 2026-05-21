@@ -31,6 +31,7 @@ It is designed as an institutional decision-support and research platform that:
 - manages partial exits and runner stops after target 1
 - invalidates active signals when the regime turns defensive / risk-off
 - aggregates Entry / Stop / Exit feedback by decision-quality model
+- groups Entry / Stop / Exit feedback by market regime, risk state and volatility regime
 - prioritizes excellent Entry / Stop Loss / Exit decision quality
 - assigns stable signal identity for lifecycle tracking
 - stores signal history in the repository
@@ -72,6 +73,7 @@ Market analysis
 → Historical validation
 → Outcome evaluation
 → Entry / Stop / Exit feedback aggregation
+→ Regime-aware feedback grouping
 → Weekly expectancy feedback
 → Expectancy learning
 → Adaptive score / size adjustment
@@ -276,13 +278,28 @@ expired-without-entry rate
 false breakout rate
 ```
 
-Grouped by:
+Default grouping:
 
 ```text
 entry_type
 setup_type
 stop_model
 exit_model
+```
+
+Regime-aware grouping:
+
+```text
+market_regime
+risk_state
+volatility_regime
+```
+
+Convenience API:
+
+```text
+REGIME_AWARE_GROUP_FIELDS
+aggregate_regime_aware_entry_stop_exit_feedback()
 ```
 
 Output helpers can persist:
@@ -292,7 +309,7 @@ entry-stop-exit-feedback.json
 entry-stop-exit-feedback.md
 ```
 
-This does not introduce new trading rules. It measures whether existing decision-quality models work historically.
+This does not introduce new trading rules. It measures whether existing decision-quality models work historically and across regimes.
 
 ---
 
@@ -406,6 +423,7 @@ stop hit rate by stop_model
 target hit rate by exit_model
 expired-without-entry rate
 false breakout rate
+regime-aware grouping by market_regime/risk_state/volatility_regime
 ```
 
 Current Trade Plan Validator checks:
@@ -423,8 +441,8 @@ stop distance is not too tight or too wide when ATR is available
 
 Planned next modules:
 
-- regime-aware feedback grouping
 - session-aware VWAP and intraday entry confirmation
+- cross-field feedback grouping such as entry_type x market_regime
 
 ---
 
@@ -440,6 +458,7 @@ Planned next modules:
 | Trailing Stop / Partial Exit Management | Implemented |
 | Regime Invalidation Exit | Implemented |
 | Entry / Stop / Exit Feedback Aggregation | Implemented |
+| Regime-Aware Feedback Grouping | Implemented |
 | Expanded Symbol Universe | Implemented |
 | Central Notification Client | Implemented |
 | Notification CLI | Implemented |
@@ -515,6 +534,7 @@ For Entry / Stop / Exit decision logic, also require:
 - trailing stop and partial exit management
 - regime invalidation exit
 - Entry / Stop / Exit feedback aggregation
+- regime-aware feedback grouping
 - native signal_id generation
 - executable signal quality gate
 - entry quality engine
@@ -559,8 +579,8 @@ For Entry / Stop / Exit decision logic, also require:
 
 ## Planned Next
 
-1. Add regime-aware feedback grouping.
-2. Add session-aware VWAP and intraday entry confirmation.
+1. Add session-aware VWAP and intraday entry confirmation.
+2. Add cross-field feedback grouping such as entry_type x market_regime.
 3. Add dashboard or static HTML reporting.
 4. Move long-term persistence from Git files to Postgres.
 5. Add regime similarity memory.
