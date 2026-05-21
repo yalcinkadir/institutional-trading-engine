@@ -21,6 +21,7 @@ from src.reporting.report_formatter import format_report
 from src.reporting.screener_engine import build_screener_snapshot
 from src.reporting.weekly_summary import build_weekly_summary
 from src.signals.scanner_metrics_pipeline import normalize_scanner_metrics_map
+from src.signals.structure_levels import latest_confirmed_swing_low_3bar
 
 VALID_REPORT_TYPES = {"premarket", "intraday", "postmarket", "weekly"}
 MARKET_REPORT_TYPES = {"premarket", "intraday", "postmarket"}
@@ -41,6 +42,15 @@ def _decision_symbols(decision_report: dict) -> list[str]:
     ]
 
 
+def _enrich_metrics_with_structure(metrics: dict[str, Any] | None, bars_df: Any) -> dict[str, Any] | None:
+    if metrics is None:
+        return None
+    enriched = dict(metrics)
+    if bars_df is not None and hasattr(bars_df, "columns") and "low" in bars_df.columns:
+        enriched["swing_low_3bar"] = latest_confirmed_swing_low_3bar(list(bars_df["low"]))
+    return enriched
+
+
 def _load_scanner_metrics(decision_report: dict) -> dict[str, Any] | None:
     try:
         from src.scanner import build_symbol_metrics, calculate_20d_return, get_daily_bars
@@ -58,7 +68,9 @@ def _load_scanner_metrics(decision_report: dict) -> dict[str, Any] | None:
         scanner_metrics_map: dict[str, Any] = {}
         for symbol in _decision_symbols(decision_report):
             try:
-                scanner_metrics_map[symbol] = build_symbol_metrics(symbol, benchmark_returns)
+                metrics = build_symbol_metrics(symbol, benchmark_returns)
+                bars_df = get_daily_bars(symbol)
+                scanner_metrics_map[symbol] = _enrich_metrics_with_structure(metrics, bars_df)
                 time.sleep(2)
             except Exception as exc:
                 print(f"WARNING: scanner metric build failed for {symbol}: {type(exc).__name__}: {exc}")
