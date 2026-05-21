@@ -132,6 +132,7 @@ def build_signals(
         entry_quality_reasons: list[str] = []
         stop_quality_reasons: list[str] = []
         exit_quality_reasons: list[str] = []
+        quality_gate_failed = False
 
         if action == "BUY_WATCH":
             entry_quality = derive_entry_quality(
@@ -145,6 +146,7 @@ def build_signals(
             entry_type = entry_quality.entry_type
             entry_reason = entry_quality.entry_reason
             entry_quality_reasons = entry_quality.reasons
+            quality_gate_failed = quality_gate_failed or not entry_quality.is_valid
 
             stop_quality = derive_stop_loss_quality(
                 setup_type=setup_type,
@@ -158,6 +160,7 @@ def build_signals(
             stop_model = stop_quality.stop_model
             stop_reason = stop_quality.stop_reason
             stop_quality_reasons = stop_quality.reasons
+            quality_gate_failed = quality_gate_failed or not stop_quality.is_valid
 
             exit_quality = derive_exit_target_quality(
                 setup_type=setup_type,
@@ -171,6 +174,7 @@ def build_signals(
             exit_model = exit_quality.exit_model
             exit_reason = exit_quality.exit_reason
             exit_quality_reasons = exit_quality.reasons
+            quality_gate_failed = quality_gate_failed or not exit_quality.is_valid
 
         validation = validate_long_trade_plan(
             entry_trigger=entry,
@@ -193,7 +197,7 @@ def build_signals(
             notes_parts.append("stop_quality: " + ", ".join(stop_quality_reasons))
         if original_action == "BUY_WATCH" and exit_quality_reasons:
             notes_parts.append("exit_quality: " + ", ".join(exit_quality_reasons))
-        if original_action == "BUY_WATCH" and not validation.is_valid:
+        if original_action == "BUY_WATCH" and (quality_gate_failed or not validation.is_valid):
             action = "NO_TRADE"
             rr = None
             notes_parts.append("downgraded: invalid trade plan reasons " + ", ".join(validation.reasons))
