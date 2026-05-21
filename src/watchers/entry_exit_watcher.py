@@ -14,6 +14,7 @@ Responsibilities:
 - detect TARGET_1_HIT
 - detect TARGET_2_HIT
 - detect EXPIRED
+- manage partial exit + runner stop after TARGET_1_HIT
 - write alert JSON files
 - append lifecycle JSONL records with duplicate protection
 
@@ -29,10 +30,10 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from src.signals.signal_identity import (
-    build_signal_id,
     ensure_signal_identity,
     signal_date_from_payload,
 )
+from src.watchers.trailing_stop_manager import apply_target_1_runner_management
 
 ALERTS_DIR = Path("reports/alerts")
 LIFECYCLE_LOG = Path("data/signal_lifecycle.jsonl")
@@ -196,6 +197,7 @@ def evaluate_signal_against_bar(
     stop = _safe_float(signal.get("stop_loss"))
     target_1 = _safe_float(signal.get("target_1"))
     target_2 = _safe_float(signal.get("target_2"))
+    atr = _safe_float(signal.get("atr14") or signal.get("atr"))
     high = _bar_high(bar)
     low = _bar_low(bar)
 
@@ -230,6 +232,25 @@ def evaluate_signal_against_bar(
     if not event_type or not new_status:
         return None, None
 
+    updated_signal = dict(signal)
+    updated_signal["signal_id"] = signal_id
+    updated_signal["status"] = new_status
+    if event_type == "ENTRY_TRIGGERED":
+        updated_signal["entry_triggered_at"] = bar.timestamp
+        updated_signal["entry_price"] = trigger_price
+    elif event_type in {"STOP_HIT", "TARGET_1_HIT", "TARGET_2_HIT", "EXPIRED"}:
+        updated_signal["last_event_at"] = bar.timestamp
+        updated_signal["last_event_price"] = trigger_price
+
+    if event_type == "TARGET_1_HIT":
+        runner_result = apply_target_1_runner_management(
+            updated_signal,
+            latest_high=high,
+            atr=atr,
+        )
+        updated_signal = runner_result.signal
+        stop = _safe_float(updated_signal.get("stop_loss"))
+
     alert = WatcherAlert(
         alert_type=event_type,
         symbol=symbol,
@@ -245,16 +266,6 @@ def evaluate_signal_against_bar(
         signal_id=signal_id,
         notes=f"{previous_status} → {new_status}",
     )
-
-    updated_signal = dict(signal)
-    updated_signal["signal_id"] = signal_id
-    updated_signal["status"] = new_status
-    if event_type == "ENTRY_TRIGGERED":
-        updated_signal["entry_triggered_at"] = bar.timestamp
-        updated_signal["entry_price"] = trigger_price
-    elif event_type in {"STOP_HIT", "TARGET_1_HIT", "TARGET_2_HIT", "EXPIRED"}:
-        updated_signal["last_event_at"] = bar.timestamp
-        updated_signal["last_event_price"] = trigger_price
 
     lifecycle = SignalLifecycleUpdate(
         signal_id=signal_id,
