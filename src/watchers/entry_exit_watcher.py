@@ -15,6 +15,7 @@ Responsibilities:
 - detect TARGET_2_HIT
 - detect EXPIRED
 - manage partial exit + runner stop after TARGET_1_HIT
+- detect REGIME_INVALIDATION_EXIT
 - write alert JSON files
 - append lifecycle JSONL records with duplicate protection
 
@@ -34,6 +35,7 @@ from src.signals.signal_identity import (
     ensure_signal_identity,
     signal_date_from_payload,
 )
+from src.watchers.regime_invalidation import apply_regime_invalidation
 from src.watchers.trailing_stop_manager import apply_target_1_runner_management
 
 ALERTS_DIR = Path("reports/alerts")
@@ -281,6 +283,80 @@ def evaluate_signal_against_bar(
     )
 
     return alert, lifecycle
+
+
+def evaluate_regime_invalidation(
+    signal: dict[str, Any],
+    *,
+    regime: Any,
+    timestamp: str,
+) -> tuple[WatcherAlert | None, SignalLifecycleUpdate | None]:
+    """Evaluate whether one active signal should be invalidated by regime."""
+    signal = ensure_signal_identity(signal)
+    result = apply_regime_invalidation(signal, regime=regime, timestamp=timestamp)
+    if not result.invalidated or not result.event_type or not result.new_status:
+        return None, None
+
+    signal_id = str(signal["signal_id"])
+    symbol = str(signal.get("symbol") or "")
+    trigger_price = _safe_float(signal.get("last_event_price") or signal.get("close") or signal.get("entry_price"))
+
+    alert = WatcherAlert(
+        alert_type=result.event_type,
+        symbol=symbol,
+        timestamp=timestamp,
+        signal_date=_signal_date(signal),
+        price=trigger_price,
+        trigger_price=trigger_price,
+        stop_loss=_safe_float(result.signal.get("stop_loss")),
+        target_1=_safe_float(result.signal.get("target_1")),
+        target_2=_safe_float(result.signal.get("target_2")),
+        previous_status=str(result.previous_status),
+        new_status=result.new_status,
+        signal_id=signal_id,
+        notes=f"{result.previous_status} → {result.new_status}: regime invalidation",
+    )
+    lifecycle = SignalLifecycleUpdate(
+        signal_id=signal_id,
+        symbol=symbol,
+        signal_date=_signal_date(signal),
+        timestamp=timestamp,
+        previous_status=str(result.previous_status),
+        new_status=result.new_status,
+        event_type=result.event_type,
+        price=trigger_price,
+        signal=result.signal,
+    )
+    return alert, lifecycle
+
+
+def evaluate_regime_invalidations(
+    signals: list[dict[str, Any]],
+    *,
+    regime: Any,
+    timestamp: str | None = None,
+) -> tuple[list[WatcherAlert], list[SignalLifecycleUpdate], list[dict[str, Any]]]:
+    """Evaluate regime invalidation across all signals."""
+    event_timestamp = timestamp or utc_now_iso()
+    alerts: list[WatcherAlert] = []
+    updates: list[SignalLifecycleUpdate] = []
+    updated_signals: list[dict[str, Any]] = []
+
+    for raw_signal in signals:
+        signal = ensure_signal_identity(raw_signal)
+        alert, lifecycle = evaluate_regime_invalidation(
+            signal,
+            regime=regime,
+            timestamp=event_timestamp,
+        )
+        if alert and lifecycle:
+            alerts.append(alert)
+            updates.append(lifecycle)
+            updated_signals.append(lifecycle.signal)
+        else:
+            updated_signals.append(signal)
+
+    return alerts, updates, updated_signals
 
 
 def evaluate_signals(
