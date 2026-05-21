@@ -1,6 +1,6 @@
 # Scanner-to-Signal Metrics Pipeline
 
-P15 repairs and hardens the scanner-to-signal data path. P18A extends the path with breakout context metrics.
+P15 repairs and hardens the scanner-to-signal data path. P18A extends the path with breakout context metrics. P17 adds structure-aware stop context through native scanner `swing_low_3bar` output.
 
 Entry / Stop / Exit quality engines require live scanner metrics. If `close` and `atr14` do not reach signal generation, candidates are correctly downgraded to `NO_TRADE`, but the system is not operationally useful.
 
@@ -11,6 +11,8 @@ Entry / Stop / Exit quality engines require live scanner metrics. If `close` and
 ```text
 src/scanner.py
 src/signals/scanner_metrics_pipeline.py
+src/signals/structure_levels.py
+src/signals/intraday_vwap.py
 src/signals/signal_generator.py
 scripts/generate_report.py
 ```
@@ -19,8 +21,12 @@ Tests:
 
 ```text
 tests/test_scanner_metrics_pipeline.py
+tests/test_scanner_structure_metrics.py
 tests/test_generate_report_scanner_metrics_pipeline.py
+tests/test_generate_report_structure_enrichment.py
+tests/test_generate_report_intraday_vwap.py
 tests/test_entry_quality.py
+tests/test_stop_loss_quality.py
 tests/test_signal_generator_identity.py
 ```
 
@@ -49,6 +55,7 @@ low
 volume
 rvol
 vwap
+swing_low_3bar
 ```
 
 Breakout context metrics:
@@ -58,6 +65,51 @@ high  -> preferred breakout trigger source
 rvol  -> relative volume confirmation
 vwap  -> optional breakout context filter
 ```
+
+Structure context metrics:
+
+```text
+swing_low_3bar -> preferred structure-aware long stop source
+```
+
+---
+
+## Native Scanner Structure Metric
+
+`build_symbol_metrics()` now emits:
+
+```text
+swing_low_3bar
+```
+
+It is calculated from daily bar lows using:
+
+```text
+latest_confirmed_swing_low_3bar(list(df["low"]))
+```
+
+This means the Stop-Loss Quality Engine can use:
+
+```text
+swing_low_structure_stop
+```
+
+without relying only on downstream report enrichment.
+
+---
+
+## Intraday VWAP Context
+
+VWAP requires intraday bars and is therefore enriched in the report/signal path rather than the daily scanner core.
+
+When intraday bars are available:
+
+```text
+_load_intraday_bars(symbol)
+_enrich_metrics_with_intraday_context(metrics, intraday_bars)
+```
+
+When intraday data is unavailable, missing VWAP is non-fatal and the Entry Quality Engine skips the VWAP rejection check.
 
 ---
 
@@ -150,7 +202,20 @@ When `vwap` exists and `close < vwap`, momentum breakout is rejected:
 breakout_entry_below_vwap
 ```
 
-Missing VWAP is non-fatal until intraday VWAP generation is implemented.
+Missing VWAP is non-fatal when intraday data is unavailable.
+
+---
+
+## Structure Stop Behavior
+
+When `swing_low_3bar` exists and is valid, stop quality prefers:
+
+```text
+stop_model = swing_low_structure_stop
+stop_loss = swing_low_3bar * 0.998
+```
+
+Invalid, missing or too-wide structure levels fall back to ATR/setup stops.
 
 ---
 
@@ -176,6 +241,8 @@ This is intentional. Operational visibility improves without making report gener
 - Normalize scanner metrics before signal generation.
 - Preserve scanner-provided entry, stop and target levels when available.
 - Preserve breakout context metrics when available.
+- Emit `swing_low_3bar` from the scanner when daily lows are available.
+- Enrich VWAP only when intraday bars are available.
 - Missing live data should be visible as pipeline diagnostics.
 - Quality engines remain defensive and downgrade incomplete trade plans.
 
@@ -183,16 +250,9 @@ This is intentional. Operational visibility improves without making report gener
 
 ## Next Steps
 
-After P18A, the next operational layer is:
+Next decision-quality improvements:
 
 ```text
-P16 Trailing Stop and Partial Exit Management
-```
-
-This should manage lifecycle behavior after `TARGET_1_HIT`:
-
-```text
-partial exit
-stop to breakeven
-ATR trailing stop for runner
+session-aware VWAP and intraday entry confirmation
+cross-field feedback grouping such as entry_type x market_regime
 ```
