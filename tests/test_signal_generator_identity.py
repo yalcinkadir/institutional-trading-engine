@@ -95,6 +95,19 @@ def test_build_signals_uses_high_trigger_for_breakout_context() -> None:
     assert "scanner high" in nvda.entry_reason
 
 
+def test_build_signals_uses_swing_low_structure_stop() -> None:
+    metrics = _breakout_context_metrics()
+    metrics["NVDA"]["swing_low_3bar"] = 96.0
+
+    signals = build_signals(_decision_report(), metrics, "Bullish")
+
+    nvda = signals[0]
+    assert nvda.action == "BUY_WATCH"
+    assert nvda.stop_model == "swing_low_structure_stop"
+    assert nvda.stop_loss == 95.81
+    assert "swing-low structure stop" in nvda.stop_reason
+
+
 def test_build_signals_downgrades_low_rvol_breakout() -> None:
     metrics = _breakout_context_metrics()
     metrics["NVDA"]["rvol"] = 0.7
