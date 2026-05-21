@@ -15,7 +15,7 @@ It is designed as an institutional decision-support and research platform that:
 - ranks opportunities
 - scans a diversified symbol universe across indices, sectors, bonds, commodities and leaders
 - generates premarket, intraday, postmarket and weekly reports
-- communicates alerts and summaries through a central notification layer
+- communicates alerts and failures through a central notification layer
 - emits structured JSON logs from operational scripts and runtime cycles
 - produces machine-readable signal files
 - assigns stable signal identity for lifecycle tracking
@@ -41,7 +41,7 @@ Market analysis
 → Signal generation
 → Signal identity
 → Entry / Exit monitoring
-→ Notification delivery
+→ Central notification delivery
 → Structured operational logging
 → Deduplicated lifecycle tracking
 → Historical validation
@@ -88,6 +88,14 @@ watcher_events_persisted
 watcher_no_events_detected
 watcher_runner_completed
 ```
+
+Watcher workflow notifications are routed through:
+
+```text
+scripts/send_notification.py
+```
+
+The workflow sends watcher alert summaries and watcher failure messages through the same central CLI used by weekly expectancy feedback.
 
 ## Send Notifications
 
@@ -160,6 +168,7 @@ Targeted tests:
 ```bash
 pytest tests/test_structured_logging.py
 pytest tests/test_run_entry_exit_watcher_runtime_validation.py
+pytest tests/test_entry_exit_watcher_workflow_notifications.py
 pytest tests/test_live_runtime_cycle_portfolio_state.py
 pytest tests/test_entry_exit_watcher.py
 pytest tests/test_notifications.py
@@ -262,7 +271,7 @@ docs/architecture/notifications.md
 
 Supported channels:
 
-- Telegram `sendMessage`
+- Telegram delivery
 - generic webhook POST via `REPORT_WEBHOOK_URL`
 
 Delivery results are structured:
@@ -271,16 +280,17 @@ Delivery results are structured:
 delivered | skipped | dry_run | failed
 ```
 
-Current migrated workflow:
+Migrated workflows:
 
 ```text
 .github/workflows/weekly-expectancy-feedback.yml
+.github/workflows/entry-exit-watcher.yml
 ```
 
-Next migration target:
+Regression guard:
 
 ```text
-.github/workflows/entry-exit-watcher.yml
+tests/test_entry_exit_watcher_workflow_notifications.py
 ```
 
 ---
@@ -298,6 +308,7 @@ Next migration target:
 | Watcher Runner Structured Logs | Implemented |
 | Live Runtime Cycle Structured Logs | Implemented |
 | Weekly Workflow Notification Migration | Implemented |
+| Watcher Workflow Notification Migration | Implemented |
 | Entry / Exit Watcher | Implemented and workflow-hardened |
 | Watcher Runtime Validation | Implemented |
 | Signal Identity | Implemented in watcher path |
@@ -314,7 +325,6 @@ Next migration target:
 | End-to-End Institutional Flow | Partially implemented |
 | Fully Unified Continuous Runtime | In progress |
 | Signal Generation Native `signal_id` | Planned |
-| Watcher Notification Migration to CLI | Planned |
 | Broker Execution | Not implemented |
 | Dashboard UI | Not implemented |
 
@@ -361,6 +371,7 @@ For market intelligence, lifecycle, observability and communication features, al
 - watcher runner structured logs
 - live runtime cycle structured logs
 - weekly workflow notification migration
+- watcher workflow notification migration
 - Entry / Exit Watcher V1
 - watcher runtime validation
 - watcher workflow hardening
@@ -389,14 +400,13 @@ For market intelligence, lifecycle, observability and communication features, al
 ## Planned Next
 
 1. Generate native `signal_id` at signal creation time.
-2. Migrate entry-exit watcher notifications to the central notification CLI.
-3. Improve intraday data support with higher-frequency bars if Polygon plan allows.
-4. Add dashboard or static HTML reporting.
-5. Move long-term persistence from Git files to Postgres.
-6. Add regime similarity memory.
-7. Add scoring adjustment quality review.
-8. Add adaptive scoring guardrails by market regime.
-9. Add broker/account integration for automatic portfolio-state calculation.
+2. Improve intraday data support with higher-frequency bars if Polygon plan allows.
+3. Add dashboard or static HTML reporting.
+4. Move long-term persistence from Git files to Postgres.
+5. Add regime similarity memory.
+6. Add scoring adjustment quality review.
+7. Add adaptive scoring guardrails by market regime.
+8. Add broker/account integration for automatic portfolio-state calculation.
 
 ---
 
