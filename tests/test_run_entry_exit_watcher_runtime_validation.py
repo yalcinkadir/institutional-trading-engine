@@ -9,6 +9,7 @@ import pytest
 from scripts.run_entry_exit_watcher import (
     WatcherRuntimeConfigurationError,
     _build_cycle_id,
+    _extract_signal_records,
     _validate_runtime,
     main,
 )
@@ -19,6 +20,23 @@ def test_build_cycle_id_uses_github_context(monkeypatch: pytest.MonkeyPatch) -> 
     monkeypatch.setenv("GITHUB_RUN_ATTEMPT", "2")
 
     assert _build_cycle_id() == "entry-exit-watcher-12345-2"
+
+
+def test_extract_signal_records_accepts_legacy_list_payload() -> None:
+    payload = [{"symbol": "AAPL"}]
+
+    assert _extract_signal_records(payload) == [{"symbol": "AAPL"}]
+
+
+def test_extract_signal_records_accepts_generated_object_payload() -> None:
+    payload = {"generated_at": "2026-05-21T08:00:00+00:00", "signals": [{"symbol": "AAPL"}]}
+
+    assert _extract_signal_records(payload) == [{"symbol": "AAPL"}]
+
+
+def test_extract_signal_records_rejects_non_object_records() -> None:
+    with pytest.raises(WatcherRuntimeConfigurationError, match="non-object"):
+        _extract_signal_records({"signals": ["bad-record"]})
 
 
 def test_validate_runtime_requires_positive_days(
@@ -64,7 +82,7 @@ def test_validate_runtime_rejects_invalid_json(
         _validate_runtime(signals_file=signals_file, days=5)
 
 
-def test_validate_runtime_requires_signal_list(
+def test_validate_runtime_requires_valid_signal_container(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -72,7 +90,7 @@ def test_validate_runtime_requires_signal_list(
     signals_file = tmp_path / "signals.json"
     signals_file.write_text(json.dumps({"symbol": "AAPL"}), encoding="utf-8")
 
-    with pytest.raises(WatcherRuntimeConfigurationError, match="JSON list"):
+    with pytest.raises(WatcherRuntimeConfigurationError, match="Signals payload"):
         _validate_runtime(signals_file=signals_file, days=5)
 
 
@@ -83,6 +101,17 @@ def test_validate_runtime_accepts_valid_empty_signal_list(
     monkeypatch.setenv("POLYGON_API_KEY", "test-key")
     signals_file = tmp_path / "signals.json"
     signals_file.write_text("[]", encoding="utf-8")
+
+    _validate_runtime(signals_file=signals_file, days=5)
+
+
+def test_validate_runtime_accepts_generated_signal_object_payload(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("POLYGON_API_KEY", "test-key")
+    signals_file = tmp_path / "latest-signals.json"
+    signals_file.write_text(json.dumps({"signals": [{"symbol": "AAPL"}]}), encoding="utf-8")
 
     _validate_runtime(signals_file=signals_file, days=5)
 
