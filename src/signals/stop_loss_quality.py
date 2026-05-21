@@ -1,0 +1,134 @@
+"""Stop-loss quality engine for executable signal generation.
+
+The engine derives deterministic long-side stops and explains why a stop is
+valid or invalid. TradePlanValidator remains the final executable gate.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any
+
+
+@dataclass(frozen=True)
+class StopLossQualityResult:
+    is_valid: bool
+    stop_loss: float | None
+    stop_model: str
+    stop_reason: str
+    reasons: list[str] = field(default_factory=list)
+
+
+def _safe_float(value: Any) -> float | None:
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _round_price(value: float) -> float:
+    return round(value, 2)
+
+
+def _reject(reason: str, *, stop_model: str = "n/a", stop_loss: float | None = None) -> StopLossQualityResult:
+    return StopLossQualityResult(
+        is_valid=False,
+        stop_loss=stop_loss,
+        stop_model=stop_model,
+        stop_reason=f"invalid_stop: {reason}",
+        reasons=[reason],
+    )
+
+
+def derive_stop_loss_quality(
+    *,
+    setup_type: str,
+    entry_trigger: float | None,
+    close: float | None,
+    atr: float | None,
+    entry_type: str,
+    scanner_metrics: dict[str, Any] | None = None,
+) -> StopLossQualityResult:
+    """Derive and validate a long-side stop loss.
+
+    Supported deterministic stop models:
+    - scanner_provided_stop
+    - atr_stop
+    - pullback_structure_stop
+    - retest_structure_stop
+    - gap_fill_stop
+    """
+
+    if entry_trigger is None:
+        return _reject("missing_entry_trigger")
+    if close is None:
+        return _reject("missing_close")
+    if atr is None or atr <= 0:
+        return _reject("missing_or_invalid_atr")
+
+    scanner = scanner_metrics or {}
+    explicit_stop = _safe_float(scanner.get("stop_loss"))
+    if explicit_stop is not None:
+        if explicit_stop <= 0:
+            return _reject("invalid_scanner_stop", stop_model="scanner_provided_stop", stop_loss=explicit_stop)
+        if explicit_stop >= entry_trigger:
+            return _reject(
+                "scanner_stop_not_below_entry",
+                stop_model="scanner_provided_stop",
+                stop_loss=_round_price(explicit_stop),
+            )
+        return StopLossQualityResult(
+            is_valid=True,
+            stop_loss=_round_price(explicit_stop),
+            stop_model="scanner_provided_stop",
+            stop_reason="scanner provided stop below entry",
+        )
+
+    normalized_setup = setup_type.lower().strip()
+    normalized_entry_type = entry_type.lower().strip()
+
+    if normalized_entry_type == "pullback" or normalized_setup == "pullback_continuation":
+        stop = entry_trigger - 1.5 * atr
+        return StopLossQualityResult(
+            is_valid=True,
+            stop_loss=_round_price(stop),
+            stop_model="pullback_structure_stop",
+            stop_reason="pullback structure stop 1.5 ATR below entry",
+        )
+
+    if normalized_entry_type == "retest" or normalized_setup == "retest_continuation":
+        stop = entry_trigger - 1.25 * atr
+        return StopLossQualityResult(
+            is_valid=True,
+            stop_loss=_round_price(stop),
+            stop_model="retest_structure_stop",
+            stop_reason="retest structure stop 1.25 ATR below entry",
+        )
+
+    if normalized_entry_type == "gap_fill" or normalized_setup == "gap_fill":
+        stop = entry_trigger - 1.5 * atr
+        return StopLossQualityResult(
+            is_valid=True,
+            stop_loss=_round_price(stop),
+            stop_model="gap_fill_stop",
+            stop_reason="gap-fill stop 1.5 ATR below entry",
+        )
+
+    if normalized_entry_type == "at_market":
+        stop = entry_trigger - 2.0 * atr
+        return StopLossQualityResult(
+            is_valid=True,
+            stop_loss=_round_price(stop),
+            stop_model="atr_stop",
+            stop_reason="at-market volatility stop 2 ATR below entry",
+        )
+
+    stop = entry_trigger - 2.0 * atr
+    return StopLossQualityResult(
+        is_valid=True,
+        stop_loss=_round_price(stop),
+        stop_model="atr_stop",
+        stop_reason="ATR stop 2 ATR below entry",
+    )
