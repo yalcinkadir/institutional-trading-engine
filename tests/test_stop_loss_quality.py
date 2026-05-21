@@ -18,6 +18,82 @@ def test_default_atr_stop_for_breakout() -> None:
     assert "2 ATR below entry" in result.stop_reason
 
 
+def test_valid_swing_low_structure_stop_is_preferred_over_atr() -> None:
+    result = derive_stop_loss_quality(
+        setup_type="momentum_breakout",
+        entry_trigger=102.0,
+        close=100.0,
+        atr=4.0,
+        entry_type="breakout",
+        scanner_metrics={"swing_low_3bar": 96.0},
+    )
+
+    assert result.is_valid
+    assert result.stop_loss == 95.81
+    assert result.stop_model == "swing_low_structure_stop"
+    assert "swing-low structure stop" in result.stop_reason
+
+
+def test_missing_swing_low_falls_back_to_atr_stop() -> None:
+    result = derive_stop_loss_quality(
+        setup_type="momentum_breakout",
+        entry_trigger=102.0,
+        close=100.0,
+        atr=4.0,
+        entry_type="breakout",
+        scanner_metrics={},
+    )
+
+    assert result.is_valid
+    assert result.stop_loss == 94.0
+    assert result.stop_model == "atr_stop"
+
+
+def test_swing_low_above_entry_falls_back_to_atr_stop() -> None:
+    result = derive_stop_loss_quality(
+        setup_type="momentum_breakout",
+        entry_trigger=102.0,
+        close=100.0,
+        atr=4.0,
+        entry_type="breakout",
+        scanner_metrics={"swing_low_3bar": 103.0},
+    )
+
+    assert result.is_valid
+    assert result.stop_loss == 94.0
+    assert result.stop_model == "atr_stop"
+
+
+def test_too_wide_swing_low_falls_back_to_atr_stop() -> None:
+    result = derive_stop_loss_quality(
+        setup_type="momentum_breakout",
+        entry_trigger=102.0,
+        close=100.0,
+        atr=4.0,
+        entry_type="breakout",
+        scanner_metrics={"swing_low_3bar": 80.0},
+    )
+
+    assert result.is_valid
+    assert result.stop_loss == 94.0
+    assert result.stop_model == "atr_stop"
+
+
+def test_scanner_provided_stop_takes_precedence_over_swing_low() -> None:
+    result = derive_stop_loss_quality(
+        setup_type="momentum_breakout",
+        entry_trigger=102.0,
+        close=100.0,
+        atr=4.0,
+        entry_type="breakout",
+        scanner_metrics={"stop_loss": 97.0, "swing_low_3bar": 96.0},
+    )
+
+    assert result.is_valid
+    assert result.stop_loss == 97.0
+    assert result.stop_model == "scanner_provided_stop"
+
+
 def test_pullback_structure_stop() -> None:
     result = derive_stop_loss_quality(
         setup_type="pullback_continuation",
