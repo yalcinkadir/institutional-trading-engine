@@ -58,7 +58,7 @@ def test_build_signals_assigns_native_signal_id() -> None:
     assert signals[1].signal_id.startswith("sig_XLE_")
 
 
-def test_build_signals_produces_buy_watch_only_with_executable_levels() -> None:
+def test_build_signals_produces_buy_watch_only_with_valid_trade_plan() -> None:
     signals = build_signals(
         decision_report=_decision_report(),
         scanner_metrics_map=_scanner_metrics(),
@@ -70,6 +70,8 @@ def test_build_signals_produces_buy_watch_only_with_executable_levels() -> None:
     assert nvda.entry_trigger is not None
     assert nvda.stop_loss is not None
     assert nvda.target_1 is not None
+    assert nvda.risk_reward is not None
+    assert nvda.risk_reward >= 1.2
     assert nvda.position_size == 1.0
 
 
@@ -86,10 +88,10 @@ def test_build_signals_downgrades_approved_signal_without_executable_levels() ->
     assert nvda.entry_trigger is None
     assert nvda.stop_loss is None
     assert nvda.target_1 is None
-    assert "downgraded: incomplete executable levels" in nvda.notes
-    assert "entry_trigger" in nvda.notes
-    assert "stop_loss" in nvda.notes
-    assert "target_1" in nvda.notes
+    assert "downgraded: invalid trade plan" in nvda.notes
+    assert "missing_entry_trigger" in nvda.notes
+    assert "missing_stop_loss" in nvda.notes
+    assert "missing_target_1" in nvda.notes
 
 
 def test_build_signals_downgrades_when_only_partial_levels_exist() -> None:
@@ -111,7 +113,56 @@ def test_build_signals_downgrades_when_only_partial_levels_exist() -> None:
     nvda = signals[0]
     assert nvda.action == "NO_TRADE"
     assert nvda.position_size == 0.0
-    assert "target_1" in nvda.notes
+    assert "missing_entry_trigger" in nvda.notes
+    assert "missing_stop_loss" in nvda.notes
+    assert "missing_target_1" in nvda.notes
+
+
+def test_build_signals_downgrades_low_risk_reward_trade_plan() -> None:
+    low_rr_metrics = {
+        "NVDA": {
+            "close": 100.0,
+            "atr14": 4.0,
+            "atr_pct": 4.0,
+            "entry": 100.0,
+            "stop_loss": 96.0,
+            "exit_1": 103.0,
+        }
+    }
+
+    signals = build_signals(
+        decision_report=_decision_report(),
+        scanner_metrics_map=low_rr_metrics,
+        market_regime="Bullish",
+    )
+
+    nvda = signals[0]
+    assert nvda.action == "NO_TRADE"
+    assert nvda.risk_reward is None
+    assert "risk_reward_below_minimum" in nvda.notes
+
+
+def test_build_signals_downgrades_inverted_stop_trade_plan() -> None:
+    inverted_stop_metrics = {
+        "NVDA": {
+            "close": 100.0,
+            "atr14": 4.0,
+            "atr_pct": 4.0,
+            "entry": 100.0,
+            "stop_loss": 101.0,
+            "exit_1": 108.0,
+        }
+    }
+
+    signals = build_signals(
+        decision_report=_decision_report(),
+        scanner_metrics_map=inverted_stop_metrics,
+        market_regime="Bullish",
+    )
+
+    nvda = signals[0]
+    assert nvda.action == "NO_TRADE"
+    assert "stop_loss_not_below_entry" in nvda.notes
 
 
 def test_build_signals_produces_stable_ids_when_time_is_fixed(monkeypatch) -> None:
@@ -163,4 +214,4 @@ def test_save_signals_actionable_count_excludes_downgraded_signals(tmp_path: Pat
     assert payload["no_trade_count"] == 2
     assert all(item["action"] == "NO_TRADE" for item in payload["signals"])
     assert "No executable BUY_WATCH signals generated" in markdown
-    assert "downgraded: incomplete executable levels" in markdown
+    assert "downgraded: invalid trade plan" in markdown
