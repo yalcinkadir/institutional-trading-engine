@@ -1,20 +1,20 @@
 # Institutional Trading Engine — PREMARKET REPORT
 
-Generated: 2026-05-21 07:00 UTC
+Generated: 2026-05-21 07:05 UTC
 
 ## Market Regime
 
 - Data Status: PARTIAL
-- Regime: Neutral (VIX missing)
-- Market Health Score: 50
+- Regime: Risk-Off (VIX missing)
+- Market Health Score: 20
 
 ### Core Market Metrics
 
 #### SPY
-- Close: 681.92
-- SMA50: 678.5 ✅
-- SMA200: 626.91 ✅
-- ATR14: 5.66
+- Close: DATA_UNAVAILABLE
+- SMA50: DATA_UNAVAILABLE
+- SMA200: DATA_UNAVAILABLE
+- ATR14: DATA_UNAVAILABLE
 
 #### QQQ
 - Close: 614.31
@@ -29,7 +29,7 @@ Generated: 2026-05-21 07:00 UTC
 - ATR14: DATA_UNAVAILABLE
 
 ### Market Breadth
-- Universe Size: 4
+- Universe Size: 2
 - Above SMA50: 0
 - Breadth %: 0.0%
 
