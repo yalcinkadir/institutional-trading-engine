@@ -19,6 +19,7 @@ It is designed as an institutional decision-support and research platform that:
 - emits structured JSON logs from operational scripts and runtime cycles
 - produces machine-readable signal files with native `signal_id`
 - prevents fake actionable signals without executable trade levels
+- validates trade plans before allowing `BUY_WATCH`
 - prioritizes excellent Entry / Stop Loss / Exit decision quality
 - assigns stable signal identity for lifecycle tracking
 - stores signal history in the repository
@@ -41,7 +42,7 @@ It is designed as an institutional decision-support and research platform that:
 Market analysis
 → Diversified universe scan
 → Signal generation with native signal_id
-→ Executable signal quality gate
+→ Trade Plan Validator
 → Entry / Stop / Exit quality validation
 → Entry / Exit monitoring
 → Central notification delivery
@@ -155,6 +156,7 @@ pytest
 Targeted tests:
 
 ```bash
+pytest tests/test_trade_plan_validator.py
 pytest tests/test_signal_identity.py
 pytest tests/test_signal_generator_identity.py
 pytest tests/test_structured_logging.py
@@ -179,15 +181,18 @@ Signal identity, signal executability and lifecycle deduplication are implemente
 ```text
 src/signals/signal_identity.py
 src/signals/signal_generator.py
+src/signals/trade_plan_validator.py
 src/watchers/entry_exit_watcher.py
 docs/architecture/signal_identity_lifecycle.md
+docs/architecture/trade_plan_validator.md
 ```
 
 Key behavior:
 
 - newly generated signals include native `signal_id`
-- `BUY_WATCH` requires `entry_trigger`, `stop_loss` and `target_1`
-- incomplete executable levels downgrade the signal to `NO_TRADE`
+- `BUY_WATCH` requires a valid long trade plan
+- long trade plans validate entry, stop, target, ordering, risk/reward and ATR stop distance
+- incomplete or invalid trade plans downgrade the signal to `NO_TRADE`
 - downgraded signals keep `signal_id`, context and explanatory notes
 - downgraded signals use `position_size = 0.0`
 - generated signal JSON files include `signal_id`
@@ -205,10 +210,16 @@ Key behavior:
 
 # Entry / Stop / Exit Decision Quality
 
-The next roadmap priority is documented in:
+The roadmap is documented in:
 
 ```text
 docs/roadmap/entry-stop-exit-quality.md
+```
+
+Implemented foundation:
+
+```text
+src/signals/trade_plan_validator.py
 ```
 
 Operating rule:
@@ -228,9 +239,21 @@ risk_reward validation
 quality gate passed
 ```
 
-Planned quality modules:
+Current validator checks:
 
-- Trade Plan Validator
+```text
+entry_trigger exists
+stop_loss exists
+target_1 exists
+stop_loss < entry_trigger
+target_1 > entry_trigger
+target_2 > target_1 when present
+risk_reward >= minimum threshold
+stop distance is not too tight or too wide when ATR is available
+```
+
+Planned next modules:
+
 - Entry Quality Engine
 - Stop-Loss Quality Engine
 - Exit / Target Quality Engine
@@ -323,6 +346,7 @@ tests/test_entry_exit_watcher_workflow_notifications.py
 | Watcher Workflow Notification Migration | Implemented |
 | Native Signal ID Generation | Implemented |
 | Executable Signal Quality Gate | Implemented |
+| Trade Plan Validator | Implemented |
 | Entry / Stop / Exit Quality Roadmap | Planned |
 | Entry / Exit Watcher | Implemented and workflow-hardened |
 | Watcher Runtime Validation | Implemented |
@@ -388,6 +412,7 @@ For Entry / Stop / Exit decision logic, also require:
 - signal generation
 - native signal_id generation
 - executable signal quality gate
+- trade plan validator
 - signal persistence
 - expanded cross-asset symbol universe
 - central notification client
@@ -426,18 +451,17 @@ For Entry / Stop / Exit decision logic, also require:
 
 ## Planned Next
 
-1. Implement Trade Plan Validator.
-2. Implement Entry Quality Engine.
-3. Implement Stop-Loss Quality Engine.
-4. Implement Exit / Target Quality Engine.
-5. Add Entry/Stop/Exit backtest feedback by entry_type and setup_type.
-6. Improve intraday data support with higher-frequency bars if Polygon plan allows.
-7. Add dashboard or static HTML reporting.
-8. Move long-term persistence from Git files to Postgres.
-9. Add regime similarity memory.
-10. Add scoring adjustment quality review.
-11. Add adaptive scoring guardrails by market regime.
-12. Add broker/account integration for automatic portfolio-state calculation.
+1. Implement Entry Quality Engine.
+2. Implement Stop-Loss Quality Engine.
+3. Implement Exit / Target Quality Engine.
+4. Add Entry/Stop/Exit backtest feedback by entry_type and setup_type.
+5. Improve intraday data support with higher-frequency bars if Polygon plan allows.
+6. Add dashboard or static HTML reporting.
+7. Move long-term persistence from Git files to Postgres.
+8. Add regime similarity memory.
+9. Add scoring adjustment quality review.
+10. Add adaptive scoring guardrails by market regime.
+11. Add broker/account integration for automatic portfolio-state calculation.
 
 ---
 
