@@ -8,19 +8,21 @@ signal records against injected price bars/snapshots and returns deterministic
 alerts + lifecycle updates.
 
 Responsibilities:
+- assign deterministic signal identity
 - detect ENTRY_TRIGGERED
 - detect STOP_HIT
 - detect TARGET_1_HIT
 - detect TARGET_2_HIT
 - detect EXPIRED
 - write alert JSON files
-- append lifecycle JSONL records
+- append lifecycle JSONL records with duplicate protection
 
 Data fetching belongs to scripts/run_entry_exit_watcher.py or another adapter.
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
 from dataclasses import asdict, dataclass
 from datetime import UTC, date, datetime
@@ -37,6 +39,18 @@ TERMINAL_STATUSES = {
     "EXPIRED",
     "CANCELLED_BY_REGIME_CHANGE",
 }
+
+_SIGNAL_ID_FIELDS = (
+    "symbol",
+    "action",
+    "signal_date",
+    "generated_at",
+    "entry_trigger",
+    "stop_loss",
+    "target_1",
+    "target_2",
+    "valid_until",
+)
 
 
 @dataclass(frozen=True)
@@ -62,11 +76,13 @@ class WatcherAlert:
     target_2: float | None
     previous_status: str
     new_status: str
+    signal_id: str
     notes: str = ""
 
 
 @dataclass(frozen=True)
 class SignalLifecycleUpdate:
+    signal_id: str
     symbol: str
     signal_date: str
     timestamp: str
@@ -103,17 +119,66 @@ def _parse_date(value: str | None) -> date | None:
         return None
 
 
+def _signal_date(signal: dict[str, Any]) -> str:
+    generated_at = str(signal.get("generated_at") or "")
+    if generated_at:
+        return generated_at[:10]
+    return str(signal.get("signal_date") or signal.get("date") or "unknown")
+
+
+def _current_status(signal: dict[str, Any]) -> str:
+    return str(signal.get("status") or "PENDING")
+
+
+def build_signal_id(signal: dict[str, Any]) -> str:
+    """Build a deterministic signal id from stable signal fields.
+
+    Existing `signal_id` values are preserved elsewhere by
+    `ensure_signal_identity()`. This function only defines how missing ids are
+    derived.
+    """
+
+    normalized = dict(signal)
+    normalized.setdefault("signal_date", _signal_date(signal))
+
+    identity_payload = {
+        field: normalized.get(field)
+        for field in _SIGNAL_ID_FIELDS
+    }
+    raw = json.dumps(identity_payload, sort_keys=True, separators=(",", ":"), default=str)
+    digest = hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
+    symbol = str(signal.get("symbol") or "UNKNOWN").upper().replace("/", "_")
+    return f"sig_{symbol}_{digest}"
+
+
+def ensure_signal_identity(signal: dict[str, Any]) -> dict[str, Any]:
+    """Return a copy of a signal with a stable `signal_id` field."""
+
+    result = dict(signal)
+    existing = result.get("signal_id")
+    if existing:
+        result["signal_id"] = str(existing)
+        return result
+
+    result["signal_id"] = build_signal_id(result)
+    return result
+
+
 def load_signal_file(path: str | Path) -> list[dict[str, Any]]:
-    """Load signal records from reports/signals/*.json."""
+    """Load signal records from reports/signals/*.json and ensure ids."""
     signal_path = Path(path)
     if not signal_path.exists():
         return []
 
     payload = json.loads(signal_path.read_text(encoding="utf-8"))
-    signals = payload.get("signals", [])
+    if isinstance(payload, list):
+        signals = payload
+    else:
+        signals = payload.get("signals", []) if isinstance(payload, dict) else []
+
     if not isinstance(signals, list):
         return []
-    return [item for item in signals if isinstance(item, dict)]
+    return [ensure_signal_identity(item) for item in signals if isinstance(item, dict)]
 
 
 def _bar_high(bar: PriceBar) -> float | None:
@@ -137,17 +202,6 @@ def _is_expired(signal: dict[str, Any], today: date | None = None) -> bool:
     return (today or _today_utc()) > valid_until
 
 
-def _signal_date(signal: dict[str, Any]) -> str:
-    generated_at = str(signal.get("generated_at") or "")
-    if generated_at:
-        return generated_at[:10]
-    return str(signal.get("signal_date") or signal.get("date") or "unknown")
-
-
-def _current_status(signal: dict[str, Any]) -> str:
-    return str(signal.get("status") or "PENDING")
-
-
 def evaluate_signal_against_bar(
     signal: dict[str, Any],
     bar: PriceBar,
@@ -167,6 +221,8 @@ def evaluate_signal_against_bar(
     Conservative ordering when a single bar touches both stop and target:
     stop is evaluated before targets. This avoids optimistic backtest bias.
     """
+    signal = ensure_signal_identity(signal)
+    signal_id = str(signal["signal_id"])
     symbol = str(signal.get("symbol") or "")
     if not symbol or symbol != bar.symbol:
         return None, None
@@ -230,10 +286,12 @@ def evaluate_signal_against_bar(
         target_2=target_2,
         previous_status=previous_status,
         new_status=new_status,
+        signal_id=signal_id,
         notes=f"{previous_status} → {new_status}",
     )
 
     updated_signal = dict(signal)
+    updated_signal["signal_id"] = signal_id
     updated_signal["status"] = new_status
     if event_type == "ENTRY_TRIGGERED":
         updated_signal["entry_triggered_at"] = bar.timestamp
@@ -243,6 +301,7 @@ def evaluate_signal_against_bar(
         updated_signal["last_event_price"] = trigger_price
 
     lifecycle = SignalLifecycleUpdate(
+        signal_id=signal_id,
         symbol=symbol,
         signal_date=signal_date,
         timestamp=bar.timestamp,
@@ -267,7 +326,8 @@ def evaluate_signals(
     updates: list[SignalLifecycleUpdate] = []
     updated_signals: list[dict[str, Any]] = []
 
-    for signal in signals:
+    for raw_signal in signals:
+        signal = ensure_signal_identity(raw_signal)
         symbol = str(signal.get("symbol") or "")
         bar = bars_by_symbol.get(symbol)
 
@@ -316,18 +376,49 @@ def save_alerts(
     return dated_path, latest_path
 
 
+def _lifecycle_key(payload: dict[str, Any]) -> tuple[str, str]:
+    signal_id = str(payload.get("signal_id") or payload.get("signal", {}).get("signal_id") or "")
+    event_type = str(payload.get("event_type") or "")
+    return signal_id, event_type
+
+
+def _read_existing_lifecycle_keys(path: Path) -> set[tuple[str, str]]:
+    if not path.exists():
+        return set()
+
+    keys: set[tuple[str, str]] = set()
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        try:
+            payload = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        key = _lifecycle_key(payload)
+        if all(key):
+            keys.add(key)
+    return keys
+
+
 def append_lifecycle_updates(
     updates: list[SignalLifecycleUpdate],
     *,
     log_path: Path | None = None,
 ) -> Path:
-    """Append lifecycle updates to data/signal_lifecycle.jsonl."""
+    """Append lifecycle updates to data/signal_lifecycle.jsonl with deduplication."""
     target = log_path or LIFECYCLE_LOG
     target.parent.mkdir(parents=True, exist_ok=True)
+    existing_keys = _read_existing_lifecycle_keys(target)
 
     with target.open("a", encoding="utf-8") as handle:
         for update in updates:
-            handle.write(json.dumps(asdict(update)) + "\n")
+            payload = asdict(update)
+            key = _lifecycle_key(payload)
+            if all(key) and key in existing_keys:
+                continue
+            handle.write(json.dumps(payload) + "\n")
+            if all(key):
+                existing_keys.add(key)
 
     return target
 
@@ -336,23 +427,25 @@ def save_updated_signal_file(
     original_signal_file: str | Path,
     updated_signals: list[dict[str, Any]],
 ) -> Path:
-    """Update the signal JSON file with lifecycle status fields."""
+    """Update the signal JSON file with identity and lifecycle status fields."""
     signal_path = Path(original_signal_file)
     payload: dict[str, Any] = {}
 
     if signal_path.exists():
         try:
-            payload = json.loads(signal_path.read_text(encoding="utf-8"))
+            existing_payload = json.loads(signal_path.read_text(encoding="utf-8"))
+            payload = existing_payload if isinstance(existing_payload, dict) else {}
         except json.JSONDecodeError:
             payload = {}
 
-    payload["signals"] = updated_signals
+    signals_with_identity = [ensure_signal_identity(signal) for signal in updated_signals]
+    payload["signals"] = signals_with_identity
     payload["last_watcher_update"] = utc_now_iso()
     payload["actionable_count"] = sum(
-        1 for signal in updated_signals if signal.get("action") == "BUY_WATCH"
+        1 for signal in signals_with_identity if signal.get("action") == "BUY_WATCH"
     )
     payload["open_count"] = sum(
-        1 for signal in updated_signals
+        1 for signal in signals_with_identity
         if signal.get("status", "PENDING") not in TERMINAL_STATUSES
     )
 
