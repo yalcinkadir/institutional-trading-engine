@@ -30,6 +30,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from src.signals.signal_identity import (
+    build_signal_id,
     ensure_signal_identity,
     signal_date_from_payload,
 )
