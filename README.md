@@ -21,6 +21,7 @@ It is designed as an institutional decision-support and research platform that:
 - prevents fake actionable signals without executable trade levels
 - derives entry triggers through a deterministic Entry Quality Engine
 - derives stop losses through a deterministic Stop-Loss Quality Engine
+- derives targets through a deterministic Exit / Target Quality Engine
 - validates trade plans before allowing `BUY_WATCH`
 - prioritizes excellent Entry / Stop Loss / Exit decision quality
 - assigns stable signal identity for lifecycle tracking
@@ -46,6 +47,7 @@ Market analysis
 → Signal generation with native signal_id
 → Entry Quality Engine
 → Stop-Loss Quality Engine
+→ Exit / Target Quality Engine
 → Trade Plan Validator
 → Entry / Stop / Exit quality validation
 → Entry / Exit monitoring
@@ -83,74 +85,6 @@ The watcher validates runtime configuration before execution:
 - missing legacy `signal_id` values are assigned deterministically as fallback
 - lifecycle events are deduplicated by `signal_id` + `event_type`
 
-Watcher workflow notifications are routed through:
-
-```text
-scripts/send_notification.py
-```
-
-The workflow sends watcher alert summaries and watcher failure messages through the same central CLI used by weekly expectancy feedback.
-
-## Send Notifications
-
-```bash
-python scripts/send_notification.py \
-  --message "communication test" \
-  --telegram \
-  --webhook \
-  --dry-run \
-  --cycle-id manual-test
-```
-
-```bash
-python scripts/send_notification.py \
-  --message-file reports/weekly-expectancy-summary.txt \
-  --telegram \
-  --webhook \
-  --cycle-id weekly-expectancy
-```
-
-The notification CLI emits structured JSON events:
-
-```text
-notification_send_started
-notification_send_completed
-```
-
-Missing Telegram or webhook configuration is non-fatal by default and returns structured `skipped` results.
-
-## Configure Portfolio State for Governance
-
-```bash
-cp data/portfolio_state.example.json data/portfolio_state.json
-```
-
-Runtime governance reads:
-
-```text
-data/portfolio_state.json
-```
-
-## Run Historical Validation
-
-```bash
-python scripts/run_historical_validation.py \
-  --signals-file data/backtest_signals.json \
-  --symbols AAPL,MSFT,NVDA \
-  --start-date 2024-01-01 \
-  --end-date 2024-12-31 \
-  --horizons 5,10,20 \
-  --output reports/backtests/backtest_summary.json
-```
-
-## Build Weekly Expectancy Summary
-
-```bash
-python scripts/build_weekly_expectancy_summary.py \
-  --decision-log data/decision_log.csv \
-  --output reports/weekly-expectancy-summary.txt
-```
-
 ## Run Tests
 
 ```bash
@@ -160,11 +94,13 @@ pytest
 Targeted tests:
 
 ```bash
+pytest tests/test_exit_target_quality.py
 pytest tests/test_stop_loss_quality.py
 pytest tests/test_entry_quality.py
 pytest tests/test_trade_plan_validator.py
 pytest tests/test_signal_identity.py
 pytest tests/test_signal_generator_identity.py
+pytest tests/test_generate_report_signal_quality_merge.py
 pytest tests/test_structured_logging.py
 pytest tests/test_run_entry_exit_watcher_runtime_validation.py
 pytest tests/test_entry_exit_watcher_workflow_notifications.py
@@ -182,50 +118,44 @@ pytest tests/test_portfolio_state.py
 
 # Signal Identity, Executability and Lifecycle Deduplication
 
-Signal identity, signal executability and lifecycle deduplication are implemented in:
+Implemented in:
 
 ```text
 src/signals/signal_identity.py
 src/signals/entry_quality.py
 src/signals/stop_loss_quality.py
+src/signals/exit_target_quality.py
 src/signals/signal_generator.py
 src/signals/trade_plan_validator.py
 src/watchers/entry_exit_watcher.py
 docs/architecture/signal_identity_lifecycle.md
 docs/architecture/entry_quality_engine.md
 docs/architecture/stop_loss_quality_engine.md
+docs/architecture/exit_target_quality_engine.md
 docs/architecture/trade_plan_validator.md
 ```
 
 Key behavior:
 
 - newly generated signals include native `signal_id`
-- `BUY_WATCH` requires a valid entry, valid stop and long trade plan
-- actionable signals include `entry_trigger`, `entry_type`, `entry_reason`, `stop_loss`, `stop_model` and `stop_reason`
+- `BUY_WATCH` requires a valid entry, valid stop, valid targets and valid long trade plan
+- actionable signals include `entry_trigger`, `entry_type`, `entry_reason`, `stop_loss`, `stop_model`, `stop_reason`, `target_1`, `exit_model` and `exit_reason`
 - Entry Quality supports breakout, pullback, retest, gap-fill and explicitly allowed at-market entries
 - Stop-Loss Quality supports ATR stops, pullback structure stops, retest structure stops, gap-fill stops and scanner-provided stops
+- Exit / Target Quality supports momentum, pullback, retest, gap-fill, scanner-provided and default risk targets
 - late breakout entries are rejected before reaching the watcher
 - scanner-provided stops are rejected if they are not below entry for long signals
+- scanner-provided targets are rejected if `target_1 <= entry` or `target_2 <= target_1`
 - long trade plans validate entry, stop, target, ordering, risk/reward and ATR stop distance
-- incomplete or invalid entries/stops/trade plans downgrade the signal to `NO_TRADE`
-- downgraded signals keep `signal_id`, context and explanatory notes
-- downgraded signals use `position_size = 0.0`
-- generated signal JSON files include `signal_id`, `entry_reason` and `stop_reason`
-- generated signal Markdown files include `signal_id`, entry reason and stop reason
-- decision payloads used by reports include `signal_id`
-- existing `signal_id` values are preserved
-- missing older `signal_id` values are generated deterministically by the watcher fallback
-- watcher alerts include `signal_id`
-- lifecycle JSONL records include top-level `signal_id`
-- updated signal files preserve `signal_id`
+- incomplete or invalid entries/stops/targets/trade plans downgrade the signal to `NO_TRADE`
+- generated signal JSON and Markdown include signal identity plus entry, stop and exit quality reasons
 - duplicate lifecycle events are skipped by `(signal_id, event_type)`
-- different event types for the same signal are still allowed
 
 ---
 
 # Entry / Stop / Exit Decision Quality
 
-The roadmap is documented in:
+Roadmap:
 
 ```text
 docs/roadmap/entry-stop-exit-quality.md
@@ -236,6 +166,7 @@ Implemented foundation:
 ```text
 src/signals/entry_quality.py
 src/signals/stop_loss_quality.py
+src/signals/exit_target_quality.py
 src/signals/trade_plan_validator.py
 ```
 
@@ -280,6 +211,18 @@ missing entry / close / ATR rejection
 inverted scanner stop rejection
 ```
 
+Current Exit / Target Quality checks:
+
+```text
+momentum targets
+pullback targets
+retest targets
+gap-fill targets
+scanner-provided target validation
+default risk targets
+invalid / inverted target rejection
+```
+
 Current Trade Plan Validator checks:
 
 ```text
@@ -295,77 +238,8 @@ stop distance is not too tight or too wide when ATR is available
 
 Planned next modules:
 
-- Exit / Target Quality Engine
 - Entry/Stop/Exit backtest feedback grouped by entry_type and setup_type
-
----
-
-# Structured Runtime Logging
-
-Structured logging is implemented in:
-
-```text
-src/structured_logging.py
-docs/architecture/structured_logging.md
-```
-
-Operational integrations:
-
-```text
-scripts/send_notification.py
-scripts/run_entry_exit_watcher.py
-src/runtime/live_runtime_cycle.py
-```
-
-Structured log events include:
-
-```text
-timestamp
-level
-event_type
-component
-message
-cycle_id
-workflow_run_id
-workflow_run_attempt
-context
-```
-
----
-
-# Notification and Communication Layer
-
-Central notification logic is implemented in:
-
-```text
-src/notifications.py
-scripts/send_notification.py
-docs/architecture/notifications.md
-```
-
-Supported channels:
-
-- Telegram delivery
-- generic webhook POST via `REPORT_WEBHOOK_URL`
-
-Delivery results are structured:
-
-```text
-delivered | skipped | dry_run | failed
-```
-
-Migrated workflows:
-
-```text
-.github/workflows/weekly-expectancy-feedback.yml
-.github/workflows/entry-exit-watcher.yml
-```
-
-Regression guard:
-
-```text
-tests/test_entry_exit_watcher_workflow_notifications.py
-```
+- richer structure-aware entry, stop and target derivation
 
 ---
 
@@ -387,8 +261,9 @@ tests/test_entry_exit_watcher_workflow_notifications.py
 | Executable Signal Quality Gate | Implemented |
 | Entry Quality Engine | Implemented |
 | Stop-Loss Quality Engine | Implemented |
+| Exit / Target Quality Engine | Implemented |
 | Trade Plan Validator | Implemented |
-| Entry / Stop / Exit Quality Roadmap | Planned |
+| Entry / Stop / Exit Quality Roadmap | In progress |
 | Entry / Exit Watcher | Implemented and workflow-hardened |
 | Watcher Runtime Validation | Implemented |
 | Signal Identity Fallback | Implemented |
@@ -423,16 +298,6 @@ No new feature should be added without:
 - deterministic behavior
 ```
 
-For market intelligence, lifecycle, observability and communication features, also require:
-
-```text
-- machine-readable output
-- lifecycle-aware state handling
-- non-fatal failure mode
-- clear audit trail
-- communication with existing reports/signals/outcomes/scoring features
-```
-
 For Entry / Stop / Exit decision logic, also require:
 
 ```text
@@ -455,6 +320,7 @@ For Entry / Stop / Exit decision logic, also require:
 - executable signal quality gate
 - entry quality engine
 - stop-loss quality engine
+- exit / target quality engine
 - trade plan validator
 - signal persistence
 - expanded cross-asset symbol universe
@@ -494,15 +360,14 @@ For Entry / Stop / Exit decision logic, also require:
 
 ## Planned Next
 
-1. Implement Exit / Target Quality Engine.
-2. Add Entry/Stop/Exit backtest feedback by entry_type and setup_type.
-3. Improve intraday data support with higher-frequency bars if Polygon plan allows.
-4. Add dashboard or static HTML reporting.
-5. Move long-term persistence from Git files to Postgres.
-6. Add regime similarity memory.
-7. Add scoring adjustment quality review.
-8. Add adaptive scoring guardrails by market regime.
-9. Add broker/account integration for automatic portfolio-state calculation.
+1. Add Entry/Stop/Exit backtest feedback by entry_type and setup_type.
+2. Improve intraday data support with higher-frequency bars if Polygon plan allows.
+3. Add dashboard or static HTML reporting.
+4. Move long-term persistence from Git files to Postgres.
+5. Add regime similarity memory.
+6. Add scoring adjustment quality review.
+7. Add adaptive scoring guardrails by market regime.
+8. Add broker/account integration for automatic portfolio-state calculation.
 
 ---
 
