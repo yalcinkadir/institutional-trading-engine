@@ -1,0 +1,9 @@
+{
+  "equity_start": 100000.0,
+  "equity_current": 100000.0,
+  "drawdown_percent": 0.0,
+  "daily_loss_percent": 0.0,
+  "open_positions": [],
+  "source": "manual_initial_live_decision_support_state",
+  "warnings": []
+}
