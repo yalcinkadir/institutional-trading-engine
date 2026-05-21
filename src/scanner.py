@@ -7,6 +7,7 @@ import pandas as pd
 import requests
 
 from config import SYMBOLS, BENCHMARK_MAP
+from src.signals.structure_levels import latest_confirmed_swing_low_3bar
 
 API_KEY = os.getenv("POLYGON_API_KEY")
 
@@ -293,6 +294,7 @@ def build_symbol_metrics(symbol, benchmark_returns):
     df["ATR_PCT"] = (df["ATR14"] / df["close"]) * 100
     df["VOL20"] = df["volume"].rolling(20).mean()
     df["RVOL"] = df["volume"] / df["VOL20"]
+    swing_low_3bar = latest_confirmed_swing_low_3bar(list(df["low"]))
 
     last = df.iloc[-1]
     ret_20d = calculate_20d_return(df["close"])
@@ -330,6 +332,7 @@ def build_symbol_metrics(symbol, benchmark_returns):
         "atr_pct": last["ATR_PCT"],
         "vol20": last["VOL20"],
         "rvol": last["RVOL"],
+        "swing_low_3bar": swing_low_3bar,
         "ret_20d": ret_20d,
         "benchmark": benchmark_symbol,
         "benchmark_ret_20d": benchmark_ret_20d,
@@ -726,7 +729,6 @@ def build_setup_score_section(metrics_map: dict, top_n: int = 5) -> list[str]:
         return lines + [""]
     except Exception as e:
         return ["## Top Institutional Setups", "", f"- Score engine error: {e}", ""]
-
 def main():
     if not API_KEY:
         raise RuntimeError("POLYGON_API_KEY fehlt.")
