@@ -18,6 +18,7 @@ It is designed as an institutional decision-support and research platform that:
 - communicates alerts and failures through a central notification layer
 - emits structured JSON logs from operational scripts and runtime cycles
 - produces machine-readable signal files with native `signal_id`
+- prevents fake actionable signals without executable trade levels
 - assigns stable signal identity for lifecycle tracking
 - stores signal history in the repository
 - monitors entries, stops and targets
@@ -39,6 +40,7 @@ It is designed as an institutional decision-support and research platform that:
 Market analysis
 → Diversified universe scan
 → Signal generation with native signal_id
+→ Executable signal quality gate
 → Entry / Exit monitoring
 → Central notification delivery
 → Structured operational logging
@@ -67,7 +69,7 @@ The watcher validates runtime configuration before execution:
 
 - `POLYGON_API_KEY` must exist
 - the configured signal file must exist
-- the signal file must contain a JSON list
+- the signal file must contain a JSON list or generated object payload with `signals[]`
 - every run prints a `WATCHER_CYCLE_ID`
 - structured log events include `WATCHER_CYCLE_ID` as `cycle_id`
 - native `signal_id` values are preserved
@@ -168,9 +170,9 @@ pytest tests/test_portfolio_state.py
 
 ---
 
-# Signal Identity and Lifecycle Deduplication
+# Signal Identity, Executability and Lifecycle Deduplication
 
-Signal identity and lifecycle deduplication are implemented in:
+Signal identity, signal executability and lifecycle deduplication are implemented in:
 
 ```text
 src/signals/signal_identity.py
@@ -182,6 +184,10 @@ docs/architecture/signal_identity_lifecycle.md
 Key behavior:
 
 - newly generated signals include native `signal_id`
+- `BUY_WATCH` requires `entry_trigger`, `stop_loss` and `target_1`
+- incomplete executable levels downgrade the signal to `NO_TRADE`
+- downgraded signals keep `signal_id`, context and explanatory notes
+- downgraded signals use `position_size = 0.0`
 - generated signal JSON files include `signal_id`
 - generated signal Markdown files include `signal_id`
 - decision payloads used by reports include `signal_id`
@@ -279,6 +285,7 @@ tests/test_entry_exit_watcher_workflow_notifications.py
 | Weekly Workflow Notification Migration | Implemented |
 | Watcher Workflow Notification Migration | Implemented |
 | Native Signal ID Generation | Implemented |
+| Executable Signal Quality Gate | Implemented |
 | Entry / Exit Watcher | Implemented and workflow-hardened |
 | Watcher Runtime Validation | Implemented |
 | Signal Identity Fallback | Implemented |
@@ -332,6 +339,7 @@ For market intelligence, lifecycle, observability and communication features, al
 - report automation
 - signal generation
 - native signal_id generation
+- executable signal quality gate
 - signal persistence
 - expanded cross-asset symbol universe
 - central notification client
