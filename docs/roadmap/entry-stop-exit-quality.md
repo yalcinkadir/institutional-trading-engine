@@ -20,9 +20,9 @@ quality gate passed
 
 ---
 
-## Current Baseline
+## Current Implemented Baseline
 
-Implemented so far:
+Implemented and CI-green:
 
 - native `signal_id` generation
 - watcher fallback identity for older signals
@@ -35,6 +35,15 @@ Implemented so far:
 - Exit / Target Quality Engine
 - Trade Plan Validator
 - Scanner-to-Signal Metrics Pipeline normalizer
+- native scanner `swing_low_3bar`
+- Intraday VWAP support when intraday bars are available
+- Trailing Stop and Partial Exit Management
+- Regime Invalidation Exit
+- Pending Signal Regime Invalidation
+- Entry / Stop / Exit Backtest Feedback
+- Regime-aware feedback grouping
+- initial file-backed portfolio state
+- End-to-End Dry Run validator
 
 The executable-level quality gate means:
 
@@ -50,300 +59,292 @@ NO_TRADE
 
 ---
 
-## Immediate Operational Priority
+## Go-Live Operating Gates
 
-### P15 — Scanner-to-Signal Data Pipeline Repair
-
-#### Problem
-
-If live `close` and `atr14` do not reach signal generation, Entry Quality fails with:
+Before scheduled live Decision-Support is enabled:
 
 ```text
-entry_quality: missing_close
+1. CI green
+2. POLYGON_API_KEY set
+3. Telegram/notification secrets verified when alerts are enabled
+4. data/portfolio_state.json present and intentionally initialized
+5. generate_report produces latest-signals.json
+6. E2E dry-run returns PASS
+7. manual watcher run completes successfully
+8. 5 consecutive entry-exit-watcher runs are green
 ```
 
-That makes the whole Entry / Stop / Exit stack operationally useless, even if the quality engines are correct.
+Live mode remains:
 
-#### Requirements
+```text
+Decision-Support only
+```
 
-- Verify scanner output contains `close`, `atr14`, `atr_pct` for every candidate.
-- Verify bridge/orchestrator passes those fields into `scanner_metrics_map`.
-- Add regression test: generated report candidate with scanner metrics must produce non-null `close`, `entry_trigger`, `stop_loss`, `target_1`.
-- Add failure visibility when scanner metrics are missing.
-- Do not silently produce empty scanner metrics for symbols that should have live data.
+Non-goal:
 
-#### Acceptance Criteria
-
-- At least one test proves scanner metrics reach `build_signals()` through the report path.
-- Missing `close` / `atr14` is visible as a data-pipeline warning, not only as a downgraded signal note.
-- Real report generation no longer produces all `NO_TRADE` solely because all `close` values are null when data is available.
-
-#### Status
-
-Implemented. CI verification pending.
+```text
+No broker execution. No automatic live orders.
+```
 
 ---
 
-## P14 — Excellent Entry / Stop / Exit Decision Quality
+## Historical Data / Strategy Training Roadmap
+
+This is the next major quality phase after operational live-readiness.
+
+The goal is not to blindly “train a strategy”. The goal is to create a falsifiable historical research loop:
+
+```text
+Historical data ingestion
+→ Historical feature generation
+→ Entry/Stop/Exit backtest
+→ Regime-aware validation
+→ Out-of-sample testing
+→ Scoring/expectancy feedback
+→ Paper-live observation
+→ trading decision
+```
+
+Training is only allowed after out-of-sample validation.
+
+---
+
+## P23 — Historical Polygon Data Ingestion
 
 ### Goal
 
-Make Entry / Stop Loss / Exit logic institutionally serious.
+Build a reliable historical data foundation from Polygon data.
 
-The engine should only produce actionable signals when the trade plan is:
+After the Stock Developer/Advanced-style Polygon subscription is enabled, the system should be able to ingest long-range historical OHLCV data for the configured universe.
 
-- executable
-- explainable
-- risk-valid
-- structure-aware
-- context-aware
-- test-covered
-- falsifiable through outcomes and backtests
+### Requirements
 
----
+- Add historical Polygon aggregate downloader.
+- Support daily bars first.
+- Support intraday bars later where plan/rate limits allow.
+- Store historical bars locally in a backtest-friendly format.
+- Prefer Parquet for compact analytics storage.
+- Avoid duplicate bars.
+- Add retry and rate-limit handling.
+- Add symbol-level ingestion status.
+- Add metadata file with ingestion range, symbol, timespan and last update.
+- Keep ingestion deterministic and resumable.
 
-## P14.1 Trade Plan Validator — Implemented
+### Initial Storage Layout
 
-### Required Checks
+```text
+data/historical/bars/1d/NVDA.parquet
+data/historical/bars/1d/AAPL.parquet
+data/historical/bars/1d/SPY.parquet
+data/historical/metadata/ingestion_status.json
+```
 
-- required levels exist
-- entry, stop and target ordering is valid
-- risk/reward is acceptable
-- stop distance is acceptable
-- reasons exist for entry, stop and exit
+### Acceptance Criteria
+
+- Historical downloader can fetch a configured symbol and date range.
+- Saved data contains date/time, open, high, low, close, volume.
+- Duplicate bars are removed.
+- Missing/empty Polygon responses are visible.
+- Tests use mocked Polygon responses, not live API calls.
+- README and architecture docs explain how to run ingestion.
 
 ### Status
 
-Implemented and CI-green.
+Planned for tomorrow.
 
 ---
 
-## P14.2 Entry Quality Engine — Implemented
+## P24 — Historical Entry / Stop / Exit Backtest Runner
 
-### Supported Entry Types
+### Goal
 
-- breakout entry
-- pullback entry
-- retest entry
-- gap-fill entry
-- at-market only when explicitly allowed
+Use historical bars to evaluate whether generated trade plans would have worked.
+
+This is not yet ML training. This is deterministic strategy falsification.
+
+### Requirements
+
+- Load historical bars from P23 storage.
+- Generate historical scanner metrics per symbol/date.
+- Reconstruct Entry / Stop / Exit trade plans.
+- Simulate future bars after signal date.
+- Measure whether entry was hit, stop was hit, target_1 was hit, target_2 was hit or signal expired.
+- Use conservative event ordering when one bar touches both stop and target.
+- Group results by entry_type, setup_type, stop_model, exit_model, market_regime, risk_state and volatility_regime.
+
+### Required Metrics
+
+```text
+entry_hit_rate
+expired_without_entry_rate
+stop_hit_rate
+target_1_hit_rate
+target_2_hit_rate
+false_breakout_rate
+average_R
+expectancy_R
+max_adverse_excursion
+max_favorable_excursion
+```
+
+### Acceptance Criteria
+
+- Backtest runner produces deterministic JSON/Markdown report.
+- Backtest uses historical bars, not synthetic data.
+- Results can feed existing Entry / Stop / Exit feedback aggregation.
+- Tests cover entry hit, stop hit, T1 hit, T2 hit, expiry and same-bar stop/target ordering.
 
 ### Status
 
-Implemented and CI-green.
+Planned after P23.
 
 ---
 
-## P14.3 Stop-Loss Quality Engine — Implemented
+## P25 — Out-of-Sample Validation and Adaptive Feedback Integration
 
-### Supported Stop Models
+### Goal
 
-- ATR stop
-- pullback structure stop
-- retest structure stop
-- gap-fill stop
-- scanner-provided stop
+Prevent overfitting before using historical results for scoring changes.
+
+### Required Dataset Split
+
+```text
+Training period:   older historical data
+Validation period: middle historical data
+Out-of-sample:     most recent untouched historical data
+```
+
+Example split for long history:
+
+```text
+2012–2020 training
+2021–2023 validation
+2024–2026 out-of-sample test
+```
+
+### Requirements
+
+- Add configurable date split definition.
+- Produce separate metrics for training, validation and out-of-sample windows.
+- Only allow scoring adjustments when validation and out-of-sample results agree directionally.
+- Add guardrails against over-optimization.
+- Persist model feedback history.
+- Feed validated adjustments into existing expectancy/scoring system.
+
+### Acceptance Criteria
+
+- Backtest report clearly separates training, validation and out-of-sample periods.
+- No scoring adjustment is accepted based only on training-period performance.
+- Poor models can reduce future scores only after validation.
+- Documentation warns against overfitting.
 
 ### Status
 
-Implemented and CI-green.
+Planned after P24.
 
 ---
 
-## P14.4 Exit / Target Quality Engine — Implemented
+## P26 — Paper-Live Observation Before Trading
 
-### Supported Exit Models
+### Goal
 
-- momentum targets
-- pullback targets
-- retest targets
-- gap-fill targets
-- scanner-provided targets
-- default risk targets
+Observe the system in live Decision-Support mode before any real trading decision.
+
+### Requirements
+
+- Run scheduled Decision-Support for a defined observation window.
+- Compare live signals with actual outcomes.
+- Verify Telegram/alerts, lifecycle updates and feedback reports.
+- Review false breakout rate, stop rate and expectancy.
+- Keep manual portfolio_state.json accurate if no broker sync exists.
+
+### Suggested Gate
+
+```text
+Minimum 2–4 weeks paper-live observation
+No real broker automation
+Manual review of every actionable signal
+```
+
+### Acceptance Criteria
+
+- Observation report exists.
+- Alerts are reliable.
+- Watcher is stable.
+- Feedback is usable.
+- No critical data-pipeline warnings remain.
 
 ### Status
 
-Implemented and CI-green.
+Planned after P25 and live dry-run validation.
 
 ---
 
-## P18A — Breakout Entry Context Upgrade
+## Completed Decision-Quality Items
 
-### Problem
+### P15 — Scanner-to-Signal Data Pipeline Repair
 
-Current breakout entry derivation is deterministic and ATR-based. That is testable, but it is still weak for excellent entry quality because it can ignore market context.
+Status: implemented and CI-green.
 
-Current baseline:
+### P14.1 — Trade Plan Validator
 
-```text
-momentum_breakout entry = close + 0.5 ATR
-```
+Status: implemented and CI-green.
 
-This is acceptable as a fallback, but not as the preferred breakout trigger.
+### P14.2 — Entry Quality Engine
 
-### Requirements
+Status: implemented and CI-green.
 
-#### High-of-Day / Daily High Trigger
+### P14.3 — Stop-Loss Quality Engine
 
-Use scanner-provided `high` as preferred breakout trigger when available:
+Status: implemented and CI-green.
 
-```text
-entry = high * 1.001
-entry_type = breakout
-entry_reason = breakout above recent high with 0.1% buffer
-```
+### P14.4 — Exit / Target Quality Engine
 
-Fallback remains:
+Status: implemented and CI-green.
 
-```text
-entry = close + 0.5 ATR
-```
+### P18A — Breakout Entry Context Upgrade
 
-#### Relative Volume Confirmation
+Status: implemented and CI-green.
 
-For `momentum_breakout`, require enough volume context when `rvol` exists:
+### P16 — Trailing Stop and Partial Exit Management
 
-```text
-if rvol < 0.8:
-    reject insufficient_volume_for_breakout
-```
+Status: implemented and CI-green.
 
-If `rvol` is missing, do not silently pass as excellent; either downgrade or add a configurable fallback policy.
+### P17 — Structure-Aware Stops
 
-#### VWAP Context
+Status: implemented and CI-green.
 
-VWAP should be supported as an optional strict filter when available:
+### P17B — Native Scanner Structure Metric
 
-```text
-if vwap exists and close < vwap and setup_type == momentum_breakout:
-    reject breakout_entry_below_vwap
-```
+Status: implemented and CI-green.
 
-Important: current daily scanner output does not reliably provide VWAP. VWAP requires either intraday bars or scanner enhancement. Therefore VWAP must be implemented as optional first and strict only when the data source is available.
+### P18B — VWAP / Intraday Entry Timing Upgrade
 
-### Acceptance Criteria
+Status: implemented and CI-green.
 
-- Momentum breakout prefers `high * 1.001` over `close + 0.5 ATR` when `high` is available.
-- Low `rvol` breakout is rejected with `insufficient_volume_for_breakout`.
-- VWAP filter rejects breakout below VWAP when `vwap` is available.
-- Missing VWAP does not crash entry generation.
-- Tests cover high-trigger, ATR fallback, RVOL pass/fail, VWAP pass/fail and missing VWAP.
+### P20 — Regime Invalidation Exit
 
----
+Status: implemented and CI-green.
 
-## P16 — Trailing Stop and Partial Exit Management
+### P20B — Pending Signal Regime Invalidation
 
-### Problem
+Status: implemented and CI-green.
 
-Target levels exist, but the lifecycle engine does not yet manage the position after `TARGET_1_HIT`.
+### P14.5 — Entry / Stop / Exit Backtest Feedback
 
-### Requirements
+Status: implemented and CI-green.
 
-- After `target_1` hit, mark partial exit event.
-- Support configurable partial exit ratio, default 50%.
-- Move stop to breakeven or breakeven plus buffer after target_1 hit.
-- Add ATR trailing stop for runner position.
-- Persist updated stop in signal state.
-- Deduplicate lifecycle events.
+### P21 — Regime-Aware Feedback Grouping
 
-### Initial Trailing Rules
+Status: implemented and CI-green.
 
-```text
-After T1 hit:
-partial_exit_ratio = 0.50
-new_stop = max(existing_stop, entry_trigger)
-runner_status = active
-runner_trail = max(current_stop, latest_high - 1.5 * ATR)
-```
+### P22 — End-to-End Dry Run Support
 
-### Acceptance Criteria
-
-- Watcher records `TARGET_1_HIT` and a partial-exit lifecycle update.
-- Updated signal state contains adjusted stop.
-- Runner stop only moves upward for long signals.
-- Tests cover T1 hit, breakeven stop move, ATR trail move and no duplicate partial-exit events.
+Status: implemented and CI-green.
 
 ---
 
-## P17 — Structure-Aware Stops
-
-### Problem
-
-Current stops are deterministic and ATR-based, but not yet based on real market structure. The label `structure_stop` is only partially true until real pivots / swing lows are used.
-
-### Requirements
-
-- Detect recent 3-bar swing lows for long setups in scanner metrics.
-- Preserve `swing_low_3bar` through the scanner-to-signal metrics pipeline.
-- Use swing-low stop before ATR fallback when valid.
-- Apply a wick/structure buffer below the swing low.
-- Store `stop_model = swing_low_structure_stop` when used.
-- Add support-zone / invalidation-level hooks for later enrichment.
-
-### Initial Rule
-
-```text
-swing_low = scanner_metrics["swing_low_3bar"]
-if swing_low and swing_low < entry_trigger:
-    stop = swing_low * 0.998
-    if (entry_trigger - stop) / atr <= 3.0:
-        use swing_low_structure_stop
-    else:
-        fallback to ATR stop
-```
-
-### Acceptance Criteria
-
-- Scanner can produce `swing_low_3bar`.
-- Metrics pipeline preserves `swing_low_3bar`.
-- Stop quality can choose a swing-low stop.
-- Invalid or too-wide structure stops are rejected or ignored.
-- Tests cover valid swing low, missing swing low and too-wide swing low stop.
-
----
-
-## P18B — VWAP / Intraday Entry Timing Upgrade
-
-### Problem
-
-Entry Quality is deterministic, but not fully intraday-aware. P18A supports VWAP only when available. P18B makes VWAP/intraday timing a first-class data source.
-
-### Requirements
-
-- Add VWAP calculation from intraday bars where Polygon plan allows.
-- Add close-above-VWAP confirmation for breakout setups.
-- Add late-breakout rejection against VWAP/context, not only ATR extension.
-- Add `entry_confirmation` fields.
-
-### Acceptance Criteria
-
-- Entry quality can attach `entry_confirmation`.
-- Breakout entries can require price above VWAP when configured.
-- Tests cover VWAP pass/fail and missing VWAP fallback.
-
----
-
-## P20 — Regime Invalidation Exit
-
-### Problem
-
-Open positions and runner states are not yet force-exited when the broader regime invalidates the original thesis.
-
-### Requirements
-
-- Detect regime shift into `risk_off` / equivalent defensive state.
-- Mark runner or open signal as regime-invalidated.
-- Emit lifecycle event such as `REGIME_INVALIDATION_EXIT`.
-- Do not duplicate the event.
-
-### Acceptance Criteria
-
-- Watcher or runtime cycle can close/invalidate active runner state on regime deterioration.
-- Tests cover regime change, no-change and duplicate-event prevention.
-
----
-
-## P19 — Short-Side Decision Path
+## Future Module — P19 Short-Side Decision Path
 
 ### Problem
 
@@ -362,39 +363,24 @@ The current system is long-only. That limits hedge, downside and market-neutral 
 - Short plan validates entry > target and stop > entry.
 - Long and short validation paths are tested separately.
 
----
+### Status
 
-## P14.5 — Entry / Stop / Exit Backtest Feedback
-
-### Required Measurements
-
-- entry hit rate
-- stop hit before target
-- target_1 hit rate
-- target_2 hit rate
-- false breakout rate
-- expired-without-entry rate
-- results grouped by `entry_type`, `setup_type`, `stop_model`, `exit_model`
-
-### Acceptance Criteria
-
-- Reports include Entry / Stop / Exit statistics.
-- Weekly expectancy includes entry-type and exit-model breakdown.
-- Poor entry or exit models can reduce future score or downgrade setups.
+Planned after historical validation foundation.
 
 ---
 
 ## Updated Implementation Order
 
 ```text
-1. Finish P15 CI verification and close scanner-to-signal data pipeline repair
-2. P18A Breakout Entry Context Upgrade: high-trigger + RVOL + optional VWAP filter
-3. P16 Trailing Stop and Partial Exit Management
-4. P17 Structure-Aware Stops with 3-bar swing low
-5. P14.5 Entry/Stop/Exit Backtest Feedback
-6. P18B VWAP / Intraday Entry Timing Upgrade
-7. P20 Regime Invalidation Exit
-8. P19 Short-Side Decision Path
+0. Complete operational go-live checks for Decision-Support mode
+1. Enable Polygon Stock subscription with required historical range
+2. P23 Historical Polygon Data Ingestion
+3. P24 Historical Entry / Stop / Exit Backtest Runner
+4. P25 Out-of-Sample Validation and Adaptive Feedback Integration
+5. P26 Paper-Live Observation Before Trading
+6. Fix missing points discovered by historical tests and paper-live observation
+7. Only then decide about real trading
+8. P19 Short-Side Decision Path later
 9. README + architecture documentation after every patch
 ```
 
@@ -404,8 +390,9 @@ The current system is long-only. That limits hedge, downside and market-neutral 
 
 - broker execution
 - live order placement
-- full ML prediction engine
+- blind ML prediction engine
 - dashboard UI
+- real trading without validation
 
 ---
 
@@ -416,7 +403,15 @@ From this point forward, a signal is not good because it has a high score.
 A signal is only actionable when:
 
 ```text
-score + regime + live data + executable trade plan + risk validation + lifecycle management
+score + regime + live data + executable trade plan + risk validation + lifecycle management + historical validation
 ```
 
 all pass together.
+
+Trading decision rule:
+
+```text
+No historical validation → no training.
+No out-of-sample validation → no adaptive scoring change.
+No paper-live observation → no trading decision.
+```
