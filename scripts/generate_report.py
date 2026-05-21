@@ -11,7 +11,7 @@ After each premarket/intraday/postmarket report, a signal JSON and Markdown file
 is written to reports/signals/YYYY-MM-DD-signals.{json,md}.
 
 Signal levels are also merged back into the decision payload before rendering,
-so Entry/Stop/Target/R:R are visible in the main report.
+so Entry/Stop/Target/R:R and signal_id are visible to downstream report logic.
 
 Expectation-based scoring adjustments are persisted to:
 
@@ -119,6 +119,7 @@ def _merge_signal_levels_into_decisions(
 
         signal_payload = asdict(signal)
         for key in (
+            "signal_id",
             "action",
             "close",
             "entry_trigger",
