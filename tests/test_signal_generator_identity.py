@@ -6,13 +6,13 @@ from pathlib import Path
 from src.signals.signal_generator import build_signals, save_signals
 
 
-def _decision_report() -> dict:
+def _decision_report(setup_type: str = "momentum_breakout") -> dict:
     return {
         "decisions": [
             {
                 "symbol": "NVDA",
                 "decision": "approved",
-                "setup_type": "momentum_breakout",
+                "setup_type": setup_type,
                 "risk_tier": "tier_1",
                 "position_size_multiplier": 1.0,
                 "setup_score": 91.0,
@@ -70,9 +70,24 @@ def test_build_signals_produces_buy_watch_only_with_valid_trade_plan() -> None:
     assert nvda.entry_trigger is not None
     assert nvda.stop_loss is not None
     assert nvda.target_1 is not None
+    assert nvda.entry_type == "breakout"
+    assert nvda.entry_reason
     assert nvda.risk_reward is not None
     assert nvda.risk_reward >= 1.2
     assert nvda.position_size == 1.0
+
+
+def test_build_signals_supports_pullback_entry_reason() -> None:
+    signals = build_signals(
+        decision_report=_decision_report(setup_type="pullback_continuation"),
+        scanner_metrics_map=_scanner_metrics(),
+        market_regime="Bullish",
+    )
+
+    nvda = signals[0]
+    assert nvda.action == "BUY_WATCH"
+    assert nvda.entry_type == "pullback"
+    assert "pullback entry" in nvda.entry_reason
 
 
 def test_build_signals_downgrades_approved_signal_without_executable_levels() -> None:
@@ -88,7 +103,7 @@ def test_build_signals_downgrades_approved_signal_without_executable_levels() ->
     assert nvda.entry_trigger is None
     assert nvda.stop_loss is None
     assert nvda.target_1 is None
-    assert "downgraded: invalid trade plan" in nvda.notes
+    assert "missing_close" in nvda.notes
     assert "missing_entry_trigger" in nvda.notes
     assert "missing_stop_loss" in nvda.notes
     assert "missing_target_1" in nvda.notes
@@ -113,6 +128,7 @@ def test_build_signals_downgrades_when_entry_stop_exist_but_atr_missing() -> Non
     nvda = signals[0]
     assert nvda.action == "NO_TRADE"
     assert nvda.position_size == 0.0
+    assert "missing_or_invalid_atr" in nvda.notes
     assert "missing_entry_trigger" in nvda.notes
     assert "missing_stop_loss" in nvda.notes
     assert "missing_target_1" in nvda.notes
@@ -165,6 +181,30 @@ def test_build_signals_downgrades_inverted_stop_trade_plan() -> None:
     assert "stop_loss_not_below_entry" in nvda.notes
 
 
+def test_build_signals_downgrades_late_scanner_entry() -> None:
+    late_metrics = {
+        "NVDA": {
+            "close": 110.0,
+            "atr14": 4.0,
+            "atr_pct": 3.6,
+            "entry": 100.0,
+            "entry_type": "breakout",
+            "stop_loss": 96.0,
+            "exit_1": 108.0,
+        }
+    }
+
+    signals = build_signals(
+        decision_report=_decision_report(),
+        scanner_metrics_map=late_metrics,
+        market_regime="Bullish",
+    )
+
+    nvda = signals[0]
+    assert nvda.action == "NO_TRADE"
+    assert "late_entry_price_extended_beyond_trigger" in nvda.notes
+
+
 def test_build_signals_produces_stable_ids_when_time_is_fixed(monkeypatch) -> None:
     class FixedDatetime:
         @staticmethod
@@ -194,8 +234,10 @@ def test_save_signals_writes_signal_id_to_json_and_markdown(tmp_path: Path) -> N
     markdown = md_path.read_text(encoding="utf-8")
 
     assert all(item.get("signal_id") for item in payload["signals"])
+    assert all(item.get("entry_reason") for item in payload["signals"])
     assert all(item.get("signal_id") for item in latest_payload["signals"])
     assert "Signal ID" in markdown
+    assert "Reason:" in markdown
     assert signals[0].signal_id in markdown
 
 
