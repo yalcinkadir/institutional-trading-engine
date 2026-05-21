@@ -17,7 +17,7 @@ It is designed as an institutional decision-support and research platform that:
 - generates premarket, intraday, postmarket and weekly reports
 - communicates alerts and failures through a central notification layer
 - emits structured JSON logs from operational scripts and runtime cycles
-- produces machine-readable signal files
+- produces machine-readable signal files with native `signal_id`
 - assigns stable signal identity for lifecycle tracking
 - stores signal history in the repository
 - monitors entries, stops and targets
@@ -38,8 +38,7 @@ It is designed as an institutional decision-support and research platform that:
 ```text
 Market analysis
 → Diversified universe scan
-→ Signal generation
-→ Signal identity
+→ Signal generation with native signal_id
 → Entry / Exit monitoring
 → Central notification delivery
 → Structured operational logging
@@ -71,23 +70,9 @@ The watcher validates runtime configuration before execution:
 - the signal file must contain a JSON list
 - every run prints a `WATCHER_CYCLE_ID`
 - structured log events include `WATCHER_CYCLE_ID` as `cycle_id`
-- missing `signal_id` values are assigned deterministically
+- native `signal_id` values are preserved
+- missing legacy `signal_id` values are assigned deterministically as fallback
 - lifecycle events are deduplicated by `signal_id` + `event_type`
-
-Watcher structured events include:
-
-```text
-watcher_runner_started
-watcher_runtime_validation_succeeded
-watcher_runtime_validation_failed
-watcher_signals_loaded
-watcher_no_actionable_signals
-watcher_symbol_fetch_failed
-watcher_evaluation_completed
-watcher_events_persisted
-watcher_no_events_detected
-watcher_runner_completed
-```
 
 Watcher workflow notifications are routed through:
 
@@ -166,6 +151,8 @@ pytest
 Targeted tests:
 
 ```bash
+pytest tests/test_signal_identity.py
+pytest tests/test_signal_generator_identity.py
 pytest tests/test_structured_logging.py
 pytest tests/test_run_entry_exit_watcher_runtime_validation.py
 pytest tests/test_entry_exit_watcher_workflow_notifications.py
@@ -178,6 +165,33 @@ pytest tests/test_polygon_client_historical_range.py
 pytest tests/test_symbol_universe.py
 pytest tests/test_portfolio_state.py
 ```
+
+---
+
+# Signal Identity and Lifecycle Deduplication
+
+Signal identity and lifecycle deduplication are implemented in:
+
+```text
+src/signals/signal_identity.py
+src/signals/signal_generator.py
+src/watchers/entry_exit_watcher.py
+docs/architecture/signal_identity_lifecycle.md
+```
+
+Key behavior:
+
+- newly generated signals include native `signal_id`
+- generated signal JSON files include `signal_id`
+- generated signal Markdown files include `signal_id`
+- decision payloads used by reports include `signal_id`
+- existing `signal_id` values are preserved
+- missing older `signal_id` values are generated deterministically by the watcher fallback
+- watcher alerts include `signal_id`
+- lifecycle JSONL records include top-level `signal_id`
+- updated signal files preserve `signal_id`
+- duplicate lifecycle events are skipped by `(signal_id, event_type)`
+- different event types for the same signal are still allowed
 
 ---
 
@@ -211,51 +225,6 @@ workflow_run_id
 workflow_run_attempt
 context
 ```
-
-Supported levels:
-
-```text
-DEBUG, INFO, WARNING, ERROR, CRITICAL
-```
-
-Live runtime structured events include:
-
-```text
-live_runtime_cycle_started
-live_runtime_governance_passed
-live_runtime_governance_blocked
-live_runtime_data_quality_warning
-live_runtime_portfolio_state_warning
-live_runtime_cycle_completed
-```
-
-JSON-line output is designed for:
-
-- GitHub Actions logs
-- local debugging
-- future log collection
-- runtime audit review
-
----
-
-# Signal Identity and Lifecycle Deduplication
-
-Signal identity and lifecycle deduplication are implemented in:
-
-```text
-src/watchers/entry_exit_watcher.py
-docs/architecture/signal_identity_lifecycle.md
-```
-
-Key behavior:
-
-- existing `signal_id` values are preserved
-- missing `signal_id` values are generated deterministically from stable signal fields
-- watcher alerts include `signal_id`
-- lifecycle JSONL records include top-level `signal_id`
-- updated signal files preserve `signal_id`
-- duplicate lifecycle events are skipped by `(signal_id, event_type)`
-- different event types for the same signal are still allowed
 
 ---
 
@@ -309,9 +278,10 @@ tests/test_entry_exit_watcher_workflow_notifications.py
 | Live Runtime Cycle Structured Logs | Implemented |
 | Weekly Workflow Notification Migration | Implemented |
 | Watcher Workflow Notification Migration | Implemented |
+| Native Signal ID Generation | Implemented |
 | Entry / Exit Watcher | Implemented and workflow-hardened |
 | Watcher Runtime Validation | Implemented |
-| Signal Identity | Implemented in watcher path |
+| Signal Identity Fallback | Implemented |
 | Lifecycle Deduplication | Implemented |
 | Alerts Persistence | Implemented |
 | Signal Lifecycle JSONL | Implemented |
@@ -324,7 +294,6 @@ tests/test_entry_exit_watcher_workflow_notifications.py
 | CI Pytest Workflow | Implemented |
 | End-to-End Institutional Flow | Partially implemented |
 | Fully Unified Continuous Runtime | In progress |
-| Signal Generation Native `signal_id` | Planned |
 | Broker Execution | Not implemented |
 | Dashboard UI | Not implemented |
 
@@ -362,6 +331,7 @@ For market intelligence, lifecycle, observability and communication features, al
 
 - report automation
 - signal generation
+- native signal_id generation
 - signal persistence
 - expanded cross-asset symbol universe
 - central notification client
@@ -375,7 +345,7 @@ For market intelligence, lifecycle, observability and communication features, al
 - Entry / Exit Watcher V1
 - watcher runtime validation
 - watcher workflow hardening
-- signal identity in watcher lifecycle path
+- signal identity fallback for legacy signals
 - lifecycle event deduplication
 - alerts persistence
 - lifecycle JSONL
@@ -399,14 +369,13 @@ For market intelligence, lifecycle, observability and communication features, al
 
 ## Planned Next
 
-1. Generate native `signal_id` at signal creation time.
-2. Improve intraday data support with higher-frequency bars if Polygon plan allows.
-3. Add dashboard or static HTML reporting.
-4. Move long-term persistence from Git files to Postgres.
-5. Add regime similarity memory.
-6. Add scoring adjustment quality review.
-7. Add adaptive scoring guardrails by market regime.
-8. Add broker/account integration for automatic portfolio-state calculation.
+1. Improve intraday data support with higher-frequency bars if Polygon plan allows.
+2. Add dashboard or static HTML reporting.
+3. Move long-term persistence from Git files to Postgres.
+4. Add regime similarity memory.
+5. Add scoring adjustment quality review.
+6. Add adaptive scoring guardrails by market regime.
+7. Add broker/account integration for automatic portfolio-state calculation.
 
 ---
 
