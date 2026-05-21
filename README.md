@@ -15,7 +15,7 @@ It is designed as an institutional decision-support and research platform that:
 - ranks opportunities
 - scans a diversified symbol universe across indices, sectors, bonds, commodities and leaders
 - normalizes scanner metrics before signal generation
-- enriches signal metrics with confirmed 3-bar swing-low structure levels
+- emits native scanner `swing_low_3bar` structure levels
 - enriches signal metrics with intraday VWAP when intraday bars are available
 - generates premarket, intraday, postmarket and weekly reports
 - communicates alerts and failures through a central notification layer
@@ -54,7 +54,7 @@ It is designed as an institutional decision-support and research platform that:
 Market analysis
 → Diversified universe scan
 → Scanner metrics normalization
-→ Structure level enrichment
+→ Native scanner structure level
 → Intraday VWAP enrichment
 → Signal generation with native signal_id
 → Entry Quality Engine
@@ -114,6 +114,7 @@ pytest
 Targeted tests:
 
 ```bash
+pytest tests/test_scanner_structure_metrics.py
 pytest tests/test_intraday_vwap.py
 pytest tests/test_generate_report_intraday_vwap.py
 pytest tests/test_regime_invalidation.py
@@ -187,7 +188,8 @@ swing_low_3bar
 Pipeline behavior:
 
 - scanner output is normalized before `build_signals()`
-- report generation enriches metrics with `swing_low_3bar` when bar lows are available
+- scanner natively emits `swing_low_3bar` from daily lows when available
+- report generation can still enrich metrics with `swing_low_3bar` as fallback/context preservation
 - report generation enriches metrics with VWAP when intraday bars are available
 - `NaN`, `inf`, invalid values and missing values become `None`
 - missing symbols and incomplete metrics are reported through diagnostics
@@ -452,6 +454,7 @@ Planned next modules:
 |---|---|
 | Report Automation | Implemented |
 | Scanner-to-Signal Metrics Pipeline | Implemented |
+| Native Scanner Structure Metric | Implemented |
 | Intraday VWAP Support | Implemented |
 | Structure-Aware Stops | Implemented |
 | Breakout Entry Context Upgrade | Implemented |
@@ -528,6 +531,7 @@ For Entry / Stop / Exit decision logic, also require:
 - report automation
 - signal generation
 - scanner-to-signal metrics pipeline
+- native scanner structure metric
 - intraday VWAP support
 - breakout entry context upgrade
 - structure-aware stops
