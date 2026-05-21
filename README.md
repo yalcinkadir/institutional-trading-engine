@@ -4,7 +4,7 @@
 ![CI](https://img.shields.io/badge/CI-pytest-brightgreen.svg)
 ![Status](https://img.shields.io/badge/status-production--oriented-orange.svg)
 
-Institutional Trading Engine is a production-oriented market intelligence, screening, reporting, runtime orchestration, signal lifecycle and outcome-learning platform.
+Institutional Trading Engine is a production-oriented market intelligence, screening, reporting, runtime orchestration, communication, signal lifecycle and outcome-learning platform.
 
 The system is **not** a black-box trading bot and does **not** place live trades.
 
@@ -15,6 +15,7 @@ It is designed as an institutional decision-support and research platform that:
 - ranks opportunities
 - scans a diversified symbol universe across indices, sectors, bonds, commodities and leaders
 - generates premarket, intraday, postmarket and weekly reports
+- communicates alerts and summaries through a central notification layer
 - produces machine-readable signal files
 - stores signal history in the repository
 - monitors entries, stops and targets
@@ -37,6 +38,7 @@ Market analysis
 → Diversified universe scan
 → Signal generation
 → Entry / Exit monitoring
+→ Notification delivery
 → Lifecycle tracking
 → Historical validation
 → Outcome evaluation
@@ -50,7 +52,7 @@ Market analysis
 The current implementation supports this structural flow:
 
 ```text
-Reports → Signals → Watcher → Alerts → Lifecycle → Outcomes → Expectancy → Scoring → Audit History
+Reports → Signals → Watcher → Alerts → Notifications → Lifecycle → Outcomes → Expectancy → Scoring → Audit History
 ```
 
 ---
@@ -172,6 +174,37 @@ SYMBOL_UNIVERSE_GROUPS
 
 Tests protect the universe from duplicate symbols, missing benchmark mappings and missing group metadata.
 
+## Send Notifications
+
+Central notification logic is implemented in:
+
+```text
+src/notifications.py
+scripts/send_notification.py
+docs/architecture/notifications.md
+```
+
+Dry-run example:
+
+```bash
+python scripts/send_notification.py \
+  --message "communication test" \
+  --telegram \
+  --webhook \
+  --dry-run
+```
+
+Send from file:
+
+```bash
+python scripts/send_notification.py \
+  --message-file reports/weekly-expectancy-summary.txt \
+  --telegram \
+  --webhook
+```
+
+Missing Telegram or webhook config is non-fatal by default and returns structured `skipped` results.
+
 ## Run the Entry / Exit Watcher
 
 ```bash
@@ -270,7 +303,7 @@ The weekly workflow is implemented in:
 .github/workflows/weekly-expectancy-feedback.yml
 ```
 
-It can run manually or on the weekly schedule. Telegram delivery is optional and only runs when Telegram secrets are configured.
+It can run manually or on the weekly schedule. Telegram/webhook delivery is routed through the central notification CLI.
 
 ## Run Tests
 
@@ -307,13 +340,16 @@ institutional-trading-engine/
 │   └── scoring_adjustment_history.json
 │
 ├── docs/
-│   └── architecture/
-│       ├── adaptive_scoring_feedback_loop.md
-│       ├── historical_validation.md
-│       ├── live_runtime_integration.md
-│       ├── runtime_loop.md
-│       ├── runtime_portfolio_state.md
-│       └── decision_log_store.md
+│   ├── architecture/
+│   │   ├── adaptive_scoring_feedback_loop.md
+│   │   ├── historical_validation.md
+│   │   ├── live_runtime_integration.md
+│   │   ├── notifications.md
+│   │   ├── runtime_loop.md
+│   │   ├── runtime_portfolio_state.md
+│   │   └── decision_log_store.md
+│   └── roadmap/
+│       └── connection-and-communication.md
 │
 ├── reports/
 │   ├── premarket/
@@ -331,6 +367,7 @@ institutional-trading-engine/
 │   ├── generate_report.py
 │   ├── run_entry_exit_watcher.py
 │   ├── run_historical_validation.py
+│   ├── send_notification.py
 │   ├── build_weekly_expectancy_summary.py
 │   ├── generate_outcomes.py
 │   └── update_outcomes.py
@@ -373,6 +410,9 @@ Current state:
 | Premarket / Intraday / Postmarket / Weekly Reports | Implemented |
 | Machine-Readable Signals | Implemented |
 | Expanded Symbol Universe | Implemented |
+| Central Notification Client | Implemented |
+| Notification CLI | Implemented |
+| Weekly Workflow Notification Migration | Implemented |
 | Entry / Exit Watcher | Implemented and workflow-hardened |
 | Watcher Runtime Validation | Implemented |
 | Watcher Telegram Success Alerts | Implemented |
@@ -392,10 +432,52 @@ Current state:
 | CI Pytest Workflow | Implemented |
 | End-to-End Institutional Flow | Partially implemented |
 | Fully Unified Continuous Runtime | In progress |
+| Watcher Notification Migration to CLI | Planned |
 | Broker / Account Auto-Sync | Not implemented |
 | Broker Execution | Not implemented |
 | Streaming Intraday Data | Not implemented |
 | Dashboard UI | Not implemented |
+
+---
+
+# Notification and Communication Layer
+
+The central communication layer is implemented through:
+
+```text
+src/notifications.py
+scripts/send_notification.py
+```
+
+Supported channels:
+
+- Telegram `sendMessage`
+- generic webhook POST via `REPORT_WEBHOOK_URL`
+
+Delivery results are structured:
+
+```text
+delivered | skipped | dry_run | failed
+```
+
+Design rules:
+
+- missing secrets do not crash workflows by default
+- delivery failures are returned as structured results
+- strict mode is available for future hard-failure workflows
+- real network calls are mockable in tests
+
+Current migrated workflow:
+
+```text
+.github/workflows/weekly-expectancy-feedback.yml
+```
+
+Next migration target:
+
+```text
+.github/workflows/entry-exit-watcher.yml
+```
 
 ---
 
@@ -449,7 +531,7 @@ The workflow:
 - writes `reports/weekly-expectancy-summary.txt`
 - commits changed report outputs
 - uploads artifacts
-- sends Telegram summary when Telegram secrets are configured
+- sends Telegram/webhook summary through the central notification CLI
 
 ---
 
@@ -712,7 +794,7 @@ Responsibilities:
 - build compact weekly feedback summary
 - commit changed outputs
 - upload artifacts
-- send optional Telegram summary
+- send optional Telegram/webhook summary through `scripts/send_notification.py`
 
 ---
 
@@ -781,6 +863,7 @@ Current limitations:
 - historical validation uses daily bars only in the first implementation
 - signal extraction into historical-validation input is not fully automated yet
 - weekly expectancy quality depends on accumulated evaluated samples
+- watcher notification migration to the central CLI is still planned
 - Git-based persistence is not final production storage
 - no dashboard UI yet
 - no Postgres persistence yet
@@ -791,7 +874,7 @@ Current limitations:
 Important:
 
 ```text
-This project currently supports research, screening, alerting, lifecycle analysis, file-backed portfolio-state governance, historical validation, weekly expectancy feedback and adaptive scoring.
+This project currently supports research, screening, alerting, lifecycle analysis, file-backed portfolio-state governance, central notifications, historical validation, weekly expectancy feedback and adaptive scoring.
 It does not execute trades.
 ```
 
@@ -819,6 +902,7 @@ pytest tests/test_portfolio_state.py
 pytest tests/test_historical_validation.py
 pytest tests/test_polygon_client_historical_range.py
 pytest tests/test_symbol_universe.py
+pytest tests/test_notifications.py
 pytest tests/test_expectancy_feedback_summary.py
 pytest tests/test_scanner_market_snapshot_builder.py
 pytest tests/test_end_to_end_institutional_flow.py
@@ -834,6 +918,7 @@ Test coverage includes:
 - governance
 - portfolio-state governance integration
 - expanded symbol universe integrity
+- central notification client
 - historical validation
 - Polygon historical range fetcher behavior
 - weekly expectancy feedback summary
@@ -858,15 +943,16 @@ Test coverage includes:
 No new feature should be added without:
 
 ```text
+- roadmap / issue plan
+- implementation
 - tests
 - architecture documentation
-- integration with existing pipeline
-- explainability
-- operational notes
+- README update
+- CI verification
 - deterministic behavior
 ```
 
-For market intelligence features, also require:
+For market intelligence and communication features, also require:
 
 ```text
 - machine-readable output
@@ -886,6 +972,9 @@ For market intelligence features, also require:
 - signal generation
 - signal persistence
 - expanded cross-asset symbol universe
+- central notification client
+- notification CLI
+- weekly workflow notification migration
 - Entry / Exit Watcher V1
 - watcher runtime validation
 - watcher workflow hardening
@@ -910,21 +999,23 @@ For market intelligence features, also require:
 
 ## In Progress
 
+- connection and communication hardening
 - unified continuous runtime maturity
 - operational observation of watcher stability across real scheduled runs
 
 ## Planned Next
 
-1. Add explicit `signal_id` to every generated signal.
-2. Prevent duplicate lifecycle events for the same signal/event pair.
-3. Improve intraday data support with higher-frequency bars if Polygon plan allows.
-4. Add dashboard or static HTML reporting.
-5. Move long-term persistence from Git files to Postgres.
-6. Add structured JSON logging.
-7. Add regime similarity memory.
-8. Add scoring adjustment quality review.
-9. Add adaptive scoring guardrails by market regime.
-10. Add broker/account integration for automatic portfolio-state calculation.
+1. Migrate entry-exit watcher notifications to the central notification CLI.
+2. Add explicit `signal_id` to every generated signal.
+3. Prevent duplicate lifecycle events for the same signal/event pair.
+4. Add structured JSON logging.
+5. Improve intraday data support with higher-frequency bars if Polygon plan allows.
+6. Add dashboard or static HTML reporting.
+7. Move long-term persistence from Git files to Postgres.
+8. Add regime similarity memory.
+9. Add scoring adjustment quality review.
+10. Add adaptive scoring guardrails by market regime.
+11. Add broker/account integration for automatic portfolio-state calculation.
 
 ## Known Limitations
 
@@ -937,6 +1028,7 @@ For market intelligence features, also require:
 - historical validation uses daily bars only
 - signal extraction into historical-validation input is not fully automated yet
 - weekly expectancy quality depends on accumulated evaluated samples
+- watcher notification migration to the central CLI is still planned
 
 ---
 
@@ -971,7 +1063,7 @@ For market intelligence features, also require:
 Sunday 08:00 UTC — Weekly expectancy feedback
   → reports/expectancy-report.md
   → reports/weekly-expectancy-summary.txt
-  → optional Telegram summary
+  → optional Telegram/webhook summary through notification CLI
 ```
 
 ---
