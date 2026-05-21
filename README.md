@@ -28,6 +28,7 @@ It is designed as an institutional decision-support and research platform that:
 - derives targets through a deterministic Exit / Target Quality Engine
 - validates trade plans before allowing `BUY_WATCH`
 - manages partial exits and runner stops after target 1
+- aggregates Entry / Stop / Exit feedback by decision-quality model
 - prioritizes excellent Entry / Stop Loss / Exit decision quality
 - assigns stable signal identity for lifecycle tracking
 - stores signal history in the repository
@@ -66,6 +67,7 @@ Market analysis
 → Deduplicated lifecycle tracking
 → Historical validation
 → Outcome evaluation
+→ Entry / Stop / Exit feedback aggregation
 → Weekly expectancy feedback
 → Expectancy learning
 → Adaptive score / size adjustment
@@ -105,6 +107,8 @@ pytest
 Targeted tests:
 
 ```bash
+pytest tests/test_entry_stop_exit_feedback.py
+pytest tests/test_entry_stop_exit_report.py
 pytest tests/test_structure_levels.py
 pytest tests/test_generate_report_structure_enrichment.py
 pytest tests/test_trailing_stop_manager.py
@@ -231,6 +235,49 @@ Key behavior:
 
 ---
 
+# Entry / Stop / Exit Feedback
+
+Implemented in:
+
+```text
+src/feedback/entry_stop_exit_feedback.py
+src/feedback/entry_stop_exit_report.py
+docs/architecture/entry_stop_exit_feedback.md
+```
+
+The feedback aggregator is source-agnostic. It can consume historical validation records, lifecycle outcome records, JSONL exports or future database rows.
+
+It calculates:
+
+```text
+entry hit rate
+stop hit rate
+target_1 hit rate
+target_2 hit rate
+expired-without-entry rate
+false breakout rate
+```
+
+Grouped by:
+
+```text
+entry_type
+setup_type
+stop_model
+exit_model
+```
+
+Output helpers can persist:
+
+```text
+entry-stop-exit-feedback.json
+entry-stop-exit-feedback.md
+```
+
+This does not introduce new trading rules. It measures whether existing decision-quality models work historically.
+
+---
+
 # Entry / Stop / Exit Decision Quality
 
 Roadmap:
@@ -248,6 +295,7 @@ src/signals/exit_target_quality.py
 src/signals/structure_levels.py
 src/signals/trade_plan_validator.py
 src/watchers/trailing_stop_manager.py
+src/feedback/entry_stop_exit_feedback.py
 ```
 
 Operating rule:
@@ -318,6 +366,16 @@ stop_loss = max(existing_stop, entry_trigger, latest_high - 1.5 * ATR when avail
 trail_stop = stop_loss
 ```
 
+Current Feedback Checks:
+
+```text
+entry hit rate by entry_type/setup_type
+stop hit rate by stop_model
+target hit rate by exit_model
+expired-without-entry rate
+false breakout rate
+```
+
 Current Trade Plan Validator checks:
 
 ```text
@@ -333,8 +391,8 @@ stop distance is not too tight or too wide when ATR is available
 
 Planned next modules:
 
-- Entry/Stop/Exit backtest feedback grouped by entry_type and setup_type
 - regime invalidation exit
+- intraday data support
 
 ---
 
@@ -347,6 +405,7 @@ Planned next modules:
 | Structure-Aware Stops | Implemented |
 | Breakout Entry Context Upgrade | Implemented |
 | Trailing Stop / Partial Exit Management | Implemented |
+| Entry / Stop / Exit Feedback Aggregation | Implemented |
 | Expanded Symbol Universe | Implemented |
 | Central Notification Client | Implemented |
 | Notification CLI | Implemented |
@@ -419,6 +478,7 @@ For Entry / Stop / Exit decision logic, also require:
 - breakout entry context upgrade
 - structure-aware stops
 - trailing stop and partial exit management
+- Entry / Stop / Exit feedback aggregation
 - native signal_id generation
 - executable signal quality gate
 - entry quality engine
@@ -463,15 +523,14 @@ For Entry / Stop / Exit decision logic, also require:
 
 ## Planned Next
 
-1. Add Entry/Stop/Exit backtest feedback by entry_type and setup_type.
+1. Add regime invalidation exit.
 2. Improve intraday data support with higher-frequency bars if Polygon plan allows.
-3. Add regime invalidation exit.
-4. Add dashboard or static HTML reporting.
-5. Move long-term persistence from Git files to Postgres.
-6. Add regime similarity memory.
-7. Add scoring adjustment quality review.
-8. Add adaptive scoring guardrails by market regime.
-9. Add broker/account integration for automatic portfolio-state calculation.
+3. Add dashboard or static HTML reporting.
+4. Move long-term persistence from Git files to Postgres.
+5. Add regime similarity memory.
+6. Add scoring adjustment quality review.
+7. Add adaptive scoring guardrails by market regime.
+8. Add broker/account integration for automatic portfolio-state calculation.
 
 ---
 
