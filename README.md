@@ -21,6 +21,7 @@ It is designed as an institutional decision-support and research platform that:
 - produces machine-readable signal files with native `signal_id`
 - prevents fake actionable signals without executable trade levels
 - derives entry triggers through a deterministic Entry Quality Engine
+- validates breakout entries with high-trigger, RVOL and optional VWAP context
 - derives stop losses through a deterministic Stop-Loss Quality Engine
 - derives targets through a deterministic Exit / Target Quality Engine
 - validates trade plans before allowing `BUY_WATCH`
@@ -48,6 +49,7 @@ Market analysis
 → Scanner metrics normalization
 → Signal generation with native signal_id
 → Entry Quality Engine
+→ Breakout context validation
 → Stop-Loss Quality Engine
 → Exit / Target Quality Engine
 → Trade Plan Validator
@@ -150,6 +152,8 @@ exit_2
 high
 low
 volume
+rvol
+vwap
 ```
 
 Pipeline behavior:
@@ -160,6 +164,7 @@ Pipeline behavior:
 - report generation prints warnings such as `scanner_metrics_missing:NVDA`
 - missing scanner data is non-fatal but visible
 - valid scanner metrics can produce non-null `close`, `entry_trigger`, `stop_loss` and `target_1`
+- breakout context metrics `high`, `rvol` and `vwap` are preserved when available
 
 ---
 
@@ -188,6 +193,10 @@ Key behavior:
 - `BUY_WATCH` requires a valid entry, valid stop, valid targets and valid long trade plan
 - actionable signals include `entry_trigger`, `entry_type`, `entry_reason`, `stop_loss`, `stop_model`, `stop_reason`, `target_1`, `exit_model` and `exit_reason`
 - Entry Quality supports breakout, pullback, retest, gap-fill and explicitly allowed at-market entries
+- momentum breakout prefers `high * 1.001` when scanner high is available
+- weak RVOL breakouts are rejected when `rvol` is below threshold
+- breakouts below VWAP are rejected when `vwap` is available
+- missing VWAP is non-fatal until intraday VWAP support is added
 - Stop-Loss Quality supports ATR stops, pullback structure stops, retest structure stops, gap-fill stops and scanner-provided stops
 - Exit / Target Quality supports momentum, pullback, retest, gap-fill, scanner-provided and default risk targets
 - late breakout entries are rejected before reaching the watcher
@@ -237,7 +246,9 @@ quality gate passed
 Current Entry Quality checks:
 
 ```text
-breakout entry
+breakout high-trigger
+breakout RVOL confirmation
+optional breakout VWAP filter
 pullback entry
 retest entry
 gap-fill entry
@@ -297,6 +308,7 @@ Planned next modules:
 |---|---|
 | Report Automation | Implemented |
 | Scanner-to-Signal Metrics Pipeline | Implemented |
+| Breakout Entry Context Upgrade | Implemented |
 | Expanded Symbol Universe | Implemented |
 | Central Notification Client | Implemented |
 | Notification CLI | Implemented |
@@ -366,6 +378,7 @@ For Entry / Stop / Exit decision logic, also require:
 - report automation
 - signal generation
 - scanner-to-signal metrics pipeline
+- breakout entry context upgrade
 - native signal_id generation
 - executable signal quality gate
 - entry quality engine
