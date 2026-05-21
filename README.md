@@ -16,7 +16,7 @@ It is designed as an institutional decision-support and research platform that:
 - scans a diversified symbol universe across indices, sectors, bonds, commodities and leaders
 - generates premarket, intraday, postmarket and weekly reports
 - communicates alerts and summaries through a central notification layer
-- emits structured JSON logs from operational scripts
+- emits structured JSON logs from operational scripts and runtime cycles
 - produces machine-readable signal files
 - assigns stable signal identity for lifecycle tracking
 - stores signal history in the repository
@@ -70,8 +70,24 @@ The watcher validates runtime configuration before execution:
 - the configured signal file must exist
 - the signal file must contain a JSON list
 - every run prints a `WATCHER_CYCLE_ID`
+- structured log events include `WATCHER_CYCLE_ID` as `cycle_id`
 - missing `signal_id` values are assigned deterministically
 - lifecycle events are deduplicated by `signal_id` + `event_type`
+
+Watcher structured events include:
+
+```text
+watcher_runner_started
+watcher_runtime_validation_succeeded
+watcher_runtime_validation_failed
+watcher_signals_loaded
+watcher_no_actionable_signals
+watcher_symbol_fetch_failed
+watcher_evaluation_completed
+watcher_events_persisted
+watcher_no_events_detected
+watcher_runner_completed
+```
 
 ## Send Notifications
 
@@ -143,6 +159,8 @@ Targeted tests:
 
 ```bash
 pytest tests/test_structured_logging.py
+pytest tests/test_run_entry_exit_watcher_runtime_validation.py
+pytest tests/test_live_runtime_cycle_portfolio_state.py
 pytest tests/test_entry_exit_watcher.py
 pytest tests/test_notifications.py
 pytest tests/test_expectancy_feedback_summary.py
@@ -150,7 +168,6 @@ pytest tests/test_historical_validation.py
 pytest tests/test_polygon_client_historical_range.py
 pytest tests/test_symbol_universe.py
 pytest tests/test_portfolio_state.py
-pytest tests/test_live_runtime_cycle_portfolio_state.py
 ```
 
 ---
@@ -164,10 +181,12 @@ src/structured_logging.py
 docs/architecture/structured_logging.md
 ```
 
-First operational integration:
+Operational integrations:
 
 ```text
 scripts/send_notification.py
+scripts/run_entry_exit_watcher.py
+src/runtime/live_runtime_cycle.py
 ```
 
 Structured log events include:
@@ -188,6 +207,17 @@ Supported levels:
 
 ```text
 DEBUG, INFO, WARNING, ERROR, CRITICAL
+```
+
+Live runtime structured events include:
+
+```text
+live_runtime_cycle_started
+live_runtime_governance_passed
+live_runtime_governance_blocked
+live_runtime_data_quality_warning
+live_runtime_portfolio_state_warning
+live_runtime_cycle_completed
 ```
 
 JSON-line output is designed for:
@@ -265,6 +295,8 @@ Next migration target:
 | Notification CLI | Implemented |
 | Structured Runtime Logging Helper | Implemented |
 | Notification CLI Structured Logs | Implemented |
+| Watcher Runner Structured Logs | Implemented |
+| Live Runtime Cycle Structured Logs | Implemented |
 | Weekly Workflow Notification Migration | Implemented |
 | Entry / Exit Watcher | Implemented and workflow-hardened |
 | Watcher Runtime Validation | Implemented |
@@ -281,7 +313,6 @@ Next migration target:
 | CI Pytest Workflow | Implemented |
 | End-to-End Institutional Flow | Partially implemented |
 | Fully Unified Continuous Runtime | In progress |
-| Watcher Structured Log Integration | Planned |
 | Signal Generation Native `signal_id` | Planned |
 | Watcher Notification Migration to CLI | Planned |
 | Broker Execution | Not implemented |
@@ -327,6 +358,8 @@ For market intelligence, lifecycle, observability and communication features, al
 - notification CLI
 - structured runtime logging helper
 - notification CLI structured logs
+- watcher runner structured logs
+- live runtime cycle structured logs
 - weekly workflow notification migration
 - Entry / Exit Watcher V1
 - watcher runtime validation
@@ -355,16 +388,15 @@ For market intelligence, lifecycle, observability and communication features, al
 
 ## Planned Next
 
-1. Integrate structured logs into watcher runner and live runtime cycle.
-2. Generate native `signal_id` at signal creation time.
-3. Migrate entry-exit watcher notifications to the central notification CLI.
-4. Improve intraday data support with higher-frequency bars if Polygon plan allows.
-5. Add dashboard or static HTML reporting.
-6. Move long-term persistence from Git files to Postgres.
-7. Add regime similarity memory.
-8. Add scoring adjustment quality review.
-9. Add adaptive scoring guardrails by market regime.
-10. Add broker/account integration for automatic portfolio-state calculation.
+1. Generate native `signal_id` at signal creation time.
+2. Migrate entry-exit watcher notifications to the central notification CLI.
+3. Improve intraday data support with higher-frequency bars if Polygon plan allows.
+4. Add dashboard or static HTML reporting.
+5. Move long-term persistence from Git files to Postgres.
+6. Add regime similarity memory.
+7. Add scoring adjustment quality review.
+8. Add adaptive scoring guardrails by market regime.
+9. Add broker/account integration for automatic portfolio-state calculation.
 
 ---
 
