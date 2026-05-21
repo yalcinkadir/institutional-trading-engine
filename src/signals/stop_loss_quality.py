@@ -10,6 +10,10 @@ from dataclasses import dataclass, field
 from typing import Any
 
 
+MAX_STRUCTURE_STOP_ATR_DISTANCE = 3.0
+STRUCTURE_STOP_BUFFER = 0.998
+
+
 @dataclass(frozen=True)
 class StopLossQualityResult:
     is_valid: bool
@@ -42,6 +46,30 @@ def _reject(reason: str, *, stop_model: str = "n/a", stop_loss: float | None = N
     )
 
 
+def _structure_stop_from_swing_low(
+    *,
+    swing_low: float | None,
+    entry_trigger: float,
+    atr: float,
+) -> StopLossQualityResult | None:
+    if swing_low is None or swing_low <= 0:
+        return None
+    if swing_low >= entry_trigger:
+        return None
+
+    stop = swing_low * STRUCTURE_STOP_BUFFER
+    atr_distance = (entry_trigger - stop) / atr
+    if atr_distance > MAX_STRUCTURE_STOP_ATR_DISTANCE:
+        return None
+
+    return StopLossQualityResult(
+        is_valid=True,
+        stop_loss=_round_price(stop),
+        stop_model="swing_low_structure_stop",
+        stop_reason="swing-low structure stop with 0.2 percent buffer",
+    )
+
+
 def derive_stop_loss_quality(
     *,
     setup_type: str,
@@ -55,6 +83,7 @@ def derive_stop_loss_quality(
 
     Supported deterministic stop models:
     - scanner_provided_stop
+    - swing_low_structure_stop
     - atr_stop
     - pullback_structure_stop
     - retest_structure_stop
@@ -85,6 +114,14 @@ def derive_stop_loss_quality(
             stop_model="scanner_provided_stop",
             stop_reason="scanner provided stop below entry",
         )
+
+    swing_low_stop = _structure_stop_from_swing_low(
+        swing_low=_safe_float(scanner.get("swing_low_3bar")),
+        entry_trigger=entry_trigger,
+        atr=atr,
+    )
+    if swing_low_stop is not None:
+        return swing_low_stop
 
     normalized_setup = setup_type.lower().strip()
     normalized_entry_type = entry_type.lower().strip()
