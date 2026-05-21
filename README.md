@@ -23,6 +23,7 @@ It is designed as an institutional decision-support and research platform that:
 - tracks real outcomes from market data
 - validates setups against historical Polygon aggregate bars
 - builds adaptive expectancy profiles
+- generates weekly expectancy feedback summaries
 - feeds historical expectancy back into future scoring
 - persists scoring adjustments for auditability
 - persists runtime and decision history for reproducibility
@@ -39,6 +40,7 @@ Market analysis
 → Lifecycle tracking
 → Historical validation
 → Outcome evaluation
+→ Weekly expectancy feedback
 → Expectancy learning
 → Adaptive score / size adjustment
 → Adjustment audit history
@@ -254,6 +256,22 @@ python scripts/update_outcomes.py \
 
 JSONL decision logs are also supported by the reader layer.
 
+## Build Weekly Expectancy Summary
+
+```bash
+python scripts/build_weekly_expectancy_summary.py \
+  --decision-log data/decision_log.csv \
+  --output reports/weekly-expectancy-summary.txt
+```
+
+The weekly workflow is implemented in:
+
+```text
+.github/workflows/weekly-expectancy-feedback.yml
+```
+
+It can run manually or on the weekly schedule. Telegram delivery is optional and only runs when Telegram secrets are configured.
+
 ## Run Tests
 
 ```bash
@@ -278,6 +296,7 @@ institutional-trading-engine/
 │       ├── institutional-reports.yml
 │       ├── entry-exit-watcher.yml
 │       ├── outcome-tracking.yml
+│       ├── weekly-expectancy-feedback.yml
 │       └── daily-backup.yml
 │
 ├── data/
@@ -305,12 +324,14 @@ institutional-trading-engine/
 │   ├── alerts/
 │   ├── backtests/
 │   ├── outcomes/
+│   ├── weekly-expectancy-summary.txt
 │   └── expectancy-report.md
 │
 ├── scripts/
 │   ├── generate_report.py
 │   ├── run_entry_exit_watcher.py
 │   ├── run_historical_validation.py
+│   ├── build_weekly_expectancy_summary.py
 │   ├── generate_outcomes.py
 │   └── update_outcomes.py
 │
@@ -360,6 +381,7 @@ Current state:
 | Signal Lifecycle JSONL | Implemented |
 | Lifecycle-Aware Outcomes | Implemented |
 | Historical Polygon Validation | Implemented |
+| Weekly Expectancy Feedback Workflow | Implemented |
 | Entry-Type Expectancy Profiles | Implemented |
 | Expectancy-Based Score Adjustment | Implemented |
 | Scoring Adjustment Audit History | Implemented |
@@ -404,6 +426,30 @@ Metrics by horizon:
 - false-positive rate
 
 Tests use mocked historical bars and do not require real Polygon network calls.
+
+---
+
+# Weekly Expectancy Feedback
+
+Weekly expectancy feedback is implemented through:
+
+```text
+src/expectancy_feedback_summary.py
+scripts/build_weekly_expectancy_summary.py
+.github/workflows/weekly-expectancy-feedback.yml
+```
+
+The workflow:
+
+- runs every Sunday at 08:00 UTC
+- can be started manually with `workflow_dispatch`
+- refreshes outcomes when `POLYGON_API_KEY` is available
+- still generates a report from existing logs when Polygon credentials are missing
+- writes `reports/expectancy-report.md`
+- writes `reports/weekly-expectancy-summary.txt`
+- commits changed report outputs
+- uploads artifacts
+- sends Telegram summary when Telegram secrets are configured
 
 ---
 
@@ -541,6 +587,7 @@ reports/alerts/*.json
 reports/backtests/backtest_summary.json
 reports/outcomes/*.json
 reports/expectancy-report.md
+reports/weekly-expectancy-summary.txt
 data/portfolio_state.json
 data/portfolio_state.example.json
 data/decision_log.csv
@@ -582,6 +629,7 @@ Main workflows:
 .github/workflows/institutional-reports.yml
 .github/workflows/entry-exit-watcher.yml
 .github/workflows/outcome-tracking.yml
+.github/workflows/weekly-expectancy-feedback.yml
 .github/workflows/daily-backup.yml
 ```
 
@@ -650,6 +698,22 @@ and can fall back to:
 data/decision_log.jsonl
 ```
 
+## Weekly Expectancy Feedback Workflow
+
+Schedule:
+
+```text
+08:00 UTC Sundays
+```
+
+Responsibilities:
+
+- update expectancy report
+- build compact weekly feedback summary
+- commit changed outputs
+- upload artifacts
+- send optional Telegram summary
+
 ---
 
 # Decision Safety Architecture
@@ -716,6 +780,7 @@ Current limitations:
 - no streaming intraday bars in the core implementation
 - historical validation uses daily bars only in the first implementation
 - signal extraction into historical-validation input is not fully automated yet
+- weekly expectancy quality depends on accumulated evaluated samples
 - Git-based persistence is not final production storage
 - no dashboard UI yet
 - no Postgres persistence yet
@@ -726,7 +791,7 @@ Current limitations:
 Important:
 
 ```text
-This project currently supports research, screening, alerting, lifecycle analysis, file-backed portfolio-state governance, historical validation and adaptive scoring.
+This project currently supports research, screening, alerting, lifecycle analysis, file-backed portfolio-state governance, historical validation, weekly expectancy feedback and adaptive scoring.
 It does not execute trades.
 ```
 
@@ -754,6 +819,7 @@ pytest tests/test_portfolio_state.py
 pytest tests/test_historical_validation.py
 pytest tests/test_polygon_client_historical_range.py
 pytest tests/test_symbol_universe.py
+pytest tests/test_expectancy_feedback_summary.py
 pytest tests/test_scanner_market_snapshot_builder.py
 pytest tests/test_end_to_end_institutional_flow.py
 pytest tests/test_entry_exit_watcher.py
@@ -770,6 +836,7 @@ Test coverage includes:
 - expanded symbol universe integrity
 - historical validation
 - Polygon historical range fetcher behavior
+- weekly expectancy feedback summary
 - reporting
 - signal generation
 - entry/exit watcher logic
@@ -828,6 +895,7 @@ For market intelligence features, also require:
 - lifecycle JSONL
 - lifecycle-aware outcomes
 - historical Polygon aggregate validation
+- weekly expectancy feedback workflow
 - entry-type expectancy profiles
 - expectancy-based score adjustment
 - scoring adjustment history
@@ -857,7 +925,6 @@ For market intelligence features, also require:
 8. Add scoring adjustment quality review.
 9. Add adaptive scoring guardrails by market regime.
 10. Add broker/account integration for automatic portfolio-state calculation.
-11. Add weekly automated expectancy feedback reports.
 
 ## Known Limitations
 
@@ -869,6 +936,7 @@ For market intelligence features, also require:
 - no Postgres persistence
 - historical validation uses daily bars only
 - signal extraction into historical-validation input is not fully automated yet
+- weekly expectancy quality depends on accumulated evaluated samples
 
 ---
 
@@ -899,6 +967,11 @@ For market intelligence features, also require:
 02:00 UTC — Outcome tracking
   → reports/outcomes/YYYY-MM-DD-outcomes.md/json
   → reports/expectancy-report.md
+
+Sunday 08:00 UTC — Weekly expectancy feedback
+  → reports/expectancy-report.md
+  → reports/weekly-expectancy-summary.txt
+  → optional Telegram summary
 ```
 
 ---
