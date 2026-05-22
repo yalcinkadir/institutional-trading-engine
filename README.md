@@ -17,6 +17,7 @@ It is designed as an institutional decision-support and research platform that:
 - normalizes scanner metrics before signal generation
 - emits native scanner `swing_low_3bar` structure levels
 - enriches signal metrics with intraday VWAP when intraday bars are available
+- ingests historical Polygon aggregate bars for later backtesting and validation
 - generates premarket, intraday, postmarket and weekly reports
 - validates generated artifacts with an end-to-end dry-run helper before go-live
 - communicates alerts and failures through a central notification layer
@@ -74,6 +75,7 @@ Market analysis
 → Central notification delivery
 → Structured operational logging
 → Deduplicated lifecycle tracking
+→ Historical Polygon ingestion
 → Historical validation
 → Outcome evaluation
 → Entry / Stop / Exit feedback aggregation
@@ -108,6 +110,53 @@ The watcher validates runtime configuration before execution:
 - lifecycle events are deduplicated by `signal_id` + `event_type`
 - `TARGET_1_HIT` activates partial-exit and runner state
 - `REGIME_INVALIDATION_EXIT` cancels pending and active signals when regime turns defensive
+
+## Run Historical Polygon Ingestion
+
+```bash
+python scripts/ingest_historical_polygon.py \
+  --symbols NVDA,AAPL,SPY \
+  --start-date 2012-01-01 \
+  --end-date 2026-05-22
+```
+
+Machine-readable output:
+
+```bash
+python scripts/ingest_historical_polygon.py \
+  --symbols NVDA,AAPL,SPY \
+  --start-date 2012-01-01 \
+  --end-date 2026-05-22 \
+  --json
+```
+
+Required:
+
+```text
+POLYGON_API_KEY
+```
+
+Historical storage:
+
+```text
+data/historical/bars/1day/NVDA.csv
+data/historical/bars/1day/AAPL.csv
+data/historical/metadata/ingestion_status.json
+```
+
+Stored columns:
+
+```text
+date
+timestamp
+open
+high
+low
+close
+volume
+```
+
+P23 stores CSV plus metadata because the current dependency set has pandas but no Parquet engine. Parquet can be added later when `pyarrow` or `fastparquet` is introduced deliberately.
 
 ## Run E2E Dry Run
 
@@ -168,6 +217,7 @@ pytest
 Targeted tests:
 
 ```bash
+pytest tests/test_polygon_historical_ingestion.py
 pytest tests/test_e2e_dry_run.py
 pytest tests/test_scanner_structure_metrics.py
 pytest tests/test_intraday_vwap.py
@@ -253,6 +303,38 @@ Pipeline behavior:
 - missing intraday data is non-fatal
 - valid scanner metrics can produce non-null `close`, `entry_trigger`, `stop_loss` and `target_1`
 - breakout context metrics `high`, `rvol` and `vwap` are preserved when available
+
+---
+
+# Historical Polygon Ingestion
+
+Implemented in:
+
+```text
+src/historical/polygon_ingestion.py
+scripts/ingest_historical_polygon.py
+docs/operations/historical_polygon_ingestion.md
+```
+
+P23 scope:
+
+```text
+daily OHLCV aggregate bars
+CSV storage
+JSON metadata
+mocked CI tests
+no live API call in tests
+```
+
+This is the data foundation for later:
+
+```text
+P24 Historical Entry / Stop / Exit Backtest Runner
+P25 Out-of-Sample Validation and Adaptive Feedback Integration
+P26 Paper-Live Observation Before Trading
+```
+
+P23 does not train models and does not execute backtests.
 
 ---
 
@@ -534,8 +616,9 @@ stop distance is not too tight or too wide when ATR is available
 
 Planned next modules:
 
-- session-aware VWAP and intraday entry confirmation
-- cross-field feedback grouping such as entry_type x market_regime
+- P24 Historical Entry / Stop / Exit Backtest Runner
+- P25 Out-of-Sample Validation and Adaptive Feedback Integration
+- P26 Paper-Live Observation Before Trading
 
 ---
 
@@ -547,6 +630,7 @@ Planned next modules:
 | Scanner-to-Signal Metrics Pipeline | Implemented |
 | Native Scanner Structure Metric | Implemented |
 | Intraday VWAP Support | Implemented |
+| Historical Polygon Data Ingestion | Implemented |
 | End-to-End Dry Run | Implemented |
 | Structure-Aware Stops | Implemented |
 | Breakout Entry Context Upgrade | Implemented |
@@ -570,7 +654,6 @@ Planned next modules:
 | Stop-Loss Quality Engine | Implemented |
 | Exit / Target Quality Engine | Implemented |
 | Trade Plan Validator | Implemented |
-| Entry / Stop / Exit Quality Roadmap | In progress |
 | Entry / Exit Watcher | Implemented and workflow-hardened |
 | Watcher Runtime Validation | Implemented |
 | Signal Identity Fallback | Implemented |
@@ -626,6 +709,7 @@ For Entry / Stop / Exit decision logic, also require:
 - scanner-to-signal metrics pipeline
 - native scanner structure metric
 - intraday VWAP support
+- historical Polygon data ingestion
 - initial file-backed portfolio state
 - End-to-End Dry Run
 - breakout entry context upgrade
@@ -672,6 +756,7 @@ For Entry / Stop / Exit decision logic, also require:
 ## In Progress
 
 - Entry / Stop / Exit decision quality hardening
+- historical validation foundation
 - observability hardening
 - connection and communication hardening
 - unified continuous runtime maturity
@@ -679,13 +764,13 @@ For Entry / Stop / Exit decision logic, also require:
 
 ## Planned Next
 
-1. Add session-aware VWAP and intraday entry confirmation.
-2. Add cross-field feedback grouping such as entry_type x market_regime.
-3. Add dashboard or static HTML reporting.
-4. Move long-term persistence from Git files to Postgres.
-5. Add regime similarity memory.
-6. Add scoring adjustment quality review.
-7. Add adaptive scoring guardrails by market regime.
+1. Add P24 Historical Entry / Stop / Exit Backtest Runner.
+2. Add P25 Out-of-Sample Validation and Adaptive Feedback Integration.
+3. Add P26 Paper-Live Observation Before Trading.
+4. Add session-aware VWAP and intraday entry confirmation.
+5. Add cross-field feedback grouping such as entry_type x market_regime.
+6. Add dashboard or static HTML reporting.
+7. Move long-term persistence from Git files to Postgres.
 8. Add broker/account integration for automatic portfolio-state calculation.
 
 ---
