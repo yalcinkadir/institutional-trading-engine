@@ -18,6 +18,7 @@ It is designed as an institutional decision-support and research platform that:
 - emits native scanner `swing_low_3bar` structure levels
 - enriches signal metrics with intraday VWAP when intraday bars are available
 - ingests historical Polygon aggregate bars for later backtesting and validation
+- validates Polygon live-readiness before first real-data runs
 - generates premarket, intraday, postmarket and weekly reports
 - validates generated artifacts with an end-to-end dry-run helper before go-live
 - communicates alerts and failures through a central notification layer
@@ -75,6 +76,7 @@ Market analysis
 → Central notification delivery
 → Structured operational logging
 → Deduplicated lifecycle tracking
+→ Polygon live-readiness check
 → Historical Polygon ingestion
 → Historical validation
 → Outcome evaluation
@@ -110,6 +112,31 @@ The watcher validates runtime configuration before execution:
 - lifecycle events are deduplicated by `signal_id` + `event_type`
 - `TARGET_1_HIT` activates partial-exit and runner state
 - `REGIME_INVALIDATION_EXIT` cancels pending and active signals when regime turns defensive
+
+## Check Polygon Live Readiness
+
+```bash
+python scripts/check_polygon_live_readiness.py \
+  --symbols SPY,QQQ,NVDA,AAPL,MSFT,AMD,TSLA,META,GOOGL,AMZN \
+  --lookback-days 3650
+```
+
+Machine-readable output:
+
+```bash
+python scripts/check_polygon_live_readiness.py \
+  --symbols SPY,QQQ,NVDA,AAPL,MSFT,AMD,TSLA,META,GOOGL,AMZN \
+  --lookback-days 3650 \
+  --json
+```
+
+The Stocks Developer plan provides 10 years of historical data, so the operational lookback should be about:
+
+```text
+3650 calendar days
+```
+
+The readiness check does not call Polygon. It verifies local configuration and prints the command sequence for real historical ingestion, current report generation, E2E dry-run and watcher verification.
 
 ## Run Historical Polygon Ingestion
 
@@ -217,6 +244,7 @@ pytest
 Targeted tests:
 
 ```bash
+pytest tests/test_polygon_live_readiness.py
 pytest tests/test_polygon_historical_ingestion.py
 pytest tests/test_e2e_dry_run.py
 pytest tests/test_scanner_structure_metrics.py
@@ -303,6 +331,41 @@ Pipeline behavior:
 - missing intraday data is non-fatal
 - valid scanner metrics can produce non-null `close`, `entry_trigger`, `stop_loss` and `target_1`
 - breakout context metrics `high`, `rvol` and `vwap` are preserved when available
+
+---
+
+# Polygon Live Readiness
+
+Implemented in:
+
+```text
+src/operations/polygon_live_readiness.py
+scripts/check_polygon_live_readiness.py
+docs/operations/polygon_live_readiness.md
+```
+
+Checks:
+
+```text
+POLYGON_API_KEY exists
+lookback_days is reasonable
+symbols are configured
+portfolio_state.json exists
+required command sequence is produced
+live gates are visible
+```
+
+Live gates:
+
+```text
+historical ingestion completes without unexpected errors
+latest-signals.json is generated from real Polygon data
+E2E dry-run returns PASS
+manual watcher run completes successfully
+Telegram/notification output is verified
+5 consecutive entry-exit-watcher runs are green
+historical strategy validation is completed before any trading decision
+```
 
 ---
 
@@ -630,6 +693,7 @@ Planned next modules:
 | Scanner-to-Signal Metrics Pipeline | Implemented |
 | Native Scanner Structure Metric | Implemented |
 | Intraday VWAP Support | Implemented |
+| Polygon Live Readiness | Implemented |
 | Historical Polygon Data Ingestion | Implemented |
 | End-to-End Dry Run | Implemented |
 | Structure-Aware Stops | Implemented |
@@ -709,6 +773,7 @@ For Entry / Stop / Exit decision logic, also require:
 - scanner-to-signal metrics pipeline
 - native scanner structure metric
 - intraday VWAP support
+- polygon live-readiness checks
 - historical Polygon data ingestion
 - initial file-backed portfolio state
 - End-to-End Dry Run
