@@ -12,7 +12,7 @@ from src.operations.polygon_live_readiness import (
 
 
 def test_calculate_start_date_uses_lookback_days() -> None:
-    assert calculate_start_date(end_date=date(2026, 5, 22), lookback_days=5000).isoformat() == "2012-09-13"
+    assert calculate_start_date(end_date=date(2026, 5, 22), lookback_days=5000).isoformat() == "2012-09-12"
 
 
 def test_normalize_symbols_dedupes_uppercases_and_sorts() -> None:
@@ -22,13 +22,13 @@ def test_normalize_symbols_dedupes_uppercases_and_sorts() -> None:
 def test_build_live_readiness_commands_include_required_sequence() -> None:
     commands = build_live_readiness_commands(
         symbols=["NVDA", "SPY"],
-        start_date="2012-09-13",
+        start_date="2012-09-12",
         end_date="2026-05-22",
     )
 
     assert commands[0] == (
         "python scripts/ingest_historical_polygon.py "
-        "--symbols NVDA,SPY --start-date 2012-09-13 --end-date 2026-05-22"
+        "--symbols NVDA,SPY --start-date 2012-09-12 --end-date 2026-05-22"
     )
     assert "generate_report.py" in commands[1]
     assert "run_e2e_dry_run.py" in commands[2]
@@ -48,7 +48,7 @@ def test_polygon_live_readiness_fails_without_api_key(tmp_path: Path, monkeypatc
     )
 
     assert not result.passed
-    assert result.start_date == "2012-09-13"
+    assert result.start_date == "2012-09-12"
     assert result.end_date == "2026-05-22"
     assert any(check.name == "polygon_api_key_present" and not check.passed for check in result.checks)
 
