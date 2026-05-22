@@ -1,26 +1,26 @@
 # Institutional Trading Engine — PREMARKET REPORT
 
-Generated: 2026-05-22 08:13 UTC
+Generated: 2026-05-22 14:11 UTC
 
 ## Market Regime
 
 - Data Status: PARTIAL
-- Regime: Unknown
-- Market Health Score: DATA_UNAVAILABLE
+- Regime: Neutral (VIX missing)
+- Market Health Score: 50
 
 ### Core Market Metrics
 
 #### SPY
-- Close: DATA_UNAVAILABLE
-- SMA50: DATA_UNAVAILABLE
-- SMA200: DATA_UNAVAILABLE
-- ATR14: DATA_UNAVAILABLE
+- Close: 683.17
+- SMA50: 678.74 ✅
+- SMA200: 627.52 ✅
+- ATR14: 5.66
 
 #### QQQ
-- Close: DATA_UNAVAILABLE
-- SMA50: DATA_UNAVAILABLE
-- SMA200: DATA_UNAVAILABLE
-- ATR14: DATA_UNAVAILABLE
+- Close: 613.12
+- SMA50: 616.41 ❌
+- SMA200: 558.49 ✅
+- ATR14: 7.52
 
 #### VIX
 - Close: DATA_UNAVAILABLE
@@ -52,15 +52,15 @@ Generated: 2026-05-22 08:13 UTC
 
 ## Decision Engine
 
-- Market State: neutral
-- Portfolio Heat Limit: 1.0
-- Approved / Reduced Size: 6
+- Market State: risk_off
+- Portfolio Heat Limit: 0.5
+- Approved / Reduced Size: 8
 - Blocked / No Trade: 0
 
 > ℹ️ Data feeds partial (Free Polygon tier — VIX unavailable). Data confidence reduced; sizing conservative.
 
 ### Active Strategy Types
-- pullback_continuation
+- defensive_rotation
 - mean_reversion
 
 ### Decision Summary
@@ -69,43 +69,43 @@ Generated: 2026-05-22 08:13 UTC
 ### Ranked Opportunities
 
 #### MSFT
-- Decision: **approved** | Risk Tier: tier_2
-- Setup Type: pullback_continuation | Size: 0.5x
+- Decision: **reduced_size** | Risk Tier: tier_2
+- Setup Type: defensive_rotation | Size: 0.25x
 - Setup Score: 82.0 | Regime Alignment: 0.82 | Asymmetry Score: 0.72 | Data Confidence: 0.65
 
 #### NVDA
-- Decision: **approved** | Risk Tier: tier_2
-- Setup Type: pullback_continuation | Size: 0.5x
+- Decision: **reduced_size** | Risk Tier: tier_2
+- Setup Type: defensive_rotation | Size: 0.25x
 - Setup Score: 79.0 | Regime Alignment: 0.78 | Asymmetry Score: 0.69 | Data Confidence: 0.65
 
 #### META
-- Decision: **approved** | Risk Tier: tier_2
-- Setup Type: pullback_continuation | Size: 0.5x
+- Decision: **reduced_size** | Risk Tier: tier_2
+- Setup Type: defensive_rotation | Size: 0.25x
 - Setup Score: 76.0 | Regime Alignment: 0.74 | Asymmetry Score: 0.66 | Data Confidence: 0.65
 
 #### AAPL
-- Decision: **approved** | Risk Tier: tier_2
-- Setup Type: pullback_continuation | Size: 0.5x
+- Decision: **reduced_size** | Risk Tier: tier_2
+- Setup Type: defensive_rotation | Size: 0.25x
 - Setup Score: 73.0 | Regime Alignment: 0.7 | Asymmetry Score: 0.63 | Data Confidence: 0.65
 
 #### MU
-- Decision: **approved** | Risk Tier: tier_2
-- Setup Type: pullback_continuation | Size: 0.5x
+- Decision: **reduced_size** | Risk Tier: tier_2
+- Setup Type: defensive_rotation | Size: 0.25x
 - Setup Score: 70.0 | Regime Alignment: 0.66 | Asymmetry Score: 0.6 | Data Confidence: 0.65
 
 #### QQQ
-- Decision: **approved** | Risk Tier: tier_2
-- Setup Type: pullback_continuation | Size: 0.5x
+- Decision: **reduced_size** | Risk Tier: tier_2
+- Setup Type: defensive_rotation | Size: 0.25x
 - Setup Score: 67.0 | Regime Alignment: 0.62 | Asymmetry Score: 0.57 | Data Confidence: 0.65
 
 #### GLD
-- Decision: **watch** | Risk Tier: tier_3
-- Setup Type: pullback_continuation | Size: 0.25x
+- Decision: **reduced_size** | Risk Tier: tier_3
+- Setup Type: defensive_rotation | Size: 0.125x
 - Setup Score: 64.0 | Regime Alignment: 0.58 | Asymmetry Score: 0.54 | Data Confidence: 0.65
 
 #### SLV
-- Decision: **watch** | Risk Tier: tier_3
-- Setup Type: pullback_continuation | Size: 0.25x
+- Decision: **reduced_size** | Risk Tier: tier_3
+- Setup Type: defensive_rotation | Size: 0.125x
 - Setup Score: 61.0 | Regime Alignment: 0.54 | Asymmetry Score: 0.51 | Data Confidence: 0.65
 
 ## Pre-Market Watchlist
