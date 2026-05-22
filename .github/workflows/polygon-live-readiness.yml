@@ -3,14 +3,30 @@ name: Polygon Live Readiness
 on:
   workflow_dispatch:
     inputs:
+      ingestion_mode:
+        description: "Ingestion mode: smoke or full"
+        required: false
+        default: "smoke"
+        type: choice
+        options:
+          - smoke
+          - full
       symbols:
-        description: "Comma-separated symbols for readiness/historical smoke test"
+        description: "Comma-separated symbols for readiness/full historical ingestion"
         required: false
         default: "SPY,QQQ,NVDA,AAPL,MSFT,AMD,TSLA,META,GOOGL,AMZN"
       lookback_days:
         description: "Historical lookback days for readiness check"
         required: false
         default: "3650"
+      full_start_date:
+        description: "Full ingestion start date"
+        required: false
+        default: "2016-05-22"
+      full_end_date:
+        description: "Full ingestion end date"
+        required: false
+        default: "2026-05-22"
       smoke_symbol:
         description: "One symbol for real Polygon ingestion smoke test"
         required: false
@@ -51,11 +67,21 @@ jobs:
             --lookback-days "${{ github.event.inputs.lookback_days }}"
 
       - name: Run real Polygon historical smoke ingestion
+        if: ${{ github.event.inputs.ingestion_mode == 'smoke' }}
         run: |
           python scripts/ingest_historical_polygon.py \
             --symbols "${{ github.event.inputs.smoke_symbol }}" \
             --start-date "${{ github.event.inputs.smoke_start_date }}" \
             --end-date "${{ github.event.inputs.smoke_end_date }}" \
+            --json
+
+      - name: Run full Polygon historical ingestion
+        if: ${{ github.event.inputs.ingestion_mode == 'full' }}
+        run: |
+          python scripts/ingest_historical_polygon.py \
+            --symbols "${{ github.event.inputs.symbols }}" \
+            --start-date "${{ github.event.inputs.full_start_date }}" \
+            --end-date "${{ github.event.inputs.full_end_date }}" \
             --json
 
       - name: Show ingestion metadata
@@ -67,11 +93,11 @@ jobs:
             echo "No ingestion metadata produced."
           fi
 
-      - name: Upload historical smoke artifacts
+      - name: Upload historical artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: polygon-live-readiness-artifacts
+          name: polygon-${{ github.event.inputs.ingestion_mode }}-historical-artifacts
           path: |
             data/historical/bars/**
             data/historical/metadata/ingestion_status.json
