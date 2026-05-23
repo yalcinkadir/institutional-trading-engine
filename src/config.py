@@ -1,7 +1,8 @@
 """Scanner universe configuration.
 
 The default universe intentionally covers more than US mega-cap technology so
-market-regime analysis can observe cross-asset and sector behavior.
+market-regime analysis can observe cross-asset, dollar, rates, sector and
+commodity behavior without using broker APIs.
 """
 
 CORE_INDEX_SYMBOLS = [
@@ -17,6 +18,10 @@ RATES_BONDS_SYMBOLS = [
     "SHY",
 ]
 
+DOLLAR_PROXY_SYMBOLS = [
+    "UUP",
+]
+
 SECTOR_SYMBOLS = [
     "XLK",
     "XLF",
@@ -25,6 +30,9 @@ SECTOR_SYMBOLS = [
     "XLY",
     "XLP",
     "XLI",
+    "XLU",
+    "XLB",
+    "XLRE",
 ]
 
 MEGA_CAP_SYMBOLS = [
@@ -57,6 +65,7 @@ LEGACY_QUALITY_SYMBOLS = [
 SYMBOL_UNIVERSE_GROUPS = {
     "core_indices": CORE_INDEX_SYMBOLS,
     "rates_bonds": RATES_BONDS_SYMBOLS,
+    "dollar_proxy": DOLLAR_PROXY_SYMBOLS,
     "sectors": SECTOR_SYMBOLS,
     "mega_caps": MEGA_CAP_SYMBOLS,
     "semiconductors": SEMICONDUCTOR_SYMBOLS,
@@ -82,6 +91,9 @@ BENCHMARK_MAP = {
     "IEF": "IEF",
     "SHY": "IEF",
 
+    # Dollar proxy benchmarked against itself because DXY is not a Polygon ETF symbol
+    "UUP": "UUP",
+
     # Sectors benchmark against broad market
     "XLK": "SPY",
     "XLF": "SPY",
@@ -90,6 +102,9 @@ BENCHMARK_MAP = {
     "XLY": "SPY",
     "XLP": "SPY",
     "XLI": "SPY",
+    "XLU": "SPY",
+    "XLB": "SPY",
+    "XLRE": "SPY",
 
     # Mega caps benchmark against Nasdaq 100
     "AAPL": "QQQ",
