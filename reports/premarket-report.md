@@ -1,6 +1,6 @@
 # Institutional Trading Engine — PREMARKET REPORT
 
-Generated: 2026-05-23 20:56 UTC
+Generated: 2026-05-23 20:58 UTC
 
 ## Market Regime
 
