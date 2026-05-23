@@ -22,6 +22,7 @@ The system is designed for research and decision support. It does not place live
 - execution realism adjustment
 - out-of-sample validation lockbox
 - paper trading journal / live observation v2
+- final live readiness gate
 - cross-asset market-data coverage
 - event-risk placeholder metadata
 - optional SQLite runtime persistence
@@ -59,6 +60,7 @@ Market analysis
 → Execution realism adjustment
 → Out-of-sample validation lockbox
 → Paper trading journal / live observation v2
+→ Final live readiness gate
 → Human review
 ```
 
@@ -77,6 +79,7 @@ pytest tests/test_walk_forward_validation.py
 pytest tests/test_execution_realism.py
 pytest tests/test_out_of_sample_lockbox.py
 pytest tests/test_paper_trading_journal.py
+pytest tests/test_final_live_readiness_gate.py
 pytest tests/test_static_dashboard.py
 pytest tests/test_sqlite_persistence.py
 pytest tests/test_event_risk_engine.py
@@ -91,7 +94,7 @@ pytest tests/test_entry_exit_watcher_health.py
 pytest tests/test_manual_portfolio_sync.py
 ```
 
-## P36-P45 Validation Stack
+## P36-P47 Validation Stack
 
 Implemented layers:
 
@@ -106,37 +109,50 @@ P42 Regime-Phase Backtest Matrix
 P43 Walk-Forward Validation
 P44 Execution Realism Layer
 P45 Out-of-Sample Validation Lockbox
+P46 Paper Trading Journal / Live Observation v2
+P47 Final Live Readiness Gate
 ```
 
-## P46 Paper Trading Journal / Live Observation v2
+## P47 Final Live Readiness Gate
 
 Implemented in:
 
 ```text
-src/validation/paper_trading_journal.py
-docs/operations/paper_trading_journal.md
-tests/test_paper_trading_journal.py
+src/validation/final_live_readiness_gate.py
+docs/operations/final_live_readiness_gate.md
+tests/test_final_live_readiness_gate.py
 ```
 
-P46 tracks paper observation quality before the final live-readiness gate.
+P47 consolidates P41-P46 evidence into a final fail-closed readiness report.
 
-Tracked metrics:
+Readiness levels:
 
 ```text
-paper fill slippage in R
-fill deviation percent
-5-day outcome in R
-20-day outcome in R
-model deviation flags
-psychology/protocol deviation flags
-weekly observation summaries
+NOT_READY
+OBSERVATION_ONLY
+REVIEW_READY
 ```
 
-Observation guidance:
+Required evidence:
 
 ```text
-3 months absolute minimum
-6 months if no meaningful regime shift occurs
+historical edge validation
+regime-phase robustness
+walk-forward stability
+execution realism
+out-of-sample robustness
+paper observation quality
+manual review
+risk limits
+kill-switch definition
+```
+
+Staged capital-risk guidance:
+
+```text
+Months 1-3:  max 50% size after all gates pass and manual review is complete
+Months 4-6:  max 75% size only if observed metrics remain >=85% of expectation
+Month 7+:    max 100% only if cumulatively profitable and drawdown remains below kill switch
 ```
 
 ## Decision Quality and Validation Roadmap
@@ -145,18 +161,6 @@ Detailed roadmap:
 
 ```text
 docs/roadmap/decision_quality_p36_p40.md
-```
-
-Validation sequence after P40:
-
-```text
-P41 Historical Edge Validation Framework
-P42 Regime-Phase Backtest Matrix
-P43 Walk-Forward Validation
-P44 Execution Realism Layer
-P45 Out-of-Sample Validation Lockbox
-P46 Paper Trading Journal / Live Observation v2
-P47 Final Live Readiness Gate
 ```
 
 ## Implemented Components
@@ -174,6 +178,7 @@ P47 Final Live Readiness Gate
 | Execution Realism Layer | Implemented |
 | Out-of-Sample Validation Lockbox | Implemented |
 | Paper Trading Journal / Live Observation v2 | Implemented |
+| Final Live Readiness Gate | Implemented |
 | Static Dashboard HTML Reporting | Implemented |
 | SQLite Runtime Persistence | Implemented |
 | Event Risk Placeholder Metadata | Implemented |
@@ -199,6 +204,7 @@ P47 Final Live Readiness Gate
 
 ### Done
 
+- P47 final live readiness gate
 - P46 paper trading journal / live observation v2
 - P45 out-of-sample validation lockbox
 - P44 execution realism layer
@@ -213,7 +219,7 @@ P47 Final Live Readiness Gate
 
 ### Planned Next
 
-1. P47 Final Live Readiness Gate
+Validation roadmap P36-P47 is implemented. Future work should focus on real evidence collection, not feature expansion.
 
 ## Disclaimer
 
