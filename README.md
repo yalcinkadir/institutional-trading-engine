@@ -8,6 +8,18 @@ Institutional Trading Engine is a production-oriented market intelligence, scree
 
 The system is designed for research and decision support. It does not place live trades.
 
+## Current Validation Status
+
+```text
+P36-P47 validation roadmap: implemented
+P47 final live readiness gate: completed
+CI status: green
+Live trading authorization: not granted by code
+Broker execution: not implemented
+```
+
+Code quality is not trading edge. The system is promising enough to test seriously, but real capital still requires evidence from the validation gates, paper observation and manual review.
+
 ## Core Capabilities
 
 - market regime analysis
@@ -96,7 +108,7 @@ pytest tests/test_manual_portfolio_sync.py
 
 ## P36-P47 Validation Stack
 
-Implemented layers:
+Implemented and CI-green layers:
 
 ```text
 P36 Confidence Score Double Counting Fix
@@ -219,7 +231,7 @@ docs/roadmap/decision_quality_p36_p40.md
 
 ### Planned Next
 
-Validation roadmap P36-P47 is implemented. Future work should focus on real evidence collection, not feature expansion.
+Validation roadmap P36-P47 is implemented. Future work should focus on real evidence collection, report review and paper-observation quality, not feature expansion.
 
 ## Disclaimer
 
