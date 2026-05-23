@@ -18,7 +18,9 @@ It is a Decision-Support and research system for:
 - notification delivery
 - historical Polygon data ingestion
 - deterministic historical Entry / Stop / Exit backtesting
-- GitHub Actions based historical backtest operation
+- historical signal reconstruction
+- out-of-sample validation
+- GitHub Actions based historical validation operation
 - feedback and expectancy analysis
 
 ---
@@ -42,7 +44,9 @@ Market analysis
 → Lifecycle tracking
 → Historical Polygon ingestion
 → Historical Entry / Stop / Exit backtest
-→ GitHub Actions backtest artifact generation
+→ Historical signal reconstruction
+→ Out-of-sample validation
+→ GitHub Actions validation artifact generation
 → Feedback aggregation
 → Regime-aware learning
 → Paper-live observation
@@ -59,11 +63,12 @@ Market analysis
 pytest
 ```
 
-Targeted P24/P24B tests:
+Targeted historical validation tests:
 
 ```bash
 pytest tests/test_historical_entry_exit_backtest.py
 pytest tests/test_sample_historical_backtest_plans.py
+pytest tests/test_out_of_sample_validation.py
 ```
 
 ## Check Polygon Live Readiness
@@ -112,11 +117,24 @@ python scripts/run_historical_entry_exit_backtest.py \
   --max-bars 20
 ```
 
+## Run Out-of-Sample Historical Validation Locally
+
+```bash
+python scripts/run_out_of_sample_validation.py \
+  --symbols SPY,QQQ,NVDA,AAPL,MSFT,AMD,TSLA,META,GOOGL,AMZN \
+  --bars-root data/historical/bars/1day \
+  --split-date 2023-01-01 \
+  --lookback-bars 20 \
+  --every-nth-signal 20 \
+  --max-bars 20
+```
+
 Default outputs:
 
 ```text
-reports/backtests/historical-entry-exit-backtest.json
-reports/backtests/historical-entry-exit-backtest.md
+reports/backtests/reconstructed-historical-plans.json
+reports/backtests/out-of-sample-validation.json
+reports/backtests/out-of-sample-validation.md
 ```
 
 ## Run Historical Entry Exit Backtest in GitHub Actions
@@ -125,33 +143,38 @@ reports/backtests/historical-entry-exit-backtest.md
 Actions → Historical Entry Exit Backtest → Run workflow
 ```
 
+## Run Out-of-Sample Historical Validation in GitHub Actions
+
+```text
+Actions → Out-of-Sample Historical Validation → Run workflow
+```
+
 Recommended first run:
 
 ```text
-plan_mode: sample
 symbols: SPY,QQQ,NVDA,AAPL,MSFT,AMD,TSLA,META,GOOGL,AMZN
 start_date: 2016-05-22
 end_date: 2026-05-22
-sample_signal_date: 2017-01-03
+split_date: 2023-01-01
+lookback_bars: 20
+every_nth_signal: 20
 max_bars: 20
 ```
 
 Artifact:
 
 ```text
-historical-entry-exit-backtest-artifacts
+out-of-sample-validation-artifacts
 ```
 
 Expected files:
 
 ```text
-reports/backtests/sample-historical-plans.json
-reports/backtests/historical-entry-exit-backtest.json
-reports/backtests/historical-entry-exit-backtest.md
+reports/backtests/reconstructed-historical-plans.json
+reports/backtests/out-of-sample-validation.json
+reports/backtests/out-of-sample-validation.md
 data/historical/metadata/ingestion_status.json
 ```
-
-The workflow re-ingests historical data inside the job because GitHub Actions artifacts from previous workflows are not permanent repo files.
 
 ## Run E2E Dry Run
 
@@ -200,29 +223,59 @@ TARGET_1_HIT
 TARGET_2_HIT
 ```
 
-Metrics:
-
-```text
-total
-entry_hit_rate
-expired_without_entry_rate
-stop_hit_rate
-target_1_hit_rate
-target_2_hit_rate
-false_breakout_rate
-average_r
-expectancy_r
-```
-
 Conservative daily-bar rule:
 
 ```text
 If stop and target are touched in the same daily bar, stop wins.
 ```
 
-This avoids optimistic bias when only daily bars are available.
+---
 
-P24/P24B do **not** generate historical signals from scratch and do **not** execute trades.
+# Out-of-Sample Historical Validation
+
+Implemented in:
+
+```text
+src/backtesting/out_of_sample_validation.py
+scripts/run_out_of_sample_validation.py
+docs/operations/out_of_sample_validation.md
+tests/test_out_of_sample_validation.py
+.github/workflows/out-of-sample-validation.yml
+```
+
+P25 reconstructs deterministic historical trade plans from daily bars and compares:
+
+```text
+all
+in_sample
+out_of_sample
+```
+
+Split rule:
+
+```text
+signal_date < split_date  → in-sample
+signal_date >= split_date → out-of-sample
+```
+
+Initial reconstruction method:
+
+```text
+previous lookback high = entry trigger
+percentage stop below entry
+R-multiple targets
+one reconstructed plan every N bars
+long-side only
+daily bars only
+```
+
+Guardrail:
+
+```text
+P25 does not train a model.
+P25 does not change adaptive scoring.
+P25 does not authorize trading.
+```
 
 ---
 
@@ -249,6 +302,8 @@ P24/P24B do **not** generate historical signals from scratch and do **not** exec
 | Historical Polygon Data Ingestion | Implemented |
 | Historical Entry / Stop / Exit Backtest Runner | Implemented |
 | Historical Backtest GitHub Actions Workflow | Implemented |
+| Historical Signal Reconstruction | Implemented |
+| Out-of-Sample Historical Validation | Implemented |
 | Entry / Stop / Exit Feedback Aggregation | Implemented |
 | Regime-Aware Feedback Grouping | Implemented |
 | File-Backed Portfolio State | Implemented |
@@ -291,6 +346,8 @@ Before scheduled live Decision-Support:
 7. manual watcher run completes successfully
 8. 5 consecutive entry-exit-watcher runs are green
 9. historical strategy validation completed before any trading decision
+10. out-of-sample validation reviewed
+11. paper-live observation completed
 ```
 
 Non-goals:
@@ -314,6 +371,8 @@ No real trading without out-of-sample validation and paper-live observation
 - historical Polygon data ingestion
 - historical Entry / Stop / Exit backtest runner
 - historical Entry Exit Backtest GitHub Actions workflow
+- historical signal reconstruction
+- out-of-sample historical validation
 - initial file-backed portfolio state
 - E2E dry-run
 - breakout entry context upgrade
@@ -330,13 +389,12 @@ No real trading without out-of-sample validation and paper-live observation
 
 ## Planned Next
 
-1. P25 — Out-of-Sample Validation and Adaptive Feedback Integration.
-2. P26 — Paper-Live Observation Before Trading.
-3. Session-aware VWAP and intraday entry confirmation.
-4. Cross-field feedback grouping such as entry_type x market_regime.
-5. Static dashboard / HTML reporting.
-6. Long-term persistence with Postgres or analytics storage.
-7. Broker/account integration for automatic portfolio-state calculation.
+1. P26 — Paper-Live Observation Before Trading.
+2. Session-aware VWAP and intraday entry confirmation.
+3. Cross-field feedback grouping such as entry_type x market_regime.
+4. Static dashboard / HTML reporting.
+5. Long-term persistence with Postgres or analytics storage.
+6. Broker/account integration for automatic portfolio-state calculation.
 
 ---
 
