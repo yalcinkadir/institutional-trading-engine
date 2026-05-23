@@ -80,46 +80,27 @@ jobs:
 
           if [[ -z "${POLYGON_API_KEY:-}" ]]; then
             echo "POLYGON_API_KEY secret is missing. Runtime watcher will be skipped instead of failing PR workflow."
-            cat > reports/alerts/watcher-skip-message.txt <<EOF
-Entry/Exit Watcher SKIPPED
-Cycle: ${WATCHER_CYCLE_ID}
-Reason: POLYGON_API_KEY secret is missing.
-EOF
+            {
+              echo "Entry/Exit Watcher SKIPPED"
+              echo "Cycle: ${WATCHER_CYCLE_ID}"
+              echo "Reason: POLYGON_API_KEY secret is missing."
+            } > reports/alerts/watcher-skip-message.txt
             echo "WATCHER_SKIP=true" >> "$GITHUB_ENV"
             exit 0
           fi
 
           if [[ ! -f "$SIGNALS_FILE" ]]; then
             echo "Signals file does not exist: $SIGNALS_FILE. Runtime watcher will be skipped instead of failing PR workflow."
-            cat > reports/alerts/watcher-skip-message.txt <<EOF
-Entry/Exit Watcher SKIPPED
-Cycle: ${WATCHER_CYCLE_ID}
-Reason: signals file not found at ${SIGNALS_FILE}
-EOF
+            {
+              echo "Entry/Exit Watcher SKIPPED"
+              echo "Cycle: ${WATCHER_CYCLE_ID}"
+              echo "Reason: signals file not found at ${SIGNALS_FILE}"
+            } > reports/alerts/watcher-skip-message.txt
             echo "WATCHER_SKIP=true" >> "$GITHUB_ENV"
             exit 0
           fi
 
-          python - <<'PY'
-import json
-import os
-from pathlib import Path
-
-path = Path(os.environ["SIGNALS_FILE"])
-data = json.loads(path.read_text(encoding="utf-8"))
-if isinstance(data, list):
-    signals = data
-elif isinstance(data, dict):
-    signals = data.get("signals", [])
-else:
-    raise SystemExit(f"Signals file must contain a JSON list or object payload: {path}")
-if not isinstance(signals, list):
-    raise SystemExit(f"Signals payload must contain a list: {path}")
-invalid = sum(1 for item in signals if not isinstance(item, dict))
-if invalid:
-    raise SystemExit(f"Signals payload contains {invalid} non-object records: {path}")
-print(f"Signals file validated: {path} ({len(signals)} signals)")
-PY
+          python -c "import json, os; from pathlib import Path; path = Path(os.environ['SIGNALS_FILE']); data = json.loads(path.read_text(encoding='utf-8')); signals = data if isinstance(data, list) else data.get('signals', []) if isinstance(data, dict) else None; assert isinstance(signals, list), f'Signals payload must contain a list: {path}'; invalid = sum(1 for item in signals if not isinstance(item, dict)); assert invalid == 0, f'Signals payload contains {invalid} non-object records: {path}'; print(f'Signals file validated: {path} ({len(signals)} signals)')"
           echo "WATCHER_SKIP=false" >> "$GITHUB_ENV"
 
       - name: Run watcher
@@ -156,17 +137,7 @@ PY
         shell: bash
         run: |
           if [[ -f reports/alerts/latest-alerts.json ]]; then
-            ALERT_COUNT=$(python - <<'PY'
-import json
-from pathlib import Path
-path = Path('reports/alerts/latest-alerts.json')
-try:
-    data = json.loads(path.read_text())
-    print(len(data) if isinstance(data, list) else 0)
-except Exception:
-    print(0)
-PY
-)
+            ALERT_COUNT=$(python -c "import json; from pathlib import Path; path = Path('reports/alerts/latest-alerts.json'); data = json.loads(path.read_text()) if path.exists() else []; print(len(data) if isinstance(data, list) else 0)")
           else
             ALERT_COUNT=0
           fi
@@ -176,20 +147,7 @@ PY
             echo "SEND_ALERTS=false" >> "$GITHUB_ENV"
           else
             echo "SEND_ALERTS=true" >> "$GITHUB_ENV"
-            python - <<'PY' > reports/alerts/watcher-alert-summary.txt
-import json
-from pathlib import Path
-path = Path('reports/alerts/latest-alerts.json')
-data = json.loads(path.read_text())
-lines = ["Entry/Exit Watcher Alerts", ""]
-for item in data[:10]:
-    signal_id = item.get('signal_id', 'unknown')
-    lines.append(
-        f"{item.get('symbol')}: {item.get('alert_type')} @ {item.get('price')} "
-        f"({item.get('previous_status')} -> {item.get('new_status')}) | signal_id={signal_id}"
-    )
-print("\n".join(lines))
-PY
+            python -c "import json; from pathlib import Path; data=json.loads(Path('reports/alerts/latest-alerts.json').read_text()); lines=['Entry/Exit Watcher Alerts','']; [lines.append(f\"{item.get('symbol')}: {item.get('alert_type')} @ {item.get('price')} ({item.get('previous_status')} -> {item.get('new_status')}) | signal_id={item.get('signal_id', 'unknown')}\") for item in data[:10]]; Path('reports/alerts/watcher-alert-summary.txt').write_text('\\n'.join(lines) + '\\n', encoding='utf-8')"
           fi
 
       - name: Send watcher alert notification
@@ -207,13 +165,13 @@ PY
         shell: bash
         run: |
           mkdir -p reports
-          cat > reports/watcher-failure-message.txt <<EOF
-Entry/Exit Watcher FAILED
-Cycle: ${WATCHER_CYCLE_ID:-unknown}
-Repository: ${GITHUB_REPOSITORY}
-Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
-Signals file: ${SIGNALS_FILE:-unknown}
-EOF
+          {
+            echo "Entry/Exit Watcher FAILED"
+            echo "Cycle: ${WATCHER_CYCLE_ID:-unknown}"
+            echo "Repository: ${GITHUB_REPOSITORY}"
+            echo "Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            echo "Signals file: ${SIGNALS_FILE:-unknown}"
+          } > reports/watcher-failure-message.txt
 
       - name: Send watcher failure notification
         if: failure()
