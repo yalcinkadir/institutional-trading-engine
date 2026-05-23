@@ -4,92 +4,60 @@
 ![CI](https://img.shields.io/badge/CI-pytest-brightgreen.svg)
 ![Status](https://img.shields.io/badge/status-production--oriented-orange.svg)
 
-Institutional Trading Engine is a production-oriented market intelligence, screening, reporting, runtime orchestration, communication, observability, signal lifecycle, historical validation and outcome-learning platform.
+Institutional Trading Engine is a production-oriented market intelligence, screening, reporting, runtime orchestration, observability, historical validation and decision-support platform.
 
-The system is **not** a black-box trading bot and does **not** place live trades.
+The system is designed for research and decision support. It does not place live trades.
 
-It is a Decision-Support and research system for:
+## Core Capabilities
 
 - market regime analysis
-- cross-asset scanning
-- expanded market-data universe coverage
+- decision confidence scoring
+- cross-asset market-data coverage
 - event-risk placeholder metadata
 - optional SQLite runtime persistence
 - static dashboard HTML reporting
-- signal generation
-- executable Entry / Stop / Exit planning
+- signal generation with entry, stop and target planning
 - watcher-based lifecycle tracking
-- watcher health diagnostics
-- notification delivery
-- manual portfolio synchronization without broker integration
+- manual portfolio synchronization
 - historical Polygon data ingestion
-- deterministic historical Entry / Stop / Exit backtesting
-- historical signal reconstruction
+- historical Entry / Stop / Exit backtesting
 - out-of-sample validation
 - paper-live observation
 - operational readiness review
-- scheduled Decision-Support dry runs
+- scheduled decision-support dry runs
 - persistent report archive
-- GitHub Actions based validation and operations
 - feedback and expectancy analysis
 
----
-
-# Core Flow
+## Core Flow
 
 ```text
 Market analysis
-→ Expanded cross-asset universe scan
+→ Expanded universe scan
 → Event-risk metadata check
 → Scanner metrics normalization
-→ Signal generation with native signal_id
-→ Entry Quality Engine
-→ Stop-Loss Quality Engine
-→ Exit / Target Quality Engine
-→ Trade Plan Validator
-→ E2E dry-run artifact validation
-→ Entry / Exit watcher
-→ Entry / Exit watcher health diagnostics
+→ Signal generation
+→ Entry / Stop / Exit quality engines
+→ Trade plan validation
+→ Decision confidence scoring
+→ Watcher lifecycle tracking
 → Manual portfolio sync
 → Optional SQLite persistence
 → Static dashboard reporting
-→ Partial exit / runner management
-→ Regime invalidation monitoring
-→ Notification delivery
-→ Lifecycle tracking
-→ Historical Polygon ingestion
-→ Historical Entry / Stop / Exit backtest
-→ Historical signal reconstruction
-→ Out-of-sample validation
-→ Paper-live observation
-→ Operational readiness review
-→ Scheduled Decision-Support dry runs
-→ Report archive
-→ GitHub Actions validation artifact generation
+→ Historical validation
 → Feedback aggregation
-→ Regime-aware learning
-→ live Decision-Support only after validation and human review
+→ Human review
 ```
 
----
-
-# Main Commands
-
-## Run Tests
+## Main Test Commands
 
 ```bash
 pytest
-```
-
-Targeted validation/observation/readiness/archive/dashboard/universe tests:
-
-```bash
+pytest tests/test_decision_confidence.py
 pytest tests/test_static_dashboard.py
 pytest tests/test_sqlite_persistence.py
 pytest tests/test_event_risk_engine.py
 pytest tests/test_symbol_universe.py
 pytest tests/test_historical_entry_exit_backtest.py
-pytest tests/test_sample_historical_backtest_plans.py
 pytest tests/test_out_of_sample_validation.py
 pytest tests/test_paper_live_observation.py
 pytest tests/test_operational_readiness_review.py
@@ -98,6 +66,41 @@ pytest tests/test_report_archive.py
 pytest tests/test_entry_exit_watcher_health.py
 pytest tests/test_manual_portfolio_sync.py
 ```
+
+## P36 Decision Confidence Scoring
+
+Implemented in:
+
+```text
+src/decision_confidence.py
+docs/operations/confidence_scoring.md
+tests/test_decision_confidence.py
+```
+
+P36 separates confidence into three independent layers:
+
+```text
+asset setup score      weight 0.45
+market health score   weight 0.35
+regime alignment      weight 0.20
+```
+
+Formula:
+
+```text
+confidence = setup_score * 0.45 + market_health_score * 0.35 + regime_alignment_score * 0.20
+```
+
+Regime alignment mapping:
+
+```text
+Tier 1   100
+Tier 2    65
+Tier 3    35
+No Trade   0
+```
+
+This avoids counting market-health factors again inside confidence scoring.
 
 ## Static Dashboard HTML Reporting
 
@@ -127,7 +130,14 @@ reports/dashboard/index.html
 reports/dashboard/dashboard.json
 ```
 
-P35 builds a static dashboard from existing local report files. Missing report inputs are shown as missing instead of failing the dashboard build.
+Dashboard status values:
+
+```text
+PASS
+PARTIAL
+WARN
+EMPTY
+```
 
 ## SQLite Runtime Persistence
 
@@ -150,14 +160,6 @@ python scripts/check_sqlite_persistence.py \
   --json
 ```
 
-Default database path:
-
-```text
-data/runtime/runtime.sqlite
-```
-
-P34 adds optional SQLite persistence. JSON and JSONL outputs remain valid fallbacks.
-
 ## Event Risk Placeholder Metadata
 
 Implemented in:
@@ -168,7 +170,7 @@ docs/operations/event_risk_placeholder.md
 tests/test_event_risk_engine.py
 ```
 
-Default event-risk metadata:
+Default metadata:
 
 ```text
 event_risk_available=false
@@ -177,20 +179,14 @@ event_risk_confidence=low
 event_risk_is_placeholder=true
 ```
 
-Default warning:
-
-```text
-event_risk_not_backed_by_live_calendar_feed
-```
-
-P33 makes event-risk status visible and testable when no live calendar data source is connected.
-
 ## Market Data Coverage
 
 Configured in:
 
 ```text
 src/config.py
+docs/operations/market_data_coverage.md
+tests/test_symbol_universe.py
 ```
 
 Default groups:
@@ -206,9 +202,7 @@ commodities: GLD, SLV, USO
 legacy_quality: CSCO
 ```
 
-P32 improves market breadth, bond/rates context, dollar context, sector rotation context and commodity proxy coverage without broker APIs.
-
-## Manual Portfolio Sync
+## Key Local Commands
 
 ```bash
 python scripts/sync_manual_portfolio_state.py \
@@ -217,52 +211,6 @@ python scripts/sync_manual_portfolio_state.py \
   --report-json-out reports/portfolio/manual-portfolio-sync.json \
   --report-md-out reports/portfolio/manual-portfolio-sync.md
 ```
-
-This calculates governance-compatible fields:
-
-```text
-drawdown_percent
-daily_loss_percent
-total_position_value
-total_unrealized_pnl
-```
-
-It does **not** use broker APIs and does **not** execute orders.
-
-## Check Polygon Live Readiness
-
-```bash
-python scripts/check_polygon_live_readiness.py \
-  --symbols SPY,QQQ,IWM,DIA,TLT,IEF,SHY,UUP,XLK,XLF,XLE,XLV,XLY,XLP,XLI,XLU,XLB,XLRE,GLD,SLV,USO \
-  --lookback-days 3650
-```
-
-## Run Historical Polygon Ingestion
-
-```bash
-python scripts/ingest_historical_polygon.py \
-  --symbols SPY,QQQ,IWM,DIA,TLT,IEF,SHY,UUP,XLK,XLF,XLE,XLV,XLY,XLP,XLI,XLU,XLB,XLRE,GLD,SLV,USO \
-  --start-date 2016-05-22 \
-  --end-date 2026-05-22 \
-  --json
-```
-
-Required environment variable:
-
-```text
-POLYGON_API_KEY
-```
-
-## Run Historical Entry / Stop / Exit Backtest Locally
-
-```bash
-python scripts/run_historical_entry_exit_backtest.py \
-  --plans-file reports/signals/latest-signals.json \
-  --bars-root data/historical/bars/1day \
-  --max-bars 20
-```
-
-## Run Out-of-Sample Historical Validation Locally
 
 ```bash
 python scripts/run_out_of_sample_validation.py \
@@ -274,478 +222,88 @@ python scripts/run_out_of_sample_validation.py \
   --max-bars 20
 ```
 
-## Run Paper-Live Observation Locally
-
-```bash
-python scripts/run_paper_live_observation.py \
-  --signals-file reports/signals/latest-signals.json \
-  --lifecycle-file data/signal_lifecycle.jsonl \
-  --alerts-file reports/alerts/latest-alerts.json \
-  --min-lifecycle-events 5
-```
-
-## Run Entry / Exit Watcher Health Locally
-
-```bash
-python scripts/check_entry_exit_watcher_health.py \
-  --signals-file reports/signals/latest-signals.json \
-  --lifecycle-file data/signal_lifecycle.jsonl \
-  --min-signals 1 \
-  --min-lifecycle-events 1
-```
-
-## Run Operational Readiness Review Locally
-
-```bash
-python scripts/run_operational_readiness_review.py \
-  --backtest-report reports/backtests/historical-entry-exit-backtest.json \
-  --oos-report reports/backtests/out-of-sample-validation.json \
-  --paper-live-report reports/paper-live/paper-live-observation.json \
-  --portfolio-state data/portfolio_state.json \
-  --min-backtest-plans 1 \
-  --min-oos-plans 1
-```
-
-## Run Scheduled Decision-Support Dry Run Locally
-
-```bash
-python scripts/run_scheduled_decision_support_dry_run.py \
-  --run-mode manual \
-  --backtest-report reports/backtests/historical-entry-exit-backtest.json \
-  --oos-report reports/backtests/out-of-sample-validation.json \
-  --paper-live-report reports/paper-live/paper-live-observation.json \
-  --portfolio-state data/portfolio_state.json \
-  --min-backtest-plans 1 \
-  --min-oos-plans 1
-```
-
-## Archive Reports Locally
-
 ```bash
 python scripts/archive_reports.py
 ```
 
----
-
-# GitHub Actions Operations
-
-## Static Dashboard
+## GitHub Actions
 
 ```text
 Actions → Static Dashboard → Run workflow
-```
-
-Artifact:
-
-```text
-static-dashboard-artifacts
-```
-
-## SQLite Persistence
-
-```text
 Actions → SQLite Persistence → Run workflow
-```
-
-Artifact:
-
-```text
-sqlite-persistence-artifacts
-```
-
-## Manual Portfolio Sync
-
-```text
 Actions → Manual Portfolio Sync → Run workflow
-```
-
-Artifact:
-
-```text
-manual-portfolio-sync-artifacts
-```
-
-## Historical Entry Exit Backtest
-
-```text
 Actions → Historical Entry Exit Backtest → Run workflow
-```
-
-## Out-of-Sample Historical Validation
-
-```text
 Actions → Out-of-Sample Historical Validation → Run workflow
-```
-
-## Paper Live Observation
-
-```text
 Actions → Paper Live Observation → Run workflow
-```
-
-## Entry Exit Watcher Health
-
-```text
 Actions → Entry Exit Watcher Health → Run workflow
-```
-
-Artifact:
-
-```text
-entry-exit-watcher-health-artifacts
-```
-
-## Operational Readiness Review
-
-```text
 Actions → Operational Readiness Review → Run workflow
-```
-
-## Scheduled Decision-Support Dry Run
-
-```text
 Actions → Scheduled Decision-Support Dry Run → Run workflow
-```
-
-Schedule:
-
-```text
-30 20 * * 1-5 UTC
-```
-
-## Archive Reports
-
-```text
 Actions → Archive Reports → Run workflow
 ```
 
-Artifact:
+## Decision Quality Roadmap
+
+Detailed roadmap:
 
 ```text
-report-archive-artifacts
+docs/roadmap/decision_quality_p36_p40.md
 ```
 
----
-
-# Static Dashboard HTML Reporting
-
-Implemented in:
+Sequence:
 
 ```text
-src/operations/static_dashboard.py
-scripts/build_static_dashboard.py
-docs/operations/static_dashboard.md
-tests/test_static_dashboard.py
-.github/workflows/static-dashboard.yml
+P36 Confidence Score Double Counting Fix
+P37 Probabilistic Engine Softmax Normalization
+P38 Regime Similarity Weighted Distance + Cosine Similarity
+P39 Adaptive Feedback Decay
+P40 MultiFactorFusion Recalibration
 ```
 
-Outputs:
-
-```text
-reports/dashboard/index.html
-reports/dashboard/dashboard.json
-```
-
-Dashboard status values:
-
-```text
-PASS
-PARTIAL
-WARN
-EMPTY
-```
-
----
-
-# SQLite Runtime Persistence
-
-Implemented in:
-
-```text
-src/operations/sqlite_persistence.py
-scripts/check_sqlite_persistence.py
-docs/operations/sqlite_persistence.md
-tests/test_sqlite_persistence.py
-.github/workflows/sqlite-persistence.yml
-```
-
-P34 adds optional persistence for structured runtime records:
-
-```text
-record_id
-record_type
-source
-created_at
-payload_json
-```
-
-Existing JSON and JSONL outputs remain usable.
-
----
-
-# Event Risk Placeholder Metadata
-
-Implemented in:
-
-```text
-src/event_risk_engine.py
-docs/operations/event_risk_placeholder.md
-tests/test_event_risk_engine.py
-```
-
-P33 adds explicit event-risk metadata:
-
-```text
-event_risk_available
-event_risk_source
-event_risk_confidence
-event_risk_is_placeholder
-```
-
-Default placeholder values:
-
-```text
-event_risk_available=false
-event_risk_source=static_placeholder
-event_risk_confidence=low
-event_risk_is_placeholder=true
-```
-
----
-
-# Market Data Coverage
-
-Implemented in:
-
-```text
-src/config.py
-docs/operations/market_data_coverage.md
-tests/test_symbol_universe.py
-```
-
-P32 adds/validates:
-
-```text
-Core indices: SPY, QQQ, IWM, DIA
-Rates/Bonds: TLT, IEF, SHY
-Dollar proxy: UUP
-Sectors: XLK, XLF, XLE, XLV, XLY, XLP, XLI, XLU, XLB, XLRE
-Commodities: GLD, SLV, USO
-```
-
-Guardrail:
-
-```text
-P32 does not connect broker execution.
-P32 does not place orders.
-P32 does not authorize trading.
-P32 only expands Decision-Support market-data coverage.
-```
-
----
-
-# Manual Portfolio Sync
-
-Implemented in:
-
-```text
-src/operations/manual_portfolio_sync.py
-scripts/sync_manual_portfolio_state.py
-data/manual_portfolio_snapshot.example.json
-docs/operations/manual_portfolio_sync.md
-tests/test_manual_portfolio_sync.py
-.github/workflows/manual-portfolio-sync.yml
-```
-
----
-
-# Entry / Exit Watcher Health
-
-Implemented in:
-
-```text
-src/operations/entry_exit_watcher_health.py
-scripts/check_entry_exit_watcher_health.py
-docs/operations/entry_exit_watcher_health.md
-tests/test_entry_exit_watcher_health.py
-.github/workflows/entry-exit-watcher-health.yml
-```
-
----
-
-# Report Archive
-
-Implemented in:
-
-```text
-src/operations/report_archive.py
-scripts/archive_reports.py
-docs/operations/report_archive.md
-tests/test_report_archive.py
-.github/workflows/archive-reports.yml
-```
-
----
-
-# Implemented Components
+## Implemented Components
 
 | Layer | Status |
 |---|---|
+| Decision Confidence Scoring | Implemented |
 | Static Dashboard HTML Reporting | Implemented |
-| Report Automation | Implemented |
 | SQLite Runtime Persistence | Implemented |
 | Event Risk Placeholder Metadata | Implemented |
 | Expanded Market Data Coverage | Implemented |
 | Scanner-to-Signal Metrics Pipeline | Implemented |
-| Native Signal ID Generation | Implemented |
-| Entry Quality Engine | Implemented |
-| Stop-Loss Quality Engine | Implemented |
-| Exit / Target Quality Engine | Implemented |
+| Entry / Stop / Exit Quality Engines | Implemented |
 | Trade Plan Validator | Implemented |
-| Intraday VWAP Support | Implemented |
-| Structure-Aware Stops | Implemented |
-| Trailing Stop / Partial Exit Management | Implemented |
-| Regime Invalidation Exit | Implemented |
 | Entry / Exit Watcher | Implemented |
 | Entry / Exit Watcher Health Diagnostics | Implemented |
 | Manual Portfolio Sync | Implemented |
-| Central Notification Layer | Implemented |
-| Structured Runtime Logging | Implemented |
-| E2E Dry Run | Implemented |
 | Polygon Live Readiness | Implemented |
 | Historical Polygon Data Ingestion | Implemented |
-| Historical Entry / Stop / Exit Backtest Runner | Implemented |
-| Historical Backtest GitHub Actions Workflow | Implemented |
-| Historical Signal Reconstruction | Implemented |
+| Historical Backtesting | Implemented |
 | Out-of-Sample Historical Validation | Implemented |
 | Paper-Live Observation | Implemented |
 | Operational Readiness Review | Implemented |
 | Scheduled Decision-Support Dry Runs | Implemented |
 | Persistent Report Archive | Implemented |
-| Entry / Stop / Exit Feedback Aggregation | Implemented |
-| Regime-Aware Feedback Grouping | Implemented |
-| File-Backed Portfolio State | Implemented |
+| Feedback Aggregation | Implemented |
 | Broker Execution | Not implemented |
-| Dashboard UI | Not implemented |
 
----
+## Roadmap
 
-# Portfolio State
+### Done
 
-Primary runtime file:
+- P36 confidence score double counting fix
+- P35 static dashboard HTML reporting
+- P34 optional SQLite runtime persistence
+- P33 event-risk placeholder metadata
+- P32 expanded market-data coverage
+- P31 manual portfolio-state calculation
 
-```text
-data/portfolio_state.json
-```
+### Planned Next
 
-Manual input template:
+1. P37 Probabilistic Engine Softmax Normalization
+2. P38 Regime Similarity Weighted Distance + Cosine Similarity
+3. P39 Adaptive Feedback Decay
+4. P40 MultiFactorFusion Recalibration
+5. External artifact storage readiness
 
-```text
-data/manual_portfolio_snapshot.example.json
-```
+## Disclaimer
 
-Manual sync report outputs:
-
-```text
-reports/portfolio/manual-portfolio-sync.json
-reports/portfolio/manual-portfolio-sync.md
-```
-
-This is **not** broker synchronization. The snapshot must be maintained manually or by a trusted external process.
-
----
-
-# Go-Live Gates
-
-Live mode means:
-
-```text
-Decision-Support only
-```
-
-Before scheduled live Decision-Support:
-
-```text
-1. CI green
-2. POLYGON_API_KEY set
-3. Telegram/notification secrets verified when alerts are enabled
-4. expanded market-data coverage reviewed
-5. event-risk placeholder metadata reviewed
-6. optional SQLite persistence reviewed if enabled
-7. static dashboard reviewed if enabled
-8. data/portfolio_state.json present and intentionally initialized
-9. manual portfolio sync completed and reviewed
-10. latest-signals.json generated from real Polygon data
-11. E2E dry-run returns PASS
-12. manual watcher run completes successfully
-13. entry-exit-watcher health report reviewed
-14. 5 consecutive entry-exit-watcher runs are green
-15. historical strategy validation completed before any trading decision
-16. out-of-sample validation reviewed
-17. paper-live observation completed and reviewed
-18. operational readiness review completed and reviewed
-19. scheduled dry-run evidence reviewed
-20. report archive created and reviewed
-```
-
-Non-goals:
-
-```text
-No broker execution
-No automatic live orders
-No real trading without out-of-sample validation, paper-live observation, operational readiness review, scheduled dry-run review and report archive review
-```
-
----
-
-# Roadmap
-
-## Done
-
-- static dashboard HTML reporting
-- optional SQLite runtime persistence
-- event-risk placeholder metadata
-- expanded market-data coverage without broker integration
-- manual portfolio-state calculation without broker integration
-- scanner-to-signal metrics pipeline
-- native scanner structure metric
-- intraday VWAP support
-- polygon live-readiness checks
-- historical Polygon data ingestion
-- historical Entry / Stop / Exit backtest runner
-- historical Entry Exit Backtest GitHub Actions workflow
-- historical signal reconstruction
-- out-of-sample historical validation
-- paper-live observation
-- operational readiness review
-- scheduled Decision-Support dry runs
-- persistent report archive
-- entry-exit watcher health diagnostics
-- initial file-backed portfolio state
-- E2E dry-run
-- breakout entry context upgrade
-- structure-aware stops
-- trailing stop and partial exit management
-- regime invalidation exit
-- pending signal regime invalidation
-- Entry / Stop / Exit feedback aggregation
-- regime-aware feedback grouping
-- native signal identity
-- executable signal quality gate
-- watcher workflow hardening
-- lifecycle deduplication
-
-## Planned Next
-
-1. External artifact storage such as S3/R2/Supabase Storage.
-2. Session-aware VWAP and intraday entry confirmation.
-3. Cross-field feedback grouping such as entry_type x market_regime.
-4. Long-term persistence with Postgres or analytics storage.
-
----
-
-# Disclaimer
-
-This project is intended for research, education, institutional analysis experiments, systematic market screening, signal lifecycle analysis and adaptive scoring research.
-
-It is not financial advice and does not execute trades.
+This project is intended for research, education, systematic market screening and decision-support experiments. It is not financial advice.
