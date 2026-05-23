@@ -64,7 +64,7 @@ classification follows the dominant probability
 
 ## P38 Regime Similarity Weighted Distance + Cosine Similarity
 
-Status: implemented, verification pending.
+Status: completed.
 
 Goal:
 
@@ -97,7 +97,7 @@ weighted_distance
 
 ## P39 Adaptive Feedback Decay
 
-Status: planned.
+Status: implemented, verification pending.
 
 Goal:
 
@@ -105,13 +105,27 @@ Goal:
 Weight recent trades more strongly than old trades.
 ```
 
-Planned constants:
+Implemented constants:
 
 ```text
 DECAY_HALF_LIFE_STABLE = 30
 DECAY_HALF_LIFE_REGIME_SHIFT = 10
 REGIME_SHIFT_RECOVERY_DAYS = 5
 MIN_WEIGHT_FLOOR = 0.05
+```
+
+Formula:
+
+```text
+weight_i = decay_factor ^ (age_in_days_i / half_life_days)
+```
+
+Weighted performance:
+
+```text
+weighted_sum = sum(result_i * weight_i)
+total_weight = sum(weight_i)
+adjusted_performance = weighted_sum / total_weight
 ```
 
 ## P40 MultiFactorFusion Recalibration
