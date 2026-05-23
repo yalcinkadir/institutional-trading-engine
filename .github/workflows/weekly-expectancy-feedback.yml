@@ -86,7 +86,24 @@ jobs:
           mkdir -p reports
           if [[ ! -f "$DECISION_LOG" ]]; then
             echo "Decision log not found: $DECISION_LOG"
-            echo "Creating expectancy report with insufficient-data message."
+            echo "Generating no-op expectancy report instead of failing runtime workflow."
+            cat > reports/expectancy-report.md <<EOF
+# Weekly Expectancy Feedback
+
+Status: **SKIPPED**
+
+Reason: decision log not found at \`$DECISION_LOG\`.
+
+This is a runtime data condition, not a code failure.
+EOF
+            cat > reports/weekly-expectancy-summary.txt <<EOF
+Weekly Expectancy Feedback SKIPPED
+Reason: decision log not found at $DECISION_LOG
+EOF
+            echo "WEEKLY_EXPECTANCY_SUMMARY<<EOF" >> "$GITHUB_ENV"
+            cat reports/weekly-expectancy-summary.txt >> "$GITHUB_ENV"
+            echo "EOF" >> "$GITHUB_ENV"
+            exit 0
           fi
 
           if [[ -n "${POLYGON_API_KEY:-}" ]]; then
@@ -111,9 +128,13 @@ PY
       - name: Build weekly summary
         shell: bash
         run: |
-          python scripts/build_weekly_expectancy_summary.py \
-            --decision-log "$DECISION_LOG" \
-            --output reports/weekly-expectancy-summary.txt
+          if [[ -f reports/weekly-expectancy-summary.txt ]]; then
+            echo "Using existing no-op weekly summary."
+          else
+            python scripts/build_weekly_expectancy_summary.py \
+              --decision-log "$DECISION_LOG" \
+              --output reports/weekly-expectancy-summary.txt
+          fi
 
           {
             echo "WEEKLY_EXPECTANCY_SUMMARY<<EOF"
@@ -148,7 +169,7 @@ PY
           python scripts/send_notification.py \
             --message-file reports/weekly-expectancy-summary.txt \
             --telegram \
-            --webhook
+            --webhook || true
 
       - name: Upload expectancy artifacts
         if: always()
