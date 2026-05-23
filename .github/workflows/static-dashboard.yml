@@ -1,0 +1,44 @@
+name: Static Dashboard
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static-dashboard:
+    name: Build Static Dashboard
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run static dashboard tests
+        run: |
+          pytest tests/test_static_dashboard.py
+
+      - name: Build static dashboard
+        run: |
+          python scripts/build_static_dashboard.py --output-html reports/dashboard/index.html --output-json reports/dashboard/dashboard.json --json
+
+      - name: Upload dashboard artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: static-dashboard-artifacts
+          path: |
+            reports/dashboard/index.html
+            reports/dashboard/dashboard.json
+          if-no-files-found: error
