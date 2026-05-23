@@ -15,6 +15,7 @@ The system is designed for research and decision support. It does not place live
 - probabilistic decision normalization
 - weighted regime similarity scoring
 - adaptive feedback decay weighting
+- multi-factor fusion recalibration
 - cross-asset market-data coverage
 - event-risk placeholder metadata
 - optional SQLite runtime persistence
@@ -45,6 +46,7 @@ Market analysis
 → Probabilistic decision normalization
 → Weighted regime similarity scoring
 → Adaptive feedback decay weighting
+→ Multi-factor fusion recalibration
 → Watcher lifecycle tracking
 → Manual portfolio sync
 → Optional SQLite persistence
@@ -62,6 +64,7 @@ pytest tests/test_decision_confidence.py
 pytest tests/test_probabilistic_decisions.py
 pytest tests/test_regime_similarity_engine.py
 pytest tests/test_adaptive_feedback_decay.py
+pytest tests/test_multi_factor_fusion.py
 pytest tests/test_static_dashboard.py
 pytest tests/test_sqlite_persistence.py
 pytest tests/test_event_risk_engine.py
@@ -180,6 +183,47 @@ Formula:
 ```text
 weight_i = decay_factor ^ (age_in_days_i / half_life_days)
 adjusted_performance = sum(result_i * weight_i) / sum(weight_i)
+```
+
+## P40 MultiFactorFusion Recalibration
+
+Implemented in:
+
+```text
+src/fusion/multi_factor_fusion_engine.py
+docs/operations/multi_factor_fusion.md
+tests/test_multi_factor_fusion.py
+```
+
+P40 separates opportunity from risk.
+
+Opportunity weights:
+
+```text
+regime_score          0.30
+feature_alpha_score   0.30
+execution_confidence  0.20
+liquidity_score       0.20
+```
+
+Risk penalty:
+
+```text
+tail_risk_score      0.20
+portfolio_risk_score 0.10
+```
+
+Final score:
+
+```text
+fusion_score = clamp(opportunity_points - risk_penalty, 0, 100)
+```
+
+Regime gate:
+
+```text
+if regime_score < 20:
+    fusion_score = min(fusion_score, 40)
 ```
 
 ## Static Dashboard HTML Reporting
@@ -325,6 +369,7 @@ P47 Final Live Readiness Gate
 | Probabilistic Decision Softmax Normalization | Implemented |
 | Weighted Regime Similarity Scoring | Implemented |
 | Adaptive Feedback Decay Weighting | Implemented |
+| MultiFactorFusion Recalibration | Implemented |
 | Static Dashboard HTML Reporting | Implemented |
 | SQLite Runtime Persistence | Implemented |
 | Event Risk Placeholder Metadata | Implemented |
@@ -350,6 +395,7 @@ P47 Final Live Readiness Gate
 
 ### Done
 
+- P40 multi-factor fusion recalibration
 - P39 adaptive feedback decay
 - P38 regime similarity weighted distance and cosine similarity
 - P37 probabilistic engine softmax normalization
@@ -362,14 +408,13 @@ P47 Final Live Readiness Gate
 
 ### Planned Next
 
-1. P40 MultiFactorFusion Recalibration
-2. P41 Historical Edge Validation Framework
-3. P42 Regime-Phase Backtest Matrix
-4. P43 Walk-Forward Validation
-5. P44 Execution Realism Layer
-6. P45 Out-of-Sample Validation Lockbox
-7. P46 Paper Trading Journal / Live Observation v2
-8. P47 Final Live Readiness Gate
+1. P41 Historical Edge Validation Framework
+2. P42 Regime-Phase Backtest Matrix
+3. P43 Walk-Forward Validation
+4. P44 Execution Realism Layer
+5. P45 Out-of-Sample Validation Lockbox
+6. P46 Paper Trading Journal / Live Observation v2
+7. P47 Final Live Readiness Gate
 
 ## Disclaimer
 
