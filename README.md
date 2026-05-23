@@ -15,6 +15,7 @@ It is a Decision-Support and research system for:
 - expanded market-data universe coverage
 - event-risk placeholder metadata
 - optional SQLite runtime persistence
+- static dashboard HTML reporting
 - signal generation
 - executable Entry / Stop / Exit planning
 - watcher-based lifecycle tracking
@@ -51,6 +52,7 @@ Market analysis
 → Entry / Exit watcher health diagnostics
 → Manual portfolio sync
 → Optional SQLite persistence
+→ Static dashboard reporting
 → Partial exit / runner management
 → Regime invalidation monitoring
 → Notification delivery
@@ -79,9 +81,10 @@ Market analysis
 pytest
 ```
 
-Targeted validation/observation/readiness/archive/universe tests:
+Targeted validation/observation/readiness/archive/dashboard/universe tests:
 
 ```bash
+pytest tests/test_static_dashboard.py
 pytest tests/test_sqlite_persistence.py
 pytest tests/test_event_risk_engine.py
 pytest tests/test_symbol_universe.py
@@ -95,6 +98,36 @@ pytest tests/test_report_archive.py
 pytest tests/test_entry_exit_watcher_health.py
 pytest tests/test_manual_portfolio_sync.py
 ```
+
+## Static Dashboard HTML Reporting
+
+Implemented in:
+
+```text
+src/operations/static_dashboard.py
+scripts/build_static_dashboard.py
+docs/operations/static_dashboard.md
+tests/test_static_dashboard.py
+.github/workflows/static-dashboard.yml
+```
+
+Build locally:
+
+```bash
+python scripts/build_static_dashboard.py \
+  --output-html reports/dashboard/index.html \
+  --output-json reports/dashboard/dashboard.json \
+  --json
+```
+
+Outputs:
+
+```text
+reports/dashboard/index.html
+reports/dashboard/dashboard.json
+```
+
+P35 builds a static dashboard from existing local report files. Missing report inputs are shown as missing instead of failing the dashboard build.
 
 ## SQLite Runtime Persistence
 
@@ -296,6 +329,18 @@ python scripts/archive_reports.py
 
 # GitHub Actions Operations
 
+## Static Dashboard
+
+```text
+Actions → Static Dashboard → Run workflow
+```
+
+Artifact:
+
+```text
+static-dashboard-artifacts
+```
+
 ## SQLite Persistence
 
 ```text
@@ -378,6 +423,36 @@ Artifact:
 
 ```text
 report-archive-artifacts
+```
+
+---
+
+# Static Dashboard HTML Reporting
+
+Implemented in:
+
+```text
+src/operations/static_dashboard.py
+scripts/build_static_dashboard.py
+docs/operations/static_dashboard.md
+tests/test_static_dashboard.py
+.github/workflows/static-dashboard.yml
+```
+
+Outputs:
+
+```text
+reports/dashboard/index.html
+reports/dashboard/dashboard.json
+```
+
+Dashboard status values:
+
+```text
+PASS
+PARTIAL
+WARN
+EMPTY
 ```
 
 ---
@@ -516,6 +591,7 @@ tests/test_report_archive.py
 
 | Layer | Status |
 |---|---|
+| Static Dashboard HTML Reporting | Implemented |
 | Report Automation | Implemented |
 | SQLite Runtime Persistence | Implemented |
 | Event Risk Placeholder Metadata | Implemented |
@@ -596,19 +672,20 @@ Before scheduled live Decision-Support:
 4. expanded market-data coverage reviewed
 5. event-risk placeholder metadata reviewed
 6. optional SQLite persistence reviewed if enabled
-7. data/portfolio_state.json present and intentionally initialized
-8. manual portfolio sync completed and reviewed
-9. latest-signals.json generated from real Polygon data
-10. E2E dry-run returns PASS
-11. manual watcher run completes successfully
-12. entry-exit-watcher health report reviewed
-13. 5 consecutive entry-exit-watcher runs are green
-14. historical strategy validation completed before any trading decision
-15. out-of-sample validation reviewed
-16. paper-live observation completed and reviewed
-17. operational readiness review completed and reviewed
-18. scheduled dry-run evidence reviewed
-19. report archive created and reviewed
+7. static dashboard reviewed if enabled
+8. data/portfolio_state.json present and intentionally initialized
+9. manual portfolio sync completed and reviewed
+10. latest-signals.json generated from real Polygon data
+11. E2E dry-run returns PASS
+12. manual watcher run completes successfully
+13. entry-exit-watcher health report reviewed
+14. 5 consecutive entry-exit-watcher runs are green
+15. historical strategy validation completed before any trading decision
+16. out-of-sample validation reviewed
+17. paper-live observation completed and reviewed
+18. operational readiness review completed and reviewed
+19. scheduled dry-run evidence reviewed
+20. report archive created and reviewed
 ```
 
 Non-goals:
@@ -625,6 +702,7 @@ No real trading without out-of-sample validation, paper-live observation, operat
 
 ## Done
 
+- static dashboard HTML reporting
 - optional SQLite runtime persistence
 - event-risk placeholder metadata
 - expanded market-data coverage without broker integration
@@ -659,11 +737,10 @@ No real trading without out-of-sample validation, paper-live observation, operat
 
 ## Planned Next
 
-1. Static dashboard / HTML reporting.
-2. External artifact storage such as S3/R2/Supabase Storage.
-3. Session-aware VWAP and intraday entry confirmation.
-4. Cross-field feedback grouping such as entry_type x market_regime.
-5. Long-term persistence with Postgres or analytics storage.
+1. External artifact storage such as S3/R2/Supabase Storage.
+2. Session-aware VWAP and intraday entry confirmation.
+3. Cross-field feedback grouping such as entry_type x market_regime.
+4. Long-term persistence with Postgres or analytics storage.
 
 ---
 
