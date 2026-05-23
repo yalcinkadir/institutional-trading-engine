@@ -13,6 +13,7 @@ The system is designed for research and decision support. It does not place live
 - market regime analysis
 - decision confidence scoring
 - probabilistic decision normalization
+- weighted regime similarity scoring
 - cross-asset market-data coverage
 - event-risk placeholder metadata
 - optional SQLite runtime persistence
@@ -41,6 +42,7 @@ Market analysis
 → Trade plan validation
 → Decision confidence scoring
 → Probabilistic decision normalization
+→ Weighted regime similarity scoring
 → Watcher lifecycle tracking
 → Manual portfolio sync
 → Optional SQLite persistence
@@ -56,6 +58,7 @@ Market analysis
 pytest
 pytest tests/test_decision_confidence.py
 pytest tests/test_probabilistic_decisions.py
+pytest tests/test_regime_similarity_engine.py
 pytest tests/test_static_dashboard.py
 pytest tests/test_sqlite_persistence.py
 pytest tests/test_event_risk_engine.py
@@ -119,6 +122,33 @@ Softmax invariant:
 
 ```text
 bullish_probability + bearish_probability + neutral_probability = 100
+```
+
+## P38 Weighted Regime Similarity
+
+Implemented in:
+
+```text
+src/regime/regime_similarity_engine.py
+docs/operations/regime_similarity.md
+tests/test_regime_similarity_engine.py
+```
+
+P38 replaces unweighted regime similarity with weighted normalized distance plus cosine similarity.
+
+Distance weights:
+
+```text
+volatility 0.40
+health     0.25
+breadth    0.20
+momentum   0.15
+```
+
+Final score:
+
+```text
+similarity_score = distance_similarity * 0.70 + cosine_similarity * 0.30
 ```
 
 ## Static Dashboard HTML Reporting
@@ -262,6 +292,7 @@ P47 Final Live Readiness Gate
 |---|---|
 | Decision Confidence Scoring | Implemented |
 | Probabilistic Decision Softmax Normalization | Implemented |
+| Weighted Regime Similarity Scoring | Implemented |
 | Static Dashboard HTML Reporting | Implemented |
 | SQLite Runtime Persistence | Implemented |
 | Event Risk Placeholder Metadata | Implemented |
@@ -287,6 +318,7 @@ P47 Final Live Readiness Gate
 
 ### Done
 
+- P38 regime similarity weighted distance and cosine similarity
 - P37 probabilistic engine softmax normalization
 - P36 confidence score double counting fix
 - P35 static dashboard HTML reporting
@@ -297,16 +329,15 @@ P47 Final Live Readiness Gate
 
 ### Planned Next
 
-1. P38 Regime Similarity Weighted Distance + Cosine Similarity
-2. P39 Adaptive Feedback Decay
-3. P40 MultiFactorFusion Recalibration
-4. P41 Historical Edge Validation Framework
-5. P42 Regime-Phase Backtest Matrix
-6. P43 Walk-Forward Validation
-7. P44 Execution Realism Layer
-8. P45 Out-of-Sample Validation Lockbox
-9. P46 Paper Trading Journal / Live Observation v2
-10. P47 Final Live Readiness Gate
+1. P39 Adaptive Feedback Decay
+2. P40 MultiFactorFusion Recalibration
+3. P41 Historical Edge Validation Framework
+4. P42 Regime-Phase Backtest Matrix
+5. P43 Walk-Forward Validation
+6. P44 Execution Realism Layer
+7. P45 Out-of-Sample Validation Lockbox
+8. P46 Paper Trading Journal / Live Observation v2
+9. P47 Final Live Readiness Gate
 
 ## Disclaimer
 
