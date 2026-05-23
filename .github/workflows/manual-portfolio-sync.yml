@@ -1,0 +1,59 @@
+name: Manual Portfolio Sync
+
+on:
+  workflow_dispatch:
+    inputs:
+      snapshot_file:
+        description: Manual portfolio snapshot JSON file
+        required: true
+        default: data/manual_portfolio_snapshot.example.json
+      portfolio_state_out:
+        description: Runtime portfolio state output
+        required: true
+        default: data/portfolio_state.json
+      report_json_out:
+        description: Portfolio sync JSON report
+        required: true
+        default: reports/portfolio/manual-portfolio-sync.json
+      report_md_out:
+        description: Portfolio sync Markdown report
+        required: true
+        default: reports/portfolio/manual-portfolio-sync.md
+
+jobs:
+  manual-portfolio-sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Run manual portfolio sync
+        run: |
+          python scripts/sync_manual_portfolio_state.py \
+            --snapshot "${{ inputs.snapshot_file }}" \
+            --portfolio-state-out "${{ inputs.portfolio_state_out }}" \
+            --report-json-out "${{ inputs.report_json_out }}" \
+            --report-md-out "${{ inputs.report_md_out }}"
+
+      - name: Upload portfolio sync artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: manual-portfolio-sync-artifacts
+          path: |
+            ${{ inputs.portfolio_state_out }}
+            ${{ inputs.report_json_out }}
+            ${{ inputs.report_md_out }}
+          if-no-files-found: warn
