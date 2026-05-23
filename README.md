@@ -17,6 +17,7 @@ It is a Decision-Support and research system for:
 - watcher-based lifecycle tracking
 - watcher health diagnostics
 - notification delivery
+- manual portfolio synchronization without broker integration
 - historical Polygon data ingestion
 - deterministic historical Entry / Stop / Exit backtesting
 - historical signal reconstruction
@@ -44,6 +45,7 @@ Market analysis
 → E2E dry-run artifact validation
 → Entry / Exit watcher
 → Entry / Exit watcher health diagnostics
+→ Manual portfolio sync
 → Partial exit / runner management
 → Regime invalidation monitoring
 → Notification delivery
@@ -83,7 +85,29 @@ pytest tests/test_operational_readiness_review.py
 pytest tests/test_scheduled_decision_support_dry_run.py
 pytest tests/test_report_archive.py
 pytest tests/test_entry_exit_watcher_health.py
+pytest tests/test_manual_portfolio_sync.py
 ```
+
+## Manual Portfolio Sync
+
+```bash
+python scripts/sync_manual_portfolio_state.py \
+  --snapshot data/manual_portfolio_snapshot.example.json \
+  --portfolio-state-out data/portfolio_state.json \
+  --report-json-out reports/portfolio/manual-portfolio-sync.json \
+  --report-md-out reports/portfolio/manual-portfolio-sync.md
+```
+
+This calculates governance-compatible fields:
+
+```text
+drawdown_percent
+daily_loss_percent
+total_position_value
+total_unrealized_pnl
+```
+
+It does **not** use broker APIs and does **not** execute orders.
 
 ## Check Polygon Live Readiness
 
@@ -181,16 +205,21 @@ python scripts/run_scheduled_decision_support_dry_run.py \
 python scripts/archive_reports.py
 ```
 
-Default archive outputs:
-
-```text
-reports/archive/<archive-id>/manifest.json
-reports/archive/<archive-id>/manifest.md
-```
-
 ---
 
 # GitHub Actions Operations
+
+## Manual Portfolio Sync
+
+```text
+Actions → Manual Portfolio Sync → Run workflow
+```
+
+Artifact:
+
+```text
+manual-portfolio-sync-artifacts
+```
 
 ## Historical Entry Exit Backtest
 
@@ -254,6 +283,39 @@ report-archive-artifacts
 
 ---
 
+# Manual Portfolio Sync
+
+Implemented in:
+
+```text
+src/operations/manual_portfolio_sync.py
+scripts/sync_manual_portfolio_state.py
+data/manual_portfolio_snapshot.example.json
+docs/operations/manual_portfolio_sync.md
+tests/test_manual_portfolio_sync.py
+.github/workflows/manual-portfolio-sync.yml
+```
+
+P31 adds calculated governance risk fields from a manually maintained snapshot:
+
+```text
+drawdown_percent
+daily_loss_percent
+total_position_value
+total_unrealized_pnl
+```
+
+Guardrail:
+
+```text
+P31 does not connect broker execution.
+P31 does not place orders.
+P31 does not authorize trading.
+P31 only calculates portfolio-state risk fields from manual snapshots.
+```
+
+---
+
 # Entry / Exit Watcher Health
 
 Implemented in:
@@ -264,109 +326,6 @@ scripts/check_entry_exit_watcher_health.py
 docs/operations/entry_exit_watcher_health.md
 tests/test_entry_exit_watcher_health.py
 .github/workflows/entry-exit-watcher-health.yml
-```
-
-P30 adds diagnostic gates around watcher artifacts:
-
-```text
-signals_file_present_and_parseable
-minimum_signals_loaded
-lifecycle_file_present_and_parseable
-minimum_lifecycle_events_loaded
-no_malformed_lifecycle_lines
-terminal_event_observed, only when require_terminal_event=true
-```
-
-Guardrail:
-
-```text
-P30 does not connect broker execution.
-P30 does not place orders.
-P30 does not authorize trading.
-P30 only improves watcher observability and diagnostics.
-```
-
----
-
-# Historical Entry / Stop / Exit Backtest
-
-Implemented in:
-
-```text
-src/backtesting/historical_models.py
-src/backtesting/historical_entry_exit_backtest.py
-src/backtesting/historical_report.py
-scripts/run_historical_entry_exit_backtest.py
-scripts/create_sample_historical_backtest_plans.py
-docs/operations/historical_entry_exit_backtest.md
-docs/operations/historical_entry_exit_backtest_workflow.md
-tests/test_historical_entry_exit_backtest.py
-tests/test_sample_historical_backtest_plans.py
-.github/workflows/historical-entry-exit-backtest.yml
-```
-
----
-
-# Out-of-Sample Historical Validation
-
-Implemented in:
-
-```text
-src/backtesting/out_of_sample_validation.py
-scripts/run_out_of_sample_validation.py
-docs/operations/out_of_sample_validation.md
-tests/test_out_of_sample_validation.py
-.github/workflows/out-of-sample-validation.yml
-```
-
-Guardrail:
-
-```text
-P25 does not train a model.
-P25 does not change adaptive scoring.
-P25 does not authorize trading.
-```
-
----
-
-# Paper-Live Observation
-
-Implemented in:
-
-```text
-src/operations/paper_live_observation.py
-scripts/run_paper_live_observation.py
-docs/operations/paper_live_observation.md
-tests/test_paper_live_observation.py
-.github/workflows/paper-live-observation.yml
-```
-
----
-
-# Operational Readiness Review
-
-Implemented in:
-
-```text
-src/operations/operational_readiness_review.py
-scripts/run_operational_readiness_review.py
-docs/operations/operational_readiness_review.md
-tests/test_operational_readiness_review.py
-.github/workflows/operational-readiness-review.yml
-```
-
----
-
-# Scheduled Decision-Support Dry Runs
-
-Implemented in:
-
-```text
-src/operations/scheduled_decision_support_dry_run.py
-scripts/run_scheduled_decision_support_dry_run.py
-docs/operations/scheduled_decision_support_dry_run.md
-tests/test_scheduled_decision_support_dry_run.py
-.github/workflows/scheduled-decision-support-dry-run.yml
 ```
 
 ---
@@ -402,6 +361,7 @@ tests/test_report_archive.py
 | Regime Invalidation Exit | Implemented |
 | Entry / Exit Watcher | Implemented |
 | Entry / Exit Watcher Health Diagnostics | Implemented |
+| Manual Portfolio Sync | Implemented |
 | Central Notification Layer | Implemented |
 | Structured Runtime Logging | Implemented |
 | E2E Dry Run | Implemented |
@@ -425,15 +385,26 @@ tests/test_report_archive.py
 
 # Portfolio State
 
-Initial file:
+Primary runtime file:
 
 ```text
 data/portfolio_state.json
 ```
 
-This file is used by governance/runtime checks for drawdown and daily-loss context.
+Manual input template:
 
-It is **not** broker synchronization. Until broker/account integration exists, it must be maintained manually or by a trusted external process.
+```text
+data/manual_portfolio_snapshot.example.json
+```
+
+Manual sync report outputs:
+
+```text
+reports/portfolio/manual-portfolio-sync.json
+reports/portfolio/manual-portfolio-sync.md
+```
+
+This is **not** broker synchronization. The snapshot must be maintained manually or by a trusted external process.
 
 ---
 
@@ -452,17 +423,18 @@ Before scheduled live Decision-Support:
 2. POLYGON_API_KEY set
 3. Telegram/notification secrets verified when alerts are enabled
 4. data/portfolio_state.json present and intentionally initialized
-5. latest-signals.json generated from real Polygon data
-6. E2E dry-run returns PASS
-7. manual watcher run completes successfully
-8. entry-exit-watcher health report reviewed
-9. 5 consecutive entry-exit-watcher runs are green
-10. historical strategy validation completed before any trading decision
-11. out-of-sample validation reviewed
-12. paper-live observation completed and reviewed
-13. operational readiness review completed and reviewed
-14. scheduled dry-run evidence reviewed
-15. report archive created and reviewed
+5. manual portfolio sync completed and reviewed
+6. latest-signals.json generated from real Polygon data
+7. E2E dry-run returns PASS
+8. manual watcher run completes successfully
+9. entry-exit-watcher health report reviewed
+10. 5 consecutive entry-exit-watcher runs are green
+11. historical strategy validation completed before any trading decision
+12. out-of-sample validation reviewed
+13. paper-live observation completed and reviewed
+14. operational readiness review completed and reviewed
+15. scheduled dry-run evidence reviewed
+16. report archive created and reviewed
 ```
 
 Non-goals:
@@ -479,6 +451,7 @@ No real trading without out-of-sample validation, paper-live observation, operat
 
 ## Done
 
+- manual portfolio-state calculation without broker integration
 - scanner-to-signal metrics pipeline
 - native scanner structure metric
 - intraday VWAP support
@@ -509,13 +482,12 @@ No real trading without out-of-sample validation, paper-live observation, operat
 
 ## Planned Next
 
-1. Real portfolio-state calculation without broker integration.
-2. Market data coverage expansion.
-3. Static dashboard / HTML reporting.
-4. External artifact storage such as S3/R2/Supabase Storage.
-5. Session-aware VWAP and intraday entry confirmation.
-6. Cross-field feedback grouping such as entry_type x market_regime.
-7. Long-term persistence with Postgres or analytics storage.
+1. Market data coverage expansion.
+2. Static dashboard / HTML reporting.
+3. External artifact storage such as S3/R2/Supabase Storage.
+4. Session-aware VWAP and intraday entry confirmation.
+5. Cross-field feedback grouping such as entry_type x market_regime.
+6. Long-term persistence with Postgres or analytics storage.
 
 ---
 
