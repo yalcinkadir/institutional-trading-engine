@@ -1,4 +1,6 @@
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -73,6 +75,47 @@ def test_manual_portfolio_sync_writes_state_and_reports(tmp_path: Path):
     assert state["metadata"]["broker_api_used"] is False
     assert report["status"] == "PASS"
     assert "Broker API used: `false`" in markdown
+
+
+def test_manual_portfolio_sync_cli_runs_from_repo_root(tmp_path: Path):
+    snapshot_path = tmp_path / "snapshot.json"
+    state_path = tmp_path / "portfolio_state.json"
+    report_json = tmp_path / "manual.json"
+    report_md = tmp_path / "manual.md"
+    _write_snapshot(
+        snapshot_path,
+        {
+            "equity_start": 100000,
+            "equity_peak": 100000,
+            "equity_previous_close": 100000,
+            "equity_current": 99500,
+            "positions": [],
+        },
+    )
+
+    repo_root = Path(__file__).resolve().parents[1]
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "scripts/sync_manual_portfolio_state.py",
+            "--snapshot",
+            str(snapshot_path),
+            "--portfolio-state-out",
+            str(state_path),
+            "--report-json-out",
+            str(report_json),
+            "--report-md-out",
+            str(report_md),
+        ],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert "manual_portfolio_sync_completed" in completed.stdout
+    assert json.loads(state_path.read_text(encoding="utf-8"))["daily_loss_percent"] == 0.5
 
 
 def test_manual_portfolio_sync_rejects_missing_required_equity_field(tmp_path: Path):
