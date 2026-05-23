@@ -23,6 +23,7 @@ It is a Decision-Support and research system for:
 - paper-live observation
 - operational readiness review
 - scheduled Decision-Support dry runs
+- persistent report archive
 - GitHub Actions based validation and operations
 - feedback and expectancy analysis
 
@@ -52,6 +53,7 @@ Market analysis
 → Paper-live observation
 → Operational readiness review
 → Scheduled Decision-Support dry runs
+→ Report archive
 → GitHub Actions validation artifact generation
 → Feedback aggregation
 → Regime-aware learning
@@ -68,7 +70,7 @@ Market analysis
 pytest
 ```
 
-Targeted validation/observation/readiness tests:
+Targeted validation/observation/readiness/archive tests:
 
 ```bash
 pytest tests/test_historical_entry_exit_backtest.py
@@ -77,6 +79,7 @@ pytest tests/test_out_of_sample_validation.py
 pytest tests/test_paper_live_observation.py
 pytest tests/test_operational_readiness_review.py
 pytest tests/test_scheduled_decision_support_dry_run.py
+pytest tests/test_report_archive.py
 ```
 
 ## Check Polygon Live Readiness
@@ -159,11 +162,25 @@ python scripts/run_scheduled_decision_support_dry_run.py \
   --min-oos-plans 1
 ```
 
-Default outputs:
+## Archive Reports Locally
+
+```bash
+python scripts/archive_reports.py
+```
+
+With explicit archive id:
+
+```bash
+python scripts/archive_reports.py \
+  --archive-root reports/archive \
+  --archive-id manual-review-001
+```
+
+Default archive outputs:
 
 ```text
-reports/scheduled-runs/scheduled-decision-support-dry-run.json
-reports/scheduled-runs/scheduled-decision-support-dry-run.md
+reports/archive/<archive-id>/manifest.json
+reports/archive/<archive-id>/manifest.md
 ```
 
 ---
@@ -206,10 +223,16 @@ Schedule:
 30 20 * * 1-5 UTC
 ```
 
+## Archive Reports
+
+```text
+Actions → Archive Reports → Run workflow
+```
+
 Artifact:
 
 ```text
-scheduled-decision-support-dry-run-artifacts
+report-archive-artifacts
 ```
 
 ---
@@ -313,13 +336,34 @@ tests/test_scheduled_decision_support_dry_run.py
 
 P28 wraps the operational readiness review into manual and scheduled GitHub Actions operation.
 
+---
+
+# Report Archive
+
+Implemented in:
+
+```text
+src/operations/report_archive.py
+scripts/archive_reports.py
+docs/operations/report_archive.md
+tests/test_report_archive.py
+.github/workflows/archive-reports.yml
+```
+
+P29 copies selected report files into a timestamped archive folder and writes:
+
+```text
+manifest.json
+manifest.md
+```
+
 Guardrail:
 
 ```text
-P28 does not call a broker.
-P28 does not place orders.
-P28 does not authorize trading.
-P28 only produces scheduled Decision-Support dry-run evidence.
+P29 does not use external storage yet.
+P29 does not call a broker.
+P29 does not authorize trading.
+P29 only creates a local/workflow archive artifact.
 ```
 
 ---
@@ -352,6 +396,7 @@ P28 only produces scheduled Decision-Support dry-run evidence.
 | Paper-Live Observation | Implemented |
 | Operational Readiness Review | Implemented |
 | Scheduled Decision-Support Dry Runs | Implemented |
+| Persistent Report Archive | Implemented |
 | Entry / Stop / Exit Feedback Aggregation | Implemented |
 | Regime-Aware Feedback Grouping | Implemented |
 | File-Backed Portfolio State | Implemented |
@@ -398,6 +443,7 @@ Before scheduled live Decision-Support:
 11. paper-live observation completed and reviewed
 12. operational readiness review completed and reviewed
 13. scheduled dry-run evidence reviewed
+14. report archive created and reviewed
 ```
 
 Non-goals:
@@ -405,7 +451,7 @@ Non-goals:
 ```text
 No broker execution
 No automatic live orders
-No real trading without out-of-sample validation, paper-live observation, operational readiness review and scheduled dry-run review
+No real trading without out-of-sample validation, paper-live observation, operational readiness review, scheduled dry-run review and report archive review
 ```
 
 ---
@@ -426,6 +472,7 @@ No real trading without out-of-sample validation, paper-live observation, operat
 - paper-live observation
 - operational readiness review
 - scheduled Decision-Support dry runs
+- persistent report archive
 - initial file-backed portfolio state
 - E2E dry-run
 - breakout entry context upgrade
@@ -442,11 +489,12 @@ No real trading without out-of-sample validation, paper-live observation, operat
 
 ## Planned Next
 
-1. Session-aware VWAP and intraday entry confirmation.
-2. Cross-field feedback grouping such as entry_type x market_regime.
-3. Static dashboard / HTML reporting.
-4. Long-term persistence with Postgres or analytics storage.
-5. Broker/account integration for automatic portfolio-state calculation.
+1. Static dashboard / HTML reporting.
+2. External artifact storage such as S3/R2/Supabase Storage.
+3. Session-aware VWAP and intraday entry confirmation.
+4. Cross-field feedback grouping such as entry_type x market_regime.
+5. Long-term persistence with Postgres or analytics storage.
+6. Broker/account integration for automatic portfolio-state calculation.
 
 ---
 
