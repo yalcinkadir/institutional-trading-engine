@@ -12,20 +12,29 @@
 - P43 Walk-Forward Validation
 - P44 Execution Realism Layer
 - P45 Out-of-Sample Validation Lockbox
-
-## P46 Paper Trading Journal / Live Observation v2
-
-Status: implemented, verification pending.
-
-P46 tracks paper observation quality before the final readiness gate.
-
-Tracked fields include paper fill slippage, fill deviation percent, 5-day outcome R, 20-day outcome R, model deviation flags, manual protocol flags and weekly summaries.
-
-Minimum observation guidance: 3 months absolute minimum, 6 months if no meaningful regime shift occurs.
+- P46 Paper Trading Journal / Live Observation v2
 
 ## P47 Final Live Readiness Gate
 
-Status: planned.
+Status: implemented, verification pending.
+
+P47 consolidates the P41-P46 evidence into a final fail-closed readiness report.
+
+Required evidence includes validated edge, regime-phase robustness, walk-forward stability, execution realism, out-of-sample robustness, paper observation quality, manual review, risk limits and kill-switch definition.
+
+Readiness levels:
+
+- NOT_READY
+- OBSERVATION_ONLY
+- REVIEW_READY
+
+Staged capital-risk guidance:
+
+- Months 1-3: maximum 50% size after all gates pass and manual review is complete.
+- Months 4-6: maximum 75% size only if observed metrics remain at or above 85% of expectation.
+- Month 7+: maximum 100% only if cumulatively profitable and drawdown remains below kill-switch limit.
+
+Kill-switch rule: stop and review if live drawdown exceeds 1.5x backtest max drawdown.
 
 ## Boundary
 
