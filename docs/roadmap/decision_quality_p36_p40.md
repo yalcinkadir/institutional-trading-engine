@@ -11,8 +11,6 @@ P41-P47: prove or reject the trading edge before any live-capital decision
 
 Status: completed.
 
-Formula:
-
 ```text
 confidence = setup_score * 0.45 + market_health_score * 0.35 + regime_alignment_score * 0.20
 ```
@@ -59,13 +57,7 @@ fusion_score = clamp(opportunity_points - risk_penalty, 0, 100)
 
 ## P41 Historical Edge Validation Framework
 
-Status: implemented, verification pending.
-
-Goal:
-
-```text
-Measure whether a positive historical edge exists after costs and risk constraints.
-```
+Status: completed.
 
 Implemented metrics:
 
@@ -93,7 +85,7 @@ MIN_SHARPE_RATIO     = 0.8
 
 ## P42 Regime-Phase Backtest Matrix
 
-Status: planned.
+Status: implemented, verification pending.
 
 Goal:
 
@@ -101,14 +93,20 @@ Goal:
 Evaluate the system across multiple market phases instead of one blended period.
 ```
 
-Required phases:
+Implemented phases:
 
 ```text
-Low-Vol Bull       2019-01 to 2020-02
-Panic/Dislocation  2020-03 to 2020-04
-Recovery           2020-05 to 2021-12
-High-Vol Regime    2022-01 to 2022-12
-Neutral/Transition 2023-01 to 2024-06
+Low-Vol Bull       2019-01-01 to 2020-02-29
+Panic/Dislocation  2020-03-01 to 2020-04-30
+Recovery           2020-05-01 to 2021-12-31
+High-Vol Regime    2022-01-01 to 2022-12-31
+Neutral/Transition 2023-01-01 to 2024-06-30
+```
+
+Matrix gate:
+
+```text
+at least 3 of 5 phases must pass
 ```
 
 ## P43 Walk-Forward Validation
