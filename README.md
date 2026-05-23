@@ -15,6 +15,7 @@ It is a Decision-Support and research system for:
 - signal generation
 - executable Entry / Stop / Exit planning
 - watcher-based lifecycle tracking
+- watcher health diagnostics
 - notification delivery
 - historical Polygon data ingestion
 - deterministic historical Entry / Stop / Exit backtesting
@@ -42,6 +43,7 @@ Market analysis
 → Trade Plan Validator
 → E2E dry-run artifact validation
 → Entry / Exit watcher
+→ Entry / Exit watcher health diagnostics
 → Partial exit / runner management
 → Regime invalidation monitoring
 → Notification delivery
@@ -80,6 +82,7 @@ pytest tests/test_paper_live_observation.py
 pytest tests/test_operational_readiness_review.py
 pytest tests/test_scheduled_decision_support_dry_run.py
 pytest tests/test_report_archive.py
+pytest tests/test_entry_exit_watcher_health.py
 ```
 
 ## Check Polygon Live Readiness
@@ -137,6 +140,16 @@ python scripts/run_paper_live_observation.py \
   --min-lifecycle-events 5
 ```
 
+## Run Entry / Exit Watcher Health Locally
+
+```bash
+python scripts/check_entry_exit_watcher_health.py \
+  --signals-file reports/signals/latest-signals.json \
+  --lifecycle-file data/signal_lifecycle.jsonl \
+  --min-signals 1 \
+  --min-lifecycle-events 1
+```
+
 ## Run Operational Readiness Review Locally
 
 ```bash
@@ -168,14 +181,6 @@ python scripts/run_scheduled_decision_support_dry_run.py \
 python scripts/archive_reports.py
 ```
 
-With explicit archive id:
-
-```bash
-python scripts/archive_reports.py \
-  --archive-root reports/archive \
-  --archive-id manual-review-001
-```
-
 Default archive outputs:
 
 ```text
@@ -203,6 +208,18 @@ Actions → Out-of-Sample Historical Validation → Run workflow
 
 ```text
 Actions → Paper Live Observation → Run workflow
+```
+
+## Entry Exit Watcher Health
+
+```text
+Actions → Entry Exit Watcher Health → Run workflow
+```
+
+Artifact:
+
+```text
+entry-exit-watcher-health-artifacts
 ```
 
 ## Operational Readiness Review
@@ -233,6 +250,40 @@ Artifact:
 
 ```text
 report-archive-artifacts
+```
+
+---
+
+# Entry / Exit Watcher Health
+
+Implemented in:
+
+```text
+src/operations/entry_exit_watcher_health.py
+scripts/check_entry_exit_watcher_health.py
+docs/operations/entry_exit_watcher_health.md
+tests/test_entry_exit_watcher_health.py
+.github/workflows/entry-exit-watcher-health.yml
+```
+
+P30 adds diagnostic gates around watcher artifacts:
+
+```text
+signals_file_present_and_parseable
+minimum_signals_loaded
+lifecycle_file_present_and_parseable
+minimum_lifecycle_events_loaded
+no_malformed_lifecycle_lines
+terminal_event_observed, only when require_terminal_event=true
+```
+
+Guardrail:
+
+```text
+P30 does not connect broker execution.
+P30 does not place orders.
+P30 does not authorize trading.
+P30 only improves watcher observability and diagnostics.
 ```
 
 ---
@@ -290,14 +341,6 @@ tests/test_paper_live_observation.py
 .github/workflows/paper-live-observation.yml
 ```
 
-Guardrail:
-
-```text
-P26 does not call a broker.
-P26 does not place orders.
-P26 does not authorize trading.
-```
-
 ---
 
 # Operational Readiness Review
@@ -310,14 +353,6 @@ scripts/run_operational_readiness_review.py
 docs/operations/operational_readiness_review.md
 tests/test_operational_readiness_review.py
 .github/workflows/operational-readiness-review.yml
-```
-
-Guardrail:
-
-```text
-P27 does not authorize trading.
-P27 does not connect broker execution.
-P27 only determines whether artifacts are complete enough for human review of live Decision-Support scheduling.
 ```
 
 ---
@@ -334,8 +369,6 @@ tests/test_scheduled_decision_support_dry_run.py
 .github/workflows/scheduled-decision-support-dry-run.yml
 ```
 
-P28 wraps the operational readiness review into manual and scheduled GitHub Actions operation.
-
 ---
 
 # Report Archive
@@ -348,22 +381,6 @@ scripts/archive_reports.py
 docs/operations/report_archive.md
 tests/test_report_archive.py
 .github/workflows/archive-reports.yml
-```
-
-P29 copies selected report files into a timestamped archive folder and writes:
-
-```text
-manifest.json
-manifest.md
-```
-
-Guardrail:
-
-```text
-P29 does not use external storage yet.
-P29 does not call a broker.
-P29 does not authorize trading.
-P29 only creates a local/workflow archive artifact.
 ```
 
 ---
@@ -384,6 +401,7 @@ P29 only creates a local/workflow archive artifact.
 | Trailing Stop / Partial Exit Management | Implemented |
 | Regime Invalidation Exit | Implemented |
 | Entry / Exit Watcher | Implemented |
+| Entry / Exit Watcher Health Diagnostics | Implemented |
 | Central Notification Layer | Implemented |
 | Structured Runtime Logging | Implemented |
 | E2E Dry Run | Implemented |
@@ -437,13 +455,14 @@ Before scheduled live Decision-Support:
 5. latest-signals.json generated from real Polygon data
 6. E2E dry-run returns PASS
 7. manual watcher run completes successfully
-8. 5 consecutive entry-exit-watcher runs are green
-9. historical strategy validation completed before any trading decision
-10. out-of-sample validation reviewed
-11. paper-live observation completed and reviewed
-12. operational readiness review completed and reviewed
-13. scheduled dry-run evidence reviewed
-14. report archive created and reviewed
+8. entry-exit-watcher health report reviewed
+9. 5 consecutive entry-exit-watcher runs are green
+10. historical strategy validation completed before any trading decision
+11. out-of-sample validation reviewed
+12. paper-live observation completed and reviewed
+13. operational readiness review completed and reviewed
+14. scheduled dry-run evidence reviewed
+15. report archive created and reviewed
 ```
 
 Non-goals:
@@ -473,6 +492,7 @@ No real trading without out-of-sample validation, paper-live observation, operat
 - operational readiness review
 - scheduled Decision-Support dry runs
 - persistent report archive
+- entry-exit watcher health diagnostics
 - initial file-backed portfolio state
 - E2E dry-run
 - breakout entry context upgrade
@@ -489,12 +509,13 @@ No real trading without out-of-sample validation, paper-live observation, operat
 
 ## Planned Next
 
-1. Static dashboard / HTML reporting.
-2. External artifact storage such as S3/R2/Supabase Storage.
-3. Session-aware VWAP and intraday entry confirmation.
-4. Cross-field feedback grouping such as entry_type x market_regime.
-5. Long-term persistence with Postgres or analytics storage.
-6. Broker/account integration for automatic portfolio-state calculation.
+1. Real portfolio-state calculation without broker integration.
+2. Market data coverage expansion.
+3. Static dashboard / HTML reporting.
+4. External artifact storage such as S3/R2/Supabase Storage.
+5. Session-aware VWAP and intraday entry confirmation.
+6. Cross-field feedback grouping such as entry_type x market_regime.
+7. Long-term persistence with Postgres or analytics storage.
 
 ---
 
