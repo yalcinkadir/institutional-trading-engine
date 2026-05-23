@@ -18,6 +18,7 @@ The system is designed for research and decision support. It does not place live
 - multi-factor fusion recalibration
 - historical edge validation
 - regime-phase backtest matrix
+- walk-forward validation
 - cross-asset market-data coverage
 - event-risk placeholder metadata
 - optional SQLite runtime persistence
@@ -51,6 +52,7 @@ Market analysis
 → Multi-factor fusion recalibration
 → Historical edge validation
 → Regime-phase backtest matrix
+→ Walk-forward validation
 → Watcher lifecycle tracking
 → Manual portfolio sync
 → Optional SQLite persistence
@@ -71,6 +73,7 @@ pytest tests/test_adaptive_feedback_decay.py
 pytest tests/test_multi_factor_fusion.py
 pytest tests/test_historical_edge_validation.py
 pytest tests/test_regime_phase_backtest_matrix.py
+pytest tests/test_walk_forward_validation.py
 pytest tests/test_static_dashboard.py
 pytest tests/test_sqlite_persistence.py
 pytest tests/test_event_risk_engine.py
@@ -185,21 +188,30 @@ docs/operations/regime_phase_backtest_matrix.md
 tests/test_regime_phase_backtest_matrix.py
 ```
 
-P42 evaluates historical edge metrics separately across canonical market phases.
-
-```text
-Low-Vol Bull       2019-01-01 to 2020-02-29
-Panic/Dislocation  2020-03-01 to 2020-04-30
-Recovery           2020-05-01 to 2021-12-31
-High-Vol Regime    2022-01-01 to 2022-12-31
-Neutral/Transition 2023-01-01 to 2024-06-30
-```
-
-Matrix gate:
-
 ```text
 at least 3 of 5 phases must pass
 ```
+
+## P43 Walk-Forward Validation
+
+Implemented in:
+
+```text
+src/validation/walk_forward_validation.py
+docs/operations/walk_forward_validation.md
+tests/test_walk_forward_validation.py
+```
+
+P43 separates training windows from forward test windows.
+
+```text
+training window 18 months
+test window      6 months
+step size        3 months
+minimum cycles   6
+```
+
+Each forward test window is validated independently with P41 historical edge metrics.
 
 ## Static Dashboard HTML Reporting
 
@@ -293,6 +305,7 @@ P47 Final Live Readiness Gate
 | MultiFactorFusion Recalibration | Implemented |
 | Historical Edge Validation | Implemented |
 | Regime-Phase Backtest Matrix | Implemented |
+| Walk-Forward Validation | Implemented |
 | Static Dashboard HTML Reporting | Implemented |
 | SQLite Runtime Persistence | Implemented |
 | Event Risk Placeholder Metadata | Implemented |
@@ -318,6 +331,7 @@ P47 Final Live Readiness Gate
 
 ### Done
 
+- P43 walk-forward validation
 - P42 regime-phase backtest matrix
 - P41 historical edge validation framework
 - P40 multi-factor fusion recalibration
@@ -333,11 +347,10 @@ P47 Final Live Readiness Gate
 
 ### Planned Next
 
-1. P43 Walk-Forward Validation
-2. P44 Execution Realism Layer
-3. P45 Out-of-Sample Validation Lockbox
-4. P46 Paper Trading Journal / Live Observation v2
-5. P47 Final Live Readiness Gate
+1. P44 Execution Realism Layer
+2. P45 Out-of-Sample Validation Lockbox
+3. P46 Paper Trading Journal / Live Observation v2
+4. P47 Final Live Readiness Gate
 
 ## Disclaimer
 
