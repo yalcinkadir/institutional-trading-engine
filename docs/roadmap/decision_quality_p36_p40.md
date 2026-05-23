@@ -97,7 +97,7 @@ weighted_distance
 
 ## P39 Adaptive Feedback Decay
 
-Status: implemented, verification pending.
+Status: completed.
 
 Goal:
 
@@ -130,7 +130,7 @@ adjusted_performance = weighted_sum / total_weight
 
 ## P40 MultiFactorFusion Recalibration
 
-Status: planned.
+Status: implemented, verification pending.
 
 Goal:
 
@@ -138,7 +138,7 @@ Goal:
 Separate opportunity score from risk penalty.
 ```
 
-Planned opportunity weights:
+Implemented opportunity weights:
 
 ```text
 regime_score          0.30
@@ -147,18 +147,24 @@ execution_confidence  0.20
 liquidity_score       0.20
 ```
 
-Planned risk penalty:
+Implemented risk penalty:
 
 ```text
 tail_risk_score      0.20
 portfolio_risk_score 0.10
 ```
 
-Planned regime gate:
+Implemented regime gate:
 
 ```text
 if regime_score < 20:
     fusion_score = min(fusion_score, 40)
+```
+
+Final formula:
+
+```text
+fusion_score = clamp(opportunity_points - risk_penalty, 0, 100)
 ```
 
 ---
