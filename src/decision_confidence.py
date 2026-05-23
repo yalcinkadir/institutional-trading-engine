@@ -60,6 +60,9 @@ def regime_alignment_score_from_tier(tier: RegimeAlignmentTier | str | None) -> 
     if tier is None:
         return REGIME_ALIGNMENT_SCORES[RegimeAlignmentTier.NO_TRADE]
 
+    if isinstance(tier, RegimeAlignmentTier):
+        return REGIME_ALIGNMENT_SCORES[tier]
+
     normalized = str(tier).strip().lower().replace(" ", "_").replace("-", "_")
     aliases = {
         "1": RegimeAlignmentTier.TIER_1,
