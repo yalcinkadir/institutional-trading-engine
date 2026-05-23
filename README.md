@@ -12,6 +12,7 @@ It is a Decision-Support and research system for:
 
 - market regime analysis
 - cross-asset scanning
+- expanded market-data universe coverage
 - signal generation
 - executable Entry / Stop / Exit planning
 - watcher-based lifecycle tracking
@@ -35,7 +36,7 @@ It is a Decision-Support and research system for:
 
 ```text
 Market analysis
-→ Diversified universe scan
+→ Expanded cross-asset universe scan
 → Scanner metrics normalization
 → Signal generation with native signal_id
 → Entry Quality Engine
@@ -74,9 +75,10 @@ Market analysis
 pytest
 ```
 
-Targeted validation/observation/readiness/archive tests:
+Targeted validation/observation/readiness/archive/universe tests:
 
 ```bash
+pytest tests/test_symbol_universe.py
 pytest tests/test_historical_entry_exit_backtest.py
 pytest tests/test_sample_historical_backtest_plans.py
 pytest tests/test_out_of_sample_validation.py
@@ -87,6 +89,29 @@ pytest tests/test_report_archive.py
 pytest tests/test_entry_exit_watcher_health.py
 pytest tests/test_manual_portfolio_sync.py
 ```
+
+## Market Data Coverage
+
+Configured in:
+
+```text
+src/config.py
+```
+
+Default groups:
+
+```text
+core_indices: SPY, QQQ, IWM, DIA
+rates_bonds: TLT, IEF, SHY
+dollar_proxy: UUP
+sectors: XLK, XLF, XLE, XLV, XLY, XLP, XLI, XLU, XLB, XLRE
+mega_caps: AAPL, MSFT, NVDA, AMZN, GOOGL, META, TSLA
+semiconductors: SMH, MU, AMD, AVGO
+commodities: GLD, SLV, USO
+legacy_quality: CSCO
+```
+
+P32 improves market breadth, bond/rates context, dollar context, sector rotation context and commodity proxy coverage without broker APIs.
 
 ## Manual Portfolio Sync
 
@@ -113,7 +138,7 @@ It does **not** use broker APIs and does **not** execute orders.
 
 ```bash
 python scripts/check_polygon_live_readiness.py \
-  --symbols SPY,QQQ,NVDA,AAPL,MSFT,AMD,TSLA,META,GOOGL,AMZN \
+  --symbols SPY,QQQ,IWM,DIA,TLT,IEF,SHY,UUP,XLK,XLF,XLE,XLV,XLY,XLP,XLI,XLU,XLB,XLRE,GLD,SLV,USO \
   --lookback-days 3650
 ```
 
@@ -121,7 +146,7 @@ python scripts/check_polygon_live_readiness.py \
 
 ```bash
 python scripts/ingest_historical_polygon.py \
-  --symbols SPY,QQQ,NVDA,AAPL,MSFT,AMD,TSLA,META,GOOGL,AMZN \
+  --symbols SPY,QQQ,IWM,DIA,TLT,IEF,SHY,UUP,XLK,XLF,XLE,XLV,XLY,XLP,XLI,XLU,XLB,XLRE,GLD,SLV,USO \
   --start-date 2016-05-22 \
   --end-date 2026-05-22 \
   --json
@@ -146,7 +171,7 @@ python scripts/run_historical_entry_exit_backtest.py \
 
 ```bash
 python scripts/run_out_of_sample_validation.py \
-  --symbols SPY,QQQ,NVDA,AAPL,MSFT,AMD,TSLA,META,GOOGL,AMZN \
+  --symbols SPY,QQQ,IWM,DIA,TLT,IEF,SHY,UUP,XLK,XLF,XLE,XLV,XLY,XLP,XLI,XLU,XLB,XLRE,GLD,SLV,USO \
   --bars-root data/historical/bars/1day \
   --split-date 2023-01-01 \
   --lookback-bars 20 \
@@ -283,6 +308,37 @@ report-archive-artifacts
 
 ---
 
+# Market Data Coverage
+
+Implemented in:
+
+```text
+src/config.py
+docs/operations/market_data_coverage.md
+tests/test_symbol_universe.py
+```
+
+P32 adds/validates:
+
+```text
+Core indices: SPY, QQQ, IWM, DIA
+Rates/Bonds: TLT, IEF, SHY
+Dollar proxy: UUP
+Sectors: XLK, XLF, XLE, XLV, XLY, XLP, XLI, XLU, XLB, XLRE
+Commodities: GLD, SLV, USO
+```
+
+Guardrail:
+
+```text
+P32 does not connect broker execution.
+P32 does not place orders.
+P32 does not authorize trading.
+P32 only expands Decision-Support market-data coverage.
+```
+
+---
+
 # Manual Portfolio Sync
 
 Implemented in:
@@ -294,24 +350,6 @@ data/manual_portfolio_snapshot.example.json
 docs/operations/manual_portfolio_sync.md
 tests/test_manual_portfolio_sync.py
 .github/workflows/manual-portfolio-sync.yml
-```
-
-P31 adds calculated governance risk fields from a manually maintained snapshot:
-
-```text
-drawdown_percent
-daily_loss_percent
-total_position_value
-total_unrealized_pnl
-```
-
-Guardrail:
-
-```text
-P31 does not connect broker execution.
-P31 does not place orders.
-P31 does not authorize trading.
-P31 only calculates portfolio-state risk fields from manual snapshots.
 ```
 
 ---
@@ -349,6 +387,7 @@ tests/test_report_archive.py
 | Layer | Status |
 |---|---|
 | Report Automation | Implemented |
+| Expanded Market Data Coverage | Implemented |
 | Scanner-to-Signal Metrics Pipeline | Implemented |
 | Native Signal ID Generation | Implemented |
 | Entry Quality Engine | Implemented |
@@ -422,19 +461,20 @@ Before scheduled live Decision-Support:
 1. CI green
 2. POLYGON_API_KEY set
 3. Telegram/notification secrets verified when alerts are enabled
-4. data/portfolio_state.json present and intentionally initialized
-5. manual portfolio sync completed and reviewed
-6. latest-signals.json generated from real Polygon data
-7. E2E dry-run returns PASS
-8. manual watcher run completes successfully
-9. entry-exit-watcher health report reviewed
-10. 5 consecutive entry-exit-watcher runs are green
-11. historical strategy validation completed before any trading decision
-12. out-of-sample validation reviewed
-13. paper-live observation completed and reviewed
-14. operational readiness review completed and reviewed
-15. scheduled dry-run evidence reviewed
-16. report archive created and reviewed
+4. expanded market-data coverage reviewed
+5. data/portfolio_state.json present and intentionally initialized
+6. manual portfolio sync completed and reviewed
+7. latest-signals.json generated from real Polygon data
+8. E2E dry-run returns PASS
+9. manual watcher run completes successfully
+10. entry-exit-watcher health report reviewed
+11. 5 consecutive entry-exit-watcher runs are green
+12. historical strategy validation completed before any trading decision
+13. out-of-sample validation reviewed
+14. paper-live observation completed and reviewed
+15. operational readiness review completed and reviewed
+16. scheduled dry-run evidence reviewed
+17. report archive created and reviewed
 ```
 
 Non-goals:
@@ -451,6 +491,7 @@ No real trading without out-of-sample validation, paper-live observation, operat
 
 ## Done
 
+- expanded market-data coverage without broker integration
 - manual portfolio-state calculation without broker integration
 - scanner-to-signal metrics pipeline
 - native scanner structure metric
@@ -482,12 +523,11 @@ No real trading without out-of-sample validation, paper-live observation, operat
 
 ## Planned Next
 
-1. Market data coverage expansion.
-2. Static dashboard / HTML reporting.
-3. External artifact storage such as S3/R2/Supabase Storage.
-4. Session-aware VWAP and intraday entry confirmation.
-5. Cross-field feedback grouping such as entry_type x market_regime.
-6. Long-term persistence with Postgres or analytics storage.
+1. Static dashboard / HTML reporting.
+2. External artifact storage such as S3/R2/Supabase Storage.
+3. Session-aware VWAP and intraday entry confirmation.
+4. Cross-field feedback grouping such as entry_type x market_regime.
+5. Long-term persistence with Postgres or analytics storage.
 
 ---
 
