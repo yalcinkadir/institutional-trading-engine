@@ -1,0 +1,25 @@
+{
+  "snapshot_time": "2026-05-23T20:00:00Z",
+  "source": "manual_example_no_broker_api",
+  "equity_start": 100000.0,
+  "equity_peak": 103000.0,
+  "equity_previous_close": 101500.0,
+  "equity_current": 100700.0,
+  "cash": 75000.0,
+  "positions": [
+    {
+      "symbol": "SPY",
+      "quantity": 10,
+      "market_value": 5200.0,
+      "unrealized_pnl": 120.0,
+      "side": "long"
+    },
+    {
+      "symbol": "QQQ",
+      "quantity": 5,
+      "market_value": 3500.0,
+      "unrealized_pnl": -80.0,
+      "side": "long"
+    }
+  ]
+}
