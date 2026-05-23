@@ -18,6 +18,7 @@ It is a Decision-Support and research system for:
 - notification delivery
 - historical Polygon data ingestion
 - deterministic historical Entry / Stop / Exit backtesting
+- GitHub Actions based historical backtest operation
 - feedback and expectancy analysis
 
 ---
@@ -41,6 +42,7 @@ Market analysis
 → Lifecycle tracking
 → Historical Polygon ingestion
 → Historical Entry / Stop / Exit backtest
+→ GitHub Actions backtest artifact generation
 → Feedback aggregation
 → Regime-aware learning
 → Paper-live observation
@@ -57,10 +59,11 @@ Market analysis
 pytest
 ```
 
-Targeted P24 tests:
+Targeted P24/P24B tests:
 
 ```bash
 pytest tests/test_historical_entry_exit_backtest.py
+pytest tests/test_sample_historical_backtest_plans.py
 ```
 
 ## Check Polygon Live Readiness
@@ -100,7 +103,7 @@ Required environment variable:
 POLYGON_API_KEY
 ```
 
-## Run Historical Entry / Stop / Exit Backtest
+## Run Historical Entry / Stop / Exit Backtest Locally
 
 ```bash
 python scripts/run_historical_entry_exit_backtest.py \
@@ -116,35 +119,39 @@ reports/backtests/historical-entry-exit-backtest.json
 reports/backtests/historical-entry-exit-backtest.md
 ```
 
-The runner accepts:
+## Run Historical Entry Exit Backtest in GitHub Actions
 
 ```text
-[]
-{ "plans": [] }
-{ "signals": [] }
+Actions → Historical Entry Exit Backtest → Run workflow
 ```
 
-Each long plan needs:
+Recommended first run:
 
 ```text
-symbol
-signal_date, date or created_at
-entry_trigger
-stop_loss
-target_1
+plan_mode: sample
+symbols: SPY,QQQ,NVDA,AAPL,MSFT,AMD,TSLA,META,GOOGL,AMZN
+start_date: 2016-05-22
+end_date: 2026-05-22
+sample_signal_date: 2017-01-03
+max_bars: 20
 ```
 
-Optional:
+Artifact:
 
 ```text
-signal_id
-target_2
-valid_until
-entry_type
-setup_type
-stop_model
-exit_model
+historical-entry-exit-backtest-artifacts
 ```
+
+Expected files:
+
+```text
+reports/backtests/sample-historical-plans.json
+reports/backtests/historical-entry-exit-backtest.json
+reports/backtests/historical-entry-exit-backtest.md
+data/historical/metadata/ingestion_status.json
+```
+
+The workflow re-ingests historical data inside the job because GitHub Actions artifacts from previous workflows are not permanent repo files.
 
 ## Run E2E Dry Run
 
@@ -171,11 +178,17 @@ src/backtesting/historical_models.py
 src/backtesting/historical_entry_exit_backtest.py
 src/backtesting/historical_report.py
 scripts/run_historical_entry_exit_backtest.py
+scripts/create_sample_historical_backtest_plans.py
 docs/operations/historical_entry_exit_backtest.md
+docs/operations/historical_entry_exit_backtest_workflow.md
 tests/test_historical_entry_exit_backtest.py
+tests/test_sample_historical_backtest_plans.py
+.github/workflows/historical-entry-exit-backtest.yml
 ```
 
 P24 simulates already-generated long trade plans against historical daily OHLCV bars.
+
+P24B operationalizes it from GitHub Actions for phone/browser use.
 
 Outcomes:
 
@@ -209,7 +222,7 @@ If stop and target are touched in the same daily bar, stop wins.
 
 This avoids optimistic bias when only daily bars are available.
 
-P24 does **not** generate historical signals from scratch. It tests provided trade plans.
+P24/P24B do **not** generate historical signals from scratch and do **not** execute trades.
 
 ---
 
@@ -235,6 +248,7 @@ P24 does **not** generate historical signals from scratch. It tests provided tra
 | Polygon Live Readiness | Implemented |
 | Historical Polygon Data Ingestion | Implemented |
 | Historical Entry / Stop / Exit Backtest Runner | Implemented |
+| Historical Backtest GitHub Actions Workflow | Implemented |
 | Entry / Stop / Exit Feedback Aggregation | Implemented |
 | Regime-Aware Feedback Grouping | Implemented |
 | File-Backed Portfolio State | Implemented |
@@ -299,6 +313,7 @@ No real trading without out-of-sample validation and paper-live observation
 - polygon live-readiness checks
 - historical Polygon data ingestion
 - historical Entry / Stop / Exit backtest runner
+- historical Entry Exit Backtest GitHub Actions workflow
 - initial file-backed portfolio state
 - E2E dry-run
 - breakout entry context upgrade
