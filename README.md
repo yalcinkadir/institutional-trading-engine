@@ -22,6 +22,7 @@ It is a Decision-Support and research system for:
 - out-of-sample validation
 - paper-live observation
 - operational readiness review
+- scheduled Decision-Support dry runs
 - GitHub Actions based validation and operations
 - feedback and expectancy analysis
 
@@ -50,6 +51,7 @@ Market analysis
 → Out-of-sample validation
 → Paper-live observation
 → Operational readiness review
+→ Scheduled Decision-Support dry runs
 → GitHub Actions validation artifact generation
 → Feedback aggregation
 → Regime-aware learning
@@ -74,6 +76,7 @@ pytest tests/test_sample_historical_backtest_plans.py
 pytest tests/test_out_of_sample_validation.py
 pytest tests/test_paper_live_observation.py
 pytest tests/test_operational_readiness_review.py
+pytest tests/test_scheduled_decision_support_dry_run.py
 ```
 
 ## Check Polygon Live Readiness
@@ -143,11 +146,24 @@ python scripts/run_operational_readiness_review.py \
   --min-oos-plans 1
 ```
 
+## Run Scheduled Decision-Support Dry Run Locally
+
+```bash
+python scripts/run_scheduled_decision_support_dry_run.py \
+  --run-mode manual \
+  --backtest-report reports/backtests/historical-entry-exit-backtest.json \
+  --oos-report reports/backtests/out-of-sample-validation.json \
+  --paper-live-report reports/paper-live/paper-live-observation.json \
+  --portfolio-state data/portfolio_state.json \
+  --min-backtest-plans 1 \
+  --min-oos-plans 1
+```
+
 Default outputs:
 
 ```text
-reports/readiness/operational-readiness-review.json
-reports/readiness/operational-readiness-review.md
+reports/scheduled-runs/scheduled-decision-support-dry-run.json
+reports/scheduled-runs/scheduled-decision-support-dry-run.md
 ```
 
 ---
@@ -178,21 +194,22 @@ Actions → Paper Live Observation → Run workflow
 Actions → Operational Readiness Review → Run workflow
 ```
 
-Recommended first run:
+## Scheduled Decision-Support Dry Run
 
 ```text
-backtest_report: reports/backtests/historical-entry-exit-backtest.json
-oos_report: reports/backtests/out-of-sample-validation.json
-paper_live_report: reports/paper-live/paper-live-observation.json
-portfolio_state: data/portfolio_state.json
-min_backtest_plans: 1
-min_oos_plans: 1
+Actions → Scheduled Decision-Support Dry Run → Run workflow
+```
+
+Schedule:
+
+```text
+30 20 * * 1-5 UTC
 ```
 
 Artifact:
 
 ```text
-operational-readiness-review-artifacts
+scheduled-decision-support-dry-run-artifacts
 ```
 
 ---
@@ -272,26 +289,37 @@ tests/test_operational_readiness_review.py
 .github/workflows/operational-readiness-review.yml
 ```
 
-P27 checks:
-
-```text
-historical_backtest_report_present
-historical_backtest_has_plans
-out_of_sample_report_present
-out_of_sample_has_plans
-paper_live_report_present
-paper_live_ready_for_review
-portfolio_state_present
-portfolio_drawdown_available
-portfolio_daily_loss_available
-```
-
 Guardrail:
 
 ```text
 P27 does not authorize trading.
 P27 does not connect broker execution.
 P27 only determines whether artifacts are complete enough for human review of live Decision-Support scheduling.
+```
+
+---
+
+# Scheduled Decision-Support Dry Runs
+
+Implemented in:
+
+```text
+src/operations/scheduled_decision_support_dry_run.py
+scripts/run_scheduled_decision_support_dry_run.py
+docs/operations/scheduled_decision_support_dry_run.md
+tests/test_scheduled_decision_support_dry_run.py
+.github/workflows/scheduled-decision-support-dry-run.yml
+```
+
+P28 wraps the operational readiness review into manual and scheduled GitHub Actions operation.
+
+Guardrail:
+
+```text
+P28 does not call a broker.
+P28 does not place orders.
+P28 does not authorize trading.
+P28 only produces scheduled Decision-Support dry-run evidence.
 ```
 
 ---
@@ -323,6 +351,7 @@ P27 only determines whether artifacts are complete enough for human review of li
 | Out-of-Sample Historical Validation | Implemented |
 | Paper-Live Observation | Implemented |
 | Operational Readiness Review | Implemented |
+| Scheduled Decision-Support Dry Runs | Implemented |
 | Entry / Stop / Exit Feedback Aggregation | Implemented |
 | Regime-Aware Feedback Grouping | Implemented |
 | File-Backed Portfolio State | Implemented |
@@ -368,6 +397,7 @@ Before scheduled live Decision-Support:
 10. out-of-sample validation reviewed
 11. paper-live observation completed and reviewed
 12. operational readiness review completed and reviewed
+13. scheduled dry-run evidence reviewed
 ```
 
 Non-goals:
@@ -375,7 +405,7 @@ Non-goals:
 ```text
 No broker execution
 No automatic live orders
-No real trading without out-of-sample validation, paper-live observation and operational readiness review
+No real trading without out-of-sample validation, paper-live observation, operational readiness review and scheduled dry-run review
 ```
 
 ---
@@ -395,6 +425,7 @@ No real trading without out-of-sample validation, paper-live observation and ope
 - out-of-sample historical validation
 - paper-live observation
 - operational readiness review
+- scheduled Decision-Support dry runs
 - initial file-backed portfolio state
 - E2E dry-run
 - breakout entry context upgrade
@@ -411,12 +442,11 @@ No real trading without out-of-sample validation, paper-live observation and ope
 
 ## Planned Next
 
-1. Scheduled Decision-Support dry runs.
-2. Session-aware VWAP and intraday entry confirmation.
-3. Cross-field feedback grouping such as entry_type x market_regime.
-4. Static dashboard / HTML reporting.
-5. Long-term persistence with Postgres or analytics storage.
-6. Broker/account integration for automatic portfolio-state calculation.
+1. Session-aware VWAP and intraday entry confirmation.
+2. Cross-field feedback grouping such as entry_type x market_regime.
+3. Static dashboard / HTML reporting.
+4. Long-term persistence with Postgres or analytics storage.
+5. Broker/account integration for automatic portfolio-state calculation.
 
 ---
 
