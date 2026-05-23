@@ -4,51 +4,21 @@
 ![CI](https://img.shields.io/badge/CI-pytest-brightgreen.svg)
 ![Status](https://img.shields.io/badge/status-production--oriented-orange.svg)
 
-Institutional Trading Engine is a production-oriented market intelligence, screening, reporting, runtime orchestration, communication, observability, signal lifecycle and outcome-learning platform.
+Institutional Trading Engine is a production-oriented market intelligence, screening, reporting, runtime orchestration, communication, observability, signal lifecycle, historical validation and outcome-learning platform.
 
 The system is **not** a black-box trading bot and does **not** place live trades.
 
-It is designed as an institutional decision-support and research platform that:
+It is a Decision-Support and research system for:
 
-- analyzes market regimes
-- evaluates risk conditions
-- ranks opportunities
-- scans a diversified symbol universe across indices, sectors, bonds, commodities and leaders
-- normalizes scanner metrics before signal generation
-- emits native scanner `swing_low_3bar` structure levels
-- enriches signal metrics with intraday VWAP when intraday bars are available
-- ingests historical Polygon aggregate bars for later backtesting and validation
-- validates Polygon live-readiness before first real-data runs
-- generates premarket, intraday, postmarket and weekly reports
-- validates generated artifacts with an end-to-end dry-run helper before go-live
-- communicates alerts and failures through a central notification layer
-- emits structured JSON logs from operational scripts and runtime cycles
-- produces machine-readable signal files with native `signal_id`
-- prevents fake actionable signals without executable trade levels
-- derives entry triggers through a deterministic Entry Quality Engine
-- validates breakout entries with high-trigger, RVOL and optional VWAP context
-- derives stop losses through a deterministic Stop-Loss Quality Engine
-- prefers valid swing-low structure stops before ATR fallback
-- derives targets through a deterministic Exit / Target Quality Engine
-- validates trade plans before allowing `BUY_WATCH`
-- manages partial exits and runner stops after target 1
-- invalidates pending and active signals when the regime turns defensive / risk-off
-- reads file-backed portfolio state for governance and drawdown checks
-- aggregates Entry / Stop / Exit feedback by decision-quality model
-- groups Entry / Stop / Exit feedback by market regime, risk state and volatility regime
-- prioritizes excellent Entry / Stop Loss / Exit decision quality
-- assigns stable signal identity for lifecycle tracking
-- stores signal history in the repository
-- monitors entries, stops and targets
-- records deduplicated signal lifecycle events
-- evaluates triggered vs expired vs pending signals separately
-- tracks real outcomes from market data
-- validates setups against historical Polygon aggregate bars
-- builds adaptive expectancy profiles
-- generates weekly expectancy feedback summaries
-- feeds historical expectancy back into future scoring
-- persists scoring adjustments for auditability
-- persists runtime and decision history for reproducibility
+- market regime analysis
+- cross-asset scanning
+- signal generation
+- executable Entry / Stop / Exit planning
+- watcher-based lifecycle tracking
+- notification delivery
+- historical Polygon data ingestion
+- deterministic historical Entry / Stop / Exit backtesting
+- feedback and expectancy analysis
 
 ---
 
@@ -58,60 +28,40 @@ It is designed as an institutional decision-support and research platform that:
 Market analysis
 → Diversified universe scan
 → Scanner metrics normalization
-→ Native scanner structure level
-→ Intraday VWAP enrichment
-→ Portfolio-state governance context
 → Signal generation with native signal_id
-→ E2E dry-run artifact validation
 → Entry Quality Engine
-→ Breakout context validation
 → Stop-Loss Quality Engine
-→ Structure-aware stop selection
 → Exit / Target Quality Engine
 → Trade Plan Validator
-→ Entry / Stop / Exit quality validation
-→ Entry / Exit monitoring
-→ Target 1 partial-exit and runner management
-→ Pending/active regime invalidation exit
-→ Central notification delivery
-→ Structured operational logging
-→ Deduplicated lifecycle tracking
-→ Polygon live-readiness check
+→ E2E dry-run artifact validation
+→ Entry / Exit watcher
+→ Partial exit / runner management
+→ Regime invalidation monitoring
+→ Notification delivery
+→ Lifecycle tracking
 → Historical Polygon ingestion
-→ Historical validation
-→ Outcome evaluation
-→ Entry / Stop / Exit feedback aggregation
-→ Regime-aware feedback grouping
-→ Weekly expectancy feedback
-→ Expectancy learning
-→ Adaptive score / size adjustment
-→ Adjustment audit history
-→ Better future signals
+→ Historical Entry / Stop / Exit backtest
+→ Feedback aggregation
+→ Regime-aware learning
+→ Paper-live observation
+→ trading decision only after validation
 ```
 
 ---
 
 # Main Commands
 
-## Run the Entry / Exit Watcher
+## Run Tests
 
 ```bash
-python scripts/run_entry_exit_watcher.py \
-  --signals-file reports/signals/latest-signals.json
+pytest
 ```
 
-The watcher validates runtime configuration before execution:
+Targeted P24 tests:
 
-- `POLYGON_API_KEY` must exist
-- the configured signal file must exist
-- the signal file must contain a JSON list or generated object payload with `signals[]`
-- every run prints a `WATCHER_CYCLE_ID`
-- structured log events include `WATCHER_CYCLE_ID` as `cycle_id`
-- native `signal_id` values are preserved
-- missing legacy `signal_id` values are assigned deterministically as fallback
-- lifecycle events are deduplicated by `signal_id` + `event_type`
-- `TARGET_1_HIT` activates partial-exit and runner state
-- `REGIME_INVALIDATION_EXIT` cancels pending and active signals when regime turns defensive
+```bash
+pytest tests/test_historical_entry_exit_backtest.py
+```
 
 ## Check Polygon Live Readiness
 
@@ -121,69 +71,80 @@ python scripts/check_polygon_live_readiness.py \
   --lookback-days 3650
 ```
 
-Machine-readable output:
-
-```bash
-python scripts/check_polygon_live_readiness.py \
-  --symbols SPY,QQQ,NVDA,AAPL,MSFT,AMD,TSLA,META,GOOGL,AMZN \
-  --lookback-days 3650 \
-  --json
-```
-
-The Stocks Developer plan provides 10 years of historical data, so the operational lookback should be about:
+The Stocks Developer plan provides 10 years of historical data. Use roughly:
 
 ```text
 3650 calendar days
 ```
 
-The readiness check does not call Polygon. It verifies local configuration and prints the command sequence for real historical ingestion, current report generation, E2E dry-run and watcher verification.
-
 ## Run Historical Polygon Ingestion
 
 ```bash
 python scripts/ingest_historical_polygon.py \
-  --symbols NVDA,AAPL,SPY \
-  --start-date 2012-01-01 \
-  --end-date 2026-05-22
-```
-
-Machine-readable output:
-
-```bash
-python scripts/ingest_historical_polygon.py \
-  --symbols NVDA,AAPL,SPY \
-  --start-date 2012-01-01 \
+  --symbols SPY,QQQ,NVDA,AAPL,MSFT,AMD,TSLA,META,GOOGL,AMZN \
+  --start-date 2016-05-22 \
   --end-date 2026-05-22 \
   --json
-```
-
-Required:
-
-```text
-POLYGON_API_KEY
 ```
 
 Historical storage:
 
 ```text
-data/historical/bars/1day/NVDA.csv
-data/historical/bars/1day/AAPL.csv
+data/historical/bars/1day/<SYMBOL>.csv
 data/historical/metadata/ingestion_status.json
 ```
 
-Stored columns:
+Required environment variable:
 
 ```text
-date
-timestamp
-open
-high
-low
-close
-volume
+POLYGON_API_KEY
 ```
 
-P23 stores CSV plus metadata because the current dependency set has pandas but no Parquet engine. Parquet can be added later when `pyarrow` or `fastparquet` is introduced deliberately.
+## Run Historical Entry / Stop / Exit Backtest
+
+```bash
+python scripts/run_historical_entry_exit_backtest.py \
+  --plans-file reports/signals/latest-signals.json \
+  --bars-root data/historical/bars/1day \
+  --max-bars 20
+```
+
+Default outputs:
+
+```text
+reports/backtests/historical-entry-exit-backtest.json
+reports/backtests/historical-entry-exit-backtest.md
+```
+
+The runner accepts:
+
+```text
+[]
+{ "plans": [] }
+{ "signals": [] }
+```
+
+Each long plan needs:
+
+```text
+symbol
+signal_date, date or created_at
+entry_trigger
+stop_loss
+target_1
+```
+
+Optional:
+
+```text
+signal_id
+target_2
+valid_until
+entry_type
+setup_type
+stop_model
+exit_model
+```
 
 ## Run E2E Dry Run
 
@@ -192,24 +153,97 @@ python scripts/run_e2e_dry_run.py \
   --signals-file reports/signals/latest-signals.json
 ```
 
-Machine-readable output:
+## Run Entry / Exit Watcher
 
 ```bash
-python scripts/run_e2e_dry_run.py --json
+python scripts/run_entry_exit_watcher.py \
+  --signals-file reports/signals/latest-signals.json
 ```
 
-Dry-run validates:
+---
 
-- signal artifact exists
-- signal artifact has `signals[]`
-- every signal has `signal_id`, `symbol`, `action`
-- every `BUY_WATCH` has executable trade-plan fields
-- `reports/alerts` is writable
-- `data` is writable for lifecycle JSONL output
+# Historical Entry / Stop / Exit Backtest
 
-The dry-run does not fetch Polygon data, send Telegram messages, place trades or execute broker orders.
+Implemented in:
 
-## Portfolio State
+```text
+src/backtesting/historical_models.py
+src/backtesting/historical_entry_exit_backtest.py
+src/backtesting/historical_report.py
+scripts/run_historical_entry_exit_backtest.py
+docs/operations/historical_entry_exit_backtest.md
+tests/test_historical_entry_exit_backtest.py
+```
+
+P24 simulates already-generated long trade plans against historical daily OHLCV bars.
+
+Outcomes:
+
+```text
+ENTRY_NOT_HIT
+EXPIRED
+STOP_HIT
+TARGET_1_HIT
+TARGET_2_HIT
+```
+
+Metrics:
+
+```text
+total
+entry_hit_rate
+expired_without_entry_rate
+stop_hit_rate
+target_1_hit_rate
+target_2_hit_rate
+false_breakout_rate
+average_r
+expectancy_r
+```
+
+Conservative daily-bar rule:
+
+```text
+If stop and target are touched in the same daily bar, stop wins.
+```
+
+This avoids optimistic bias when only daily bars are available.
+
+P24 does **not** generate historical signals from scratch. It tests provided trade plans.
+
+---
+
+# Implemented Components
+
+| Layer | Status |
+|---|---|
+| Report Automation | Implemented |
+| Scanner-to-Signal Metrics Pipeline | Implemented |
+| Native Signal ID Generation | Implemented |
+| Entry Quality Engine | Implemented |
+| Stop-Loss Quality Engine | Implemented |
+| Exit / Target Quality Engine | Implemented |
+| Trade Plan Validator | Implemented |
+| Intraday VWAP Support | Implemented |
+| Structure-Aware Stops | Implemented |
+| Trailing Stop / Partial Exit Management | Implemented |
+| Regime Invalidation Exit | Implemented |
+| Entry / Exit Watcher | Implemented |
+| Central Notification Layer | Implemented |
+| Structured Runtime Logging | Implemented |
+| E2E Dry Run | Implemented |
+| Polygon Live Readiness | Implemented |
+| Historical Polygon Data Ingestion | Implemented |
+| Historical Entry / Stop / Exit Backtest Runner | Implemented |
+| Entry / Stop / Exit Feedback Aggregation | Implemented |
+| Regime-Aware Feedback Grouping | Implemented |
+| File-Backed Portfolio State | Implemented |
+| Broker Execution | Not implemented |
+| Dashboard UI | Not implemented |
+
+---
+
+# Portfolio State
 
 Initial file:
 
@@ -217,549 +251,40 @@ Initial file:
 data/portfolio_state.json
 ```
 
-The file-backed portfolio state is used by governance/runtime checks for drawdown and daily-loss context.
+This file is used by governance/runtime checks for drawdown and daily-loss context.
 
-Initial Decision-Support state:
-
-```json
-{
-  "equity_start": 100000.0,
-  "equity_current": 100000.0,
-  "drawdown_percent": 0.0,
-  "daily_loss_percent": 0.0,
-  "open_positions": [],
-  "source": "manual_initial_live_decision_support_state",
-  "warnings": []
-}
-```
-
-This is **not** broker synchronization. Until broker/account integration exists, the portfolio file must be maintained manually or by a trusted external process.
-
-## Run Tests
-
-```bash
-pytest
-```
-
-Targeted tests:
-
-```bash
-pytest tests/test_polygon_live_readiness.py
-pytest tests/test_polygon_historical_ingestion.py
-pytest tests/test_e2e_dry_run.py
-pytest tests/test_scanner_structure_metrics.py
-pytest tests/test_intraday_vwap.py
-pytest tests/test_generate_report_intraday_vwap.py
-pytest tests/test_regime_invalidation.py
-pytest tests/test_entry_exit_watcher.py
-pytest tests/test_entry_stop_exit_feedback.py
-pytest tests/test_entry_stop_exit_report.py
-pytest tests/test_structure_levels.py
-pytest tests/test_generate_report_structure_enrichment.py
-pytest tests/test_trailing_stop_manager.py
-pytest tests/test_scanner_metrics_pipeline.py
-pytest tests/test_generate_report_scanner_metrics_pipeline.py
-pytest tests/test_exit_target_quality.py
-pytest tests/test_stop_loss_quality.py
-pytest tests/test_entry_quality.py
-pytest tests/test_trade_plan_validator.py
-pytest tests/test_signal_identity.py
-pytest tests/test_signal_generator_identity.py
-pytest tests/test_generate_report_signal_quality_merge.py
-pytest tests/test_structured_logging.py
-pytest tests/test_run_entry_exit_watcher_runtime_validation.py
-pytest tests/test_entry_exit_watcher_workflow_notifications.py
-pytest tests/test_live_runtime_cycle_portfolio_state.py
-pytest tests/test_notifications.py
-pytest tests/test_expectancy_feedback_summary.py
-pytest tests/test_historical_validation.py
-pytest tests/test_polygon_client_historical_range.py
-pytest tests/test_symbol_universe.py
-pytest tests/test_portfolio_state.py
-```
+It is **not** broker synchronization. Until broker/account integration exists, it must be maintained manually or by a trusted external process.
 
 ---
 
-# Scanner-to-Signal Metrics Pipeline
+# Go-Live Gates
 
-Implemented in:
-
-```text
-src/scanner.py
-src/signals/scanner_metrics_pipeline.py
-src/signals/structure_levels.py
-src/signals/intraday_vwap.py
-scripts/generate_report.py
-docs/architecture/scanner_to_signal_pipeline.md
-docs/architecture/intraday_vwap_support.md
-```
-
-Required signal metrics:
+Live mode means:
 
 ```text
-close
-atr14
+Decision-Support only
 ```
 
-Optional metrics preserved when available:
-
-```text
-atr_pct
-entry
-entry_type
-stop_loss
-exit_1
-exit_2
-high
-low
-volume
-rvol
-vwap
-swing_low_3bar
-```
-
-Pipeline behavior:
-
-- scanner output is normalized before `build_signals()`
-- scanner natively emits `swing_low_3bar` from daily lows when available
-- report generation can still enrich metrics with `swing_low_3bar` as fallback/context preservation
-- report generation enriches metrics with VWAP when intraday bars are available
-- `NaN`, `inf`, invalid values and missing values become `None`
-- missing symbols and incomplete metrics are reported through diagnostics
-- report generation prints warnings such as `scanner_metrics_missing:NVDA`
-- missing scanner data is non-fatal but visible
-- missing intraday data is non-fatal
-- valid scanner metrics can produce non-null `close`, `entry_trigger`, `stop_loss` and `target_1`
-- breakout context metrics `high`, `rvol` and `vwap` are preserved when available
-
----
-
-# Polygon Live Readiness
-
-Implemented in:
-
-```text
-src/operations/polygon_live_readiness.py
-scripts/check_polygon_live_readiness.py
-docs/operations/polygon_live_readiness.md
-```
-
-Checks:
-
-```text
-POLYGON_API_KEY exists
-lookback_days is reasonable
-symbols are configured
-portfolio_state.json exists
-required command sequence is produced
-live gates are visible
-```
-
-Live gates:
-
-```text
-historical ingestion completes without unexpected errors
-latest-signals.json is generated from real Polygon data
-E2E dry-run returns PASS
-manual watcher run completes successfully
-Telegram/notification output is verified
-5 consecutive entry-exit-watcher runs are green
-historical strategy validation is completed before any trading decision
-```
-
----
-
-# Historical Polygon Ingestion
-
-Implemented in:
-
-```text
-src/historical/polygon_ingestion.py
-scripts/ingest_historical_polygon.py
-docs/operations/historical_polygon_ingestion.md
-```
-
-P23 scope:
-
-```text
-daily OHLCV aggregate bars
-CSV storage
-JSON metadata
-mocked CI tests
-no live API call in tests
-```
-
-This is the data foundation for later:
-
-```text
-P24 Historical Entry / Stop / Exit Backtest Runner
-P25 Out-of-Sample Validation and Adaptive Feedback Integration
-P26 Paper-Live Observation Before Trading
-```
-
-P23 does not train models and does not execute backtests.
-
----
-
-# End-to-End Dry Run
-
-Implemented in:
-
-```text
-src/operations/e2e_dry_run.py
-scripts/run_e2e_dry_run.py
-docs/operations/e2e_dry_run.md
-```
-
-Checks:
-
-```text
-latest-signals.json exists
-valid JSON
-signals[] shape
-signal_id / symbol / action present
-BUY_WATCH executable trade-plan fields present
-alerts path writable
-lifecycle path writable
-```
-
-Recommended go-live sequence:
+Before scheduled live Decision-Support:
 
 ```text
 1. CI green
-2. Generate report/signals
-3. Run E2E dry run
-4. Run watcher once manually
-5. Verify latest-alerts.json / signal_lifecycle.jsonl
-6. Verify Telegram/notification workflow separately
-7. Enable scheduled live Decision-Support workflow
+2. POLYGON_API_KEY set
+3. Telegram/notification secrets verified when alerts are enabled
+4. data/portfolio_state.json present and intentionally initialized
+5. latest-signals.json generated from real Polygon data
+6. E2E dry-run returns PASS
+7. manual watcher run completes successfully
+8. 5 consecutive entry-exit-watcher runs are green
+9. historical strategy validation completed before any trading decision
 ```
 
----
-
-# Signal Identity, Executability and Lifecycle Deduplication
-
-Implemented in:
+Non-goals:
 
 ```text
-src/signals/signal_identity.py
-src/signals/entry_quality.py
-src/signals/stop_loss_quality.py
-src/signals/exit_target_quality.py
-src/signals/structure_levels.py
-src/signals/intraday_vwap.py
-src/signals/signal_generator.py
-src/signals/trade_plan_validator.py
-src/watchers/entry_exit_watcher.py
-src/watchers/trailing_stop_manager.py
-src/watchers/regime_invalidation.py
-docs/architecture/signal_identity_lifecycle.md
-docs/architecture/entry_quality_engine.md
-docs/architecture/stop_loss_quality_engine.md
-docs/architecture/exit_target_quality_engine.md
-docs/architecture/trade_plan_validator.md
-docs/architecture/trailing_stop_management.md
-docs/architecture/regime_invalidation_exit.md
-docs/architecture/intraday_vwap_support.md
-```
-
-Key behavior:
-
-- newly generated signals include native `signal_id`
-- `BUY_WATCH` requires a valid entry, valid stop, valid targets and valid long trade plan
-- actionable signals include `entry_trigger`, `entry_type`, `entry_reason`, `stop_loss`, `stop_model`, `stop_reason`, `target_1`, `exit_model` and `exit_reason`
-- Entry Quality supports breakout, pullback, retest, gap-fill and explicitly allowed at-market entries
-- momentum breakout prefers `high * 1.001` when scanner high is available
-- weak RVOL breakouts are rejected when `rvol` is below threshold
-- breakouts below VWAP are rejected when `vwap` is available
-- missing VWAP is non-fatal when intraday data is unavailable
-- Stop-Loss Quality supports swing-low structure stops, ATR stops, pullback structure stops, retest structure stops, gap-fill stops and scanner-provided stops
-- valid `swing_low_3bar` stops are preferred before ATR/setup fallback stops
-- too-wide, missing or invalid swing lows fall back to ATR/setup stop logic
-- Exit / Target Quality supports momentum, pullback, retest, gap-fill, scanner-provided and default risk targets
-- after `TARGET_1_HIT`, partial exit is marked and runner state is activated
-- after `TARGET_1_HIT`, stop moves to at least breakeven
-- when high and ATR are available, runner trail uses `latest_high - 1.5 * ATR`
-- runner stop never moves downward for long signals
-- pending `PENDING` and active `TRIGGERED` / `TARGET_1_HIT` signals can be cancelled by defensive regime
-- regime invalidation emits `REGIME_INVALIDATION_EXIT` and terminal status `CANCELLED_BY_REGIME_CHANGE`
-- late breakout entries are rejected before reaching the watcher
-- scanner-provided stops are rejected if they are not below entry for long signals
-- scanner-provided targets are rejected if `target_1 <= entry` or `target_2 <= target_1`
-- long trade plans validate entry, stop, target, ordering, risk/reward and ATR stop distance
-- incomplete or invalid entries/stops/targets/trade plans downgrade the signal to `NO_TRADE`
-- generated signal JSON and Markdown include signal identity plus entry, stop and exit quality reasons
-- duplicate lifecycle events are skipped by `(signal_id, event_type)`
-
----
-
-# Entry / Stop / Exit Feedback
-
-Implemented in:
-
-```text
-src/feedback/entry_stop_exit_feedback.py
-src/feedback/entry_stop_exit_report.py
-docs/architecture/entry_stop_exit_feedback.md
-```
-
-The feedback aggregator is source-agnostic. It can consume historical validation records, lifecycle outcome records, JSONL exports or future database rows.
-
-It calculates:
-
-```text
-entry hit rate
-stop hit rate
-target_1 hit rate
-target_2 hit rate
-expired-without-entry rate
-false breakout rate
-```
-
-Default grouping:
-
-```text
-entry_type
-setup_type
-stop_model
-exit_model
-```
-
-Regime-aware grouping:
-
-```text
-market_regime
-risk_state
-volatility_regime
-```
-
-Convenience API:
-
-```text
-REGIME_AWARE_GROUP_FIELDS
-aggregate_regime_aware_entry_stop_exit_feedback()
-```
-
-Output helpers can persist:
-
-```text
-entry-stop-exit-feedback.json
-entry-stop-exit-feedback.md
-```
-
-This does not introduce new trading rules. It measures whether existing decision-quality models work historically and across regimes.
-
----
-
-# Entry / Stop / Exit Decision Quality
-
-Roadmap:
-
-```text
-docs/roadmap/entry-stop-exit-quality.md
-```
-
-Implemented foundation:
-
-```text
-src/signals/entry_quality.py
-src/signals/stop_loss_quality.py
-src/signals/exit_target_quality.py
-src/signals/structure_levels.py
-src/signals/intraday_vwap.py
-src/signals/trade_plan_validator.py
-src/watchers/trailing_stop_manager.py
-src/watchers/regime_invalidation.py
-src/feedback/entry_stop_exit_feedback.py
-```
-
-Operating rule:
-
-```text
-A high setup score is not enough.
-A BUY_WATCH requires a complete, valid and explainable trade plan.
-```
-
-A complete trade plan requires:
-
-```text
-entry_trigger + entry_reason
-stop_loss + stop_reason
-target_1 + exit_reason
-risk_reward validation
-quality gate passed
-runner management after target_1
-regime invalidation monitoring
-```
-
-Current Entry Quality checks:
-
-```text
-breakout high-trigger
-breakout RVOL confirmation
-optional breakout VWAP filter
-intraday VWAP enrichment when bars are available
-pullback entry
-retest entry
-gap-fill entry
-explicit at-market entry only when allowed
-late breakout rejection
-missing close / ATR rejection
-```
-
-Current Stop-Loss Quality checks:
-
-```text
-swing-low structure stop
-ATR stop fallback
-pullback structure stop
-retest structure stop
-gap-fill stop
-scanner-provided stop validation
-missing entry / close / ATR rejection
-inverted scanner stop rejection
-```
-
-Current Exit / Target Quality checks:
-
-```text
-momentum targets
-pullback targets
-retest targets
-gap-fill targets
-scanner-provided target validation
-default risk targets
-invalid / inverted target rejection
-```
-
-Current Runner Management:
-
-```text
-TARGET_1_HIT
-partial_exit_completed = true
-partial_exit_ratio = 0.50
-runner_status = active
-stop_loss = max(existing_stop, entry_trigger, latest_high - 1.5 * ATR when available)
-trail_stop = stop_loss
-```
-
-Current Regime Invalidation:
-
-```text
-risk-off / defensive regime
-open BUY_WATCH signal
-PENDING, TRIGGERED or TARGET_1_HIT
-→ REGIME_INVALIDATION_EXIT
-→ CANCELLED_BY_REGIME_CHANGE
-```
-
-Current Feedback Checks:
-
-```text
-entry hit rate by entry_type/setup_type
-stop hit rate by stop_model
-target hit rate by exit_model
-expired-without-entry rate
-false breakout rate
-regime-aware grouping by market_regime/risk_state/volatility_regime
-```
-
-Current Trade Plan Validator checks:
-
-```text
-entry_trigger exists
-stop_loss exists
-target_1 exists
-stop_loss < entry_trigger
-target_1 > entry_trigger
-target_2 > target_1 when present
-risk_reward >= minimum threshold
-stop distance is not too tight or too wide when ATR is available
-```
-
-Planned next modules:
-
-- P24 Historical Entry / Stop / Exit Backtest Runner
-- P25 Out-of-Sample Validation and Adaptive Feedback Integration
-- P26 Paper-Live Observation Before Trading
-
----
-
-# Architecture Reality Check
-
-| Layer | Status |
-|---|---|
-| Report Automation | Implemented |
-| Scanner-to-Signal Metrics Pipeline | Implemented |
-| Native Scanner Structure Metric | Implemented |
-| Intraday VWAP Support | Implemented |
-| Polygon Live Readiness | Implemented |
-| Historical Polygon Data Ingestion | Implemented |
-| End-to-End Dry Run | Implemented |
-| Structure-Aware Stops | Implemented |
-| Breakout Entry Context Upgrade | Implemented |
-| Trailing Stop / Partial Exit Management | Implemented |
-| Regime Invalidation Exit | Implemented |
-| Pending Signal Regime Invalidation | Implemented |
-| Entry / Stop / Exit Feedback Aggregation | Implemented |
-| Regime-Aware Feedback Grouping | Implemented |
-| Expanded Symbol Universe | Implemented |
-| Central Notification Client | Implemented |
-| Notification CLI | Implemented |
-| Structured Runtime Logging Helper | Implemented |
-| Notification CLI Structured Logs | Implemented |
-| Watcher Runner Structured Logs | Implemented |
-| Live Runtime Cycle Structured Logs | Implemented |
-| Weekly Workflow Notification Migration | Implemented |
-| Watcher Workflow Notification Migration | Implemented |
-| Native Signal ID Generation | Implemented |
-| Executable Signal Quality Gate | Implemented |
-| Entry Quality Engine | Implemented |
-| Stop-Loss Quality Engine | Implemented |
-| Exit / Target Quality Engine | Implemented |
-| Trade Plan Validator | Implemented |
-| Entry / Exit Watcher | Implemented and workflow-hardened |
-| Watcher Runtime Validation | Implemented |
-| Signal Identity Fallback | Implemented |
-| Lifecycle Deduplication | Implemented |
-| Alerts Persistence | Implemented |
-| Signal Lifecycle JSONL | Implemented |
-| Lifecycle-Aware Outcomes | Implemented |
-| Historical Polygon Validation | Implemented |
-| Weekly Expectancy Feedback Workflow | Implemented |
-| Runtime Loop | Implemented |
-| File-Backed Portfolio State | Implemented |
-| Portfolio-State Governance Integration | Implemented |
-| CI Pytest Workflow | Implemented |
-| End-to-End Institutional Flow | Partially implemented |
-| Fully Unified Continuous Runtime | In progress |
-| Broker Execution | Not implemented |
-| Dashboard UI | Not implemented |
-
----
-
-# Development Standard
-
-No new feature should be added without:
-
-```text
-- roadmap / issue plan
-- implementation
-- tests
-- architecture documentation
-- README update
-- CI verification
-- deterministic behavior
-```
-
-For Entry / Stop / Exit decision logic, also require:
-
-```text
-- complete executable trade plan
-- explicit entry_reason, stop_reason and exit_reason
-- risk/reward validation
-- downgrade behavior for invalid plans
-- tests for positive and negative cases
+No broker execution
+No automatic live orders
+No real trading without out-of-sample validation and paper-live observation
 ```
 
 ---
@@ -768,15 +293,14 @@ For Entry / Stop / Exit decision logic, also require:
 
 ## Done
 
-- report automation
-- signal generation
 - scanner-to-signal metrics pipeline
 - native scanner structure metric
 - intraday VWAP support
 - polygon live-readiness checks
 - historical Polygon data ingestion
+- historical Entry / Stop / Exit backtest runner
 - initial file-backed portfolio state
-- End-to-End Dry Run
+- E2E dry-run
 - breakout entry context upgrade
 - structure-aware stops
 - trailing stop and partial exit management
@@ -784,59 +308,20 @@ For Entry / Stop / Exit decision logic, also require:
 - pending signal regime invalidation
 - Entry / Stop / Exit feedback aggregation
 - regime-aware feedback grouping
-- native signal_id generation
+- native signal identity
 - executable signal quality gate
-- entry quality engine
-- stop-loss quality engine
-- exit / target quality engine
-- trade plan validator
-- signal persistence
-- expanded cross-asset symbol universe
-- central notification client
-- notification CLI
-- structured runtime logging helper
-- notification CLI structured logs
-- watcher runner structured logs
-- live runtime cycle structured logs
-- weekly workflow notification migration
-- watcher workflow notification migration
-- Entry / Exit Watcher V1
-- watcher runtime validation
 - watcher workflow hardening
-- signal identity fallback for legacy signals
-- lifecycle event deduplication
-- alerts persistence
-- lifecycle JSONL
-- lifecycle-aware outcomes
-- historical Polygon aggregate validation
-- weekly expectancy feedback workflow
-- runtime loop
-- decision persistence
-- VIX-aware runtime context
-- governance-first runtime cycle
-- file-backed portfolio state
-- portfolio-state-backed governance
-- minimal pytest CI workflow
-
-## In Progress
-
-- Entry / Stop / Exit decision quality hardening
-- historical validation foundation
-- observability hardening
-- connection and communication hardening
-- unified continuous runtime maturity
-- operational observation of watcher stability across real scheduled runs
+- lifecycle deduplication
 
 ## Planned Next
 
-1. Add P24 Historical Entry / Stop / Exit Backtest Runner.
-2. Add P25 Out-of-Sample Validation and Adaptive Feedback Integration.
-3. Add P26 Paper-Live Observation Before Trading.
-4. Add session-aware VWAP and intraday entry confirmation.
-5. Add cross-field feedback grouping such as entry_type x market_regime.
-6. Add dashboard or static HTML reporting.
-7. Move long-term persistence from Git files to Postgres.
-8. Add broker/account integration for automatic portfolio-state calculation.
+1. P25 — Out-of-Sample Validation and Adaptive Feedback Integration.
+2. P26 — Paper-Live Observation Before Trading.
+3. Session-aware VWAP and intraday entry confirmation.
+4. Cross-field feedback grouping such as entry_type x market_regime.
+5. Static dashboard / HTML reporting.
+6. Long-term persistence with Postgres or analytics storage.
+7. Broker/account integration for automatic portfolio-state calculation.
 
 ---
 
