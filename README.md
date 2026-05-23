@@ -19,6 +19,7 @@ The system is designed for research and decision support. It does not place live
 - historical edge validation
 - regime-phase backtest matrix
 - walk-forward validation
+- execution realism adjustment
 - cross-asset market-data coverage
 - event-risk placeholder metadata
 - optional SQLite runtime persistence
@@ -53,6 +54,7 @@ Market analysis
 → Historical edge validation
 → Regime-phase backtest matrix
 → Walk-forward validation
+→ Execution realism adjustment
 → Watcher lifecycle tracking
 → Manual portfolio sync
 → Optional SQLite persistence
@@ -74,6 +76,7 @@ pytest tests/test_multi_factor_fusion.py
 pytest tests/test_historical_edge_validation.py
 pytest tests/test_regime_phase_backtest_matrix.py
 pytest tests/test_walk_forward_validation.py
+pytest tests/test_execution_realism.py
 pytest tests/test_static_dashboard.py
 pytest tests/test_sqlite_persistence.py
 pytest tests/test_event_risk_engine.py
@@ -202,8 +205,6 @@ docs/operations/walk_forward_validation.md
 tests/test_walk_forward_validation.py
 ```
 
-P43 separates training windows from forward test windows.
-
 ```text
 training window 18 months
 test window      6 months
@@ -211,7 +212,30 @@ step size        3 months
 minimum cycles   6
 ```
 
-Each forward test window is validated independently with P41 historical edge metrics.
+## P44 Execution Realism Layer
+
+Implemented in:
+
+```text
+src/validation/execution_realism.py
+docs/operations/execution_realism.md
+tests/test_execution_realism.py
+```
+
+Default assumptions:
+
+```text
+spread cost per trade:      0.05%
+slippage normal regime:     0.10%
+slippage volatile regime:   0.30%
+```
+
+Cost conversion:
+
+```text
+execution_cost_r = entry_price * (spread_cost_pct + slippage_pct) / abs(entry_price - stop_loss)
+adjusted_r = original_r - execution_cost_r
+```
 
 ## Static Dashboard HTML Reporting
 
@@ -306,6 +330,7 @@ P47 Final Live Readiness Gate
 | Historical Edge Validation | Implemented |
 | Regime-Phase Backtest Matrix | Implemented |
 | Walk-Forward Validation | Implemented |
+| Execution Realism Layer | Implemented |
 | Static Dashboard HTML Reporting | Implemented |
 | SQLite Runtime Persistence | Implemented |
 | Event Risk Placeholder Metadata | Implemented |
@@ -331,6 +356,7 @@ P47 Final Live Readiness Gate
 
 ### Done
 
+- P44 execution realism layer
 - P43 walk-forward validation
 - P42 regime-phase backtest matrix
 - P41 historical edge validation framework
@@ -347,10 +373,9 @@ P47 Final Live Readiness Gate
 
 ### Planned Next
 
-1. P44 Execution Realism Layer
-2. P45 Out-of-Sample Validation Lockbox
-3. P46 Paper Trading Journal / Live Observation v2
-4. P47 Final Live Readiness Gate
+1. P45 Out-of-Sample Validation Lockbox
+2. P46 Paper Trading Journal / Live Observation v2
+3. P47 Final Live Readiness Gate
 
 ## Disclaimer
 
