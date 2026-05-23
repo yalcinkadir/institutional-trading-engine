@@ -1,0 +1,91 @@
+name: Paper Live Observation
+
+on:
+  workflow_dispatch:
+    inputs:
+      signals_file:
+        description: "Signals JSON file"
+        required: false
+        default: "reports/signals/latest-signals.json"
+      lifecycle_file:
+        description: "Signal lifecycle JSONL file"
+        required: false
+        default: "data/signal_lifecycle.jsonl"
+      alerts_file:
+        description: "Alerts JSON file"
+        required: false
+        default: "reports/alerts/latest-alerts.json"
+      min_lifecycle_events:
+        description: "Minimum lifecycle events required"
+        required: false
+        default: "5"
+      require_alerts:
+        description: "Require alert evidence"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+jobs:
+  paper-live-observation:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run paper-live observation without alert requirement
+        if: ${{ github.event.inputs.require_alerts == 'false' }}
+        run: |
+          python scripts/run_paper_live_observation.py \
+            --signals-file "${{ github.event.inputs.signals_file }}" \
+            --lifecycle-file "${{ github.event.inputs.lifecycle_file }}" \
+            --alerts-file "${{ github.event.inputs.alerts_file }}" \
+            --min-lifecycle-events "${{ github.event.inputs.min_lifecycle_events }}" \
+            --json-output reports/paper-live/paper-live-observation.json \
+            --markdown-output reports/paper-live/paper-live-observation.md
+
+      - name: Run paper-live observation with alert requirement
+        if: ${{ github.event.inputs.require_alerts == 'true' }}
+        run: |
+          python scripts/run_paper_live_observation.py \
+            --signals-file "${{ github.event.inputs.signals_file }}" \
+            --lifecycle-file "${{ github.event.inputs.lifecycle_file }}" \
+            --alerts-file "${{ github.event.inputs.alerts_file }}" \
+            --min-lifecycle-events "${{ github.event.inputs.min_lifecycle_events }}" \
+            --require-alerts \
+            --json-output reports/paper-live/paper-live-observation.json \
+            --markdown-output reports/paper-live/paper-live-observation.md
+
+      - name: Show paper-live markdown summary
+        if: always()
+        run: |
+          if [ -f reports/paper-live/paper-live-observation.md ]; then
+            cat reports/paper-live/paper-live-observation.md
+          else
+            echo "No paper-live observation markdown report produced."
+          fi
+
+      - name: Upload paper-live observation artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: paper-live-observation-artifacts
+          path: |
+            reports/paper-live/**
+            reports/signals/latest-signals.json
+            reports/alerts/latest-alerts.json
+            data/signal_lifecycle.jsonl
+          if-no-files-found: ignore
