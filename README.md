@@ -12,6 +12,7 @@ The system is designed for research and decision support. It does not place live
 
 - market regime analysis
 - decision confidence scoring
+- probabilistic decision normalization
 - cross-asset market-data coverage
 - event-risk placeholder metadata
 - optional SQLite runtime persistence
@@ -39,6 +40,7 @@ Market analysis
 → Entry / Stop / Exit quality engines
 → Trade plan validation
 → Decision confidence scoring
+→ Probabilistic decision normalization
 → Watcher lifecycle tracking
 → Manual portfolio sync
 → Optional SQLite persistence
@@ -53,6 +55,7 @@ Market analysis
 ```bash
 pytest
 pytest tests/test_decision_confidence.py
+pytest tests/test_probabilistic_decisions.py
 pytest tests/test_static_dashboard.py
 pytest tests/test_sqlite_persistence.py
 pytest tests/test_event_risk_engine.py
@@ -77,14 +80,6 @@ docs/operations/confidence_scoring.md
 tests/test_decision_confidence.py
 ```
 
-P36 separates confidence into three independent layers:
-
-```text
-asset setup score      weight 0.45
-market health score   weight 0.35
-regime alignment      weight 0.20
-```
-
 Formula:
 
 ```text
@@ -100,7 +95,31 @@ Tier 3    35
 No Trade   0
 ```
 
-This avoids counting market-health factors again inside confidence scoring.
+## P37 Probabilistic Softmax Normalization
+
+Implemented in:
+
+```text
+src/decision/probabilistic_decision_engine.py
+docs/operations/probabilistic_softmax.md
+tests/test_probabilistic_decisions.py
+```
+
+P37 converts bullish, bearish and neutral outputs into a normalized probability distribution.
+
+Logits:
+
+```text
+raw_bullish = signal_score * 0.5 + regime_confidence * 0.3 - risk_score * 0.1
+raw_bearish = risk_score * 0.6 + max(0, 50 - regime_confidence) * 0.2
+raw_neutral = 50 - abs(raw_bullish - raw_bearish) * 0.3
+```
+
+Softmax invariant:
+
+```text
+bullish_probability + bearish_probability + neutral_probability = 100
+```
 
 ## Static Dashboard HTML Reporting
 
@@ -123,22 +142,6 @@ python scripts/build_static_dashboard.py \
   --json
 ```
 
-Outputs:
-
-```text
-reports/dashboard/index.html
-reports/dashboard/dashboard.json
-```
-
-Dashboard status values:
-
-```text
-PASS
-PARTIAL
-WARN
-EMPTY
-```
-
 ## SQLite Runtime Persistence
 
 Implemented in:
@@ -151,15 +154,6 @@ tests/test_sqlite_persistence.py
 .github/workflows/sqlite-persistence.yml
 ```
 
-Smoke check:
-
-```bash
-python scripts/check_sqlite_persistence.py \
-  --db data/runtime/runtime.sqlite \
-  --write-smoke-record \
-  --json
-```
-
 ## Event Risk Placeholder Metadata
 
 Implemented in:
@@ -168,15 +162,6 @@ Implemented in:
 src/event_risk_engine.py
 docs/operations/event_risk_placeholder.md
 tests/test_event_risk_engine.py
-```
-
-Default metadata:
-
-```text
-event_risk_available=false
-event_risk_source=static_placeholder
-event_risk_confidence=low
-event_risk_is_placeholder=true
 ```
 
 ## Market Data Coverage
@@ -241,7 +226,7 @@ Actions → Scheduled Decision-Support Dry Run → Run workflow
 Actions → Archive Reports → Run workflow
 ```
 
-## Decision Quality Roadmap
+## Decision Quality and Validation Roadmap
 
 Detailed roadmap:
 
@@ -249,7 +234,7 @@ Detailed roadmap:
 docs/roadmap/decision_quality_p36_p40.md
 ```
 
-Sequence:
+Decision-quality sequence:
 
 ```text
 P36 Confidence Score Double Counting Fix
@@ -259,11 +244,24 @@ P39 Adaptive Feedback Decay
 P40 MultiFactorFusion Recalibration
 ```
 
+Validation sequence after P40:
+
+```text
+P41 Historical Edge Validation Framework
+P42 Regime-Phase Backtest Matrix
+P43 Walk-Forward Validation
+P44 Execution Realism Layer
+P45 Out-of-Sample Validation Lockbox
+P46 Paper Trading Journal / Live Observation v2
+P47 Final Live Readiness Gate
+```
+
 ## Implemented Components
 
 | Layer | Status |
 |---|---|
 | Decision Confidence Scoring | Implemented |
+| Probabilistic Decision Softmax Normalization | Implemented |
 | Static Dashboard HTML Reporting | Implemented |
 | SQLite Runtime Persistence | Implemented |
 | Event Risk Placeholder Metadata | Implemented |
@@ -289,6 +287,7 @@ P40 MultiFactorFusion Recalibration
 
 ### Done
 
+- P37 probabilistic engine softmax normalization
 - P36 confidence score double counting fix
 - P35 static dashboard HTML reporting
 - P34 optional SQLite runtime persistence
@@ -298,12 +297,17 @@ P40 MultiFactorFusion Recalibration
 
 ### Planned Next
 
-1. P37 Probabilistic Engine Softmax Normalization
-2. P38 Regime Similarity Weighted Distance + Cosine Similarity
-3. P39 Adaptive Feedback Decay
-4. P40 MultiFactorFusion Recalibration
-5. External artifact storage readiness
+1. P38 Regime Similarity Weighted Distance + Cosine Similarity
+2. P39 Adaptive Feedback Decay
+3. P40 MultiFactorFusion Recalibration
+4. P41 Historical Edge Validation Framework
+5. P42 Regime-Phase Backtest Matrix
+6. P43 Walk-Forward Validation
+7. P44 Execution Realism Layer
+8. P45 Out-of-Sample Validation Lockbox
+9. P46 Paper Trading Journal / Live Observation v2
+10. P47 Final Live Readiness Gate
 
 ## Disclaimer
 
-This project is intended for research, education, systematic market screening and decision-support experiments. It is not financial advice.
+This project is intended for research, education, systematic market screening and decision-support experiments. It is not financial advice and does not execute trades.
