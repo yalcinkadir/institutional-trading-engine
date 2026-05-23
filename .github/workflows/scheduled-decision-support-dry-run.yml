@@ -1,0 +1,100 @@
+name: Scheduled Decision-Support Dry Run
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_mode:
+        description: "Run mode label"
+        required: false
+        default: "manual"
+      backtest_report:
+        description: "Historical backtest JSON report"
+        required: false
+        default: "reports/backtests/historical-entry-exit-backtest.json"
+      oos_report:
+        description: "Out-of-sample validation JSON report"
+        required: false
+        default: "reports/backtests/out-of-sample-validation.json"
+      paper_live_report:
+        description: "Paper-live observation JSON report"
+        required: false
+        default: "reports/paper-live/paper-live-observation.json"
+      portfolio_state:
+        description: "Portfolio state JSON file"
+        required: false
+        default: "data/portfolio_state.json"
+      min_backtest_plans:
+        description: "Minimum historical backtest plans required"
+        required: false
+        default: "1"
+      min_oos_plans:
+        description: "Minimum out-of-sample plans required"
+        required: false
+        default: "1"
+  schedule:
+    - cron: "30 20 * * 1-5"
+
+jobs:
+  scheduled-decision-support-dry-run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Resolve workflow inputs
+        id: inputs
+        run: |
+          echo "run_mode=${{ github.event.inputs.run_mode || 'scheduled' }}" >> "$GITHUB_OUTPUT"
+          echo "backtest_report=${{ github.event.inputs.backtest_report || 'reports/backtests/historical-entry-exit-backtest.json' }}" >> "$GITHUB_OUTPUT"
+          echo "oos_report=${{ github.event.inputs.oos_report || 'reports/backtests/out-of-sample-validation.json' }}" >> "$GITHUB_OUTPUT"
+          echo "paper_live_report=${{ github.event.inputs.paper_live_report || 'reports/paper-live/paper-live-observation.json' }}" >> "$GITHUB_OUTPUT"
+          echo "portfolio_state=${{ github.event.inputs.portfolio_state || 'data/portfolio_state.json' }}" >> "$GITHUB_OUTPUT"
+          echo "min_backtest_plans=${{ github.event.inputs.min_backtest_plans || '1' }}" >> "$GITHUB_OUTPUT"
+          echo "min_oos_plans=${{ github.event.inputs.min_oos_plans || '1' }}" >> "$GITHUB_OUTPUT"
+
+      - name: Run scheduled decision-support dry run
+        run: |
+          python scripts/run_scheduled_decision_support_dry_run.py \
+            --run-mode "${{ steps.inputs.outputs.run_mode }}" \
+            --backtest-report "${{ steps.inputs.outputs.backtest_report }}" \
+            --oos-report "${{ steps.inputs.outputs.oos_report }}" \
+            --paper-live-report "${{ steps.inputs.outputs.paper_live_report }}" \
+            --portfolio-state "${{ steps.inputs.outputs.portfolio_state }}" \
+            --min-backtest-plans "${{ steps.inputs.outputs.min_backtest_plans }}" \
+            --min-oos-plans "${{ steps.inputs.outputs.min_oos_plans }}" \
+            --json-output reports/scheduled-runs/scheduled-decision-support-dry-run.json \
+            --markdown-output reports/scheduled-runs/scheduled-decision-support-dry-run.md
+
+      - name: Show scheduled dry-run markdown
+        if: always()
+        run: |
+          if [ -f reports/scheduled-runs/scheduled-decision-support-dry-run.md ]; then
+            cat reports/scheduled-runs/scheduled-decision-support-dry-run.md
+          else
+            echo "No scheduled dry-run markdown report produced."
+          fi
+
+      - name: Upload scheduled dry-run artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scheduled-decision-support-dry-run-artifacts
+          path: |
+            reports/scheduled-runs/**
+            reports/readiness/**
+            reports/backtests/historical-entry-exit-backtest.json
+            reports/backtests/out-of-sample-validation.json
+            reports/paper-live/paper-live-observation.json
+            data/portfolio_state.json
+          if-no-files-found: ignore
