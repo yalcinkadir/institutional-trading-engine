@@ -13,6 +13,7 @@ It is a Decision-Support and research system for:
 - market regime analysis
 - cross-asset scanning
 - expanded market-data universe coverage
+- event-risk placeholder metadata
 - signal generation
 - executable Entry / Stop / Exit planning
 - watcher-based lifecycle tracking
@@ -37,6 +38,7 @@ It is a Decision-Support and research system for:
 ```text
 Market analysis
 → Expanded cross-asset universe scan
+→ Event-risk metadata check
 → Scanner metrics normalization
 → Signal generation with native signal_id
 → Entry Quality Engine
@@ -78,6 +80,7 @@ pytest
 Targeted validation/observation/readiness/archive/universe tests:
 
 ```bash
+pytest tests/test_event_risk_engine.py
 pytest tests/test_symbol_universe.py
 pytest tests/test_historical_entry_exit_backtest.py
 pytest tests/test_sample_historical_backtest_plans.py
@@ -89,6 +92,33 @@ pytest tests/test_report_archive.py
 pytest tests/test_entry_exit_watcher_health.py
 pytest tests/test_manual_portfolio_sync.py
 ```
+
+## Event Risk Placeholder Metadata
+
+Implemented in:
+
+```text
+src/event_risk_engine.py
+docs/operations/event_risk_placeholder.md
+tests/test_event_risk_engine.py
+```
+
+Default event-risk metadata:
+
+```text
+event_risk_available=false
+event_risk_source=static_placeholder
+event_risk_confidence=low
+event_risk_is_placeholder=true
+```
+
+Default warning:
+
+```text
+event_risk_not_backed_by_live_calendar_feed
+```
+
+P33 makes event-risk status visible and testable when no live calendar data source is connected.
 
 ## Market Data Coverage
 
@@ -308,6 +338,36 @@ report-archive-artifacts
 
 ---
 
+# Event Risk Placeholder Metadata
+
+Implemented in:
+
+```text
+src/event_risk_engine.py
+docs/operations/event_risk_placeholder.md
+tests/test_event_risk_engine.py
+```
+
+P33 adds explicit event-risk metadata:
+
+```text
+event_risk_available
+event_risk_source
+event_risk_confidence
+event_risk_is_placeholder
+```
+
+Default placeholder values:
+
+```text
+event_risk_available=false
+event_risk_source=static_placeholder
+event_risk_confidence=low
+event_risk_is_placeholder=true
+```
+
+---
+
 # Market Data Coverage
 
 Implemented in:
@@ -387,6 +447,7 @@ tests/test_report_archive.py
 | Layer | Status |
 |---|---|
 | Report Automation | Implemented |
+| Event Risk Placeholder Metadata | Implemented |
 | Expanded Market Data Coverage | Implemented |
 | Scanner-to-Signal Metrics Pipeline | Implemented |
 | Native Signal ID Generation | Implemented |
@@ -462,19 +523,20 @@ Before scheduled live Decision-Support:
 2. POLYGON_API_KEY set
 3. Telegram/notification secrets verified when alerts are enabled
 4. expanded market-data coverage reviewed
-5. data/portfolio_state.json present and intentionally initialized
-6. manual portfolio sync completed and reviewed
-7. latest-signals.json generated from real Polygon data
-8. E2E dry-run returns PASS
-9. manual watcher run completes successfully
-10. entry-exit-watcher health report reviewed
-11. 5 consecutive entry-exit-watcher runs are green
-12. historical strategy validation completed before any trading decision
-13. out-of-sample validation reviewed
-14. paper-live observation completed and reviewed
-15. operational readiness review completed and reviewed
-16. scheduled dry-run evidence reviewed
-17. report archive created and reviewed
+5. event-risk placeholder metadata reviewed
+6. data/portfolio_state.json present and intentionally initialized
+7. manual portfolio sync completed and reviewed
+8. latest-signals.json generated from real Polygon data
+9. E2E dry-run returns PASS
+10. manual watcher run completes successfully
+11. entry-exit-watcher health report reviewed
+12. 5 consecutive entry-exit-watcher runs are green
+13. historical strategy validation completed before any trading decision
+14. out-of-sample validation reviewed
+15. paper-live observation completed and reviewed
+16. operational readiness review completed and reviewed
+17. scheduled dry-run evidence reviewed
+18. report archive created and reviewed
 ```
 
 Non-goals:
@@ -491,6 +553,7 @@ No real trading without out-of-sample validation, paper-live observation, operat
 
 ## Done
 
+- event-risk placeholder metadata
 - expanded market-data coverage without broker integration
 - manual portfolio-state calculation without broker integration
 - scanner-to-signal metrics pipeline
