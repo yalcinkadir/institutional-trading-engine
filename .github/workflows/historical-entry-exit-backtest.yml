@@ -1,0 +1,112 @@
+name: Historical Entry Exit Backtest
+
+on:
+  workflow_dispatch:
+    inputs:
+      plan_mode:
+        description: "Plan mode: sample or existing"
+        required: false
+        default: "sample"
+        type: choice
+        options:
+          - sample
+          - existing
+      symbols:
+        description: "Comma-separated symbols for ingestion/backtest"
+        required: false
+        default: "SPY,QQQ,NVDA,AAPL,MSFT,AMD,TSLA,META,GOOGL,AMZN"
+      start_date:
+        description: "Historical ingestion start date"
+        required: false
+        default: "2016-05-22"
+      end_date:
+        description: "Historical ingestion end date"
+        required: false
+        default: "2026-05-22"
+      sample_signal_date:
+        description: "Signal date for sample plans"
+        required: false
+        default: "2017-01-03"
+      existing_plans_file:
+        description: "Existing plans/signals JSON path for plan_mode=existing"
+        required: false
+        default: "reports/signals/latest-signals.json"
+      max_bars:
+        description: "Maximum daily bars to evaluate after signal date"
+        required: false
+        default: "20"
+
+jobs:
+  historical-entry-exit-backtest:
+    runs-on: ubuntu-latest
+    env:
+      POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Ingest historical Polygon bars
+        run: |
+          python scripts/ingest_historical_polygon.py \
+            --symbols "${{ github.event.inputs.symbols }}" \
+            --start-date "${{ github.event.inputs.start_date }}" \
+            --end-date "${{ github.event.inputs.end_date }}" \
+            --json
+
+      - name: Create sample historical plans
+        if: ${{ github.event.inputs.plan_mode == 'sample' }}
+        run: |
+          python scripts/create_sample_historical_backtest_plans.py \
+            --symbols "${{ github.event.inputs.symbols }}" \
+            --signal-date "${{ github.event.inputs.sample_signal_date }}" \
+            --output reports/backtests/sample-historical-plans.json
+
+      - name: Run historical Entry Exit backtest with sample plans
+        if: ${{ github.event.inputs.plan_mode == 'sample' }}
+        run: |
+          python scripts/run_historical_entry_exit_backtest.py \
+            --plans-file reports/backtests/sample-historical-plans.json \
+            --bars-root data/historical/bars/1day \
+            --max-bars "${{ github.event.inputs.max_bars }}" \
+            --json-output reports/backtests/historical-entry-exit-backtest.json \
+            --markdown-output reports/backtests/historical-entry-exit-backtest.md
+
+      - name: Run historical Entry Exit backtest with existing plans
+        if: ${{ github.event.inputs.plan_mode == 'existing' }}
+        run: |
+          python scripts/run_historical_entry_exit_backtest.py \
+            --plans-file "${{ github.event.inputs.existing_plans_file }}" \
+            --bars-root data/historical/bars/1day \
+            --max-bars "${{ github.event.inputs.max_bars }}" \
+            --json-output reports/backtests/historical-entry-exit-backtest.json \
+            --markdown-output reports/backtests/historical-entry-exit-backtest.md
+
+      - name: Show backtest markdown summary
+        if: always()
+        run: |
+          if [ -f reports/backtests/historical-entry-exit-backtest.md ]; then
+            cat reports/backtests/historical-entry-exit-backtest.md
+          else
+            echo "No backtest markdown report produced."
+          fi
+
+      - name: Upload historical backtest artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: historical-entry-exit-backtest-artifacts
+          path: |
+            reports/backtests/**
+            data/historical/metadata/ingestion_status.json
+          if-no-files-found: ignore
