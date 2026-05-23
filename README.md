@@ -20,7 +20,8 @@ It is a Decision-Support and research system for:
 - deterministic historical Entry / Stop / Exit backtesting
 - historical signal reconstruction
 - out-of-sample validation
-- GitHub Actions based historical validation operation
+- paper-live observation
+- GitHub Actions based historical and paper-live operation
 - feedback and expectancy analysis
 
 ---
@@ -46,11 +47,11 @@ Market analysis
 → Historical Entry / Stop / Exit backtest
 → Historical signal reconstruction
 → Out-of-sample validation
+→ Paper-live observation
 → GitHub Actions validation artifact generation
 → Feedback aggregation
 → Regime-aware learning
-→ Paper-live observation
-→ trading decision only after validation
+→ trading decision only after validation and review
 ```
 
 ---
@@ -63,12 +64,13 @@ Market analysis
 pytest
 ```
 
-Targeted historical validation tests:
+Targeted validation/observation tests:
 
 ```bash
 pytest tests/test_historical_entry_exit_backtest.py
 pytest tests/test_sample_historical_backtest_plans.py
 pytest tests/test_out_of_sample_validation.py
+pytest tests/test_paper_live_observation.py
 ```
 
 ## Check Polygon Live Readiness
@@ -129,12 +131,21 @@ python scripts/run_out_of_sample_validation.py \
   --max-bars 20
 ```
 
+## Run Paper-Live Observation Locally
+
+```bash
+python scripts/run_paper_live_observation.py \
+  --signals-file reports/signals/latest-signals.json \
+  --lifecycle-file data/signal_lifecycle.jsonl \
+  --alerts-file reports/alerts/latest-alerts.json \
+  --min-lifecycle-events 5
+```
+
 Default outputs:
 
 ```text
-reports/backtests/reconstructed-historical-plans.json
-reports/backtests/out-of-sample-validation.json
-reports/backtests/out-of-sample-validation.md
+reports/paper-live/paper-live-observation.json
+reports/paper-live/paper-live-observation.md
 ```
 
 ## Run Historical Entry Exit Backtest in GitHub Actions
@@ -149,31 +160,33 @@ Actions → Historical Entry Exit Backtest → Run workflow
 Actions → Out-of-Sample Historical Validation → Run workflow
 ```
 
+## Run Paper Live Observation in GitHub Actions
+
+```text
+Actions → Paper Live Observation → Run workflow
+```
+
 Recommended first run:
 
 ```text
-symbols: SPY,QQQ,NVDA,AAPL,MSFT,AMD,TSLA,META,GOOGL,AMZN
-start_date: 2016-05-22
-end_date: 2026-05-22
-split_date: 2023-01-01
-lookback_bars: 20
-every_nth_signal: 20
-max_bars: 20
+signals_file: reports/signals/latest-signals.json
+lifecycle_file: data/signal_lifecycle.jsonl
+alerts_file: reports/alerts/latest-alerts.json
+min_lifecycle_events: 5
+require_alerts: false
 ```
 
 Artifact:
 
 ```text
-out-of-sample-validation-artifacts
+paper-live-observation-artifacts
 ```
 
 Expected files:
 
 ```text
-reports/backtests/reconstructed-historical-plans.json
-reports/backtests/out-of-sample-validation.json
-reports/backtests/out-of-sample-validation.md
-data/historical/metadata/ingestion_status.json
+reports/paper-live/paper-live-observation.json
+reports/paper-live/paper-live-observation.md
 ```
 
 ## Run E2E Dry Run
@@ -213,22 +226,6 @@ P24 simulates already-generated long trade plans against historical daily OHLCV 
 
 P24B operationalizes it from GitHub Actions for phone/browser use.
 
-Outcomes:
-
-```text
-ENTRY_NOT_HIT
-EXPIRED
-STOP_HIT
-TARGET_1_HIT
-TARGET_2_HIT
-```
-
-Conservative daily-bar rule:
-
-```text
-If stop and target are touched in the same daily bar, stop wins.
-```
-
 ---
 
 # Out-of-Sample Historical Validation
@@ -251,30 +248,58 @@ in_sample
 out_of_sample
 ```
 
-Split rule:
-
-```text
-signal_date < split_date  → in-sample
-signal_date >= split_date → out-of-sample
-```
-
-Initial reconstruction method:
-
-```text
-previous lookback high = entry trigger
-percentage stop below entry
-R-multiple targets
-one reconstructed plan every N bars
-long-side only
-daily bars only
-```
-
 Guardrail:
 
 ```text
 P25 does not train a model.
 P25 does not change adaptive scoring.
 P25 does not authorize trading.
+```
+
+---
+
+# Paper-Live Observation
+
+Implemented in:
+
+```text
+src/operations/paper_live_observation.py
+scripts/run_paper_live_observation.py
+docs/operations/paper_live_observation.md
+tests/test_paper_live_observation.py
+.github/workflows/paper-live-observation.yml
+```
+
+P26 reads local artifacts and checks observation gates:
+
+```text
+signals_file_present
+signals_loaded
+lifecycle_file_readable
+minimum_lifecycle_events
+terminal_events_observed
+alerts_observed, only when require_alerts=true
+```
+
+Report outputs:
+
+```text
+ready_for_review
+signal_count
+buy_watch_count
+lifecycle_event_count
+terminal_event_count
+alert_count
+lifecycle_event_types
+gates
+```
+
+Guardrail:
+
+```text
+P26 does not call a broker.
+P26 does not place orders.
+P26 does not authorize trading.
 ```
 
 ---
@@ -304,6 +329,7 @@ P25 does not authorize trading.
 | Historical Backtest GitHub Actions Workflow | Implemented |
 | Historical Signal Reconstruction | Implemented |
 | Out-of-Sample Historical Validation | Implemented |
+| Paper-Live Observation | Implemented |
 | Entry / Stop / Exit Feedback Aggregation | Implemented |
 | Regime-Aware Feedback Grouping | Implemented |
 | File-Backed Portfolio State | Implemented |
@@ -347,7 +373,7 @@ Before scheduled live Decision-Support:
 8. 5 consecutive entry-exit-watcher runs are green
 9. historical strategy validation completed before any trading decision
 10. out-of-sample validation reviewed
-11. paper-live observation completed
+11. paper-live observation completed and reviewed
 ```
 
 Non-goals:
@@ -355,7 +381,7 @@ Non-goals:
 ```text
 No broker execution
 No automatic live orders
-No real trading without out-of-sample validation and paper-live observation
+No real trading without out-of-sample validation and paper-live observation review
 ```
 
 ---
@@ -373,6 +399,7 @@ No real trading without out-of-sample validation and paper-live observation
 - historical Entry Exit Backtest GitHub Actions workflow
 - historical signal reconstruction
 - out-of-sample historical validation
+- paper-live observation
 - initial file-backed portfolio state
 - E2E dry-run
 - breakout entry context upgrade
@@ -389,12 +416,11 @@ No real trading without out-of-sample validation and paper-live observation
 
 ## Planned Next
 
-1. P26 — Paper-Live Observation Before Trading.
-2. Session-aware VWAP and intraday entry confirmation.
-3. Cross-field feedback grouping such as entry_type x market_regime.
-4. Static dashboard / HTML reporting.
-5. Long-term persistence with Postgres or analytics storage.
-6. Broker/account integration for automatic portfolio-state calculation.
+1. Session-aware VWAP and intraday entry confirmation.
+2. Cross-field feedback grouping such as entry_type x market_regime.
+3. Static dashboard / HTML reporting.
+4. Long-term persistence with Postgres or analytics storage.
+5. Broker/account integration for automatic portfolio-state calculation.
 
 ---
 
