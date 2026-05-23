@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import date, timedelta
 from pathlib import Path
 
 from src.backtesting.out_of_sample_validation import (
@@ -15,11 +16,11 @@ from src.backtesting.out_of_sample_validation import (
 
 def _write_bars(path: Path, *, count: int = 80) -> None:
     lines = ["date,open,high,low,close,volume"]
+    start_date = date(2020, 1, 1)
     for index in range(count):
-        day = index + 1
-        date = f"2020-01-{day:02d}" if day <= 31 else f"2020-02-{day - 31:02d}"
+        bar_date = start_date + timedelta(days=index)
         base = 100 + index
-        lines.append(f"{date},{base},{base + 2},{base - 2},{base + 1},1000")
+        lines.append(f"{bar_date.isoformat()},{base},{base + 2},{base - 2},{base + 1},1000")
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
