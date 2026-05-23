@@ -34,7 +34,7 @@ No Trade   0
 
 ## P37 Probabilistic Engine Softmax Normalization
 
-Status: implemented, verification pending.
+Status: completed.
 
 Goal:
 
@@ -62,23 +62,37 @@ high signal with low risk and strong regime dominates bullish output
 classification follows the dominant probability
 ```
 
-## P38 Regime Similarity Weighted Distance
+## P38 Regime Similarity Weighted Distance + Cosine Similarity
 
-Status: planned.
+Status: implemented, verification pending.
 
 Goal:
 
 ```text
-Replace unweighted similarity with weighted distance and cosine similarity.
+Replace unweighted similarity with weighted normalized distance and cosine similarity.
 ```
 
-Planned weights:
+Implemented weights:
 
 ```text
 volatility 0.40
 health     0.25
 breadth    0.20
 momentum   0.15
+```
+
+Final score:
+
+```text
+similarity_score = distance_similarity * 0.70 + cosine_similarity * 0.30
+```
+
+Diagnostics:
+
+```text
+distance_similarity_score
+cosine_similarity_score
+weighted_distance
 ```
 
 ## P39 Adaptive Feedback Decay
