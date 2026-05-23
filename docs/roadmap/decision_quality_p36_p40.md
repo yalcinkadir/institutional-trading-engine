@@ -89,7 +89,7 @@ Neutral/Transition 2023-01-01 to 2024-06-30
 
 ## P43 Walk-Forward Validation
 
-Status: implemented, verification pending.
+Status: completed.
 
 Target structure:
 
@@ -102,7 +102,7 @@ minimum cycles   6
 
 ## P44 Execution Realism Layer
 
-Status: implemented, verification pending.
+Status: completed.
 
 Initial assumptions:
 
@@ -121,13 +121,28 @@ adjusted_r = original_r - execution_cost_r
 
 ## P45 Out-of-Sample Validation Lockbox
 
-Status: planned.
+Status: implemented, verification pending.
 
 Target split:
 
 ```text
-in-sample:      before 2024-01
-out-of-sample:  2024-01 onward
+in-sample:      before 2024-01-01
+out-of-sample:  2024-01-01 onward
+```
+
+Degradation gate:
+
+```text
+OOS degradation must not exceed 20% for core metrics
+```
+
+Compared metrics:
+
+```text
+expectancy_r
+profit_factor
+sharpe_ratio
+max_drawdown
 ```
 
 ## P46 Paper Trading Journal / Live Observation v2
