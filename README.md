@@ -21,7 +21,8 @@ It is a Decision-Support and research system for:
 - historical signal reconstruction
 - out-of-sample validation
 - paper-live observation
-- GitHub Actions based historical and paper-live operation
+- operational readiness review
+- GitHub Actions based validation and operations
 - feedback and expectancy analysis
 
 ---
@@ -48,10 +49,11 @@ Market analysis
 → Historical signal reconstruction
 → Out-of-sample validation
 → Paper-live observation
+→ Operational readiness review
 → GitHub Actions validation artifact generation
 → Feedback aggregation
 → Regime-aware learning
-→ trading decision only after validation and review
+→ live Decision-Support only after validation and human review
 ```
 
 ---
@@ -64,13 +66,14 @@ Market analysis
 pytest
 ```
 
-Targeted validation/observation tests:
+Targeted validation/observation/readiness tests:
 
 ```bash
 pytest tests/test_historical_entry_exit_backtest.py
 pytest tests/test_sample_historical_backtest_plans.py
 pytest tests/test_out_of_sample_validation.py
 pytest tests/test_paper_live_observation.py
+pytest tests/test_operational_readiness_review.py
 ```
 
 ## Check Polygon Live Readiness
@@ -81,12 +84,6 @@ python scripts/check_polygon_live_readiness.py \
   --lookback-days 3650
 ```
 
-The Stocks Developer plan provides 10 years of historical data. Use roughly:
-
-```text
-3650 calendar days
-```
-
 ## Run Historical Polygon Ingestion
 
 ```bash
@@ -95,13 +92,6 @@ python scripts/ingest_historical_polygon.py \
   --start-date 2016-05-22 \
   --end-date 2026-05-22 \
   --json
-```
-
-Historical storage:
-
-```text
-data/historical/bars/1day/<SYMBOL>.csv
-data/historical/metadata/ingestion_status.json
 ```
 
 Required environment variable:
@@ -141,66 +131,68 @@ python scripts/run_paper_live_observation.py \
   --min-lifecycle-events 5
 ```
 
+## Run Operational Readiness Review Locally
+
+```bash
+python scripts/run_operational_readiness_review.py \
+  --backtest-report reports/backtests/historical-entry-exit-backtest.json \
+  --oos-report reports/backtests/out-of-sample-validation.json \
+  --paper-live-report reports/paper-live/paper-live-observation.json \
+  --portfolio-state data/portfolio_state.json \
+  --min-backtest-plans 1 \
+  --min-oos-plans 1
+```
+
 Default outputs:
 
 ```text
-reports/paper-live/paper-live-observation.json
-reports/paper-live/paper-live-observation.md
+reports/readiness/operational-readiness-review.json
+reports/readiness/operational-readiness-review.md
 ```
 
-## Run Historical Entry Exit Backtest in GitHub Actions
+---
+
+# GitHub Actions Operations
+
+## Historical Entry Exit Backtest
 
 ```text
 Actions → Historical Entry Exit Backtest → Run workflow
 ```
 
-## Run Out-of-Sample Historical Validation in GitHub Actions
+## Out-of-Sample Historical Validation
 
 ```text
 Actions → Out-of-Sample Historical Validation → Run workflow
 ```
 
-## Run Paper Live Observation in GitHub Actions
+## Paper Live Observation
 
 ```text
 Actions → Paper Live Observation → Run workflow
 ```
 
+## Operational Readiness Review
+
+```text
+Actions → Operational Readiness Review → Run workflow
+```
+
 Recommended first run:
 
 ```text
-signals_file: reports/signals/latest-signals.json
-lifecycle_file: data/signal_lifecycle.jsonl
-alerts_file: reports/alerts/latest-alerts.json
-min_lifecycle_events: 5
-require_alerts: false
+backtest_report: reports/backtests/historical-entry-exit-backtest.json
+oos_report: reports/backtests/out-of-sample-validation.json
+paper_live_report: reports/paper-live/paper-live-observation.json
+portfolio_state: data/portfolio_state.json
+min_backtest_plans: 1
+min_oos_plans: 1
 ```
 
 Artifact:
 
 ```text
-paper-live-observation-artifacts
-```
-
-Expected files:
-
-```text
-reports/paper-live/paper-live-observation.json
-reports/paper-live/paper-live-observation.md
-```
-
-## Run E2E Dry Run
-
-```bash
-python scripts/run_e2e_dry_run.py \
-  --signals-file reports/signals/latest-signals.json
-```
-
-## Run Entry / Exit Watcher
-
-```bash
-python scripts/run_entry_exit_watcher.py \
-  --signals-file reports/signals/latest-signals.json
+operational-readiness-review-artifacts
 ```
 
 ---
@@ -222,10 +214,6 @@ tests/test_sample_historical_backtest_plans.py
 .github/workflows/historical-entry-exit-backtest.yml
 ```
 
-P24 simulates already-generated long trade plans against historical daily OHLCV bars.
-
-P24B operationalizes it from GitHub Actions for phone/browser use.
-
 ---
 
 # Out-of-Sample Historical Validation
@@ -238,14 +226,6 @@ scripts/run_out_of_sample_validation.py
 docs/operations/out_of_sample_validation.md
 tests/test_out_of_sample_validation.py
 .github/workflows/out-of-sample-validation.yml
-```
-
-P25 reconstructs deterministic historical trade plans from daily bars and compares:
-
-```text
-all
-in_sample
-out_of_sample
 ```
 
 Guardrail:
@@ -270,36 +250,48 @@ tests/test_paper_live_observation.py
 .github/workflows/paper-live-observation.yml
 ```
 
-P26 reads local artifacts and checks observation gates:
-
-```text
-signals_file_present
-signals_loaded
-lifecycle_file_readable
-minimum_lifecycle_events
-terminal_events_observed
-alerts_observed, only when require_alerts=true
-```
-
-Report outputs:
-
-```text
-ready_for_review
-signal_count
-buy_watch_count
-lifecycle_event_count
-terminal_event_count
-alert_count
-lifecycle_event_types
-gates
-```
-
 Guardrail:
 
 ```text
 P26 does not call a broker.
 P26 does not place orders.
 P26 does not authorize trading.
+```
+
+---
+
+# Operational Readiness Review
+
+Implemented in:
+
+```text
+src/operations/operational_readiness_review.py
+scripts/run_operational_readiness_review.py
+docs/operations/operational_readiness_review.md
+tests/test_operational_readiness_review.py
+.github/workflows/operational-readiness-review.yml
+```
+
+P27 checks:
+
+```text
+historical_backtest_report_present
+historical_backtest_has_plans
+out_of_sample_report_present
+out_of_sample_has_plans
+paper_live_report_present
+paper_live_ready_for_review
+portfolio_state_present
+portfolio_drawdown_available
+portfolio_daily_loss_available
+```
+
+Guardrail:
+
+```text
+P27 does not authorize trading.
+P27 does not connect broker execution.
+P27 only determines whether artifacts are complete enough for human review of live Decision-Support scheduling.
 ```
 
 ---
@@ -330,6 +322,7 @@ P26 does not authorize trading.
 | Historical Signal Reconstruction | Implemented |
 | Out-of-Sample Historical Validation | Implemented |
 | Paper-Live Observation | Implemented |
+| Operational Readiness Review | Implemented |
 | Entry / Stop / Exit Feedback Aggregation | Implemented |
 | Regime-Aware Feedback Grouping | Implemented |
 | File-Backed Portfolio State | Implemented |
@@ -374,6 +367,7 @@ Before scheduled live Decision-Support:
 9. historical strategy validation completed before any trading decision
 10. out-of-sample validation reviewed
 11. paper-live observation completed and reviewed
+12. operational readiness review completed and reviewed
 ```
 
 Non-goals:
@@ -381,7 +375,7 @@ Non-goals:
 ```text
 No broker execution
 No automatic live orders
-No real trading without out-of-sample validation and paper-live observation review
+No real trading without out-of-sample validation, paper-live observation and operational readiness review
 ```
 
 ---
@@ -400,6 +394,7 @@ No real trading without out-of-sample validation and paper-live observation revi
 - historical signal reconstruction
 - out-of-sample historical validation
 - paper-live observation
+- operational readiness review
 - initial file-backed portfolio state
 - E2E dry-run
 - breakout entry context upgrade
@@ -416,11 +411,12 @@ No real trading without out-of-sample validation and paper-live observation revi
 
 ## Planned Next
 
-1. Session-aware VWAP and intraday entry confirmation.
-2. Cross-field feedback grouping such as entry_type x market_regime.
-3. Static dashboard / HTML reporting.
-4. Long-term persistence with Postgres or analytics storage.
-5. Broker/account integration for automatic portfolio-state calculation.
+1. Scheduled Decision-Support dry runs.
+2. Session-aware VWAP and intraday entry confirmation.
+3. Cross-field feedback grouping such as entry_type x market_regime.
+4. Static dashboard / HTML reporting.
+5. Long-term persistence with Postgres or analytics storage.
+6. Broker/account integration for automatic portfolio-state calculation.
 
 ---
 
