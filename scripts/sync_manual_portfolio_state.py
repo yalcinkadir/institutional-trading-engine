@@ -5,8 +5,13 @@ from __future__ import annotations
 
 import argparse
 import sys
+from pathlib import Path
 
-from src.operations.manual_portfolio_sync import (
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from src.operations.manual_portfolio_sync import (  # noqa: E402
     ManualPortfolioSyncError,
     build_manual_portfolio_state,
     load_manual_portfolio_snapshot,
