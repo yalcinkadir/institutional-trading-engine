@@ -8,19 +8,21 @@ Institutional Trading Engine is a production-oriented market intelligence, scree
 
 The system is designed for research and decision support. It does not place live trades.
 
-## Current Safety Position
+## Current Validation Status
 
 ```text
-Decision support only: yes
+P36-P47 validation roadmap: implemented
+P47 final live readiness gate: completed
+CI status: green
+Live trading authorization: not granted by code
 Broker execution: not implemented
-Automatic live trading authorization: not implemented
 Backtesting: gated evidence pipeline
 VIX macro input: active with fail-closed quality policy
 500+ universe coverage: enforced by validation gate
 Survivorship bias handling: point-in-time universe loader + audit gate
 ```
 
-Code quality is not trading edge. Validation reports are only meaningful when the universe, liquidity, survivorship and out-of-sample gates pass.
+Code quality is not trading edge. The system is promising enough to test seriously, but real capital still requires evidence from the validation gates, paper observation, edge-evidence reports and manual review.
 
 ## Core Capabilities
 
@@ -224,7 +226,7 @@ The Decision Engine does not fabricate VIX inversion when data is unavailable.
 
 ## P36-P47 Validation Stack
 
-Implemented layers:
+Implemented and CI-green layers:
 
 ```text
 P36 Confidence Score Double Counting Fix
@@ -239,6 +241,56 @@ P44 Execution Realism Layer
 P45 Out-of-Sample Validation Lockbox
 P46 Paper Trading Journal / Live Observation v2
 P47 Final Live Readiness Gate
+```
+
+## P47 Final Live Readiness Gate
+
+Implemented in:
+
+```text
+src/validation/final_live_readiness_gate.py
+docs/operations/final_live_readiness_gate.md
+tests/test_final_live_readiness_gate.py
+```
+
+P47 consolidates P41-P46 evidence into a final fail-closed readiness report.
+
+Readiness levels:
+
+```text
+NOT_READY
+OBSERVATION_ONLY
+REVIEW_READY
+```
+
+Required evidence:
+
+```text
+historical edge validation
+regime-phase robustness
+walk-forward stability
+execution realism
+out-of-sample robustness
+paper observation quality
+manual review
+risk limits
+kill-switch definition
+```
+
+Staged capital-risk guidance:
+
+```text
+Months 1-3:  max 50% size after all gates pass and manual review is complete
+Months 4-6:  max 75% size only if observed metrics remain >=85% of expectation
+Month 7+:    max 100% only if cumulatively profitable and drawdown remains below kill switch
+```
+
+## Decision Quality and Validation Roadmap
+
+Detailed roadmap:
+
+```text
+docs/roadmap/decision_quality_p36_p40.md
 ```
 
 ## Implemented Components
@@ -285,9 +337,24 @@ P47 Final Live Readiness Gate
 | Feedback Aggregation | Implemented |
 | Broker Execution | Not implemented |
 
-## Edge-Evidence Roadmap
+## Roadmap
 
-### Phase 1: 3-6 months evidence collection
+### Done
+
+- P47 final live readiness gate
+- P46 paper trading journal / live observation v2
+- P45 out-of-sample validation lockbox
+- P44 execution realism layer
+- P43 walk-forward validation
+- P42 regime-phase backtest matrix
+- P41 historical edge validation framework
+- P40 multi-factor fusion recalibration
+- P39 adaptive feedback decay
+- P38 regime similarity weighted distance and cosine similarity
+- P37 probabilistic engine softmax normalization
+- P36 confidence score double counting fix
+
+### Edge-Evidence Phase: 3-6 months evidence collection
 
 - maintain 500+ active scan universe
 - ingest 10+ years of historical bars
@@ -297,9 +364,9 @@ P47 Final Live Readiness Gate
 - open the out-of-sample lockbox once, record result, then keep it locked
 - append forward live/paper outcomes for every generated signal
 
-### Phase 2: capital-risk readiness
+### Planned Next
 
-Capital-risk review remains blocked until P41-P47 evidence passes and manual review approves the result.
+Validation roadmap P36-P47 is implemented. Future work should focus on real evidence collection, report review and paper-observation quality, not feature expansion.
 
 ## Disclaimer
 
