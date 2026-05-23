@@ -1,0 +1,90 @@
+name: Entry Exit Watcher Health
+
+on:
+  workflow_dispatch:
+    inputs:
+      signals_file:
+        description: "Signals JSON file"
+        required: false
+        default: "reports/signals/latest-signals.json"
+      lifecycle_file:
+        description: "Signal lifecycle JSONL file"
+        required: false
+        default: "data/signal_lifecycle.jsonl"
+      min_signals:
+        description: "Minimum signals required"
+        required: false
+        default: "1"
+      min_lifecycle_events:
+        description: "Minimum lifecycle events required"
+        required: false
+        default: "1"
+      require_terminal_event:
+        description: "Require at least one terminal lifecycle event"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+jobs:
+  entry-exit-watcher-health:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run watcher health without terminal requirement
+        if: ${{ github.event.inputs.require_terminal_event == 'false' }}
+        run: |
+          python scripts/check_entry_exit_watcher_health.py \
+            --signals-file "${{ github.event.inputs.signals_file }}" \
+            --lifecycle-file "${{ github.event.inputs.lifecycle_file }}" \
+            --min-signals "${{ github.event.inputs.min_signals }}" \
+            --min-lifecycle-events "${{ github.event.inputs.min_lifecycle_events }}" \
+            --json-output reports/watcher/entry-exit-watcher-health.json \
+            --markdown-output reports/watcher/entry-exit-watcher-health.md
+
+      - name: Run watcher health with terminal requirement
+        if: ${{ github.event.inputs.require_terminal_event == 'true' }}
+        run: |
+          python scripts/check_entry_exit_watcher_health.py \
+            --signals-file "${{ github.event.inputs.signals_file }}" \
+            --lifecycle-file "${{ github.event.inputs.lifecycle_file }}" \
+            --min-signals "${{ github.event.inputs.min_signals }}" \
+            --min-lifecycle-events "${{ github.event.inputs.min_lifecycle_events }}" \
+            --require-terminal-event \
+            --json-output reports/watcher/entry-exit-watcher-health.json \
+            --markdown-output reports/watcher/entry-exit-watcher-health.md
+
+      - name: Show watcher health markdown
+        if: always()
+        run: |
+          if [ -f reports/watcher/entry-exit-watcher-health.md ]; then
+            cat reports/watcher/entry-exit-watcher-health.md
+          else
+            echo "No watcher health markdown report produced."
+          fi
+
+      - name: Upload watcher health artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: entry-exit-watcher-health-artifacts
+          path: |
+            reports/watcher/**
+            reports/signals/latest-signals.json
+            data/signal_lifecycle.jsonl
+          if-no-files-found: ignore
