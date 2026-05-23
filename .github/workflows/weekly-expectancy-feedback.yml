@@ -87,24 +87,19 @@ jobs:
           if [[ ! -f "$DECISION_LOG" ]]; then
             echo "Decision log not found: $DECISION_LOG"
             echo "Generating no-op expectancy report instead of failing runtime workflow."
-            python - <<'PY'
-          import os
-          from pathlib import Path
-
-          decision_log = os.environ.get("DECISION_LOG", "data/decision_log.csv")
-          Path("reports/expectancy-report.md").write_text(
-              "# Weekly Expectancy Feedback\n\n"
-              "Status: **SKIPPED**\n\n"
-              f"Reason: decision log not found at `{decision_log}`.\n\n"
-              "This is a runtime data condition, not a code failure.\n",
-              encoding="utf-8",
-          )
-          Path("reports/weekly-expectancy-summary.txt").write_text(
-              "Weekly Expectancy Feedback SKIPPED\n"
-              f"Reason: decision log not found at {decision_log}\n",
-              encoding="utf-8",
-          )
-          PY
+            {
+              echo "# Weekly Expectancy Feedback"
+              echo ""
+              echo "Status: **SKIPPED**"
+              echo ""
+              echo "Reason: decision log not found at \`$DECISION_LOG\`."
+              echo ""
+              echo "This is a runtime data condition, not a code failure."
+            } > reports/expectancy-report.md
+            {
+              echo "Weekly Expectancy Feedback SKIPPED"
+              echo "Reason: decision log not found at $DECISION_LOG"
+            } > reports/weekly-expectancy-summary.txt
             echo "WEEKLY_EXPECTANCY_SUMMARY<<EOF" >> "$GITHUB_ENV"
             cat reports/weekly-expectancy-summary.txt >> "$GITHUB_ENV"
             echo "EOF" >> "$GITHUB_ENV"
@@ -118,16 +113,7 @@ jobs:
               --days "$LOOKBACK_DAYS"
           else
             echo "POLYGON_API_KEY is not set. Skipping outcome price refresh and generating report from existing log only."
-            python - <<'PY'
-          import os
-          from pathlib import Path
-          from scripts.update_outcomes import write_expectancy_report
-          from src.outcome_pipeline import build_expectancy_summary
-
-          path = Path(os.environ.get("DECISION_LOG", "data/decision_log.csv"))
-          summary = build_expectancy_summary(path)
-          write_expectancy_report(summary, "reports/expectancy-report.md")
-          PY
+            python -c "import os; from pathlib import Path; from scripts.update_outcomes import write_expectancy_report; from src.outcome_pipeline import build_expectancy_summary; path = Path(os.environ.get('DECISION_LOG', 'data/decision_log.csv')); summary = build_expectancy_summary(path); write_expectancy_report(summary, 'reports/expectancy-report.md')"
           fi
 
       - name: Build weekly summary
