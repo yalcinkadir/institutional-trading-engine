@@ -2,7 +2,6 @@ name: Weekly Expectancy Feedback
 
 on:
   schedule:
-    # Sunday 08:00 UTC
     - cron: "0 8 * * 0"
   workflow_dispatch:
     inputs:
@@ -57,98 +56,56 @@ jobs:
         run: |
           DECISION_LOG="data/decision_log.csv"
           LOOKBACK_DAYS="120"
-
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             DECISION_LOG="${{ github.event.inputs.decision_log }}"
             LOOKBACK_DAYS="${{ github.event.inputs.days }}"
           fi
-
-          if [[ -z "$DECISION_LOG" ]]; then
-            DECISION_LOG="data/decision_log.csv"
-          fi
-          if [[ -z "$LOOKBACK_DAYS" ]]; then
-            LOOKBACK_DAYS="120"
-          fi
-
-          EXPECTANCY_CYCLE_ID="weekly-expectancy-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-
+          if [ -z "$DECISION_LOG" ]; then DECISION_LOG="data/decision_log.csv"; fi
+          if [ -z "$LOOKBACK_DAYS" ]; then LOOKBACK_DAYS="120"; fi
           echo "DECISION_LOG=$DECISION_LOG" >> "$GITHUB_ENV"
           echo "LOOKBACK_DAYS=$LOOKBACK_DAYS" >> "$GITHUB_ENV"
-          echo "EXPECTANCY_CYCLE_ID=$EXPECTANCY_CYCLE_ID" >> "$GITHUB_ENV"
-
-          echo "DECISION_LOG=$DECISION_LOG"
-          echo "LOOKBACK_DAYS=$LOOKBACK_DAYS"
-          echo "EXPECTANCY_CYCLE_ID=$EXPECTANCY_CYCLE_ID"
+          echo "EXPECTANCY_CYCLE_ID=weekly-expectancy-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_ENV"
 
       - name: Generate expectancy report
         shell: bash
         run: |
           mkdir -p reports
-          if [[ ! -f "$DECISION_LOG" ]]; then
+          if [ ! -f "$DECISION_LOG" ]; then
             echo "Decision log not found: $DECISION_LOG"
-            echo "Generating no-op expectancy report instead of failing runtime workflow."
-            {
-              echo "# Weekly Expectancy Feedback"
-              echo ""
-              echo "Status: **SKIPPED**"
-              echo ""
-              echo "Reason: decision log not found at \`$DECISION_LOG\`."
-              echo ""
-              echo "This is a runtime data condition, not a code failure."
-            } > reports/expectancy-report.md
-            {
-              echo "Weekly Expectancy Feedback SKIPPED"
-              echo "Reason: decision log not found at $DECISION_LOG"
-            } > reports/weekly-expectancy-summary.txt
-            echo "WEEKLY_EXPECTANCY_SUMMARY<<EOF" >> "$GITHUB_ENV"
-            cat reports/weekly-expectancy-summary.txt >> "$GITHUB_ENV"
-            echo "EOF" >> "$GITHUB_ENV"
+            echo "# Weekly Expectancy Feedback" > reports/expectancy-report.md
+            echo "" >> reports/expectancy-report.md
+            echo "Status: SKIPPED" >> reports/expectancy-report.md
+            echo "" >> reports/expectancy-report.md
+            echo "Reason: decision log not found at $DECISION_LOG" >> reports/expectancy-report.md
+            echo "Weekly Expectancy Feedback SKIPPED" > reports/weekly-expectancy-summary.txt
+            echo "Reason: decision log not found at $DECISION_LOG" >> reports/weekly-expectancy-summary.txt
             exit 0
           fi
-
-          if [[ -n "${POLYGON_API_KEY:-}" ]]; then
-            python scripts/update_outcomes.py \
-              --decision-log "$DECISION_LOG" \
-              --output reports/expectancy-report.md \
-              --days "$LOOKBACK_DAYS"
+          if [ -n "${POLYGON_API_KEY:-}" ]; then
+            python scripts/update_outcomes.py --decision-log "$DECISION_LOG" --output reports/expectancy-report.md --days "$LOOKBACK_DAYS"
           else
-            echo "POLYGON_API_KEY is not set. Skipping outcome price refresh and generating report from existing log only."
-            python -c "import os; from pathlib import Path; from scripts.update_outcomes import write_expectancy_report; from src.outcome_pipeline import build_expectancy_summary; path = Path(os.environ.get('DECISION_LOG', 'data/decision_log.csv')); summary = build_expectancy_summary(path); write_expectancy_report(summary, 'reports/expectancy-report.md')"
+            python scripts/build_weekly_expectancy_summary.py --decision-log "$DECISION_LOG" --output reports/weekly-expectancy-summary.txt
+            echo "# Weekly Expectancy Feedback" > reports/expectancy-report.md
+            cat reports/weekly-expectancy-summary.txt >> reports/expectancy-report.md
           fi
 
       - name: Build weekly summary
         shell: bash
         run: |
-          if [[ -f reports/weekly-expectancy-summary.txt ]]; then
-            echo "Using existing no-op weekly summary."
-          else
-            python scripts/build_weekly_expectancy_summary.py \
-              --decision-log "$DECISION_LOG" \
-              --output reports/weekly-expectancy-summary.txt
+          if [ ! -f reports/weekly-expectancy-summary.txt ]; then
+            python scripts/build_weekly_expectancy_summary.py --decision-log "$DECISION_LOG" --output reports/weekly-expectancy-summary.txt
           fi
-
-          {
-            echo "WEEKLY_EXPECTANCY_SUMMARY<<EOF"
-            cat reports/weekly-expectancy-summary.txt
-            echo "EOF"
-          } >> "$GITHUB_ENV"
 
       - name: Commit expectancy outputs
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          git add reports/expectancy-report.md 2>/dev/null || true
-          git add reports/weekly-expectancy-summary.txt 2>/dev/null || true
-          git add data/decision_log.csv 2>/dev/null || true
-          git add data/decision_log.jsonl 2>/dev/null || true
-
+          git add reports/expectancy-report.md reports/weekly-expectancy-summary.txt data/decision_log.csv data/decision_log.jsonl 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "No expectancy output changes to commit."
             exit 0
           fi
-
           git commit -m "Update weekly expectancy feedback ${EXPECTANCY_CYCLE_ID}"
           git pull --rebase origin "${GITHUB_REF_NAME}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
@@ -157,10 +114,9 @@ jobs:
         if: success()
         shell: bash
         run: |
-          python scripts/send_notification.py \
-            --message-file reports/weekly-expectancy-summary.txt \
-            --telegram \
-            --webhook || true
+          if [ -f reports/weekly-expectancy-summary.txt ]; then
+            python scripts/send_notification.py --message-file reports/weekly-expectancy-summary.txt --telegram --webhook || true
+          fi
 
       - name: Upload expectancy artifacts
         if: always()
