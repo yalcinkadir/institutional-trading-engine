@@ -87,12 +87,6 @@ High-Vol Regime    2022-01-01 to 2022-12-31
 Neutral/Transition 2023-01-01 to 2024-06-30
 ```
 
-Matrix gate:
-
-```text
-at least 3 of 5 phases must pass
-```
-
 ## P43 Walk-Forward Validation
 
 Status: implemented, verification pending.
@@ -106,22 +100,23 @@ step size        3 months
 minimum cycles   6
 ```
 
-Cycle validation:
-
-```text
-each forward test window is validated independently with P41 historical edge metrics
-```
-
 ## P44 Execution Realism Layer
 
-Status: planned.
+Status: implemented, verification pending.
 
 Initial assumptions:
 
 ```text
-spread cost normal regime: 0.05%
-slippage normal regime:    0.10%
-slippage volatile regime:  0.30%
+spread cost per trade:      0.05%
+slippage normal regime:     0.10%
+slippage volatile regime:   0.30%
+```
+
+Cost conversion:
+
+```text
+execution_cost_r = entry_price * (spread_cost_pct + slippage_pct) / abs(entry_price - stop_loss)
+adjusted_r = original_r - execution_cost_r
 ```
 
 ## P45 Out-of-Sample Validation Lockbox
