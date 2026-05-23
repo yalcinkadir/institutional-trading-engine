@@ -20,6 +20,7 @@ The system is designed for research and decision support. It does not place live
 - regime-phase backtest matrix
 - walk-forward validation
 - execution realism adjustment
+- out-of-sample validation lockbox
 - cross-asset market-data coverage
 - event-risk placeholder metadata
 - optional SQLite runtime persistence
@@ -55,6 +56,7 @@ Market analysis
 → Regime-phase backtest matrix
 → Walk-forward validation
 → Execution realism adjustment
+→ Out-of-sample validation lockbox
 → Watcher lifecycle tracking
 → Manual portfolio sync
 → Optional SQLite persistence
@@ -77,6 +79,7 @@ pytest tests/test_historical_edge_validation.py
 pytest tests/test_regime_phase_backtest_matrix.py
 pytest tests/test_walk_forward_validation.py
 pytest tests/test_execution_realism.py
+pytest tests/test_out_of_sample_lockbox.py
 pytest tests/test_static_dashboard.py
 pytest tests/test_sqlite_persistence.py
 pytest tests/test_event_risk_engine.py
@@ -237,6 +240,38 @@ execution_cost_r = entry_price * (spread_cost_pct + slippage_pct) / abs(entry_pr
 adjusted_r = original_r - execution_cost_r
 ```
 
+## P45 Out-of-Sample Validation Lockbox
+
+Implemented in:
+
+```text
+src/validation/out_of_sample_lockbox.py
+docs/operations/out_of_sample_lockbox.md
+tests/test_out_of_sample_lockbox.py
+```
+
+Default split:
+
+```text
+in-sample:      before 2024-01-01
+out-of-sample:  2024-01-01 onward
+```
+
+Degradation gate:
+
+```text
+OOS degradation must not exceed 20% for core metrics
+```
+
+Compared metrics:
+
+```text
+expectancy_r
+profit_factor
+sharpe_ratio
+max_drawdown
+```
+
 ## Static Dashboard HTML Reporting
 
 Implemented in:
@@ -331,6 +366,7 @@ P47 Final Live Readiness Gate
 | Regime-Phase Backtest Matrix | Implemented |
 | Walk-Forward Validation | Implemented |
 | Execution Realism Layer | Implemented |
+| Out-of-Sample Validation Lockbox | Implemented |
 | Static Dashboard HTML Reporting | Implemented |
 | SQLite Runtime Persistence | Implemented |
 | Event Risk Placeholder Metadata | Implemented |
@@ -356,6 +392,7 @@ P47 Final Live Readiness Gate
 
 ### Done
 
+- P45 out-of-sample validation lockbox
 - P44 execution realism layer
 - P43 walk-forward validation
 - P42 regime-phase backtest matrix
@@ -373,9 +410,8 @@ P47 Final Live Readiness Gate
 
 ### Planned Next
 
-1. P45 Out-of-Sample Validation Lockbox
-2. P46 Paper Trading Journal / Live Observation v2
-3. P47 Final Live Readiness Gate
+1. P46 Paper Trading Journal / Live Observation v2
+2. P47 Final Live Readiness Gate
 
 ## Disclaimer
 
