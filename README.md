@@ -16,6 +16,7 @@ The system is designed for research and decision support. It does not place live
 - weighted regime similarity scoring
 - adaptive feedback decay weighting
 - multi-factor fusion recalibration
+- historical edge validation
 - cross-asset market-data coverage
 - event-risk placeholder metadata
 - optional SQLite runtime persistence
@@ -47,6 +48,7 @@ Market analysis
 → Weighted regime similarity scoring
 → Adaptive feedback decay weighting
 → Multi-factor fusion recalibration
+→ Historical edge validation
 → Watcher lifecycle tracking
 → Manual portfolio sync
 → Optional SQLite persistence
@@ -65,6 +67,7 @@ pytest tests/test_probabilistic_decisions.py
 pytest tests/test_regime_similarity_engine.py
 pytest tests/test_adaptive_feedback_decay.py
 pytest tests/test_multi_factor_fusion.py
+pytest tests/test_historical_edge_validation.py
 pytest tests/test_static_dashboard.py
 pytest tests/test_sqlite_persistence.py
 pytest tests/test_event_risk_engine.py
@@ -95,15 +98,6 @@ Formula:
 confidence = setup_score * 0.45 + market_health_score * 0.35 + regime_alignment_score * 0.20
 ```
 
-Regime alignment mapping:
-
-```text
-Tier 1   100
-Tier 2    65
-Tier 3    35
-No Trade   0
-```
-
 ## P37 Probabilistic Softmax Normalization
 
 Implemented in:
@@ -112,16 +106,6 @@ Implemented in:
 src/decision/probabilistic_decision_engine.py
 docs/operations/probabilistic_softmax.md
 tests/test_probabilistic_decisions.py
-```
-
-P37 converts bullish, bearish and neutral outputs into a normalized probability distribution.
-
-Logits:
-
-```text
-raw_bullish = signal_score * 0.5 + regime_confidence * 0.3 - risk_score * 0.1
-raw_bearish = risk_score * 0.6 + max(0, 50 - regime_confidence) * 0.2
-raw_neutral = 50 - abs(raw_bullish - raw_bearish) * 0.3
 ```
 
 Softmax invariant:
@@ -140,19 +124,6 @@ docs/operations/regime_similarity.md
 tests/test_regime_similarity_engine.py
 ```
 
-P38 replaces unweighted regime similarity with weighted normalized distance plus cosine similarity.
-
-Distance weights:
-
-```text
-volatility 0.40
-health     0.25
-breadth    0.20
-momentum   0.15
-```
-
-Final score:
-
 ```text
 similarity_score = distance_similarity * 0.70 + cosine_similarity * 0.30
 ```
@@ -167,22 +138,8 @@ docs/operations/adaptive_feedback_decay.md
 tests/test_adaptive_feedback_decay.py
 ```
 
-P39 weights recent trade feedback more strongly than older observations.
-
-Constants:
-
-```text
-DECAY_HALF_LIFE_STABLE = 30
-DECAY_HALF_LIFE_REGIME_SHIFT = 10
-REGIME_SHIFT_RECOVERY_DAYS = 5
-MIN_WEIGHT_FLOOR = 0.05
-```
-
-Formula:
-
 ```text
 weight_i = decay_factor ^ (age_in_days_i / half_life_days)
-adjusted_performance = sum(result_i * weight_i) / sum(weight_i)
 ```
 
 ## P40 MultiFactorFusion Recalibration
@@ -195,35 +152,43 @@ docs/operations/multi_factor_fusion.md
 tests/test_multi_factor_fusion.py
 ```
 
-P40 separates opportunity from risk.
-
-Opportunity weights:
-
-```text
-regime_score          0.30
-feature_alpha_score   0.30
-execution_confidence  0.20
-liquidity_score       0.20
-```
-
-Risk penalty:
-
-```text
-tail_risk_score      0.20
-portfolio_risk_score 0.10
-```
-
-Final score:
-
 ```text
 fusion_score = clamp(opportunity_points - risk_penalty, 0, 100)
 ```
 
-Regime gate:
+## P41 Historical Edge Validation
+
+Implemented in:
 
 ```text
-if regime_score < 20:
-    fusion_score = min(fusion_score, 40)
+src/validation/historical_edge_validation.py
+docs/operations/historical_edge_validation.md
+tests/test_historical_edge_validation.py
+```
+
+P41 validates whether completed historical trade records show enough evidence of a positive edge to continue deeper validation.
+
+Default gates:
+
+```text
+MIN_TOTAL_TRADES     = 300
+MIN_PROFIT_FACTOR    = 1.4
+MIN_EXPECTANCY_R     = 0.5
+MAX_DRAWDOWN_LIMIT   = 0.25
+MIN_SHARPE_RATIO     = 0.8
+```
+
+Metrics:
+
+```text
+win_rate
+expectancy_r
+profit_factor
+max_drawdown
+sharpe_ratio
+max_consecutive_losses
+recovery_time_trades
+cumulative_r
 ```
 
 ## Static Dashboard HTML Reporting
@@ -236,60 +201,6 @@ scripts/build_static_dashboard.py
 docs/operations/static_dashboard.md
 tests/test_static_dashboard.py
 .github/workflows/static-dashboard.yml
-```
-
-Build locally:
-
-```bash
-python scripts/build_static_dashboard.py \
-  --output-html reports/dashboard/index.html \
-  --output-json reports/dashboard/dashboard.json \
-  --json
-```
-
-## SQLite Runtime Persistence
-
-Implemented in:
-
-```text
-src/operations/sqlite_persistence.py
-scripts/check_sqlite_persistence.py
-docs/operations/sqlite_persistence.md
-tests/test_sqlite_persistence.py
-.github/workflows/sqlite-persistence.yml
-```
-
-## Event Risk Placeholder Metadata
-
-Implemented in:
-
-```text
-src/event_risk_engine.py
-docs/operations/event_risk_placeholder.md
-tests/test_event_risk_engine.py
-```
-
-## Market Data Coverage
-
-Configured in:
-
-```text
-src/config.py
-docs/operations/market_data_coverage.md
-tests/test_symbol_universe.py
-```
-
-Default groups:
-
-```text
-core_indices: SPY, QQQ, IWM, DIA
-rates_bonds: TLT, IEF, SHY
-dollar_proxy: UUP
-sectors: XLK, XLF, XLE, XLV, XLY, XLP, XLI, XLU, XLB, XLRE
-mega_caps: AAPL, MSFT, NVDA, AMZN, GOOGL, META, TSLA
-semiconductors: SMH, MU, AMD, AVGO
-commodities: GLD, SLV, USO
-legacy_quality: CSCO
 ```
 
 ## Key Local Commands
@@ -370,6 +281,7 @@ P47 Final Live Readiness Gate
 | Weighted Regime Similarity Scoring | Implemented |
 | Adaptive Feedback Decay Weighting | Implemented |
 | MultiFactorFusion Recalibration | Implemented |
+| Historical Edge Validation | Implemented |
 | Static Dashboard HTML Reporting | Implemented |
 | SQLite Runtime Persistence | Implemented |
 | Event Risk Placeholder Metadata | Implemented |
@@ -395,6 +307,7 @@ P47 Final Live Readiness Gate
 
 ### Done
 
+- P41 historical edge validation framework
 - P40 multi-factor fusion recalibration
 - P39 adaptive feedback decay
 - P38 regime similarity weighted distance and cosine similarity
@@ -408,13 +321,12 @@ P47 Final Live Readiness Gate
 
 ### Planned Next
 
-1. P41 Historical Edge Validation Framework
-2. P42 Regime-Phase Backtest Matrix
-3. P43 Walk-Forward Validation
-4. P44 Execution Realism Layer
-5. P45 Out-of-Sample Validation Lockbox
-6. P46 Paper Trading Journal / Live Observation v2
-7. P47 Final Live Readiness Gate
+1. P42 Regime-Phase Backtest Matrix
+2. P43 Walk-Forward Validation
+3. P44 Execution Realism Layer
+4. P45 Out-of-Sample Validation Lockbox
+5. P46 Paper Trading Journal / Live Observation v2
+6. P47 Final Live Readiness Gate
 
 ## Disclaimer
 
