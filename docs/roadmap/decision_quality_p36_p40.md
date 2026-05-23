@@ -73,25 +73,9 @@ recovery_time_trades
 cumulative_r
 ```
 
-Default gates:
-
-```text
-MIN_TOTAL_TRADES     = 300
-MIN_PROFIT_FACTOR    = 1.4
-MIN_EXPECTANCY_R     = 0.5
-MAX_DRAWDOWN_LIMIT   = 0.25
-MIN_SHARPE_RATIO     = 0.8
-```
-
 ## P42 Regime-Phase Backtest Matrix
 
-Status: implemented, verification pending.
-
-Goal:
-
-```text
-Evaluate the system across multiple market phases instead of one blended period.
-```
+Status: completed.
 
 Implemented phases:
 
@@ -111,7 +95,7 @@ at least 3 of 5 phases must pass
 
 ## P43 Walk-Forward Validation
 
-Status: planned.
+Status: implemented, verification pending.
 
 Target structure:
 
@@ -120,6 +104,12 @@ training window 18 months
 test window      6 months
 step size        3 months
 minimum cycles   6
+```
+
+Cycle validation:
+
+```text
+each forward test window is validated independently with P41 historical edge metrics
 ```
 
 ## P44 Execution Realism Layer
