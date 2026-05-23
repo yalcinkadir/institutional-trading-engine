@@ -14,6 +14,10 @@ This module evaluates:
 - volatility interaction
 
 It is deterministic, explainable and testable.
+
+P33 guardrail:
+If no live calendar feed is connected, event risk must be marked explicitly as
+placeholder data so downstream reports do not imply false precision.
 """
 
 from __future__ import annotations
@@ -21,6 +25,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
+
+
+EVENT_RISK_PLACEHOLDER_SOURCE = "static_placeholder"
+EVENT_RISK_LIVE_SOURCE = "live_calendar_feed"
+EVENT_RISK_PLACEHOLDER_WARNING = (
+    "event_risk_not_backed_by_live_calendar_feed"
+)
 
 
 class EventType(str, Enum):
@@ -60,6 +71,9 @@ class EventRiskInput:
     volatility_expansion: bool
     target_symbol: str | None = None
     target_sector: str | None = None
+    event_risk_available: bool = False
+    event_risk_source: str = EVENT_RISK_PLACEHOLDER_SOURCE
+    event_risk_confidence: str = "low"
 
 
 @dataclass(frozen=True)
@@ -70,6 +84,10 @@ class EventRiskAssessment:
     active_events: tuple[str, ...]
     warnings: tuple[str, ...]
     confirmations: tuple[str, ...]
+    event_risk_available: bool
+    event_risk_source: str
+    event_risk_confidence: str
+    event_risk_is_placeholder: bool
 
 
 SEVERITY_POINTS = {
@@ -114,6 +132,32 @@ def _event_relevance(event: MarketEvent, symbol: str | None, sector: str | None)
     return 0.25
 
 
+def _is_placeholder_source(source: str) -> bool:
+    return source == EVENT_RISK_PLACEHOLDER_SOURCE
+
+
+def placeholder_event_risk_assessment(
+    *,
+    score: int = 15,
+    state: str = "event_risk_placeholder",
+) -> EventRiskAssessment:
+    """Return an explicit placeholder assessment when no live feed exists."""
+
+    normalized_score = max(0, min(100, int(score)))
+    return EventRiskAssessment(
+        event_risk_state=state,
+        event_risk_score=normalized_score,
+        risk_action="do_not_treat_event_risk_as_live_calendar_verified",
+        active_events=(),
+        warnings=(EVENT_RISK_PLACEHOLDER_WARNING,),
+        confirmations=(),
+        event_risk_available=False,
+        event_risk_source=EVENT_RISK_PLACEHOLDER_SOURCE,
+        event_risk_confidence="low",
+        event_risk_is_placeholder=True,
+    )
+
+
 def evaluate_event_risk(data: EventRiskInput) -> EventRiskAssessment:
     now = _parse_utc(data.now_utc)
     score = 0
@@ -121,10 +165,13 @@ def evaluate_event_risk(data: EventRiskInput) -> EventRiskAssessment:
     confirmations: list[str] = []
     active_events: list[str] = []
 
+    placeholder = (not data.event_risk_available) or _is_placeholder_source(data.event_risk_source)
+    if placeholder:
+        warnings.append(EVENT_RISK_PLACEHOLDER_WARNING)
+
     for event in data.events:
         event_time = _parse_utc(event.timestamp_utc)
         hours = _hours_until(now, event_time)
-        abs_hours = abs(hours)
 
         relevance = _event_relevance(event, data.target_symbol, data.target_sector)
         base_points = SEVERITY_POINTS[event.severity] * relevance
@@ -174,6 +221,9 @@ def evaluate_event_risk(data: EventRiskInput) -> EventRiskAssessment:
         risk_action = "normal_event_protocol"
         confirmations.append("no_major_near_term_event_pressure")
 
+    if placeholder:
+        risk_action = f"{risk_action}_with_unverified_event_calendar"
+
     return EventRiskAssessment(
         event_risk_state=event_state,
         event_risk_score=score,
@@ -181,4 +231,8 @@ def evaluate_event_risk(data: EventRiskInput) -> EventRiskAssessment:
         active_events=tuple(sorted(set(active_events))),
         warnings=tuple(dict.fromkeys(warnings)),
         confirmations=tuple(dict.fromkeys(confirmations)),
+        event_risk_available=data.event_risk_available,
+        event_risk_source=data.event_risk_source,
+        event_risk_confidence=data.event_risk_confidence,
+        event_risk_is_placeholder=placeholder,
     )
