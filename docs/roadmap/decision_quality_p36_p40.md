@@ -11,54 +11,18 @@ P41-P47: prove or reject the trading edge before any live-capital decision
 
 Status: completed.
 
-Goal:
-
-```text
-Remove structural double counting in confidence scoring.
-```
-
 Formula:
 
 ```text
 confidence = setup_score * 0.45 + market_health_score * 0.35 + regime_alignment_score * 0.20
 ```
 
-Regime alignment mapping:
-
-```text
-Tier 1   100
-Tier 2    65
-Tier 3    35
-No Trade   0
-```
-
 ## P37 Probabilistic Engine Softmax Normalization
 
 Status: completed.
 
-Goal:
-
-```text
-Convert bullish, bearish and neutral outputs into a valid probability distribution.
-```
-
-Implementation:
-
-```text
-raw_bullish = signal_score * 0.5 + regime_confidence * 0.3 - risk_score * 0.1
-raw_bearish = risk_score * 0.6 + max(0, 50 - regime_confidence) * 0.2
-raw_neutral = 50 - abs(raw_bullish - raw_bearish) * 0.3
-```
-
-The raw logits are normalized through numerically stable softmax with temperature 20.
-
-Acceptance:
-
 ```text
 bullish + bearish + neutral = 100
-no negative probabilities
-high risk dominates bearish output
-high signal with low risk and strong regime dominates bullish output
 classification follows the dominant probability
 ```
 
@@ -66,46 +30,13 @@ classification follows the dominant probability
 
 Status: completed.
 
-Goal:
-
-```text
-Replace unweighted similarity with weighted normalized distance and cosine similarity.
-```
-
-Implemented weights:
-
-```text
-volatility 0.40
-health     0.25
-breadth    0.20
-momentum   0.15
-```
-
-Final score:
-
 ```text
 similarity_score = distance_similarity * 0.70 + cosine_similarity * 0.30
-```
-
-Diagnostics:
-
-```text
-distance_similarity_score
-cosine_similarity_score
-weighted_distance
 ```
 
 ## P39 Adaptive Feedback Decay
 
 Status: completed.
-
-Goal:
-
-```text
-Weight recent trades more strongly than old trades.
-```
-
-Implemented constants:
 
 ```text
 DECAY_HALF_LIFE_STABLE = 30
@@ -114,54 +45,9 @@ REGIME_SHIFT_RECOVERY_DAYS = 5
 MIN_WEIGHT_FLOOR = 0.05
 ```
 
-Formula:
-
-```text
-weight_i = decay_factor ^ (age_in_days_i / half_life_days)
-```
-
-Weighted performance:
-
-```text
-weighted_sum = sum(result_i * weight_i)
-total_weight = sum(weight_i)
-adjusted_performance = weighted_sum / total_weight
-```
-
 ## P40 MultiFactorFusion Recalibration
 
-Status: implemented, verification pending.
-
-Goal:
-
-```text
-Separate opportunity score from risk penalty.
-```
-
-Implemented opportunity weights:
-
-```text
-regime_score          0.30
-feature_alpha_score   0.30
-execution_confidence  0.20
-liquidity_score       0.20
-```
-
-Implemented risk penalty:
-
-```text
-tail_risk_score      0.20
-portfolio_risk_score 0.10
-```
-
-Implemented regime gate:
-
-```text
-if regime_score < 20:
-    fusion_score = min(fusion_score, 40)
-```
-
-Final formula:
+Status: completed.
 
 ```text
 fusion_score = clamp(opportunity_points - risk_penalty, 0, 100)
@@ -173,25 +59,41 @@ fusion_score = clamp(opportunity_points - risk_penalty, 0, 100)
 
 ## P41 Historical Edge Validation Framework
 
+Status: implemented, verification pending.
+
 Goal:
 
 ```text
 Measure whether a positive historical edge exists after costs and risk constraints.
 ```
 
-Target metrics:
+Implemented metrics:
 
 ```text
-win rate
-expectancy in R
-profit factor
-max drawdown
-Sharpe ratio
-consecutive losses
-recovery time from drawdown
+total_trades
+win_rate
+expectancy_r
+profit_factor
+max_drawdown
+sharpe_ratio
+max_consecutive_losses
+recovery_time_trades
+cumulative_r
+```
+
+Default gates:
+
+```text
+MIN_TOTAL_TRADES     = 300
+MIN_PROFIT_FACTOR    = 1.4
+MIN_EXPECTANCY_R     = 0.5
+MAX_DRAWDOWN_LIMIT   = 0.25
+MIN_SHARPE_RATIO     = 0.8
 ```
 
 ## P42 Regime-Phase Backtest Matrix
+
+Status: planned.
 
 Goal:
 
@@ -211,11 +113,7 @@ Neutral/Transition 2023-01 to 2024-06
 
 ## P43 Walk-Forward Validation
 
-Goal:
-
-```text
-Reduce overfitting risk by separating development windows from forward test windows.
-```
+Status: planned.
 
 Target structure:
 
@@ -228,11 +126,7 @@ minimum cycles   6
 
 ## P44 Execution Realism Layer
 
-Goal:
-
-```text
-Apply spread, slippage and execution assumptions before validating edge.
-```
+Status: planned.
 
 Initial assumptions:
 
@@ -244,11 +138,7 @@ slippage volatile regime:  0.30%
 
 ## P45 Out-of-Sample Validation Lockbox
 
-Goal:
-
-```text
-Protect out-of-sample data from accidental rule tuning and measure degradation honestly.
-```
+Status: planned.
 
 Target split:
 
@@ -257,19 +147,9 @@ in-sample:      before 2024-01
 out-of-sample:  2024-01 onward
 ```
 
-Acceptance idea:
-
-```text
-OOS keeps at least 80% of in-sample core metrics.
-```
-
 ## P46 Paper Trading Journal / Live Observation v2
 
-Goal:
-
-```text
-Track live paper signals, theoretical fills, realistic fills, slippage and rule-following behavior.
-```
+Status: planned.
 
 Minimum duration:
 
@@ -280,11 +160,7 @@ Minimum duration:
 
 ## P47 Final Live Readiness Gate
 
-Goal:
-
-```text
-Create a final decision gate before any real-capital exposure is considered.
-```
+Status: planned.
 
 Non-negotiable gates:
 
