@@ -6,11 +6,17 @@ on:
     branches:
       - main
       - 'feature/**'
+    paths-ignore:
+      - "reports/**"
   workflow_dispatch:
 
 permissions:
   contents: write
   actions: read
+
+concurrency:
+  group: report-quality-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   validate-reports:
@@ -80,6 +86,11 @@ jobs:
           persist-credentials: true
           fetch-depth: 0
 
+      - name: Synchronize branch before report commit
+        shell: bash
+        run: |
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+
       - name: Download validated reports
         uses: actions/download-artifact@v4
         with:
@@ -106,5 +117,4 @@ jobs:
           fi
 
           git commit -m "Update validated reports $(date -u +'%Y-%m-%d_%H-%M-%S_UTC')"
-          git pull --rebase origin "${GITHUB_REF_NAME}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
