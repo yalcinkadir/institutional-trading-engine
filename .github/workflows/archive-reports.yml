@@ -1,0 +1,76 @@
+name: Archive Reports
+
+on:
+  workflow_dispatch:
+    inputs:
+      archive_id:
+        description: "Optional archive id"
+        required: false
+        default: ""
+      archive_root:
+        description: "Archive root directory"
+        required: false
+        default: "reports/archive"
+      report_paths:
+        description: "Optional comma-separated report paths"
+        required: false
+        default: ""
+
+jobs:
+  archive-reports:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Archive reports with default paths
+        if: ${{ github.event.inputs.report_paths == '' && github.event.inputs.archive_id == '' }}
+        run: |
+          python scripts/archive_reports.py \
+            --archive-root "${{ github.event.inputs.archive_root }}"
+
+      - name: Archive reports with archive id
+        if: ${{ github.event.inputs.report_paths == '' && github.event.inputs.archive_id != '' }}
+        run: |
+          python scripts/archive_reports.py \
+            --archive-root "${{ github.event.inputs.archive_root }}" \
+            --archive-id "${{ github.event.inputs.archive_id }}"
+
+      - name: Archive selected reports
+        if: ${{ github.event.inputs.report_paths != '' && github.event.inputs.archive_id == '' }}
+        run: |
+          python scripts/archive_reports.py \
+            --archive-root "${{ github.event.inputs.archive_root }}" \
+            --report-paths "${{ github.event.inputs.report_paths }}"
+
+      - name: Archive selected reports with archive id
+        if: ${{ github.event.inputs.report_paths != '' && github.event.inputs.archive_id != '' }}
+        run: |
+          python scripts/archive_reports.py \
+            --archive-root "${{ github.event.inputs.archive_root }}" \
+            --archive-id "${{ github.event.inputs.archive_id }}" \
+            --report-paths "${{ github.event.inputs.report_paths }}"
+
+      - name: Show archive manifests
+        if: always()
+        run: |
+          find "${{ github.event.inputs.archive_root }}" -name manifest.md -print -exec cat {} \; || true
+
+      - name: Upload archive artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: report-archive-artifacts
+          path: ${{ github.event.inputs.archive_root }}/**
+          if-no-files-found: ignore
