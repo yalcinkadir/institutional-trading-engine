@@ -1,0 +1,81 @@
+name: Operational Readiness Review
+
+on:
+  workflow_dispatch:
+    inputs:
+      backtest_report:
+        description: "Historical backtest JSON report"
+        required: false
+        default: "reports/backtests/historical-entry-exit-backtest.json"
+      oos_report:
+        description: "Out-of-sample validation JSON report"
+        required: false
+        default: "reports/backtests/out-of-sample-validation.json"
+      paper_live_report:
+        description: "Paper-live observation JSON report"
+        required: false
+        default: "reports/paper-live/paper-live-observation.json"
+      portfolio_state:
+        description: "Portfolio state JSON file"
+        required: false
+        default: "data/portfolio_state.json"
+      min_backtest_plans:
+        description: "Minimum historical backtest plans required"
+        required: false
+        default: "1"
+      min_oos_plans:
+        description: "Minimum out-of-sample plans required"
+        required: false
+        default: "1"
+
+jobs:
+  operational-readiness-review:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run operational readiness review
+        run: |
+          python scripts/run_operational_readiness_review.py \
+            --backtest-report "${{ github.event.inputs.backtest_report }}" \
+            --oos-report "${{ github.event.inputs.oos_report }}" \
+            --paper-live-report "${{ github.event.inputs.paper_live_report }}" \
+            --portfolio-state "${{ github.event.inputs.portfolio_state }}" \
+            --min-backtest-plans "${{ github.event.inputs.min_backtest_plans }}" \
+            --min-oos-plans "${{ github.event.inputs.min_oos_plans }}" \
+            --json-output reports/readiness/operational-readiness-review.json \
+            --markdown-output reports/readiness/operational-readiness-review.md
+
+      - name: Show operational readiness markdown
+        if: always()
+        run: |
+          if [ -f reports/readiness/operational-readiness-review.md ]; then
+            cat reports/readiness/operational-readiness-review.md
+          else
+            echo "No operational readiness markdown report produced."
+          fi
+
+      - name: Upload operational readiness artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: operational-readiness-review-artifacts
+          path: |
+            reports/readiness/**
+            reports/backtests/historical-entry-exit-backtest.json
+            reports/backtests/out-of-sample-validation.json
+            reports/paper-live/paper-live-observation.json
+            data/portfolio_state.json
+          if-no-files-found: ignore
