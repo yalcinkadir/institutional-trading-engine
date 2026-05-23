@@ -14,6 +14,7 @@ It is a Decision-Support and research system for:
 - cross-asset scanning
 - expanded market-data universe coverage
 - event-risk placeholder metadata
+- optional SQLite runtime persistence
 - signal generation
 - executable Entry / Stop / Exit planning
 - watcher-based lifecycle tracking
@@ -49,6 +50,7 @@ Market analysis
 → Entry / Exit watcher
 → Entry / Exit watcher health diagnostics
 → Manual portfolio sync
+→ Optional SQLite persistence
 → Partial exit / runner management
 → Regime invalidation monitoring
 → Notification delivery
@@ -80,6 +82,7 @@ pytest
 Targeted validation/observation/readiness/archive/universe tests:
 
 ```bash
+pytest tests/test_sqlite_persistence.py
 pytest tests/test_event_risk_engine.py
 pytest tests/test_symbol_universe.py
 pytest tests/test_historical_entry_exit_backtest.py
@@ -92,6 +95,35 @@ pytest tests/test_report_archive.py
 pytest tests/test_entry_exit_watcher_health.py
 pytest tests/test_manual_portfolio_sync.py
 ```
+
+## SQLite Runtime Persistence
+
+Implemented in:
+
+```text
+src/operations/sqlite_persistence.py
+scripts/check_sqlite_persistence.py
+docs/operations/sqlite_persistence.md
+tests/test_sqlite_persistence.py
+.github/workflows/sqlite-persistence.yml
+```
+
+Smoke check:
+
+```bash
+python scripts/check_sqlite_persistence.py \
+  --db data/runtime/runtime.sqlite \
+  --write-smoke-record \
+  --json
+```
+
+Default database path:
+
+```text
+data/runtime/runtime.sqlite
+```
+
+P34 adds optional SQLite persistence. JSON and JSONL outputs remain valid fallbacks.
 
 ## Event Risk Placeholder Metadata
 
@@ -264,6 +296,18 @@ python scripts/archive_reports.py
 
 # GitHub Actions Operations
 
+## SQLite Persistence
+
+```text
+Actions → SQLite Persistence → Run workflow
+```
+
+Artifact:
+
+```text
+sqlite-persistence-artifacts
+```
+
 ## Manual Portfolio Sync
 
 ```text
@@ -335,6 +379,32 @@ Artifact:
 ```text
 report-archive-artifacts
 ```
+
+---
+
+# SQLite Runtime Persistence
+
+Implemented in:
+
+```text
+src/operations/sqlite_persistence.py
+scripts/check_sqlite_persistence.py
+docs/operations/sqlite_persistence.md
+tests/test_sqlite_persistence.py
+.github/workflows/sqlite-persistence.yml
+```
+
+P34 adds optional persistence for structured runtime records:
+
+```text
+record_id
+record_type
+source
+created_at
+payload_json
+```
+
+Existing JSON and JSONL outputs remain usable.
 
 ---
 
@@ -447,6 +517,7 @@ tests/test_report_archive.py
 | Layer | Status |
 |---|---|
 | Report Automation | Implemented |
+| SQLite Runtime Persistence | Implemented |
 | Event Risk Placeholder Metadata | Implemented |
 | Expanded Market Data Coverage | Implemented |
 | Scanner-to-Signal Metrics Pipeline | Implemented |
@@ -524,19 +595,20 @@ Before scheduled live Decision-Support:
 3. Telegram/notification secrets verified when alerts are enabled
 4. expanded market-data coverage reviewed
 5. event-risk placeholder metadata reviewed
-6. data/portfolio_state.json present and intentionally initialized
-7. manual portfolio sync completed and reviewed
-8. latest-signals.json generated from real Polygon data
-9. E2E dry-run returns PASS
-10. manual watcher run completes successfully
-11. entry-exit-watcher health report reviewed
-12. 5 consecutive entry-exit-watcher runs are green
-13. historical strategy validation completed before any trading decision
-14. out-of-sample validation reviewed
-15. paper-live observation completed and reviewed
-16. operational readiness review completed and reviewed
-17. scheduled dry-run evidence reviewed
-18. report archive created and reviewed
+6. optional SQLite persistence reviewed if enabled
+7. data/portfolio_state.json present and intentionally initialized
+8. manual portfolio sync completed and reviewed
+9. latest-signals.json generated from real Polygon data
+10. E2E dry-run returns PASS
+11. manual watcher run completes successfully
+12. entry-exit-watcher health report reviewed
+13. 5 consecutive entry-exit-watcher runs are green
+14. historical strategy validation completed before any trading decision
+15. out-of-sample validation reviewed
+16. paper-live observation completed and reviewed
+17. operational readiness review completed and reviewed
+18. scheduled dry-run evidence reviewed
+19. report archive created and reviewed
 ```
 
 Non-goals:
@@ -553,6 +625,7 @@ No real trading without out-of-sample validation, paper-live observation, operat
 
 ## Done
 
+- optional SQLite runtime persistence
 - event-risk placeholder metadata
 - expanded market-data coverage without broker integration
 - manual portfolio-state calculation without broker integration
