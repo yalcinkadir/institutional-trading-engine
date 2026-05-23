@@ -17,6 +17,7 @@ The system is designed for research and decision support. It does not place live
 - adaptive feedback decay weighting
 - multi-factor fusion recalibration
 - historical edge validation
+- regime-phase backtest matrix
 - cross-asset market-data coverage
 - event-risk placeholder metadata
 - optional SQLite runtime persistence
@@ -49,6 +50,7 @@ Market analysis
 → Adaptive feedback decay weighting
 → Multi-factor fusion recalibration
 → Historical edge validation
+→ Regime-phase backtest matrix
 → Watcher lifecycle tracking
 → Manual portfolio sync
 → Optional SQLite persistence
@@ -68,6 +70,7 @@ pytest tests/test_regime_similarity_engine.py
 pytest tests/test_adaptive_feedback_decay.py
 pytest tests/test_multi_factor_fusion.py
 pytest tests/test_historical_edge_validation.py
+pytest tests/test_regime_phase_backtest_matrix.py
 pytest tests/test_static_dashboard.py
 pytest tests/test_sqlite_persistence.py
 pytest tests/test_event_risk_engine.py
@@ -92,8 +95,6 @@ docs/operations/confidence_scoring.md
 tests/test_decision_confidence.py
 ```
 
-Formula:
-
 ```text
 confidence = setup_score * 0.45 + market_health_score * 0.35 + regime_alignment_score * 0.20
 ```
@@ -107,8 +108,6 @@ src/decision/probabilistic_decision_engine.py
 docs/operations/probabilistic_softmax.md
 tests/test_probabilistic_decisions.py
 ```
-
-Softmax invariant:
 
 ```text
 bullish_probability + bearish_probability + neutral_probability = 100
@@ -166,8 +165,6 @@ docs/operations/historical_edge_validation.md
 tests/test_historical_edge_validation.py
 ```
 
-P41 validates whether completed historical trade records show enough evidence of a positive edge to continue deeper validation.
-
 Default gates:
 
 ```text
@@ -178,17 +175,30 @@ MAX_DRAWDOWN_LIMIT   = 0.25
 MIN_SHARPE_RATIO     = 0.8
 ```
 
-Metrics:
+## P42 Regime-Phase Backtest Matrix
+
+Implemented in:
 
 ```text
-win_rate
-expectancy_r
-profit_factor
-max_drawdown
-sharpe_ratio
-max_consecutive_losses
-recovery_time_trades
-cumulative_r
+src/validation/regime_phase_backtest_matrix.py
+docs/operations/regime_phase_backtest_matrix.md
+tests/test_regime_phase_backtest_matrix.py
+```
+
+P42 evaluates historical edge metrics separately across canonical market phases.
+
+```text
+Low-Vol Bull       2019-01-01 to 2020-02-29
+Panic/Dislocation  2020-03-01 to 2020-04-30
+Recovery           2020-05-01 to 2021-12-31
+High-Vol Regime    2022-01-01 to 2022-12-31
+Neutral/Transition 2023-01-01 to 2024-06-30
+```
+
+Matrix gate:
+
+```text
+at least 3 of 5 phases must pass
 ```
 
 ## Static Dashboard HTML Reporting
@@ -282,6 +292,7 @@ P47 Final Live Readiness Gate
 | Adaptive Feedback Decay Weighting | Implemented |
 | MultiFactorFusion Recalibration | Implemented |
 | Historical Edge Validation | Implemented |
+| Regime-Phase Backtest Matrix | Implemented |
 | Static Dashboard HTML Reporting | Implemented |
 | SQLite Runtime Persistence | Implemented |
 | Event Risk Placeholder Metadata | Implemented |
@@ -307,6 +318,7 @@ P47 Final Live Readiness Gate
 
 ### Done
 
+- P42 regime-phase backtest matrix
 - P41 historical edge validation framework
 - P40 multi-factor fusion recalibration
 - P39 adaptive feedback decay
@@ -321,12 +333,11 @@ P47 Final Live Readiness Gate
 
 ### Planned Next
 
-1. P42 Regime-Phase Backtest Matrix
-2. P43 Walk-Forward Validation
-3. P44 Execution Realism Layer
-4. P45 Out-of-Sample Validation Lockbox
-5. P46 Paper Trading Journal / Live Observation v2
-6. P47 Final Live Readiness Gate
+1. P43 Walk-Forward Validation
+2. P44 Execution Realism Layer
+3. P45 Out-of-Sample Validation Lockbox
+4. P46 Paper Trading Journal / Live Observation v2
+5. P47 Final Live Readiness Gate
 
 ## Disclaimer
 
