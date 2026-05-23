@@ -43,7 +43,10 @@ def test_invalid_bars_are_skipped_for_metrics() -> None:
     verdict = evaluate_liquidity("ROBUST", bars)
 
     assert verdict.metrics is not None
-    assert verdict.metrics.bar_count == 60
+    # The filter evaluates only the configured lookback window. Because the two
+    # malformed bars are inside the last 60 bars, they are skipped and the valid
+    # metric count is 58.
+    assert verdict.metrics.bar_count == 58
 
 
 def test_filter_universe_and_markdown() -> None:
