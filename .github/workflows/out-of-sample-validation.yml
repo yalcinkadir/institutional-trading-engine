@@ -1,0 +1,95 @@
+name: Out-of-Sample Historical Validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      symbols:
+        description: "Comma-separated symbols for ingestion/reconstruction"
+        required: false
+        default: "SPY,QQQ,NVDA,AAPL,MSFT,AMD,TSLA,META,GOOGL,AMZN"
+      start_date:
+        description: "Historical ingestion start date"
+        required: false
+        default: "2016-05-22"
+      end_date:
+        description: "Historical ingestion end date"
+        required: false
+        default: "2026-05-22"
+      split_date:
+        description: "Out-of-sample split date"
+        required: false
+        default: "2023-01-01"
+      lookback_bars:
+        description: "Bars used to reconstruct breakout level"
+        required: false
+        default: "20"
+      every_nth_signal:
+        description: "Reconstruct one plan every N bars"
+        required: false
+        default: "20"
+      max_bars:
+        description: "Maximum bars evaluated after signal date"
+        required: false
+        default: "20"
+
+jobs:
+  out-of-sample-validation:
+    runs-on: ubuntu-latest
+    env:
+      POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Ingest historical Polygon bars
+        run: |
+          python scripts/ingest_historical_polygon.py \
+            --symbols "${{ github.event.inputs.symbols }}" \
+            --start-date "${{ github.event.inputs.start_date }}" \
+            --end-date "${{ github.event.inputs.end_date }}" \
+            --json
+
+      - name: Run out-of-sample historical validation
+        run: |
+          python scripts/run_out_of_sample_validation.py \
+            --symbols "${{ github.event.inputs.symbols }}" \
+            --bars-root data/historical/bars/1day \
+            --split-date "${{ github.event.inputs.split_date }}" \
+            --lookback-bars "${{ github.event.inputs.lookback_bars }}" \
+            --every-nth-signal "${{ github.event.inputs.every_nth_signal }}" \
+            --max-bars "${{ github.event.inputs.max_bars }}" \
+            --plans-output reports/backtests/reconstructed-historical-plans.json \
+            --json-output reports/backtests/out-of-sample-validation.json \
+            --markdown-output reports/backtests/out-of-sample-validation.md
+
+      - name: Show validation markdown summary
+        if: always()
+        run: |
+          if [ -f reports/backtests/out-of-sample-validation.md ]; then
+            cat reports/backtests/out-of-sample-validation.md
+          else
+            echo "No out-of-sample validation markdown report produced."
+          fi
+
+      - name: Upload out-of-sample validation artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: out-of-sample-validation-artifacts
+          path: |
+            reports/backtests/reconstructed-historical-plans.json
+            reports/backtests/out-of-sample-validation.json
+            reports/backtests/out-of-sample-validation.md
+            data/historical/metadata/ingestion_status.json
+          if-no-files-found: ignore
