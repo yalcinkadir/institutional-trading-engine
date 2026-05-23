@@ -14,6 +14,7 @@ The system is designed for research and decision support. It does not place live
 - decision confidence scoring
 - probabilistic decision normalization
 - weighted regime similarity scoring
+- adaptive feedback decay weighting
 - cross-asset market-data coverage
 - event-risk placeholder metadata
 - optional SQLite runtime persistence
@@ -43,6 +44,7 @@ Market analysis
 → Decision confidence scoring
 → Probabilistic decision normalization
 → Weighted regime similarity scoring
+→ Adaptive feedback decay weighting
 → Watcher lifecycle tracking
 → Manual portfolio sync
 → Optional SQLite persistence
@@ -59,6 +61,7 @@ pytest
 pytest tests/test_decision_confidence.py
 pytest tests/test_probabilistic_decisions.py
 pytest tests/test_regime_similarity_engine.py
+pytest tests/test_adaptive_feedback_decay.py
 pytest tests/test_static_dashboard.py
 pytest tests/test_sqlite_persistence.py
 pytest tests/test_event_risk_engine.py
@@ -149,6 +152,34 @@ Final score:
 
 ```text
 similarity_score = distance_similarity * 0.70 + cosine_similarity * 0.30
+```
+
+## P39 Adaptive Feedback Decay
+
+Implemented in:
+
+```text
+src/feedback/adaptive_feedback_decay.py
+docs/operations/adaptive_feedback_decay.md
+tests/test_adaptive_feedback_decay.py
+```
+
+P39 weights recent trade feedback more strongly than older observations.
+
+Constants:
+
+```text
+DECAY_HALF_LIFE_STABLE = 30
+DECAY_HALF_LIFE_REGIME_SHIFT = 10
+REGIME_SHIFT_RECOVERY_DAYS = 5
+MIN_WEIGHT_FLOOR = 0.05
+```
+
+Formula:
+
+```text
+weight_i = decay_factor ^ (age_in_days_i / half_life_days)
+adjusted_performance = sum(result_i * weight_i) / sum(weight_i)
 ```
 
 ## Static Dashboard HTML Reporting
@@ -293,6 +324,7 @@ P47 Final Live Readiness Gate
 | Decision Confidence Scoring | Implemented |
 | Probabilistic Decision Softmax Normalization | Implemented |
 | Weighted Regime Similarity Scoring | Implemented |
+| Adaptive Feedback Decay Weighting | Implemented |
 | Static Dashboard HTML Reporting | Implemented |
 | SQLite Runtime Persistence | Implemented |
 | Event Risk Placeholder Metadata | Implemented |
@@ -318,6 +350,7 @@ P47 Final Live Readiness Gate
 
 ### Done
 
+- P39 adaptive feedback decay
 - P38 regime similarity weighted distance and cosine similarity
 - P37 probabilistic engine softmax normalization
 - P36 confidence score double counting fix
@@ -329,15 +362,14 @@ P47 Final Live Readiness Gate
 
 ### Planned Next
 
-1. P39 Adaptive Feedback Decay
-2. P40 MultiFactorFusion Recalibration
-3. P41 Historical Edge Validation Framework
-4. P42 Regime-Phase Backtest Matrix
-5. P43 Walk-Forward Validation
-6. P44 Execution Realism Layer
-7. P45 Out-of-Sample Validation Lockbox
-8. P46 Paper Trading Journal / Live Observation v2
-9. P47 Final Live Readiness Gate
+1. P40 MultiFactorFusion Recalibration
+2. P41 Historical Edge Validation Framework
+3. P42 Regime-Phase Backtest Matrix
+4. P43 Walk-Forward Validation
+5. P44 Execution Realism Layer
+6. P45 Out-of-Sample Validation Lockbox
+7. P46 Paper Trading Journal / Live Observation v2
+8. P47 Final Live Readiness Gate
 
 ## Disclaimer
 
