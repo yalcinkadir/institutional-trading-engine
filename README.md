@@ -183,16 +183,15 @@ For serious historical backtesting, enrich it with point-in-time membership and 
 
 ## Polygon Edge Data Pipeline
 
-Build a broad active Polygon runtime universe:
+Build the full active Polygon runtime universe. By default this walks all active symbols returned by Polygon for the selected market; 500 is only the minimum acceptance gate, not the target size.
 
 ```bash
 POLYGON_API_KEY=... python scripts/build_polygon_universe.py \
   --output data/universe/survivorship_universe.csv \
-  --active-from 2026-05-24 \
-  --max-symbols 500
+  --active-from 2026-05-24
 ```
 
-Download daily OHLCV bars for that universe:
+Download daily OHLCV bars for all symbols in that universe:
 
 ```bash
 POLYGON_API_KEY=... python scripts/download_polygon_daily_bars.py \
@@ -200,8 +199,14 @@ POLYGON_API_KEY=... python scripts/download_polygon_daily_bars.py \
   --output-dir data/historical_bars \
   --from-date 2016-01-01 \
   --to-date 2026-05-24 \
-  --max-symbols 500 \
   --min-bars 120
+```
+
+Use `--max-symbols` only for smoke tests, rate-limit control, or cost-controlled trial runs:
+
+```bash
+POLYGON_API_KEY=... python scripts/build_polygon_universe.py --max-symbols 25
+POLYGON_API_KEY=... python scripts/download_polygon_daily_bars.py --max-symbols 25
 ```
 
 The downloader writes a manifest to:
