@@ -87,6 +87,41 @@ def test_write_universe_creates_survivorship_schema(tmp_path: Path, monkeypatch:
     assert "active_polygon_universe" in rows[0]["notes"]
 
 
+def test_write_universe_deduplicates_polygon_symbols(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("POLYGON_API_KEY", "test-token")
+    output = tmp_path / "survivorship_universe.csv"
+    args = argparse.Namespace(
+        active_from="2026-05-24",
+        market="stocks",
+        max_symbols=0,
+        output=output,
+        sleep_seconds=0.0,
+    )
+    payload = {
+        "results": [
+            {"ticker": "BCPC", "name": "Balchem Corp", "type": "CS", "primary_exchange": "XNAS"},
+            {"ticker": "BCPC", "name": "Balchem Corp Duplicate", "type": "CS", "primary_exchange": "XNAS"},
+            {"ticker": "MSFT", "name": "Microsoft", "type": "CS", "primary_exchange": "XNAS"},
+        ]
+    }
+
+    from scripts import build_polygon_universe as module
+
+    class SessionFactory:
+        def __call__(self):
+            session = FakeSession([payload])
+            session.params = {}
+            return session
+
+    monkeypatch.setattr(module.requests, "Session", SessionFactory())
+    count = write_universe(args)
+
+    assert count == 2
+    with output.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+    assert [row["symbol"] for row in rows] == ["BCPC", "MSFT"]
+
+
 def test_bar_to_row_converts_polygon_timestamp() -> None:
     row = bar_to_row({"t": 1704067200000, "o": 1, "h": 2, "l": 0.5, "c": 1.5, "v": 100})
 
