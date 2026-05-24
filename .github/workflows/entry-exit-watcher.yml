@@ -2,13 +2,9 @@ name: Entry Exit Watcher
 
 on:
   schedule:
-    # Approx. 1h after US open
     - cron: "0 15 * * 1-5"
-    # Mid-session check
     - cron: "30 17 * * 1-5"
-    # Postmarket lifecycle check
     - cron: "0 21 * * 1-5"
-
   workflow_dispatch:
     inputs:
       signals_file:
@@ -57,64 +53,39 @@ jobs:
         shell: bash
         run: |
           SIGNALS_FILE="reports/signals/latest-signals.json"
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             SIGNALS_FILE="${{ github.event.inputs.signals_file }}"
           fi
-          if [[ -z "$SIGNALS_FILE" ]]; then
-            SIGNALS_FILE="reports/signals/latest-signals.json"
-          fi
-
-          WATCHER_CYCLE_ID="entry-exit-watcher-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-
+          if [ -z "$SIGNALS_FILE" ]; then SIGNALS_FILE="reports/signals/latest-signals.json"; fi
           echo "SIGNALS_FILE=$SIGNALS_FILE" >> "$GITHUB_ENV"
-          echo "WATCHER_CYCLE_ID=$WATCHER_CYCLE_ID" >> "$GITHUB_ENV"
-
-          echo "Using signals file: $SIGNALS_FILE"
-          echo "WATCHER_CYCLE_ID=$WATCHER_CYCLE_ID"
+          echo "WATCHER_CYCLE_ID=entry-exit-watcher-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_ENV"
 
       - name: Validate watcher inputs
         shell: bash
         run: |
-          echo "Validating watcher inputs for $WATCHER_CYCLE_ID"
-
-          if [[ -z "${POLYGON_API_KEY:-}" ]]; then
-            echo "::error title=Missing POLYGON_API_KEY::POLYGON_API_KEY secret is required for watcher market data retrieval."
-            exit 1
+          mkdir -p reports/alerts
+          if [ -z "${POLYGON_API_KEY:-}" ]; then
+            echo "POLYGON_API_KEY secret is missing. Skipping watcher runtime."
+            echo "Entry/Exit Watcher SKIPPED" > reports/alerts/watcher-skip-message.txt
+            echo "Reason: POLYGON_API_KEY secret is missing." >> reports/alerts/watcher-skip-message.txt
+            echo "WATCHER_SKIP=true" >> "$GITHUB_ENV"
+            exit 0
           fi
-
-          if [[ ! -f "$SIGNALS_FILE" ]]; then
-            echo "::error title=Missing signals file::Configured signals file does not exist: $SIGNALS_FILE"
-            exit 1
+          if [ ! -f "$SIGNALS_FILE" ]; then
+            echo "Signals file not found: $SIGNALS_FILE. Skipping watcher runtime."
+            echo "Entry/Exit Watcher SKIPPED" > reports/alerts/watcher-skip-message.txt
+            echo "Reason: signals file not found at $SIGNALS_FILE" >> reports/alerts/watcher-skip-message.txt
+            echo "WATCHER_SKIP=true" >> "$GITHUB_ENV"
+            exit 0
           fi
-
-          python - <<'PY'
-import json
-import os
-from pathlib import Path
-
-path = Path(os.environ["SIGNALS_FILE"])
-data = json.loads(path.read_text(encoding="utf-8"))
-if isinstance(data, list):
-    signals = data
-elif isinstance(data, dict):
-    signals = data.get("signals", [])
-else:
-    raise SystemExit(f"Signals file must contain a JSON list or object payload: {path}")
-if not isinstance(signals, list):
-    raise SystemExit(f"Signals payload must contain a list: {path}")
-invalid = sum(1 for item in signals if not isinstance(item, dict))
-if invalid:
-    raise SystemExit(f"Signals payload contains {invalid} non-object records: {path}")
-print(f"Signals file validated: {path} ({len(signals)} signals)")
-PY
+          python -c "import json, os; from pathlib import Path; p=Path(os.environ['SIGNALS_FILE']); d=json.loads(p.read_text(encoding='utf-8')); s=d if isinstance(d,list) else d.get('signals',[]) if isinstance(d,dict) else None; assert isinstance(s,list); assert all(isinstance(x,dict) for x in s); print('Signals file validated:', p, len(s))"
+          echo "WATCHER_SKIP=false" >> "$GITHUB_ENV"
 
       - name: Run watcher
+        if: env.WATCHER_SKIP != 'true'
         shell: bash
         run: |
-          mkdir -p reports/alerts
-          mkdir -p reports/signals
-          mkdir -p data
-          echo "Starting watcher cycle: $WATCHER_CYCLE_ID"
+          mkdir -p reports/alerts reports/signals data
           python scripts/run_entry_exit_watcher.py --signals-file "$SIGNALS_FILE"
 
       - name: Commit watcher outputs
@@ -122,93 +93,49 @@ PY
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          git add reports/alerts/ 2>/dev/null || true
-          git add reports/signals/ 2>/dev/null || true
-          git add data/ 2>/dev/null || true
-
+          git add reports/alerts/ reports/signals/ data/ 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "No watcher changes to commit."
             exit 0
           fi
-
           git commit -m "Update entry exit watcher events ${WATCHER_CYCLE_ID}"
           git pull --rebase origin "${GITHUB_REF_NAME}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
 
       - name: Build watcher alert summary
-        if: success()
+        if: success() && env.WATCHER_SKIP != 'true'
         shell: bash
         run: |
-          if [[ -f reports/alerts/latest-alerts.json ]]; then
-            ALERT_COUNT=$(python - <<'PY'
-import json
-from pathlib import Path
-path = Path('reports/alerts/latest-alerts.json')
-try:
-    data = json.loads(path.read_text())
-    print(len(data) if isinstance(data, list) else 0)
-except Exception:
-    print(0)
-PY
-)
+          if [ -f reports/alerts/latest-alerts.json ]; then
+            python -c "import json; from pathlib import Path; p=Path('reports/alerts/latest-alerts.json'); data=json.loads(p.read_text()); lines=['Entry/Exit Watcher Alerts','']; [lines.append(str(item)) for item in data[:10]] if isinstance(data,list) else None; Path('reports/alerts/watcher-alert-summary.txt').write_text('\n'.join(lines)+'\n', encoding='utf-8')"
           else
-            ALERT_COUNT=0
-          fi
-
-          if [[ "$ALERT_COUNT" == "0" ]]; then
-            echo "No alerts to send."
-            echo "SEND_ALERTS=false" >> "$GITHUB_ENV"
-          else
-            echo "SEND_ALERTS=true" >> "$GITHUB_ENV"
-            python - <<'PY' > reports/alerts/watcher-alert-summary.txt
-import json
-from pathlib import Path
-path = Path('reports/alerts/latest-alerts.json')
-data = json.loads(path.read_text())
-lines = ["Entry/Exit Watcher Alerts", ""]
-for item in data[:10]:
-    signal_id = item.get('signal_id', 'unknown')
-    lines.append(
-        f"{item.get('symbol')}: {item.get('alert_type')} @ {item.get('price')} "
-        f"({item.get('previous_status')} -> {item.get('new_status')}) | signal_id={signal_id}"
-    )
-print("\n".join(lines))
-PY
+            echo "No alerts to send." > reports/alerts/watcher-alert-summary.txt
           fi
 
       - name: Send watcher alert notification
-        if: success() && env.SEND_ALERTS == 'true'
+        if: success() && env.WATCHER_SKIP != 'true'
         shell: bash
         run: |
-          python scripts/send_notification.py \
-            --message-file reports/alerts/watcher-alert-summary.txt \
-            --telegram \
-            --webhook \
-            --cycle-id "$WATCHER_CYCLE_ID"
+          if [ -f reports/alerts/watcher-alert-summary.txt ]; then
+            python scripts/send_notification.py --message-file reports/alerts/watcher-alert-summary.txt --telegram --webhook --cycle-id "$WATCHER_CYCLE_ID" || true
+          fi
 
       - name: Build watcher failure message
         if: failure()
         shell: bash
         run: |
           mkdir -p reports
-          cat > reports/watcher-failure-message.txt <<EOF
-Entry/Exit Watcher FAILED
-Cycle: ${WATCHER_CYCLE_ID:-unknown}
-Repository: ${GITHUB_REPOSITORY}
-Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
-Signals file: ${SIGNALS_FILE:-unknown}
-EOF
+          echo "Entry/Exit Watcher FAILED" > reports/watcher-failure-message.txt
+          echo "Cycle: ${WATCHER_CYCLE_ID:-unknown}" >> reports/watcher-failure-message.txt
+          echo "Signals file: ${SIGNALS_FILE:-unknown}" >> reports/watcher-failure-message.txt
 
       - name: Send watcher failure notification
         if: failure()
         shell: bash
         run: |
-          python scripts/send_notification.py \
-            --message-file reports/watcher-failure-message.txt \
-            --telegram \
-            --webhook \
-            --cycle-id "${WATCHER_CYCLE_ID:-unknown}"
+          if [ -f reports/watcher-failure-message.txt ]; then
+            python scripts/send_notification.py --message-file reports/watcher-failure-message.txt --telegram --webhook --cycle-id "${WATCHER_CYCLE_ID:-unknown}" || true
+          fi
 
       - name: Upload alert artifacts
         if: always()

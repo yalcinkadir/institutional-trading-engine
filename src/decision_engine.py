@@ -20,6 +20,12 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Iterable
 
+try:
+    from src.macro.vix_adapter import VixDataQuality, VixSnapshot
+except ImportError:  # pragma: no cover - keeps legacy imports safe in partial installs
+    VixDataQuality = None  # type: ignore[assignment]
+    VixSnapshot = None  # type: ignore[assignment]
+
 
 class MarketState(str, Enum):
     LOW_VOL_BULL = "low_vol_bull"
@@ -106,12 +112,44 @@ REGIME_SETUP_MAP: dict[MarketState, tuple[SetupType, ...]] = {
 
 
 def get_allowed_setups(market_state: MarketState) -> tuple[SetupType, ...]:
-    """Return strategy types that are allowed in a given market state."""
     return REGIME_SETUP_MAP.get(market_state, REGIME_SETUP_MAP[MarketState.NEUTRAL])
 
 
+def apply_vix_snapshot_to_context(
+    context: MarketContext,
+    snapshot: "VixSnapshot",
+    *,
+    allow_realized_proxy: bool = False,
+) -> MarketContext:
+    """Return a MarketContext updated with a VIX snapshot when quality is trusted.
+
+    DIRECT and PARTIAL implied-volatility data may update the hard-override
+    input. REALIZED_PROXY is intentionally disabled by default because it is
+    only a degraded SPY realized-volatility proxy, not a true VIX term
+    structure. UNAVAILABLE never fabricates an inversion.
+    """
+    if VixDataQuality is None:
+        return context
+
+    trusted_qualities = {VixDataQuality.DIRECT, VixDataQuality.PARTIAL}
+    if allow_realized_proxy:
+        trusted_qualities.add(VixDataQuality.REALIZED_PROXY)
+
+    if snapshot.quality not in trusted_qualities:
+        return context
+
+    return MarketContext(
+        market_state=context.market_state,
+        vix_term_structure_inverted=snapshot.inverted,
+        credit_spreads_widening=context.credit_spreads_widening,
+        breadth_collapse=context.breadth_collapse,
+        liquidity_stress=context.liquidity_stress,
+        failed_breakout_cluster=context.failed_breakout_cluster,
+        max_portfolio_heat=context.max_portfolio_heat,
+    )
+
+
 def detect_hard_overrides(context: MarketContext) -> tuple[str, ...]:
-    """Detect hard risk conditions that should override normal setup scoring."""
     reasons: list[str] = []
 
     if context.liquidity_stress:
@@ -171,16 +209,6 @@ def _size_for_tier(risk_tier: str) -> float:
 
 
 def evaluate_candidate(context: MarketContext, candidate: SetupCandidate) -> DecisionResult:
-    """
-    Evaluate a setup with hierarchy-first logic.
-
-    The order is deliberate:
-    1. Determine regime-allowed setup types.
-    2. Detect hard overrides.
-    3. Reject setup types that do not belong to the current regime.
-    4. Reject weak asymmetry/data-confidence candidates.
-    5. Assign risk tier and size multiplier.
-    """
     allowed_setups = get_allowed_setups(context.market_state)
     hard_overrides = detect_hard_overrides(context)
     notes: list[str] = []
@@ -265,10 +293,7 @@ def evaluate_candidate(context: MarketContext, candidate: SetupCandidate) -> Dec
     )
 
 
-def rank_candidates(
-    context: MarketContext, candidates: Iterable[SetupCandidate]
-) -> list[tuple[SetupCandidate, DecisionResult]]:
-    """Evaluate and sort candidates by decision quality and risk allocation."""
+def rank_candidates(context: MarketContext, candidates: Iterable[SetupCandidate]) -> list[tuple[SetupCandidate, DecisionResult]]:
     evaluated = [(candidate, evaluate_candidate(context, candidate)) for candidate in candidates]
 
     decision_priority = {

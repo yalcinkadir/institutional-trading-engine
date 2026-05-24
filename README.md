@@ -58,6 +58,7 @@ Market analysis
 → Expanded universe scan
 → Event-risk metadata check
 → Scanner metrics normalization
+→ Liquidity filter
 → Signal generation
 → Entry / Stop / Exit quality engines
 → Trade plan validation
@@ -66,6 +67,8 @@ Market analysis
 → Weighted regime similarity scoring
 → Adaptive feedback decay weighting
 → Multi-factor fusion recalibration
+→ Survivorship universe audit
+→ 500+ universe coverage gate
 → Historical edge validation
 → Regime-phase backtest matrix
 → Walk-forward validation
@@ -92,6 +95,11 @@ pytest tests/test_execution_realism.py
 pytest tests/test_out_of_sample_lockbox.py
 pytest tests/test_paper_trading_journal.py
 pytest tests/test_final_live_readiness_gate.py
+pytest tests/test_survivorship_universe.py
+pytest tests/test_liquidity_filter.py
+pytest tests/test_forward_outcome_tracker.py
+pytest tests/test_vix_adapter.py
+pytest tests/test_edge_evidence_backtest.py
 pytest tests/test_static_dashboard.py
 pytest tests/test_sqlite_persistence.py
 pytest tests/test_event_risk_engine.py
@@ -105,6 +113,105 @@ pytest tests/test_report_archive.py
 pytest tests/test_entry_exit_watcher_health.py
 pytest tests/test_manual_portfolio_sync.py
 ```
+
+## Edge-Evidence Backtesting
+
+Backtesting is activated through a gated evidence pipeline, not as a loose script.
+
+Manual run:
+
+```bash
+python scripts/run_edge_evidence_backtest.py \
+  --universe data/universe/survivorship_universe.csv \
+  --plans data/trade_plans/historical_trade_plans.json \
+  --bars-root data/historical_bars \
+  --as-of 2026-05-24 \
+  --minimum-assets 500 \
+  --oos-split-date 2024-01-01
+```
+
+GitHub Actions:
+
+```text
+Actions → Edge Evidence Backtest → Run workflow
+```
+
+The pipeline writes reports under:
+
+```text
+reports/edge_evidence/
+```
+
+It fails closed when:
+
+```text
+universe_coverage_below_minimum
+survivorship_audit_failed
+no_trade_plans_loaded
+walk_forward_failed
+out_of_sample_lockbox_failed
+```
+
+## 500+ Starter Universe
+
+Build a current active starter universe from S&P 500 constituents plus curated sector, industry, factor, international, credit, commodity and volatility ETFs:
+
+```bash
+python scripts/build_sp500_plus_universe.py \
+  --output data/universe/survivorship_universe.csv
+```
+
+Then validate coverage:
+
+```bash
+python scripts/validate_universe_coverage.py \
+  --universe data/universe/survivorship_universe.csv \
+  --as-of 2026-05-24 \
+  --minimum 500
+```
+
+Important limitation:
+
+```text
+This starter universe is useful for current scans and forward paper observation.
+It is not a survivorship-safe 10+ year historical dataset.
+For serious historical backtesting, enrich it with point-in-time membership and delisted ticker lifecycles from Norgate, CRSP, Sharadar or an equivalent vetted source.
+```
+
+## Historical Data Requirement
+
+For serious 3-6 month edge-evidence work, historical bars must cover:
+
+```text
+10+ years
+500+ symbols
+S&P 500 current and historical constituents
+sector ETFs
+industry ETFs such as SMH, IGV, XLF, XLV, XBI, KRE, SOXX
+second-source delisted ticker lifecycle data
+```
+
+Historical Polygon bars can provide OHLCV history, but delisted ticker lifecycle and point-in-time index membership must be validated from a second source before the result is treated as survivorship-safe evidence.
+
+## VIX Activation Policy
+
+VIX is active through:
+
+```text
+src/macro/vix_adapter.py
+src/decision_engine.py::apply_vix_snapshot_to_context
+```
+
+Quality policy:
+
+| Quality | Meaning | Decision Engine Use |
+|---|---|---|
+| DIRECT | VIX + VIX9D available | trusted |
+| PARTIAL | VIX + VIX3M or partial implied-vol data | trusted with lower confidence |
+| REALIZED_PROXY | SPY realized volatility proxy | ignored unless explicitly allowed |
+| UNAVAILABLE | no usable data | ignored |
+
+The Decision Engine does not fabricate VIX inversion when data is unavailable.
 
 ## P36-P47 Validation Stack
 
@@ -191,6 +298,13 @@ docs/roadmap/decision_quality_p36_p40.md
 | Out-of-Sample Validation Lockbox | Implemented |
 | Paper Trading Journal / Live Observation v2 | Implemented |
 | Final Live Readiness Gate | Implemented |
+| Survivorship Universe Loader | Implemented |
+| 500+ Universe Coverage Gate | Implemented |
+| S&P 500 + ETF Universe Builder | Implemented |
+| Liquidity Filter | Implemented |
+| Forward Outcome Tracker | Implemented |
+| VIX Adapter | Implemented |
+| Gated Edge-Evidence Backtest Orchestrator | Implemented |
 | Static Dashboard HTML Reporting | Implemented |
 | SQLite Runtime Persistence | Implemented |
 | Event Risk Placeholder Metadata | Implemented |
@@ -228,6 +342,16 @@ docs/roadmap/decision_quality_p36_p40.md
 - P38 regime similarity weighted distance and cosine similarity
 - P37 probabilistic engine softmax normalization
 - P36 confidence score double counting fix
+
+### Edge-Evidence Phase: 3-6 months evidence collection
+
+- maintain 500+ active scan universe
+- ingest 10+ years of historical bars
+- enrich universe with second-source delisted lifecycle data
+- run walk-forward validation across full history
+- evaluate which setups pass in which regimes
+- open the out-of-sample lockbox once, record result, then keep it locked
+- append forward live/paper outcomes for every generated signal
 
 ### Planned Next
 

@@ -1,0 +1,72 @@
+name: Edge Evidence Backtest
+
+on:
+  workflow_dispatch:
+    inputs:
+      universe_path:
+        description: "Path to survivorship universe CSV"
+        required: false
+        default: "data/universe/survivorship_universe.csv"
+      trade_plans_path:
+        description: "Path to historical trade plans JSON"
+        required: false
+        default: "data/trade_plans/historical_trade_plans.json"
+      bars_root:
+        description: "Path to historical bars directory"
+        required: false
+        default: "data/historical_bars"
+      as_of:
+        description: "Point-in-time universe date"
+        required: false
+        default: "2026-05-24"
+      minimum_assets:
+        description: "Minimum tradeable universe size"
+        required: false
+        default: "500"
+      oos_split_date:
+        description: "Out-of-sample split date"
+        required: false
+        default: "2024-01-01"
+
+permissions:
+  contents: read
+
+jobs:
+  edge-evidence-backtest:
+    name: Gated Backtest
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run gated edge-evidence backtest
+        env:
+          POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
+        run: |
+          python scripts/run_edge_evidence_backtest.py \
+            --universe "${{ inputs.universe_path }}" \
+            --plans "${{ inputs.trade_plans_path }}" \
+            --bars-root "${{ inputs.bars_root }}" \
+            --as-of "${{ inputs.as_of }}" \
+            --minimum-assets "${{ inputs.minimum_assets }}" \
+            --oos-split-date "${{ inputs.oos_split_date }}"
+
+      - name: Upload edge evidence reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: edge-evidence-reports
+          path: reports/edge_evidence/
+          if-no-files-found: warn
