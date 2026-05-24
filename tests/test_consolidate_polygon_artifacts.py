@@ -23,9 +23,19 @@ def _write_artifact(root: Path, name: str, symbols: list[str]) -> Path:
 
 
 def test_iter_artifact_dirs_accepts_single_extracted_artifact(tmp_path: Path) -> None:
-    tmp_path.joinpath("data").mkdir()
+    tmp_path.joinpath("data", "historical_bars").mkdir(parents=True)
 
     assert iter_artifact_dirs(tmp_path) == [tmp_path]
+
+
+def test_iter_artifact_dirs_discovers_nested_download_layout(tmp_path: Path) -> None:
+    _write_artifact(tmp_path / "run-1", "polygon-edge-runtime-dataset", ["AAA"])
+    _write_artifact(tmp_path / "run-2", "polygon-edge-runtime-dataset", ["BBB"])
+
+    discovered = iter_artifact_dirs(tmp_path)
+
+    assert [path.name for path in discovered] == ["polygon-edge-runtime-dataset", "polygon-edge-runtime-dataset"]
+    assert len(discovered) == 2
 
 
 def test_iter_artifact_dirs_requires_existing_root(tmp_path: Path) -> None:
