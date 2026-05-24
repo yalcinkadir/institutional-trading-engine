@@ -1,4 +1,9 @@
-"""Build an active Polygon universe CSV for edge-evidence runs."""
+"""Build an active Polygon universe CSV for edge-evidence runs.
+
+By default this command walks all available active tickers returned by Polygon
+for the selected market. Use --max-symbols only for smoke tests or cost/rate
+control.
+"""
 
 from __future__ import annotations
 
@@ -27,7 +32,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", type=Path, default=Path("data/universe/survivorship_universe.csv"))
     parser.add_argument("--active-from", default="2026-05-24")
     parser.add_argument("--market", default="stocks")
-    parser.add_argument("--max-symbols", type=int, default=0, help="0 means no limit")
+    parser.add_argument("--max-symbols", type=int, default=0, help="Optional cap for tests; 0 means all available symbols")
     parser.add_argument("--sleep-seconds", type=float, default=0.0)
     return parser.parse_args()
 
@@ -39,8 +44,14 @@ def _credential() -> str:
     return value
 
 
-def _fetch_json(session: requests.Session, url: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
-    response = session.get(url, params=params or {}, timeout=30)
+def _with_api_key(params: dict[str, Any] | None, token: str) -> dict[str, Any]:
+    payload = dict(params or {})
+    payload["apiKey"] = token
+    return payload
+
+
+def _fetch_json(session: requests.Session, url: str, params: dict[str, Any] | None, token: str) -> dict[str, Any]:
+    response = session.get(url, params=_with_api_key(params, token), timeout=30)
     if response.status_code == 429:
         raise RuntimeError("rate limit reached")
     response.raise_for_status()
@@ -50,7 +61,8 @@ def _fetch_json(session: requests.Session, url: str, params: dict[str, Any] | No
     return payload
 
 
-def iter_tickers(session: requests.Session, *, market: str, sleep_seconds: float):
+def iter_tickers(session: requests.Session, *, market: str, sleep_seconds: float, token: str | None = None):
+    credential = token or _credential()
     url = "https://api.polygon.io/v3/reference/tickers"
     params: dict[str, Any] | None = {
         "market": market,
@@ -60,7 +72,7 @@ def iter_tickers(session: requests.Session, *, market: str, sleep_seconds: float
         "order": "asc",
     }
     while url:
-        payload = _fetch_json(session, url, params)
+        payload = _fetch_json(session, url, params, credential)
         for item in payload.get("results") or []:
             if not isinstance(item, dict):
                 continue
@@ -81,14 +93,14 @@ def iter_tickers(session: requests.Session, *, market: str, sleep_seconds: float
 
 def write_universe(args: argparse.Namespace) -> int:
     session = requests.Session()
-    session.params = {"apiKey": _credential()}
+    token = _credential()
     args.output.parent.mkdir(parents=True, exist_ok=True)
     count = 0
     max_symbols = args.max_symbols if args.max_symbols > 0 else None
     with args.output.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=COLUMNS)
         writer.writeheader()
-        for ticker in iter_tickers(session, market=args.market, sleep_seconds=args.sleep_seconds):
+        for ticker in iter_tickers(session, market=args.market, sleep_seconds=args.sleep_seconds, token=token):
             if max_symbols is not None and count >= max_symbols:
                 break
             notes = (

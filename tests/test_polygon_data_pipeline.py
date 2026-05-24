@@ -28,14 +28,16 @@ class FakeSession:
         self.payloads = payloads
         self.params = {}
         self.calls = 0
+        self.params_seen: list[dict] = []
 
     def get(self, *args, **kwargs):
+        self.params_seen.append(dict(kwargs.get("params") or {}))
         payload = self.payloads[self.calls]
         self.calls += 1
         return FakeResponse(payload)
 
 
-def test_iter_tickers_follows_next_url() -> None:
+def test_iter_tickers_follows_next_url_and_sends_api_key() -> None:
     session = FakeSession(
         [
             {
@@ -46,10 +48,12 @@ def test_iter_tickers_follows_next_url() -> None:
         ]
     )
 
-    symbols = [item["symbol"] for item in iter_tickers(session, market="stocks", sleep_seconds=0.0)]
+    symbols = [item["symbol"] for item in iter_tickers(session, market="stocks", sleep_seconds=0.0, token="unit-token")]
 
     assert symbols == ["AAA", "BBB"]
     assert session.calls == 2
+    assert session.params_seen[0]["apiKey"] == "unit-token"
+    assert session.params_seen[1]["apiKey"] == "unit-token"
 
 
 def test_write_universe_creates_survivorship_schema(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
