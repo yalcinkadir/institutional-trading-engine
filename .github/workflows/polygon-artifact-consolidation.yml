@@ -1,0 +1,68 @@
+name: Polygon Artifact Consolidation
+
+on:
+  workflow_dispatch:
+    inputs:
+      artifact_pattern:
+        description: "Artifact name pattern to download"
+        required: false
+        default: "polygon-edge-runtime-dataset*"
+      output_name:
+        description: "Combined artifact name"
+        required: false
+        default: "polygon-edge-runtime-dataset-combined"
+      minimum_bar_files:
+        description: "Minimum unique bar files required"
+        required: false
+        default: "500"
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  consolidate-polygon-artifacts:
+    name: Consolidate Polygon Batch Artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Download Polygon batch artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: ${{ inputs.artifact_pattern }}
+          path: runtime_artifacts/polygon_batches
+          merge-multiple: false
+
+      - name: Consolidate artifacts
+        run: |
+          python scripts/consolidate_polygon_artifacts.py \
+            --artifacts-root runtime_artifacts/polygon_batches \
+            --output-root runtime_artifacts/polygon_combined \
+            --combined-manifest reports/edge_evidence_data/combined-polygon-bars-manifest.md
+
+      - name: Validate combined minimum bar files
+        run: |
+          COUNT=$(find runtime_artifacts/polygon_combined/data/historical_bars -name '*.csv' | wc -l | tr -d ' ')
+          echo "Combined bar files: $COUNT"
+          if [ "$COUNT" -lt "${{ inputs.minimum_bar_files }}" ]; then
+            echo "Combined bar files below minimum: $COUNT < ${{ inputs.minimum_bar_files }}"
+            exit 1
+          fi
+
+      - name: Upload combined Polygon runtime dataset
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.output_name }}
+          path: |
+            runtime_artifacts/polygon_combined/
+            reports/edge_evidence_data/combined-polygon-bars-manifest.md
+          if-no-files-found: error
