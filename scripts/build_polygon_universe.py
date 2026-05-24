@@ -96,11 +96,18 @@ def write_universe(args: argparse.Namespace) -> int:
     token = _credential()
     args.output.parent.mkdir(parents=True, exist_ok=True)
     count = 0
+    duplicates = 0
+    seen_symbols: set[str] = set()
     max_symbols = args.max_symbols if args.max_symbols > 0 else None
     with args.output.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=COLUMNS)
         writer.writeheader()
         for ticker in iter_tickers(session, market=args.market, sleep_seconds=args.sleep_seconds, token=token):
+            symbol = ticker["symbol"]
+            if symbol in seen_symbols:
+                duplicates += 1
+                continue
+            seen_symbols.add(symbol)
             if max_symbols is not None and count >= max_symbols:
                 break
             notes = (
@@ -110,7 +117,7 @@ def write_universe(args: argparse.Namespace) -> int:
             )
             writer.writerow(
                 {
-                    "symbol": ticker["symbol"],
+                    "symbol": symbol,
                     "active_from": args.active_from,
                     "active_to": "",
                     "delisting_reason": "",
@@ -120,6 +127,8 @@ def write_universe(args: argparse.Namespace) -> int:
                 }
             )
             count += 1
+    if duplicates:
+        print(f"Skipped {duplicates} duplicate Polygon symbols")
     return count
 
 
