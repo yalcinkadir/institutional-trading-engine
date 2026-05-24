@@ -36,6 +36,8 @@ Code quality is not trading edge. The system is promising enough to test serious
 - paper trading journal / live observation v2
 - final live readiness gate
 - cross-asset market-data coverage
+- Polygon active universe runtime builder
+- Polygon daily OHLCV bars downloader
 - event-risk placeholder metadata
 - optional SQLite runtime persistence
 - static dashboard HTML reporting
@@ -100,6 +102,7 @@ pytest tests/test_liquidity_filter.py
 pytest tests/test_forward_outcome_tracker.py
 pytest tests/test_vix_adapter.py
 pytest tests/test_edge_evidence_backtest.py
+pytest tests/test_polygon_data_pipeline.py
 pytest tests/test_static_dashboard.py
 pytest tests/test_sqlite_persistence.py
 pytest tests/test_event_risk_engine.py
@@ -176,6 +179,49 @@ Important limitation:
 This starter universe is useful for current scans and forward paper observation.
 It is not a survivorship-safe 10+ year historical dataset.
 For serious historical backtesting, enrich it with point-in-time membership and delisted ticker lifecycles from Norgate, CRSP, Sharadar or an equivalent vetted source.
+```
+
+## Polygon Edge Data Pipeline
+
+Build a broad active Polygon runtime universe:
+
+```bash
+POLYGON_API_KEY=... python scripts/build_polygon_universe.py \
+  --output data/universe/survivorship_universe.csv \
+  --active-from 2026-05-24 \
+  --max-symbols 500
+```
+
+Download daily OHLCV bars for that universe:
+
+```bash
+POLYGON_API_KEY=... python scripts/download_polygon_daily_bars.py \
+  --universe data/universe/survivorship_universe.csv \
+  --output-dir data/historical_bars \
+  --from-date 2016-01-01 \
+  --to-date 2026-05-24 \
+  --max-symbols 500 \
+  --min-bars 120
+```
+
+The downloader writes a manifest to:
+
+```text
+reports/edge_evidence_data/polygon-bars-manifest.md
+```
+
+Important limitation:
+
+```text
+Polygon active tickers plus OHLCV bars are enough to start broad runtime evidence collection.
+They are not enough for final survivorship-safe 10+ year evidence without delisted ticker lifecycles and point-in-time membership.
+Generated market datasets should be stored as workflow artifacts or external data, not committed as large Git blobs.
+```
+
+Detailed documentation:
+
+```text
+docs/operations/polygon_edge_data_pipeline.md
 ```
 
 ## Historical Data Requirement
@@ -301,6 +347,8 @@ docs/roadmap/decision_quality_p36_p40.md
 | Survivorship Universe Loader | Implemented |
 | 500+ Universe Coverage Gate | Implemented |
 | S&P 500 + ETF Universe Builder | Implemented |
+| Polygon Active Universe Builder | Implemented |
+| Polygon Daily Bars Downloader | Implemented |
 | Liquidity Filter | Implemented |
 | Forward Outcome Tracker | Implemented |
 | VIX Adapter | Implemented |
