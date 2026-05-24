@@ -1,0 +1,106 @@
+name: Polygon Edge Data Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      from_date:
+        description: "Daily bars start date"
+        required: false
+        default: "2016-01-01"
+      to_date:
+        description: "Daily bars end date"
+        required: false
+        default: "2026-05-24"
+      min_bars:
+        description: "Minimum bars required per symbol"
+        required: false
+        default: "120"
+      max_symbols:
+        description: "Optional cap for smoke tests; 0 means all available symbols"
+        required: false
+        default: "0"
+      sleep_seconds:
+        description: "Delay between paginated/API requests"
+        required: false
+        default: "0.0"
+
+permissions:
+  contents: read
+
+jobs:
+  polygon-edge-data:
+    name: Build Polygon All-Assets Runtime Dataset
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Validate Polygon credential
+        env:
+          POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
+        run: |
+          if [ -z "$POLYGON_API_KEY" ]; then
+            echo "POLYGON_API_KEY repository secret is missing."
+            exit 1
+          fi
+
+      - name: Build all-assets Polygon universe
+        env:
+          POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
+        run: |
+          EXTRA_ARGS=""
+          if [ "${{ inputs.max_symbols }}" != "0" ]; then
+            EXTRA_ARGS="--max-symbols ${{ inputs.max_symbols }}"
+          fi
+          python scripts/build_polygon_universe.py \
+            --output data/universe/survivorship_universe.csv \
+            --active-from "${{ inputs.to_date }}" \
+            --sleep-seconds "${{ inputs.sleep_seconds }}" \
+            $EXTRA_ARGS
+
+      - name: Validate minimum universe coverage
+        run: |
+          python scripts/validate_universe_coverage.py \
+            --universe data/universe/survivorship_universe.csv \
+            --as-of "${{ inputs.to_date }}" \
+            --minimum 500
+
+      - name: Download Polygon daily bars
+        env:
+          POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
+        run: |
+          EXTRA_ARGS=""
+          if [ "${{ inputs.max_symbols }}" != "0" ]; then
+            EXTRA_ARGS="--max-symbols ${{ inputs.max_symbols }}"
+          fi
+          python scripts/download_polygon_daily_bars.py \
+            --universe data/universe/survivorship_universe.csv \
+            --output-dir data/historical_bars \
+            --from-date "${{ inputs.from_date }}" \
+            --to-date "${{ inputs.to_date }}" \
+            --min-bars "${{ inputs.min_bars }}" \
+            --sleep-seconds "${{ inputs.sleep_seconds }}" \
+            $EXTRA_ARGS
+
+      - name: Upload Polygon runtime dataset
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: polygon-edge-runtime-dataset
+          path: |
+            data/universe/survivorship_universe.csv
+            data/historical_bars/
+            reports/edge_evidence_data/
+          if-no-files-found: warn
