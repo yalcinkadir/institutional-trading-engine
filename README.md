@@ -37,6 +37,7 @@ Code quality is not trading edge. The system is promising enough to test serious
 - final live readiness gate
 - cross-asset market-data coverage
 - Polygon active universe runtime builder
+- Polygon all-assets data workflow
 - Polygon daily OHLCV bars downloader
 - event-risk placeholder metadata
 - optional SQLite runtime persistence
@@ -103,6 +104,7 @@ pytest tests/test_forward_outcome_tracker.py
 pytest tests/test_vix_adapter.py
 pytest tests/test_edge_evidence_backtest.py
 pytest tests/test_polygon_data_pipeline.py
+pytest tests/test_polygon_edge_data_workflow.py
 pytest tests/test_static_dashboard.py
 pytest tests/test_sqlite_persistence.py
 pytest tests/test_event_risk_engine.py
@@ -207,6 +209,38 @@ Use `--max-symbols` only for smoke tests, rate-limit control, or cost-controlled
 ```bash
 POLYGON_API_KEY=... python scripts/build_polygon_universe.py --max-symbols 25
 POLYGON_API_KEY=... python scripts/download_polygon_daily_bars.py --max-symbols 25
+```
+
+### GitHub Actions all-assets data workflow
+
+After adding the repository secret `POLYGON_API_KEY`, run:
+
+```text
+Actions → Polygon Edge Data Pipeline → Run workflow
+```
+
+Recommended first full-runtime inputs:
+
+```text
+from_date: 2016-01-01
+to_date: 2026-05-24
+min_bars: 120
+max_symbols: 0
+sleep_seconds: 0.0
+```
+
+`max_symbols: 0` means all available active Polygon symbols. The workflow does not commit generated market data. It uploads a runtime artifact named:
+
+```text
+polygon-edge-runtime-dataset
+```
+
+The artifact contains:
+
+```text
+data/universe/survivorship_universe.csv
+data/historical_bars/
+reports/edge_evidence_data/
 ```
 
 The downloader writes a manifest to:
@@ -321,7 +355,7 @@ Staged capital-risk guidance:
 
 ```text
 Months 1-3:  max 50% size after all gates pass and manual review is complete
-Months 4-6:  max 75% size only if observed metrics remain >=85% of expectation
+Months 4-6:  max 75% only if observed metrics remain >=85% of expectation
 Month 7+:    max 100% only if cumulatively profitable and drawdown remains below kill switch
 ```
 
@@ -353,6 +387,7 @@ docs/roadmap/decision_quality_p36_p40.md
 | 500+ Universe Coverage Gate | Implemented |
 | S&P 500 + ETF Universe Builder | Implemented |
 | Polygon Active Universe Builder | Implemented |
+| Polygon All-Assets Data Workflow | Implemented |
 | Polygon Daily Bars Downloader | Implemented |
 | Liquidity Filter | Implemented |
 | Forward Outcome Tracker | Implemented |
