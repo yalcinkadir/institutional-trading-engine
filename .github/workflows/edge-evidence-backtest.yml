@@ -51,17 +51,58 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Resolve inputs
+        shell: bash
+        run: |
+          UNIVERSE_PATH="${{ inputs.universe_path }}"
+          TRADE_PLANS_PATH="${{ inputs.trade_plans_path }}"
+          BARS_ROOT="${{ inputs.bars_root }}"
+          AS_OF="${{ inputs.as_of }}"
+          MINIMUM_ASSETS="${{ inputs.minimum_assets }}"
+          OOS_SPLIT_DATE="${{ inputs.oos_split_date }}"
+          if [ -z "$UNIVERSE_PATH" ]; then UNIVERSE_PATH="data/universe/survivorship_universe.csv"; fi
+          if [ -z "$TRADE_PLANS_PATH" ]; then TRADE_PLANS_PATH="data/trade_plans/historical_trade_plans.json"; fi
+          if [ -z "$BARS_ROOT" ]; then BARS_ROOT="data/historical_bars"; fi
+          if [ -z "$AS_OF" ]; then AS_OF="2026-05-24"; fi
+          if [ -z "$MINIMUM_ASSETS" ]; then MINIMUM_ASSETS="500"; fi
+          if [ -z "$OOS_SPLIT_DATE" ]; then OOS_SPLIT_DATE="2024-01-01"; fi
+          echo "UNIVERSE_PATH=$UNIVERSE_PATH" >> "$GITHUB_ENV"
+          echo "TRADE_PLANS_PATH=$TRADE_PLANS_PATH" >> "$GITHUB_ENV"
+          echo "BARS_ROOT=$BARS_ROOT" >> "$GITHUB_ENV"
+          echo "AS_OF=$AS_OF" >> "$GITHUB_ENV"
+          echo "MINIMUM_ASSETS=$MINIMUM_ASSETS" >> "$GITHUB_ENV"
+          echo "OOS_SPLIT_DATE=$OOS_SPLIT_DATE" >> "$GITHUB_ENV"
+
+      - name: Validate required edge-evidence inputs
+        shell: bash
+        run: |
+          mkdir -p reports/edge_evidence
+          if [ ! -f "$UNIVERSE_PATH" ] || [ ! -f "$TRADE_PLANS_PATH" ] || [ ! -d "$BARS_ROOT" ]; then
+            echo "Edge Evidence Backtest SKIPPED" > reports/edge_evidence/edge-evidence-summary.md
+            echo "" >> reports/edge_evidence/edge-evidence-summary.md
+            echo "Required runtime data is not available in the repository." >> reports/edge_evidence/edge-evidence-summary.md
+            echo "" >> reports/edge_evidence/edge-evidence-summary.md
+            echo "Expected universe: $UNIVERSE_PATH" >> reports/edge_evidence/edge-evidence-summary.md
+            echo "Expected trade plans: $TRADE_PLANS_PATH" >> reports/edge_evidence/edge-evidence-summary.md
+            echo "Expected bars root: $BARS_ROOT" >> reports/edge_evidence/edge-evidence-summary.md
+            echo "EDGE_EVIDENCE_SKIP=true" >> "$GITHUB_ENV"
+            cat reports/edge_evidence/edge-evidence-summary.md
+            exit 0
+          fi
+          echo "EDGE_EVIDENCE_SKIP=false" >> "$GITHUB_ENV"
+
       - name: Run gated edge-evidence backtest
+        if: env.EDGE_EVIDENCE_SKIP != 'true'
         env:
           POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
         run: |
           python scripts/run_edge_evidence_backtest.py \
-            --universe "${{ inputs.universe_path }}" \
-            --plans "${{ inputs.trade_plans_path }}" \
-            --bars-root "${{ inputs.bars_root }}" \
-            --as-of "${{ inputs.as_of }}" \
-            --minimum-assets "${{ inputs.minimum_assets }}" \
-            --oos-split-date "${{ inputs.oos_split_date }}"
+            --universe "$UNIVERSE_PATH" \
+            --plans "$TRADE_PLANS_PATH" \
+            --bars-root "$BARS_ROOT" \
+            --as-of "$AS_OF" \
+            --minimum-assets "$MINIMUM_ASSETS" \
+            --oos-split-date "$OOS_SPLIT_DATE"
 
       - name: Upload edge evidence reports
         if: always()
