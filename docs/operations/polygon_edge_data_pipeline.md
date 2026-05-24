@@ -1,6 +1,6 @@
 # Polygon Edge Data Pipeline
 
-This document defines the next step for the edge-evidence phase: building a broad runtime dataset for universe coverage and historical bar analysis.
+This document defines the edge-evidence runtime data pipeline: building a broad Polygon universe and downloading historical daily bars without committing large market-data files to Git.
 
 ## Goal
 
@@ -9,7 +9,7 @@ The pipeline creates runtime artifacts, not large Git commits:
 ```text
 data/universe/survivorship_universe.csv
 data/historical_bars/<SYMBOL>.csv
-reports/edge_evidence_data/polygon-data-manifest.md
+reports/edge_evidence_data/polygon-bars-manifest.md
 ```
 
 ## Scope
@@ -21,6 +21,46 @@ reports/edge_evidence_data/polygon-data-manifest.md
 - Use `--max-symbols` only for local smoke tests, rate-limit control, or cost-controlled trial runs.
 - Upload generated data as workflow artifacts or store it outside normal source control.
 - Keep the survivorship warning: active tickers alone are not a full point-in-time historical universe.
+
+## GitHub Actions workflow
+
+After adding the repository secret `POLYGON_API_KEY`, run:
+
+```text
+Actions -> Polygon Edge Data Pipeline -> Run workflow
+```
+
+Recommended first full-runtime inputs:
+
+```text
+from_date: 2016-01-01
+to_date: 2026-05-24
+min_bars: 120
+max_symbols: 0
+sleep_seconds: 0.0
+```
+
+Meaning:
+
+```text
+max_symbols = 0 means all available active Polygon symbols.
+```
+
+The workflow validates the runtime secret, builds the all-assets universe, validates the 500+ minimum coverage gate, downloads daily bars and uploads the generated dataset as an artifact.
+
+Artifact name:
+
+```text
+polygon-edge-runtime-dataset
+```
+
+Artifact contents:
+
+```text
+data/universe/survivorship_universe.csv
+data/historical_bars/
+reports/edge_evidence_data/
+```
 
 ## Local all-assets run
 
@@ -50,13 +90,12 @@ POLYGON_API_KEY=... python scripts/build_polygon_universe.py --max-symbols 25
 POLYGON_API_KEY=... python scripts/download_polygon_daily_bars.py --max-symbols 25
 ```
 
-## Expected workflow
+## Tests
 
-```text
-Actions -> Polygon Edge Data Pipeline -> Run workflow
+```bash
+pytest tests/test_polygon_data_pipeline.py -q
+pytest tests/test_polygon_edge_data_workflow.py -q
 ```
-
-The first serious run should use all active Polygon symbols and a multi-year bar window. A later production-grade run should enrich this dataset with delisted ticker lifecycles and historical membership from a vetted second source.
 
 ## Limitations
 
