@@ -22,6 +22,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--from-date", default="2016-01-01")
     parser.add_argument("--to-date", default="2026-05-24")
     parser.add_argument("--max-symbols", type=int, default=0, help="0 means no limit")
+    parser.add_argument("--batch-size", type=int, default=0, help="0 means one full-universe batch")
+    parser.add_argument("--batch-index", type=int, default=0, help="Zero-based batch index when --batch-size is set")
     parser.add_argument("--min-bars", type=int, default=120)
     parser.add_argument("--sleep-seconds", type=float, default=0.0)
     parser.add_argument("--manifest", type=Path, default=Path("reports/edge_evidence_data/polygon-bars-manifest.md"))
@@ -39,6 +41,21 @@ def load_symbols(path: Path) -> list[str]:
     with path.open("r", encoding="utf-8", newline="") as handle:
         reader = csv.DictReader(handle)
         return [str(row.get("symbol") or "").upper().strip() for row in reader if row.get("symbol")]
+
+
+def select_symbol_batch(symbols: list[str], *, batch_size: int, batch_index: int, max_symbols: int = 0) -> list[str]:
+    if batch_index < 0:
+        raise ValueError("batch_index must be >= 0")
+    if batch_size < 0:
+        raise ValueError("batch_size must be >= 0")
+    selected = symbols
+    if max_symbols > 0:
+        selected = selected[:max_symbols]
+    if batch_size <= 0:
+        return selected
+    start = batch_index * batch_size
+    end = start + batch_size
+    return selected[start:end]
 
 
 def fetch_bars(session: requests.Session, symbol: str, *, from_date: str, to_date: str, token: str) -> list[dict[str, Any]]:
@@ -79,11 +96,26 @@ def write_bars(symbol: str, bars: list[dict[str, Any]], output_dir: Path) -> int
     return len(bars)
 
 
-def write_manifest(path: Path, *, requested: int, downloaded: int, skipped: int, failed: int, bars_written: int, failures: list[str]) -> None:
+def write_manifest(
+    path: Path,
+    *,
+    requested: int,
+    downloaded: int,
+    skipped: int,
+    failed: int,
+    bars_written: int,
+    failures: list[str],
+    total_symbols: int = 0,
+    batch_size: int = 0,
+    batch_index: int = 0,
+) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     lines = [
         "# Polygon Daily Bars Download",
         "",
+        f"Total universe symbols: **{total_symbols}**",
+        f"Batch size: **{batch_size}**",
+        f"Batch index: **{batch_index}**",
         f"Requested symbols: **{requested}**",
         f"Downloaded symbols: **{downloaded}**",
         f"Skipped symbols: **{skipped}**",
@@ -100,15 +132,18 @@ def write_manifest(path: Path, *, requested: int, downloaded: int, skipped: int,
 def main() -> int:
     args = parse_args()
     token = _credential()
-    symbols = load_symbols(args.universe)
-    max_symbols = args.max_symbols if args.max_symbols > 0 else None
+    all_symbols = load_symbols(args.universe)
+    symbols = select_symbol_batch(
+        all_symbols,
+        batch_size=args.batch_size,
+        batch_index=args.batch_index,
+        max_symbols=args.max_symbols,
+    )
     session = requests.Session()
 
     requested = downloaded = skipped = failed = bars_written = 0
     failures: list[str] = []
     for symbol in symbols:
-        if max_symbols is not None and requested >= max_symbols:
-            break
         requested += 1
         try:
             bars = fetch_bars(session, symbol, from_date=args.from_date, to_date=args.to_date, token=token)
@@ -132,9 +167,13 @@ def main() -> int:
         failed=failed,
         bars_written=bars_written,
         failures=failures,
+        total_symbols=len(all_symbols),
+        batch_size=args.batch_size,
+        batch_index=args.batch_index,
     )
+    print(f"Selected {requested} of {len(all_symbols)} symbols for batch {args.batch_index}")
     print(f"Downloaded bars for {downloaded}/{requested} symbols")
-    if downloaded < 500 and max_symbols is None:
+    if downloaded < 500 and args.batch_size <= 0 and args.max_symbols <= 0:
         raise SystemExit("Fewer than 500 symbols have usable bars")
     return 0
 

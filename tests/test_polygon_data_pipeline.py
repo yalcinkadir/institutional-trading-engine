@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from scripts.build_polygon_universe import iter_tickers, write_universe
-from scripts.download_polygon_daily_bars import bar_to_row, load_symbols, write_bars, write_manifest
+from scripts.download_polygon_daily_bars import bar_to_row, load_symbols, select_symbol_batch, write_bars, write_manifest
 
 
 class FakeResponse:
@@ -122,6 +122,24 @@ def test_write_universe_deduplicates_polygon_symbols(tmp_path: Path, monkeypatch
     assert [row["symbol"] for row in rows] == ["BCPC", "MSFT"]
 
 
+def test_select_symbol_batch_returns_full_selection_without_batching() -> None:
+    assert select_symbol_batch(["A", "B", "C"], batch_size=0, batch_index=0) == ["A", "B", "C"]
+
+
+def test_select_symbol_batch_uses_zero_based_batch_index() -> None:
+    symbols = ["A", "B", "C", "D", "E"]
+
+    assert select_symbol_batch(symbols, batch_size=2, batch_index=0) == ["A", "B"]
+    assert select_symbol_batch(symbols, batch_size=2, batch_index=1) == ["C", "D"]
+    assert select_symbol_batch(symbols, batch_size=2, batch_index=2) == ["E"]
+
+
+def test_select_symbol_batch_respects_max_symbols_before_batching() -> None:
+    symbols = ["A", "B", "C", "D", "E"]
+
+    assert select_symbol_batch(symbols, batch_size=2, batch_index=1, max_symbols=3) == ["C"]
+
+
 def test_bar_to_row_converts_polygon_timestamp() -> None:
     row = bar_to_row({"t": 1704067200000, "o": 1, "h": 2, "l": 0.5, "c": 1.5, "v": 100})
 
@@ -143,8 +161,22 @@ def test_write_bars_and_load_symbols(tmp_path: Path) -> None:
 def test_write_manifest_lists_failures(tmp_path: Path) -> None:
     manifest = tmp_path / "manifest.md"
 
-    write_manifest(manifest, requested=2, downloaded=1, skipped=1, failed=0, bars_written=250, failures=["BBB: insufficient bars"])
+    write_manifest(
+        manifest,
+        requested=2,
+        downloaded=1,
+        skipped=1,
+        failed=0,
+        bars_written=250,
+        failures=["BBB: insufficient bars"],
+        total_symbols=5,
+        batch_size=2,
+        batch_index=1,
+    )
 
     text = manifest.read_text(encoding="utf-8")
+    assert "Total universe symbols: **5**" in text
+    assert "Batch size: **2**" in text
+    assert "Batch index: **1**" in text
     assert "Requested symbols: **2**" in text
     assert "BBB: insufficient bars" in text

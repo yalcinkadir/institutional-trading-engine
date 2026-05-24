@@ -211,6 +211,19 @@ POLYGON_API_KEY=... python scripts/build_polygon_universe.py --max-symbols 25
 POLYGON_API_KEY=... python scripts/download_polygon_daily_bars.py --max-symbols 25
 ```
 
+For large all-assets historical bar pulls, prefer batching:
+
+```bash
+POLYGON_API_KEY=... python scripts/download_polygon_daily_bars.py \
+  --universe data/universe/survivorship_universe.csv \
+  --output-dir data/historical_bars \
+  --from-date 2016-01-01 \
+  --to-date 2026-05-24 \
+  --min-bars 120 \
+  --batch-size 500 \
+  --batch-index 0
+```
+
 ### GitHub Actions all-assets data workflow
 
 After adding the repository secret `POLYGON_API_KEY`, run:
@@ -219,17 +232,21 @@ After adding the repository secret `POLYGON_API_KEY`, run:
 Actions → Polygon Edge Data Pipeline → Run workflow
 ```
 
-Recommended first full-runtime inputs:
+Recommended controlled batch inputs:
 
 ```text
 from_date: 2016-01-01
 to_date: 2026-05-24
 min_bars: 120
 max_symbols: 0
+batch_size: 500
+batch_index: 0
 sleep_seconds: 0.0
 ```
 
-`max_symbols: 0` means all available active Polygon symbols. The workflow does not commit generated market data. It uploads a runtime artifact named:
+`max_symbols: 0` means all available active Polygon symbols. `batch_size: 500` and `batch_index: 0` mean: download the first 500-symbol bar batch. Increase `batch_index` to `1`, `2`, `3`, and so on for later batches.
+
+The workflow does not commit generated market data. It uploads a runtime artifact named:
 
 ```text
 polygon-edge-runtime-dataset
