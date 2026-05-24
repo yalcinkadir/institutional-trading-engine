@@ -1,11 +1,15 @@
 """Consolidate Polygon batch runtime artifacts into one dataset.
 
-The script expects one or more extracted artifact directories. Each directory may
-contain:
+The script expects one or more extracted artifact directories. Each artifact root
+may contain:
 
 - data/universe/survivorship_universe.csv
 - data/historical_bars/*.csv
 - reports/edge_evidence_data/polygon-bars-manifest.md
+
+It also supports nested download layouts such as:
+
+- run-id/artifact-name/data/...
 
 It copies unique bar files into a combined output directory, keeps the first
 available universe CSV, and writes a combined manifest. Generated data remains a
@@ -46,13 +50,21 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _is_artifact_root(path: Path) -> bool:
+    return (
+        (path / "data" / "universe" / "survivorship_universe.csv").exists()
+        or (path / "data" / "historical_bars").exists()
+        or (path / "reports" / "edge_evidence_data" / "polygon-bars-manifest.md").exists()
+    )
+
+
 def iter_artifact_dirs(root: Path) -> list[Path]:
     if not root.exists():
         raise FileNotFoundError(f"artifacts root does not exist: {root}")
-    candidates = [path for path in sorted(root.iterdir()) if path.is_dir()]
-    if (root / "data").exists() or (root / "reports").exists():
+    if _is_artifact_root(root):
         return [root]
-    return candidates
+    artifact_dirs = [path for path in sorted(root.rglob("*")) if path.is_dir() and _is_artifact_root(path)]
+    return artifact_dirs
 
 
 def _copy_first_universe(artifact_dirs: list[Path], output_root: Path) -> bool:
