@@ -19,6 +19,14 @@ on:
         description: "Optional cap for smoke tests; 0 means all available symbols"
         required: false
         default: "0"
+      batch_size:
+        description: "Optional bars-download batch size; 0 means full selected universe"
+        required: false
+        default: "0"
+      batch_index:
+        description: "Zero-based bars-download batch index"
+        required: false
+        default: "0"
       sleep_seconds:
         description: "Delay between paginated/API requests"
         required: false
@@ -29,7 +37,7 @@ permissions:
 
 jobs:
   polygon-edge-data:
-    name: Build Polygon All-Assets Runtime Dataset
+    name: Build Polygon Runtime Dataset
     runs-on: ubuntu-latest
     timeout-minutes: 360
 
@@ -83,7 +91,10 @@ jobs:
         run: |
           EXTRA_ARGS=""
           if [ "${{ inputs.max_symbols }}" != "0" ]; then
-            EXTRA_ARGS="--max-symbols ${{ inputs.max_symbols }}"
+            EXTRA_ARGS="$EXTRA_ARGS --max-symbols ${{ inputs.max_symbols }}"
+          fi
+          if [ "${{ inputs.batch_size }}" != "0" ]; then
+            EXTRA_ARGS="$EXTRA_ARGS --batch-size ${{ inputs.batch_size }} --batch-index ${{ inputs.batch_index }}"
           fi
           python scripts/download_polygon_daily_bars.py \
             --universe data/universe/survivorship_universe.csv \
