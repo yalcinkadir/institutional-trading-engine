@@ -16,13 +16,9 @@ P47 final live readiness gate: completed
 CI status: green
 Live trading authorization: not granted by code
 Broker execution: not implemented
-Backtesting: gated evidence pipeline
-VIX macro input: active with fail-closed quality policy
-500+ universe coverage: enforced by validation gate
-Survivorship bias handling: point-in-time universe loader + audit gate
 ```
 
-Code quality is not trading edge. The system is promising enough to test seriously, but real capital still requires evidence from the validation gates, paper observation, edge-evidence reports and manual review.
+Code quality is not trading edge. The system is promising enough to test seriously, but real capital still requires evidence from the validation gates, paper observation and manual review.
 
 ## Core Capabilities
 
@@ -39,13 +35,6 @@ Code quality is not trading edge. The system is promising enough to test serious
 - out-of-sample validation lockbox
 - paper trading journal / live observation v2
 - final live readiness gate
-- survivorship-safe point-in-time universe loading
-- 500+ asset universe coverage gate
-- S&P 500 + ETF active starter universe builder
-- liquidity filtering before scanner/backtest usage
-- VIX term-structure adapter with fail-closed activation policy
-- forward outcome tracking for generated signals
-- gated edge-evidence backtesting workflow
 - cross-asset market-data coverage
 - event-risk placeholder metadata
 - optional SQLite runtime persistence
