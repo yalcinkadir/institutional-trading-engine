@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import csv
 from pathlib import Path
 
@@ -54,14 +55,13 @@ def test_iter_tickers_follows_next_url() -> None:
 def test_write_universe_creates_survivorship_schema(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("POLYGON_API_KEY", "test-token")
     output = tmp_path / "survivorship_universe.csv"
-
-    class Args:
-        active_from = "2026-05-24"
-        market = "stocks"
-        max_symbols = 1
-        output = output
-        sleep_seconds = 0.0
-
+    args = argparse.Namespace(
+        active_from="2026-05-24",
+        market="stocks",
+        max_symbols=1,
+        output=output,
+        sleep_seconds=0.0,
+    )
     payload = {"results": [{"ticker": "AAA", "name": "A Inc", "type": "CS", "primary_exchange": "XNYS"}]}
 
     from scripts import build_polygon_universe as module
@@ -73,7 +73,7 @@ def test_write_universe_creates_survivorship_schema(tmp_path: Path, monkeypatch:
             return session
 
     monkeypatch.setattr(module.requests, "Session", SessionFactory())
-    count = write_universe(Args)
+    count = write_universe(args)
 
     assert count == 1
     with output.open(newline="", encoding="utf-8") as handle:
