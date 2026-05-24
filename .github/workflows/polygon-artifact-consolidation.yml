@@ -3,8 +3,11 @@ name: Polygon Artifact Consolidation
 on:
   workflow_dispatch:
     inputs:
+      run_ids:
+        description: "Comma, space or newline separated workflow run IDs to consolidate"
+        required: true
       artifact_pattern:
-        description: "Artifact name pattern to download"
+        description: "Artifact name pattern to download from each run"
         required: false
         default: "polygon-edge-runtime-dataset*"
       output_name:
@@ -24,7 +27,7 @@ jobs:
   consolidate-polygon-artifacts:
     name: Consolidate Polygon Batch Artifacts
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
 
     steps:
       - name: Checkout repository
@@ -36,11 +39,21 @@ jobs:
           python-version: "3.11"
 
       - name: Download Polygon batch artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: ${{ inputs.artifact_pattern }}
-          path: runtime_artifacts/polygon_batches
-          merge-multiple: false
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_IDS: ${{ inputs.run_ids }}
+          ARTIFACT_PATTERN: ${{ inputs.artifact_pattern }}
+        run: |
+          mkdir -p runtime_artifacts/polygon_batches
+          NORMALIZED_RUN_IDS=$(printf '%s' "$RUN_IDS" | tr ',\n' '  ')
+          for RUN_ID in $NORMALIZED_RUN_IDS; do
+            echo "Downloading artifacts for run $RUN_ID"
+            mkdir -p "runtime_artifacts/polygon_batches/run-$RUN_ID"
+            gh run download "$RUN_ID" \
+              --repo "$GITHUB_REPOSITORY" \
+              --pattern "$ARTIFACT_PATTERN" \
+              --dir "runtime_artifacts/polygon_batches/run-$RUN_ID"
+          done
 
       - name: Consolidate artifacts
         run: |
