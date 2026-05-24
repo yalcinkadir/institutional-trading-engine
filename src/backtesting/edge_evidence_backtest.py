@@ -73,6 +73,12 @@ class EdgeEvidenceBacktestReport:
         }
 
 
+def _load_trade_plans_fail_closed(path: Path) -> list[Any]:
+    if not path.exists():
+        return []
+    return load_trade_plans(path)
+
+
 def run_edge_evidence_backtest(config: EdgeEvidenceBacktestConfig) -> EdgeEvidenceBacktestReport:
     config.output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -82,7 +88,7 @@ def run_edge_evidence_backtest(config: EdgeEvidenceBacktestConfig) -> EdgeEviden
         config.as_of,
         minimum_tradeable_count=config.minimum_tradeable_count,
     )
-    plans = load_trade_plans(config.trade_plans_path)
+    plans = _load_trade_plans_fail_closed(config.trade_plans_path)
     plan_records = [asdict(plan) for plan in plans]
     audit = universe.audit_backtest_records(
         plan_records,
