@@ -5,9 +5,14 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Iterable
 
+from src.execution.slippage_model import SlippageConfig, SlippageModel
+
 DEFAULT_SPREAD_COST_PCT = 0.0005
 DEFAULT_NORMAL_SLIPPAGE_PCT = 0.0010
 DEFAULT_VOLATILE_SLIPPAGE_PCT = 0.0030
+DEFAULT_VOLATILITY_PERCENT = 1.0
+DEFAULT_SPREAD_PERCENT = 0.05
+DEFAULT_ORDER_SIZE_PERCENT_ADV = 1.0
 VOLATILE_REGIME_LABELS = {
     "volatile",
     "high_vol",
@@ -18,6 +23,12 @@ VOLATILE_REGIME_LABELS = {
     "risk_off",
     "risk-off",
 }
+REGIME_ALIASES = {
+    "high-vol": "high_vol",
+    "high volatility": "high_vol",
+    "risk-off": "risk_off",
+    "dislocation": "panic_dislocation",
+}
 
 
 @dataclass(frozen=True)
@@ -26,6 +37,10 @@ class ExecutionRealismConfig:
     normal_slippage_pct: float = DEFAULT_NORMAL_SLIPPAGE_PCT
     volatile_slippage_pct: float = DEFAULT_VOLATILE_SLIPPAGE_PCT
     volatile_regime_labels: frozenset[str] = frozenset(VOLATILE_REGIME_LABELS)
+    slippage_model: SlippageModel = field(default_factory=SlippageModel)
+    default_volatility_percent: float = DEFAULT_VOLATILITY_PERCENT
+    default_spread_percent: float = DEFAULT_SPREAD_PERCENT
+    default_order_size_percent_adv: float = DEFAULT_ORDER_SIZE_PERCENT_ADV
 
 
 @dataclass(frozen=True)
@@ -41,6 +56,9 @@ class ExecutionAdjustedRecord:
     regime_label: str
     valid: bool
     warnings: list[str] = field(default_factory=list)
+    slippage_model_version: str = "legacy-fixed-v1"
+    slippage_quality: str = "unknown"
+    market_impact_pct: float = 0.0
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -139,8 +157,9 @@ def adjust_execution_record(
         warnings.append("missing_stop_loss")
 
     valid = not warnings
-    spread_cost_pct = max(config.spread_cost_pct, DEFAULT_SPREAD_COST_PCT)
-    slippage_pct = _slippage_for_regime(regime_label, config=config)
+    slippage_estimate = _estimate_slippage(record, regime_label=regime_label, config=config)
+    spread_cost_pct = max(slippage_estimate.spread_cost_percent / 100.0, DEFAULT_SPREAD_COST_PCT)
+    slippage_pct = max(slippage_estimate.market_impact_percent / 100.0, _slippage_floor_for_regime(regime_label, config=config))
     total_cost_pct = spread_cost_pct + slippage_pct
 
     if not valid:
@@ -156,6 +175,9 @@ def adjust_execution_record(
             regime_label=regime_label or "normal",
             valid=False,
             warnings=warnings,
+            slippage_model_version=slippage_estimate.model_version,
+            slippage_quality=slippage_estimate.execution_quality,
+            market_impact_pct=slippage_estimate.market_impact_percent / 100.0,
         )
 
     initial_risk = abs(float(entry_price) - float(stop_loss))
@@ -173,6 +195,9 @@ def adjust_execution_record(
             regime_label=regime_label or "normal",
             valid=False,
             warnings=warnings,
+            slippage_model_version=slippage_estimate.model_version,
+            slippage_quality=slippage_estimate.execution_quality,
+            market_impact_pct=slippage_estimate.market_impact_percent / 100.0,
         )
 
     cost_price = float(entry_price) * total_cost_pct
@@ -184,6 +209,9 @@ def adjust_execution_record(
     adjusted_record["execution_cost_r"] = round(execution_cost_r, 6)
     adjusted_record["spread_cost_pct"] = spread_cost_pct
     adjusted_record["slippage_pct"] = slippage_pct
+    adjusted_record["slippage_model_version"] = slippage_estimate.model_version
+    adjusted_record["slippage_quality"] = slippage_estimate.execution_quality
+    adjusted_record["market_impact_pct"] = round(slippage_estimate.market_impact_percent / 100.0, 8)
     adjusted_record["no_lookahead_execution_adjustment"] = True
 
     return ExecutionAdjustedRecord(
@@ -198,6 +226,9 @@ def adjust_execution_record(
         regime_label=regime_label or "normal",
         valid=True,
         warnings=warnings,
+        slippage_model_version=slippage_estimate.model_version,
+        slippage_quality=slippage_estimate.execution_quality,
+        market_impact_pct=round(slippage_estimate.market_impact_percent / 100.0, 8),
     )
 
 
@@ -218,14 +249,15 @@ def render_execution_realism_markdown(report: ExecutionRealismReport) -> str:
         "",
         "## Records",
         "",
-        "| Symbol | Regime | Valid | Original R | Cost R | Adjusted R | Warnings |",
-        "|---|---|---:|---:|---:|---:|---|",
+        "| Symbol | Regime | Valid | Model | Quality | Original R | Cost R | Adjusted R | Warnings |",
+        "|---|---|---:|---|---|---:|---:|---:|---|",
     ]
     for item in report.records:
         symbol = item.original_record.get("symbol", "unknown")
         warnings = ", ".join(item.warnings) if item.warnings else "-"
         lines.append(
             f"| {symbol} | {item.regime_label} | {'yes' if item.valid else 'no'} | "
+            f"{item.slippage_model_version} | {item.slippage_quality} | "
             f"{item.original_r:.4f} | {item.execution_cost_r:.4f} | {item.adjusted_r:.4f} | {warnings} |"
         )
     return "\n".join(lines).rstrip() + "\n"
@@ -243,11 +275,34 @@ def write_execution_realism_report(
     markdown_path.write_text(render_execution_realism_markdown(report), encoding="utf-8")
 
 
-def _slippage_for_regime(regime_label: str, *, config: ExecutionRealismConfig) -> float:
+def _estimate_slippage(record: dict[str, Any], *, regime_label: str, config: ExecutionRealismConfig):
+    volatility_percent = _safe_float(
+        record.get("volatility_percent", record.get("daily_volatility_percent", record.get("atr_percent")))
+    )
+    spread_percent = _safe_float(record.get("spread_percent", record.get("bid_ask_spread_percent")))
+    order_size_percent_adv = _safe_float(
+        record.get("order_size_percent_adv", record.get("order_size_pct_adv", record.get("percent_adv")))
+    )
+    return config.slippage_model.estimate(
+        volatility_percent=volatility_percent if volatility_percent is not None else config.default_volatility_percent,
+        spread_percent=spread_percent if spread_percent is not None else config.default_spread_percent,
+        order_size_percent_adv=(
+            order_size_percent_adv if order_size_percent_adv is not None else config.default_order_size_percent_adv
+        ),
+        regime_label=_normalize_regime_for_slippage(regime_label),
+    )
+
+
+def _slippage_floor_for_regime(regime_label: str, *, config: ExecutionRealismConfig) -> float:
     normalized = regime_label.strip().lower()
     if normalized in config.volatile_regime_labels:
         return max(config.volatile_slippage_pct, DEFAULT_VOLATILE_SLIPPAGE_PCT)
     return max(config.normal_slippage_pct, DEFAULT_NORMAL_SLIPPAGE_PCT)
+
+
+def _normalize_regime_for_slippage(regime_label: str) -> str:
+    normalized = regime_label.strip().lower()
+    return REGIME_ALIASES.get(normalized, normalized or "normal")
 
 
 def _safe_float(value: Any) -> float | None:
