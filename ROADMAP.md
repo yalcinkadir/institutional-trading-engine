@@ -33,8 +33,8 @@ Goal: make the research foundation harder to fool.
 | A6 | Add Deflated Sharpe Ratio and bootstrap confidence intervals to edge validation | P1 | High | Done |
 | A7 | Convert Polygon client retry/rate-limit output to structured logging | P2 | Medium | Done |
 | A8 | Add cache locking for `.cache/polygon` writes | P2 | Medium | Done |
-| A9 | Update `CHANGELOG.md` and `SETUP_NOTES.md` for P47 readiness state | P2 | Medium | Next |
-| A10 | Document quarterly secrets rotation policy | P2 | Medium | Planned |
+| A9 | Update `CHANGELOG.md` and `SETUP_NOTES.md` for P47 readiness state | P2 | Medium | Done |
+| A10 | Document quarterly secrets rotation policy | P2 | Medium | Next |
 
 ## Phase B — Real Forward Evidence
 
@@ -102,10 +102,11 @@ Start only after Phase B and C produce credible evidence.
 - Deflated Sharpe probability and bootstrap confidence intervals: done.
 - Polygon structured logging: done.
 - Polygon cache locking: done.
+- Phase A changelog and setup notes refresh: done.
 
 ## Current execution focus
 
-A3, A4, A5, A6, A7 and A8 are complete. The next implementation step is A9: update `CHANGELOG.md` and `SETUP_NOTES.md` for the Phase-A evidence-hygiene state.
+A3, A4, A5, A6, A7, A8 and A9 are complete. The next implementation step is A10: document quarterly secrets rotation policy. After A10, run the Phase A CI stabilization pass before Phase B starts.
 
 ## Do not do yet
 
