@@ -20,6 +20,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Iterable
 
+from src.config.thresholds import DEFAULT_THRESHOLDS, DecisionThresholds
+
 try:
     from src.macro.vix_adapter import VixDataQuality, VixSnapshot
 except ImportError:  # pragma: no cover - keeps legacy imports safe in partial installs
@@ -171,87 +173,100 @@ def detect_hard_overrides(context: MarketContext) -> tuple[str, ...]:
     return tuple(reasons)
 
 
-def _base_risk_tier(candidate: SetupCandidate) -> str:
+def _base_risk_tier(
+    candidate: SetupCandidate,
+    thresholds: DecisionThresholds = DEFAULT_THRESHOLDS,
+) -> str:
     if (
-        candidate.setup_score >= 80
-        and candidate.regime_alignment >= 0.75
-        and candidate.asymmetry_score >= 0.70
-        and candidate.data_confidence >= 0.80
+        candidate.setup_score >= thresholds.tier1_setup_score
+        and candidate.regime_alignment >= thresholds.tier1_regime_alignment
+        and candidate.asymmetry_score >= thresholds.tier1_asymmetry
+        and candidate.data_confidence >= thresholds.tier1_data_confidence
     ):
         return "tier_1"
 
     if (
-        candidate.setup_score >= 65
-        and candidate.regime_alignment >= 0.55
-        and candidate.asymmetry_score >= 0.55
-        and candidate.data_confidence >= 0.65
+        candidate.setup_score >= thresholds.tier2_setup_score
+        and candidate.regime_alignment >= thresholds.tier2_regime_alignment
+        and candidate.asymmetry_score >= thresholds.tier2_asymmetry
+        and candidate.data_confidence >= thresholds.tier2_data_confidence
     ):
         return "tier_2"
 
     if (
-        candidate.setup_score >= 50
-        and candidate.regime_alignment >= 0.40
-        and candidate.asymmetry_score >= 0.40
-        and candidate.data_confidence >= 0.50
+        candidate.setup_score >= thresholds.tier3_setup_score
+        and candidate.regime_alignment >= thresholds.tier3_regime_alignment
+        and candidate.asymmetry_score >= thresholds.tier3_asymmetry
+        and candidate.data_confidence >= thresholds.tier3_data_confidence
     ):
         return "tier_3"
 
     return "no_trade"
 
 
-def _size_for_tier(risk_tier: str) -> float:
+def _size_for_tier(
+    risk_tier: str,
+    thresholds: DecisionThresholds = DEFAULT_THRESHOLDS,
+) -> float:
     return {
-        "tier_1": 1.0,
-        "tier_2": 0.5,
-        "tier_3": 0.25,
-        "no_trade": 0.0,
+        "tier_1": thresholds.tier1_size,
+        "tier_2": thresholds.tier2_size,
+        "tier_3": thresholds.tier3_size,
+        "no_trade": thresholds.no_trade_size,
     }[risk_tier]
 
 
-def evaluate_candidate(context: MarketContext, candidate: SetupCandidate) -> DecisionResult:
+def evaluate_candidate(
+    context: MarketContext,
+    candidate: SetupCandidate,
+    thresholds: DecisionThresholds = DEFAULT_THRESHOLDS,
+) -> DecisionResult:
     allowed_setups = get_allowed_setups(context.market_state)
     hard_overrides = detect_hard_overrides(context)
-    notes: list[str] = []
+    notes: list[str] = [f"thresholds_version={thresholds.version}"]
 
     if hard_overrides:
         return DecisionResult(
             decision=Decision.BLOCKED,
             risk_tier="no_trade",
-            position_size_multiplier=0.0,
+            position_size_multiplier=thresholds.no_trade_size,
             allowed_setups=allowed_setups,
             blocked_reasons=hard_overrides,
-            notes=("hard_override_before_score",),
+            notes=("hard_override_before_score", f"thresholds_version={thresholds.version}"),
         )
 
     if candidate.setup_type not in allowed_setups:
         return DecisionResult(
             decision=Decision.BLOCKED,
             risk_tier="no_trade",
-            position_size_multiplier=0.0,
+            position_size_multiplier=thresholds.no_trade_size,
             allowed_setups=allowed_setups,
             blocked_reasons=("setup_not_allowed_in_current_regime",),
+            notes=(f"thresholds_version={thresholds.version}",),
         )
 
-    if candidate.asymmetry_score < 0.40:
+    if candidate.asymmetry_score < thresholds.min_asymmetry:
         return DecisionResult(
             decision=Decision.NO_TRADE,
             risk_tier="no_trade",
-            position_size_multiplier=0.0,
+            position_size_multiplier=thresholds.no_trade_size,
             allowed_setups=allowed_setups,
             blocked_reasons=("poor_asymmetry",),
+            notes=(f"thresholds_version={thresholds.version}",),
         )
 
-    if candidate.data_confidence < 0.50:
+    if candidate.data_confidence < thresholds.min_data_confidence:
         return DecisionResult(
             decision=Decision.NO_TRADE,
             risk_tier="no_trade",
-            position_size_multiplier=0.0,
+            position_size_multiplier=thresholds.no_trade_size,
             allowed_setups=allowed_setups,
             blocked_reasons=("low_data_confidence",),
+            notes=(f"thresholds_version={thresholds.version}",),
         )
 
-    risk_tier = _base_risk_tier(candidate)
-    size = _size_for_tier(risk_tier)
+    risk_tier = _base_risk_tier(candidate, thresholds)
+    size = _size_for_tier(risk_tier, thresholds)
 
     if candidate.event_risk:
         size *= 0.5
@@ -271,13 +286,13 @@ def evaluate_candidate(context: MarketContext, candidate: SetupCandidate) -> Dec
         return DecisionResult(
             decision=Decision.NO_TRADE,
             risk_tier="no_trade",
-            position_size_multiplier=0.0,
+            position_size_multiplier=thresholds.no_trade_size,
             allowed_setups=allowed_setups,
             blocked_reasons=("insufficient_quality_threshold",),
             notes=tuple(notes),
         )
 
-    if context.market_state == MarketState.HIGH_VOL_TRANSITION or size < _size_for_tier(risk_tier):
+    if context.market_state == MarketState.HIGH_VOL_TRANSITION or size < _size_for_tier(risk_tier, thresholds):
         decision = Decision.REDUCED_SIZE
     elif risk_tier == "tier_3":
         decision = Decision.WATCH
@@ -293,8 +308,12 @@ def evaluate_candidate(context: MarketContext, candidate: SetupCandidate) -> Dec
     )
 
 
-def rank_candidates(context: MarketContext, candidates: Iterable[SetupCandidate]) -> list[tuple[SetupCandidate, DecisionResult]]:
-    evaluated = [(candidate, evaluate_candidate(context, candidate)) for candidate in candidates]
+def rank_candidates(
+    context: MarketContext,
+    candidates: Iterable[SetupCandidate],
+    thresholds: DecisionThresholds = DEFAULT_THRESHOLDS,
+) -> list[tuple[SetupCandidate, DecisionResult]]:
+    evaluated = [(candidate, evaluate_candidate(context, candidate, thresholds)) for candidate in candidates]
 
     decision_priority = {
         Decision.APPROVED: 4,
