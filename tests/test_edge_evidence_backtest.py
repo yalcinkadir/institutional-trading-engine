@@ -17,7 +17,7 @@ def _write_universe(path: Path, *, symbols: list[str]) -> None:
     path.write_text("\n".join(rows) + "\n", encoding="utf-8")
 
 
-def _write_plans(path: Path, symbols: list[str]) -> None:
+def _write_plans(path: Path, symbols: list[str], *, signal_date: str = "2026-01-01") -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
         json.dumps(
@@ -26,7 +26,7 @@ def _write_plans(path: Path, symbols: list[str]) -> None:
                     {
                         "signal_id": f"sig-{symbol}",
                         "symbol": symbol,
-                        "signal_date": "2026-01-01",
+                        "signal_date": signal_date,
                         "entry_trigger": 100,
                         "stop_loss": 95,
                         "target_1": 110,
@@ -145,3 +145,65 @@ def test_edge_backtest_fails_survivorship_audit_for_out_of_window_plan(tmp_path:
 
     assert report.passed is False
     assert "survivorship_audit_failed" in report.reasons
+
+
+def test_runtime_active_universe_mode_allows_historical_plan_before_active_from(tmp_path: Path) -> None:
+    universe_path = tmp_path / "universe.csv"
+    plans_path = tmp_path / "plans.json"
+    bars_root = tmp_path / "bars"
+    _write_universe(universe_path, symbols=["TEST"])
+    _write_plans(plans_path, ["TEST"], signal_date="2019-01-01")
+    _write_bars(bars_root, "TEST")
+
+    strict_report = run_edge_evidence_backtest(
+        EdgeEvidenceBacktestConfig(
+            universe_path=universe_path,
+            trade_plans_path=plans_path,
+            bars_root=bars_root,
+            output_dir=tmp_path / "strict_reports",
+            minimum_tradeable_count=1,
+            survivorship_mode="strict",
+        )
+    )
+    runtime_report = run_edge_evidence_backtest(
+        EdgeEvidenceBacktestConfig(
+            universe_path=universe_path,
+            trade_plans_path=plans_path,
+            bars_root=bars_root,
+            output_dir=tmp_path / "runtime_reports",
+            minimum_tradeable_count=1,
+            survivorship_mode="runtime_active_universe",
+        )
+    )
+
+    assert "survivorship_audit_failed" in strict_report.reasons
+    assert "survivorship_audit_failed" not in runtime_report.reasons
+    assert runtime_report.survivorship_mode == "runtime_active_universe"
+    assert runtime_report.survivorship_audit.valid_records == 1
+    assert "Survivorship mode: **runtime_active_universe**" in (
+        tmp_path / "runtime_reports" / "edge-evidence-summary.md"
+    ).read_text(encoding="utf-8")
+
+
+def test_runtime_active_universe_mode_still_fails_unknown_symbols(tmp_path: Path) -> None:
+    universe_path = tmp_path / "universe.csv"
+    plans_path = tmp_path / "plans.json"
+    bars_root = tmp_path / "bars"
+    _write_universe(universe_path, symbols=["TEST"])
+    _write_plans(plans_path, ["MISSING"], signal_date="2019-01-01")
+    _write_bars(bars_root, "MISSING")
+
+    report = run_edge_evidence_backtest(
+        EdgeEvidenceBacktestConfig(
+            universe_path=universe_path,
+            trade_plans_path=plans_path,
+            bars_root=bars_root,
+            output_dir=tmp_path / "reports",
+            minimum_tradeable_count=1,
+            survivorship_mode="runtime_active_universe",
+        )
+    )
+
+    assert report.passed is False
+    assert "survivorship_audit_failed" in report.reasons
+    assert report.survivorship_audit.unknown_ticker_records == 1
