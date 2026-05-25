@@ -116,8 +116,37 @@ def test_edge_backtest_runs_when_gates_pass_with_relaxed_minimum(tmp_path: Path)
     assert report.trade_plan_count == 1
     assert report.historical_result_count == 1
     assert (tmp_path / "reports" / "historical-entry-exit-backtest.json").exists()
+    assert (tmp_path / "reports" / "historical-entry-exit-backtest.md").exists()
     assert (tmp_path / "reports" / "walk-forward-validation.json").exists()
     assert (tmp_path / "reports" / "out-of-sample-lockbox.json").exists()
+
+
+def test_edge_backtest_writes_historical_report_before_validation_reports(tmp_path: Path) -> None:
+    universe_path = tmp_path / "universe.csv"
+    plans_path = tmp_path / "plans.json"
+    bars_root = tmp_path / "bars"
+    reports_dir = tmp_path / "reports"
+    _write_universe(universe_path, symbols=["TEST"])
+    _write_plans(plans_path, ["TEST"])
+    _write_bars(bars_root, "TEST")
+
+    report = run_edge_evidence_backtest(
+        EdgeEvidenceBacktestConfig(
+            universe_path=universe_path,
+            trade_plans_path=plans_path,
+            bars_root=bars_root,
+            output_dir=reports_dir,
+            minimum_tradeable_count=1,
+            survivorship_mode="runtime_active_universe",
+        )
+    )
+
+    historical_json = reports_dir / "historical-entry-exit-backtest.json"
+    historical_md = reports_dir / "historical-entry-exit-backtest.md"
+    assert historical_json.exists()
+    assert historical_md.exists()
+    assert "historical_json" in report.artifacts
+    assert "Historical Entry / Stop / Exit Backtest" in historical_md.read_text(encoding="utf-8")
 
 
 def test_edge_backtest_fails_survivorship_audit_for_out_of_window_plan(tmp_path: Path) -> None:

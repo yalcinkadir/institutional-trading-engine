@@ -45,6 +45,27 @@ The summary report includes the selected mode:
 survivorship_mode
 ```
 
+## Report outputs
+
+When the universe, plan and survivorship gates allow the backtest to continue, the edge-evidence pipeline writes:
+
+```text
+reports/edge_evidence/historical-entry-exit-backtest.json
+reports/edge_evidence/historical-entry-exit-backtest.md
+reports/edge_evidence/walk-forward-validation.json
+reports/edge_evidence/walk-forward-validation.md
+reports/edge_evidence/out-of-sample-lockbox.json
+reports/edge_evidence/out-of-sample-lockbox.md
+reports/edge_evidence/edge-evidence-summary.json
+reports/edge_evidence/edge-evidence-summary.md
+```
+
+The historical report writer import is covered by:
+
+```bash
+pytest tests/test_edge_evidence_backtest.py -q
+```
+
 ## Workflow default
 
 The Polygon artifact workflow defaults to:

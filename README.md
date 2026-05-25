@@ -182,6 +182,25 @@ The pipeline writes reports under:
 reports/edge_evidence/
 ```
 
+Expected report files include:
+
+```text
+historical-entry-exit-backtest.json
+historical-entry-exit-backtest.md
+walk-forward-validation.json
+walk-forward-validation.md
+out-of-sample-lockbox.json
+out-of-sample-lockbox.md
+edge-evidence-summary.json
+edge-evidence-summary.md
+```
+
+The historical report writer path is covered by:
+
+```bash
+pytest tests/test_edge_evidence_backtest.py -q
+```
+
 It fails closed when:
 
 ```text

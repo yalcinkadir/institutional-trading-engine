@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from src.backtesting.historical_entry_exit_backtest import load_trade_plans, run_backtest
+from src.backtesting.historical_report import write_report as write_historical_backtest_report
 from src.data.survivorship_universe import (
     SurvivorshipAuditReport,
     UniverseCoverageReport,
