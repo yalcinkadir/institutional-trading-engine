@@ -32,6 +32,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--minimum-assets", type=int, default=500)
     parser.add_argument("--oos-split-date", default="2024-01-01")
     parser.add_argument("--max-bars-per-plan", type=int, default=20)
+    parser.add_argument(
+        "--survivorship-mode",
+        choices=("strict", "runtime_active_universe"),
+        default="strict",
+        help="strict requires point-in-time lifecycle validity; runtime_active_universe is exploratory and checks only membership in the downloaded runtime universe",
+    )
     return parser.parse_args()
 
 
@@ -46,10 +52,12 @@ def main() -> int:
         minimum_tradeable_count=args.minimum_assets,
         oos_split_date=date.fromisoformat(args.oos_split_date),
         max_bars_per_plan=args.max_bars_per_plan,
+        survivorship_mode=args.survivorship_mode,
     )
     report = run_edge_evidence_backtest(config)
     print(f"Edge evidence backtest status: {'PASS' if report.passed else 'FAIL'}")
     print(f"Summary written to: {config.output_dir / 'edge-evidence-summary.md'}")
+    print(f"Survivorship mode: {report.survivorship_mode}")
     if report.reasons:
         print("Reasons:")
         for reason in report.reasons:

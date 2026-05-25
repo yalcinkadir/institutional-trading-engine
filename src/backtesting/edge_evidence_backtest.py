@@ -11,10 +11,9 @@ import json
 from dataclasses import asdict, dataclass, field
 from datetime import date
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from src.backtesting.historical_entry_exit_backtest import load_trade_plans, run_backtest
-from src.backtesting.historical_report import write_report as write_historical_backtest_report
 from src.data.survivorship_universe import (
     SurvivorshipAuditReport,
     UniverseCoverageReport,
@@ -32,6 +31,8 @@ from src.validation.walk_forward_validation import (
     write_walk_forward_report,
 )
 
+SurvivorshipMode = Literal["strict", "runtime_active_universe"]
+
 
 @dataclass(frozen=True)
 class EdgeEvidenceBacktestConfig:
@@ -43,6 +44,7 @@ class EdgeEvidenceBacktestConfig:
     minimum_tradeable_count: int = 500
     oos_split_date: date = date(2024, 1, 1)
     max_bars_per_plan: int = 20
+    survivorship_mode: SurvivorshipMode = "strict"
 
 
 @dataclass(frozen=True)
@@ -57,11 +59,13 @@ class EdgeEvidenceBacktestReport:
     out_of_sample_passed: bool = False
     output_dir: str = ""
     artifacts: dict[str, str] = field(default_factory=dict)
+    survivorship_mode: SurvivorshipMode = "strict"
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "passed": self.passed,
             "reasons": list(self.reasons),
+            "survivorship_mode": self.survivorship_mode,
             "universe_coverage": self.universe_coverage.to_dict(),
             "survivorship_audit": self.survivorship_audit.to_dict(),
             "trade_plan_count": self.trade_plan_count,
@@ -79,6 +83,56 @@ def _load_trade_plans_fail_closed(path: Path) -> list[Any]:
     return load_trade_plans(path)
 
 
+def _audit_plans(
+    universe: Any,
+    plan_records: list[dict[str, Any]],
+    *,
+    survivorship_mode: SurvivorshipMode,
+) -> SurvivorshipAuditReport:
+    if survivorship_mode == "strict":
+        return universe.audit_backtest_records(
+            plan_records,
+            symbol_field="symbol",
+            date_field="signal_date",
+        )
+    if survivorship_mode == "runtime_active_universe":
+        return _audit_runtime_active_universe(universe, plan_records)
+    raise ValueError(f"unsupported survivorship_mode: {survivorship_mode}")
+
+
+def _audit_runtime_active_universe(universe: Any, plan_records: list[dict[str, Any]]) -> SurvivorshipAuditReport:
+    """Audit generated plans against a current active runtime universe.
+
+    This mode is explicitly not final survivorship-safe evidence. It allows
+    exploratory Polygon runtime backtests where historical bars are available
+    but point-in-time lifecycle membership is not yet available. It still fails
+    on unknown symbols so bad or unmapped tickers cannot silently pass.
+    """
+    total = 0
+    valid = 0
+    unknown = 0
+    unknown_samples: list[str] = []
+    for record in plan_records:
+        if not isinstance(record, dict):
+            continue
+        total += 1
+        symbol = str(record.get("symbol") or "").upper()
+        if not symbol or universe.lookup(symbol) is None:
+            unknown += 1
+            if symbol and len(unknown_samples) < 25 and symbol not in unknown_samples:
+                unknown_samples.append(symbol)
+            continue
+        valid += 1
+    return SurvivorshipAuditReport(
+        total_records=total,
+        valid_records=valid,
+        out_of_window_records=0,
+        unknown_ticker_records=unknown,
+        out_of_window_samples=[],
+        unknown_ticker_samples=unknown_samples,
+    )
+
+
 def run_edge_evidence_backtest(config: EdgeEvidenceBacktestConfig) -> EdgeEvidenceBacktestReport:
     config.output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -90,10 +144,10 @@ def run_edge_evidence_backtest(config: EdgeEvidenceBacktestConfig) -> EdgeEviden
     )
     plans = _load_trade_plans_fail_closed(config.trade_plans_path)
     plan_records = [asdict(plan) for plan in plans]
-    audit = universe.audit_backtest_records(
+    audit = _audit_plans(
+        universe,
         plan_records,
-        symbol_field="symbol",
-        date_field="signal_date",
+        survivorship_mode=config.survivorship_mode,
     )
 
     reasons: list[str] = []
@@ -115,6 +169,7 @@ def run_edge_evidence_backtest(config: EdgeEvidenceBacktestConfig) -> EdgeEviden
             survivorship_audit=audit,
             trade_plan_count=len(plans),
             output_dir=str(config.output_dir),
+            survivorship_mode=config.survivorship_mode,
         )
         _write_summary(report, json_path=summary_json, markdown_path=summary_md)
         return report
@@ -177,6 +232,7 @@ def run_edge_evidence_backtest(config: EdgeEvidenceBacktestConfig) -> EdgeEviden
         walk_forward_passed=walk_forward_report.passed,
         out_of_sample_passed=oos_report.passed,
         output_dir=str(config.output_dir),
+        survivorship_mode=config.survivorship_mode,
         artifacts={
             "summary_json": str(summary_json),
             "summary_md": str(summary_md),
@@ -214,6 +270,7 @@ def _render_summary(report: EdgeEvidenceBacktestReport) -> str:
         "",
         f"Status: **{'PASS' if report.passed else 'FAIL'}**",
         f"Reasons: **{', '.join(report.reasons) if report.reasons else '-'}**",
+        f"Survivorship mode: **{report.survivorship_mode}**",
         "",
         "## Gates",
         "",
