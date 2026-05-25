@@ -31,6 +31,7 @@ def test_normal_regime_execution_cost_is_subtracted_from_r_multiple() -> None:
     assert adjusted.adjusted_r == pytest.approx(1.0 - expected_cost_r)
     assert adjusted.adjusted_record["execution_realism_applied"] is True
     assert adjusted.adjusted_record["no_lookahead_execution_adjustment"] is True
+    assert adjusted.adjusted_record["slippage_model_version"] == "sqrt-impact-v1"
 
 
 def test_volatile_regime_uses_higher_slippage() -> None:
@@ -54,6 +55,35 @@ def test_volatile_regime_uses_higher_slippage() -> None:
     assert normal.slippage_pct == DEFAULT_NORMAL_SLIPPAGE_PCT
     assert volatile.execution_cost_r > normal.execution_cost_r
     assert volatile.adjusted_r < normal.adjusted_r
+    assert volatile.slippage_model_version == "sqrt-impact-v1"
+
+
+def test_record_market_inputs_can_raise_execution_cost_above_floor() -> None:
+    baseline_record = {
+        "symbol": "SPY",
+        "result_r": 1.0,
+        "entry_price": 100.0,
+        "stop_loss": 95.0,
+        "volatility_regime": "normal",
+    }
+    stressed_record = {
+        "symbol": "SPY",
+        "result_r": 1.0,
+        "entry_price": 100.0,
+        "stop_loss": 95.0,
+        "volatility_regime": "panic_dislocation",
+        "volatility_percent": 8.0,
+        "spread_percent": 0.30,
+        "order_size_percent_adv": 10.0,
+    }
+
+    baseline = adjust_execution_record(baseline_record)
+    stressed = adjust_execution_record(stressed_record)
+
+    assert stressed.execution_cost_r > baseline.execution_cost_r
+    assert stressed.spread_cost_pct > baseline.spread_cost_pct
+    assert stressed.market_impact_pct > baseline.market_impact_pct
+    assert stressed.slippage_quality in {"poor", "prohibitive"}
 
 
 def test_spread_cost_has_minimum_floor() -> None:
@@ -76,6 +106,7 @@ def test_missing_required_fields_are_flagged() -> None:
     assert adjusted.valid is False
     assert "missing_entry_price" in adjusted.warnings
     assert "missing_stop_loss" in adjusted.warnings
+    assert adjusted.slippage_model_version == "sqrt-impact-v1"
 
 
 def test_invalid_initial_risk_is_flagged() -> None:
@@ -130,6 +161,7 @@ def test_render_execution_realism_markdown() -> None:
 
     assert "# Execution Realism Report" in markdown
     assert "Total adjusted R" in markdown
+    assert "sqrt-impact-v1" in markdown
     assert "SPY" in markdown
 
 
@@ -144,4 +176,5 @@ def test_write_execution_realism_report(tmp_path) -> None:
 
     data = json.loads(json_path.read_text(encoding="utf-8"))
     assert data["summary"]["total_records"] == 1
+    assert data["records"][0]["slippage_model_version"] == "sqrt-impact-v1"
     assert markdown_path.read_text(encoding="utf-8").startswith("# Execution Realism Report")
