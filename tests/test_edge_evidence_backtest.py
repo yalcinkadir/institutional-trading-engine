@@ -149,6 +149,42 @@ def test_edge_backtest_writes_historical_report_before_validation_reports(tmp_pa
     assert "Historical Entry / Stop / Exit Backtest" in historical_md.read_text(encoding="utf-8")
 
 
+def test_edge_backtest_writes_diagnostics_summary(tmp_path: Path) -> None:
+    universe_path = tmp_path / "universe.csv"
+    plans_path = tmp_path / "plans.json"
+    bars_root = tmp_path / "bars"
+    reports_dir = tmp_path / "reports"
+    _write_universe(universe_path, symbols=["TEST"])
+    _write_plans(plans_path, ["TEST"])
+    _write_bars(bars_root, "TEST")
+
+    report = run_edge_evidence_backtest(
+        EdgeEvidenceBacktestConfig(
+            universe_path=universe_path,
+            trade_plans_path=plans_path,
+            bars_root=bars_root,
+            output_dir=reports_dir,
+            minimum_tradeable_count=1,
+            survivorship_mode="runtime_active_universe",
+        )
+    )
+
+    diagnostics_json = reports_dir / "edge-evidence-diagnostics.json"
+    diagnostics_md = reports_dir / "edge-evidence-diagnostics.md"
+    summary_md = reports_dir / "edge-evidence-summary.md"
+    diagnostics = json.loads(diagnostics_json.read_text(encoding="utf-8"))
+
+    assert diagnostics_json.exists()
+    assert diagnostics_md.exists()
+    assert "diagnostics_json" in report.artifacts
+    assert report.diagnostics["historical_results"]["total"] == 1
+    assert diagnostics["historical_results"]["total"] == 1
+    assert "walk_forward" in diagnostics
+    assert "out_of_sample" in diagnostics
+    assert "Edge Evidence Diagnostics" in diagnostics_md.read_text(encoding="utf-8")
+    assert "Diagnostics Snapshot" in summary_md.read_text(encoding="utf-8")
+
+
 def test_edge_backtest_fails_survivorship_audit_for_out_of_window_plan(tmp_path: Path) -> None:
     universe_path = tmp_path / "universe.csv"
     plans_path = tmp_path / "plans.json"
