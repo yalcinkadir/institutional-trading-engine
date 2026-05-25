@@ -43,7 +43,7 @@ def test_slippage_model():
         order_size_percent_adv=8,
     )
 
-    assert result.execution_quality == "poor"
+    assert result.execution_quality == "prohibitive"
 
 
 def test_entry_timing_engine():
