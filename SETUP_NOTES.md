@@ -18,6 +18,7 @@ Wichtig:
 - API-Key niemals in README oder Reports schreiben
 - Bei Verdacht auf Leak sofort rotieren
 - Vor großen Datenläufen prüfen, ob das Secret aktiv ist
+- Secrets mindestens quartalsweise prüfen und rotieren
 
 ---
 
@@ -29,7 +30,7 @@ Aktueller Stand:
 
 ```text
 P36-P47 validation stack: implemented
-Phase A evidence-hygiene work A3-A8: implemented
+Phase A evidence-hygiene work A3-A10: implemented
 Broker execution: not implemented
 Live trading authorization: not granted by code
 Phase B: not started
@@ -50,14 +51,18 @@ A5 Square-root regime-aware slippage model
 A6 Deflated Sharpe probability + bootstrap confidence intervals
 A7 Polygon structured logging
 A8 Polygon cache locking
+A9 CHANGELOG.md and SETUP_NOTES.md update
+A10 Quarterly secrets rotation policy
 ```
 
 Noch offen vor Phase B:
 
 ```text
-A9 CHANGELOG.md and SETUP_NOTES.md update
-A10 Quarterly secrets rotation policy
 Phase A CI stabilization pass
+CI workflow update for Phase A tests
+Phase A test execution
+Fixes if needed
+README final update
 ```
 
 ---
@@ -70,6 +75,8 @@ docs/operations/slippage_model.md
 docs/operations/statistical_robustness.md
 docs/operations/polygon_structured_logging.md
 docs/operations/polygon_cache_locking.md
+docs/operations/secrets_rotation_policy.md
+docs/operations/phase_a_ci_stabilization.md
 ROADMAP.md
 ```
 
@@ -128,6 +135,11 @@ ROADMAP.md
 - Edge-evidence diagnostics artifacts
 - Edge-evidence workflow log snapshot
 
+### Security / Operations
+
+- Quarterly secrets rotation policy
+- Phase A CI stabilization plan
+
 ---
 
 ## Phase A Test Commands
@@ -163,6 +175,24 @@ Phase B darf erst starten, wenn:
 3. alle Fehler analysiert und gefixt wurden
 4. `pytest -q` grün ist
 5. README, CHANGELOG und SETUP_NOTES aktuell sind
+
+---
+
+## Secret Rotation Smoke Test
+
+Nach Rotation von `POLYGON_API_KEY`:
+
+```bash
+POLYGON_API_KEY=... python scripts/build_polygon_universe.py --max-symbols 25
+```
+
+Danach:
+
+```bash
+pytest tests/test_polygon_data_pipeline.py -q
+pytest tests/test_polygon_structured_logging.py -q
+pytest -q
+```
 
 ---
 
@@ -218,7 +248,6 @@ Diese Punkte sind absichtlich noch nicht aktiv:
 ## Nächste Schritte
 
 ```text
-A10 Quarterly secrets rotation policy
 Phase A CI workflow update
 Phase A test execution
 Fixes if needed
