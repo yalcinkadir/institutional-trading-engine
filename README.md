@@ -41,6 +41,7 @@ Code quality is not trading edge. The system is promising enough to test serious
 - Polygon daily OHLCV bars downloader
 - Polygon artifact consolidation workflow
 - historical trade plan generation from Polygon bars
+- configurable survivorship audit mode for runtime Polygon artifacts
 - edge-evidence execution from combined Polygon artifacts
 - event-risk placeholder metadata
 - optional SQLite runtime persistence
@@ -137,7 +138,8 @@ python scripts/run_edge_evidence_backtest.py \
   --bars-root data/historical_bars \
   --as-of 2026-05-24 \
   --minimum-assets 500 \
-  --oos-split-date 2024-01-01
+  --oos-split-date 2024-01-01 \
+  --survivorship-mode strict
 ```
 
 Generate historical trade plans from Polygon bars before the backtest:
@@ -166,6 +168,14 @@ Use the successful Polygon artifact-consolidation run ID as `run_id`, for exampl
 
 The workflow can generate historical trade plans automatically when `generate_plans` is set to `true`.
 
+For combined Polygon runtime artifacts, the workflow uses:
+
+```text
+survivorship_mode: runtime_active_universe
+```
+
+Use `strict` only when the universe file contains vetted point-in-time ticker lifecycles.
+
 The pipeline writes reports under:
 
 ```text
@@ -187,6 +197,7 @@ Detailed documentation:
 ```text
 docs/operations/historical_trade_plan_generation.md
 docs/operations/edge_evidence_from_polygon_artifact.md
+docs/operations/runtime_active_universe_mode.md
 ```
 
 ## 500+ Starter Universe
@@ -441,6 +452,7 @@ docs/roadmap/decision_quality_p36_p40.md
 | Polygon Daily Bars Downloader | Implemented |
 | Polygon Artifact Consolidation Workflow | Implemented |
 | Historical Trade Plan Generator | Implemented |
+| Runtime Active Universe Audit Mode | Implemented |
 | Edge Evidence From Polygon Artifact Workflow | Implemented |
 | Liquidity Filter | Implemented |
 | Forward Outcome Tracker | Implemented |
@@ -486,14 +498,16 @@ docs/roadmap/decision_quality_p36_p40.md
 - Polygon artifact consolidation workflow
 - Edge evidence workflow from combined Polygon artifact
 - Historical trade plan generation from Polygon bars
+- Runtime active universe audit mode for exploratory Polygon artifacts
 
 ### Edge-Evidence Phase: 3-6 months evidence collection
 
 - maintain 500+ active scan universe
 - ingest 10+ years of historical bars
 - generate deterministic historical trade plans from runtime bars
+- run exploratory runtime-active-universe evidence on Polygon artifacts
 - enrich universe with second-source delisted lifecycle data
-- run walk-forward validation across full history
+- run strict walk-forward validation across full history once point-in-time lifecycles are available
 - evaluate which setups pass in which regimes
 - open the out-of-sample lockbox once, record result, then keep it locked
 - append forward live/paper outcomes for every generated signal
