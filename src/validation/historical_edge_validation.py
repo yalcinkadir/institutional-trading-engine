@@ -6,11 +6,17 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Iterable
 
+from src.validation.statistical_robustness import (
+    StatisticalRobustnessMetrics,
+    calculate_statistical_robustness,
+)
+
 MIN_TOTAL_TRADES = 300
 MIN_PROFIT_FACTOR = 1.4
 MIN_EXPECTANCY_R = 0.5
 MAX_DRAWDOWN_LIMIT = 0.25
 MIN_SHARPE_RATIO = 0.8
+MIN_DEFLATED_SHARPE_PROBABILITY = 0.95
 
 
 @dataclass(frozen=True)
@@ -20,6 +26,12 @@ class HistoricalEdgeValidationConfig:
     min_expectancy_r: float = MIN_EXPECTANCY_R
     max_drawdown_limit: float = MAX_DRAWDOWN_LIMIT
     min_sharpe_ratio: float = MIN_SHARPE_RATIO
+    min_deflated_sharpe_probability: float = MIN_DEFLATED_SHARPE_PROBABILITY
+    estimated_trials: int = 1
+    bootstrap_iterations: int = 1000
+    bootstrap_confidence_level: float = 0.95
+    bootstrap_seed: int = 7
+    require_positive_expectancy_ci_lower_bound: bool = False
 
 
 @dataclass(frozen=True)
@@ -58,12 +70,16 @@ class HistoricalEdgeValidationReport:
     passed: bool
     metrics: HistoricalEdgeMetrics
     gates: list[HistoricalEdgeGate] = field(default_factory=list)
+    statistical_robustness: StatisticalRobustnessMetrics | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "passed": self.passed,
             "metrics": self.metrics.to_dict(),
             "gates": [gate.to_dict() for gate in self.gates],
+            "statistical_robustness": (
+                self.statistical_robustness.to_dict() if self.statistical_robustness else None
+            ),
         }
 
 
@@ -75,12 +91,25 @@ def validate_historical_edge(
 ) -> HistoricalEdgeValidationReport:
     r_values = extract_r_values(records, result_field=result_field)
     metrics = calculate_historical_edge_metrics(r_values)
-    gates = build_historical_edge_gates(metrics, config=config)
+    statistical_robustness = calculate_statistical_robustness(
+        r_values,
+        observed_sharpe=metrics.sharpe_ratio,
+        estimated_trials=config.estimated_trials,
+        bootstrap_iterations=config.bootstrap_iterations,
+        confidence_level=config.bootstrap_confidence_level,
+        seed=config.bootstrap_seed,
+    )
+    gates = build_historical_edge_gates(
+        metrics,
+        config=config,
+        statistical_robustness=statistical_robustness,
+    )
 
     return HistoricalEdgeValidationReport(
         passed=all(gate.passed for gate in gates),
         metrics=metrics,
         gates=gates,
+        statistical_robustness=statistical_robustness,
     )
 
 
@@ -200,8 +229,9 @@ def build_historical_edge_gates(
     metrics: HistoricalEdgeMetrics,
     *,
     config: HistoricalEdgeValidationConfig,
+    statistical_robustness: StatisticalRobustnessMetrics | None = None,
 ) -> list[HistoricalEdgeGate]:
-    return [
+    gates = [
         HistoricalEdgeGate(
             name="minimum_sample_size",
             passed=metrics.total_trades >= config.min_total_trades,
@@ -239,6 +269,34 @@ def build_historical_edge_gates(
         ),
     ]
 
+    if statistical_robustness is not None:
+        gates.append(
+            HistoricalEdgeGate(
+                name="deflated_sharpe_probability",
+                passed=(
+                    statistical_robustness.deflated_sharpe_probability
+                    >= config.min_deflated_sharpe_probability
+                ),
+                value=statistical_robustness.deflated_sharpe_probability,
+                threshold=config.min_deflated_sharpe_probability,
+                message="Observed Sharpe must remain significant after multiple-testing deflation.",
+            )
+        )
+        gates.append(
+            HistoricalEdgeGate(
+                name="bootstrap_expectancy_lower_bound",
+                passed=(
+                    not config.require_positive_expectancy_ci_lower_bound
+                    or statistical_robustness.expectancy_ci.lower > 0.0
+                ),
+                value=statistical_robustness.expectancy_ci.lower,
+                threshold=0.0,
+                message="Bootstrap expectancy lower bound should be positive when strict robustness is required.",
+            )
+        )
+
+    return gates
+
 
 def render_historical_edge_markdown(report: HistoricalEdgeValidationReport) -> str:
     metrics = report.metrics
@@ -259,11 +317,33 @@ def render_historical_edge_markdown(report: HistoricalEdgeValidationReport) -> s
         f"- Recovery time trades: {metrics.recovery_time_trades}",
         f"- Cumulative R: {metrics.cumulative_r:.4f}",
         "",
-        "## Gates",
-        "",
-        "| Gate | Status | Value | Threshold |",
-        "|---|---:|---:|---:|",
     ]
+    if report.statistical_robustness is not None:
+        robustness = report.statistical_robustness
+        lines.extend(
+            [
+                "## Statistical Robustness",
+                "",
+                f"- Deflated Sharpe probability: {robustness.deflated_sharpe_probability:.2%}",
+                f"- Estimated trials: {robustness.estimated_trials}",
+                f"- Observations: {robustness.observations}",
+                f"- Skewness: {robustness.skewness:.4f}",
+                f"- Kurtosis: {robustness.kurtosis:.4f}",
+                f"- Expectancy CI ({robustness.expectancy_ci.confidence_level:.0%}): "
+                f"[{robustness.expectancy_ci.lower:.4f}, {robustness.expectancy_ci.upper:.4f}]",
+                f"- Win-rate CI ({robustness.win_rate_ci.confidence_level:.0%}): "
+                f"[{robustness.win_rate_ci.lower:.2%}, {robustness.win_rate_ci.upper:.2%}]",
+                "",
+            ]
+        )
+    lines.extend(
+        [
+            "## Gates",
+            "",
+            "| Gate | Status | Value | Threshold |",
+            "|---|---:|---:|---:|",
+        ]
+    )
     for gate in report.gates:
         lines.append(
             f"| {gate.name} | {'PASS' if gate.passed else 'FAIL'} | "
