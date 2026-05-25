@@ -29,8 +29,8 @@ Goal: make the research foundation harder to fool.
 | A2 | Add a second data provider abstraction for cross-validation against Polygon | P0 | Critical | Planned |
 | A3 | Centralize decision thresholds in `src/config/thresholds.py` with explicit versioning | P1 | High | Done |
 | A4 | Invalidate backtest/lockbox evidence when threshold versions change | P1 | High | Done |
-| A5 | Replace linear slippage heuristic with square-root impact plus regime multipliers | P1 | High | Next |
-| A6 | Add Deflated Sharpe Ratio and bootstrap confidence intervals to edge validation | P1 | High | Planned |
+| A5 | Replace linear slippage heuristic with square-root impact plus regime multipliers | P1 | High | Done |
+| A6 | Add Deflated Sharpe Ratio and bootstrap confidence intervals to edge validation | P1 | High | Next |
 | A7 | Convert Polygon client retry/rate-limit output to structured logging | P2 | Medium | Planned |
 | A8 | Add cache locking for `.cache/polygon` writes | P2 | Medium | Planned |
 | A9 | Update `CHANGELOG.md` and `SETUP_NOTES.md` for P47 readiness state | P2 | Medium | Planned |
@@ -96,10 +96,13 @@ Start only after Phase B and C produce credible evidence.
 
 - Edge-evidence diagnostics summary artifacts: done.
 - Edge-evidence workflow log snapshot: done.
+- Versioned decision thresholds: done.
+- Threshold-aware lockbox invalidation: done.
+- Square-root regime-aware slippage model: done.
 
 ## Current execution focus
 
-A3 and A4 are complete. Edge-evidence diagnostics are visible in artifacts and workflow logs. The next implementation step is A5: replace the current linear slippage heuristic with a square-root impact model plus regime multipliers. That is the correct next move because execution cost realism directly affects whether simulated edge survives contact with the market.
+A3, A4 and A5 are complete. The next implementation step is A6: add Deflated Sharpe Ratio and bootstrap confidence intervals to edge validation. That is the correct next move because apparent Sharpe and expectancy can be inflated by multiple testing and small sample noise.
 
 ## Do not do yet
 
