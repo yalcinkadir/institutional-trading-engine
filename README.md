@@ -39,6 +39,9 @@ Code quality is not trading edge. The system is promising enough to test serious
 - Polygon active universe runtime builder
 - Polygon all-assets data workflow
 - Polygon daily OHLCV bars downloader
+- Polygon artifact consolidation workflow
+- historical trade plan generation from Polygon bars
+- edge-evidence execution from combined Polygon artifacts
 - event-risk placeholder metadata
 - optional SQLite runtime persistence
 - static dashboard HTML reporting
@@ -103,6 +106,8 @@ pytest tests/test_liquidity_filter.py
 pytest tests/test_forward_outcome_tracker.py
 pytest tests/test_vix_adapter.py
 pytest tests/test_edge_evidence_backtest.py
+pytest tests/test_generate_historical_trade_plans.py
+pytest tests/test_edge_evidence_from_polygon_artifact_workflow.py
 pytest tests/test_polygon_data_pipeline.py
 pytest tests/test_polygon_edge_data_workflow.py
 pytest tests/test_static_dashboard.py
@@ -135,11 +140,31 @@ python scripts/run_edge_evidence_backtest.py \
   --oos-split-date 2024-01-01
 ```
 
+Generate historical trade plans from Polygon bars before the backtest:
+
+```bash
+python scripts/generate_historical_trade_plans.py \
+  --bars-root data/historical_bars \
+  --output data/trade_plans/historical_trade_plans.json \
+  --max-plans 5000 \
+  --max-plans-per-symbol 3 \
+  --min-history 60 \
+  --lookahead-days 20
+```
+
 GitHub Actions:
 
 ```text
-Actions → Edge Evidence Backtest → Run workflow
+Actions → Edge Evidence From Polygon Artifact → Run workflow
 ```
+
+Use the successful Polygon artifact-consolidation run ID as `run_id`, for example:
+
+```text
+26375916598
+```
+
+The workflow can generate historical trade plans automatically when `generate_plans` is set to `true`.
 
 The pipeline writes reports under:
 
@@ -155,6 +180,13 @@ survivorship_audit_failed
 no_trade_plans_loaded
 walk_forward_failed
 out_of_sample_lockbox_failed
+```
+
+Detailed documentation:
+
+```text
+docs/operations/historical_trade_plan_generation.md
+docs/operations/edge_evidence_from_polygon_artifact.md
 ```
 
 ## 500+ Starter Universe
@@ -278,6 +310,7 @@ Detailed documentation:
 
 ```text
 docs/operations/polygon_edge_data_pipeline.md
+docs/operations/polygon_artifact_consolidation.md
 ```
 
 ## Historical Data Requirement
@@ -406,6 +439,9 @@ docs/roadmap/decision_quality_p36_p40.md
 | Polygon Active Universe Builder | Implemented |
 | Polygon All-Assets Data Workflow | Implemented |
 | Polygon Daily Bars Downloader | Implemented |
+| Polygon Artifact Consolidation Workflow | Implemented |
+| Historical Trade Plan Generator | Implemented |
+| Edge Evidence From Polygon Artifact Workflow | Implemented |
 | Liquidity Filter | Implemented |
 | Forward Outcome Tracker | Implemented |
 | VIX Adapter | Implemented |
@@ -447,11 +483,15 @@ docs/roadmap/decision_quality_p36_p40.md
 - P38 regime similarity weighted distance and cosine similarity
 - P37 probabilistic engine softmax normalization
 - P36 confidence score double counting fix
+- Polygon artifact consolidation workflow
+- Edge evidence workflow from combined Polygon artifact
+- Historical trade plan generation from Polygon bars
 
 ### Edge-Evidence Phase: 3-6 months evidence collection
 
 - maintain 500+ active scan universe
 - ingest 10+ years of historical bars
+- generate deterministic historical trade plans from runtime bars
 - enrich universe with second-source delisted lifecycle data
 - run walk-forward validation across full history
 - evaluate which setups pass in which regimes
