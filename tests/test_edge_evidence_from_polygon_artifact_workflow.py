@@ -24,6 +24,8 @@ def test_edge_evidence_from_polygon_artifact_workflow_inputs() -> None:
     assert "default: \"true\"" in content
     assert "max_generated_plans:" in content
     assert "max_plans_per_symbol:" in content
+    assert "survivorship_mode:" in content
+    assert "default: \"runtime_active_universe\"" in content
     assert "default: \"polygon-edge-runtime-dataset-combined*\"" in content
     assert "default: \"data/trade_plans/historical_trade_plans.json\"" in content
     assert "default: \"500\"" in content
@@ -54,6 +56,13 @@ def test_edge_evidence_from_polygon_artifact_workflow_generates_trade_plans() ->
     assert "--bars-root \"$POLYGON_EDGE_BARS_ROOT\"" in content
     assert "--max-plans \"${{ inputs.max_generated_plans }}\"" in content
     assert "generated-historical-trade-plans" in content
+
+
+def test_edge_evidence_from_polygon_artifact_workflow_passes_survivorship_mode() -> None:
+    content = _content()
+
+    assert "--survivorship-mode \"${{ inputs.survivorship_mode }}\"" in content
+    assert "runtime_active_universe" in content
 
 
 def test_edge_evidence_from_polygon_artifact_workflow_uploads_reports_and_fails_closed() -> None:
