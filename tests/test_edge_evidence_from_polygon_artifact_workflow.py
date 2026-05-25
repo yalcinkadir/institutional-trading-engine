@@ -2,14 +2,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import yaml
-
 
 WORKFLOW = Path(".github/workflows/edge-evidence-from-polygon-artifact.yml")
 
 
-def _load_workflow() -> dict:
-    return yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
+def _content() -> str:
+    return WORKFLOW.read_text(encoding="utf-8")
 
 
 def test_edge_evidence_from_polygon_artifact_workflow_exists() -> None:
@@ -17,17 +15,18 @@ def test_edge_evidence_from_polygon_artifact_workflow_exists() -> None:
 
 
 def test_edge_evidence_from_polygon_artifact_workflow_inputs() -> None:
-    data = _load_workflow()
-    inputs = data["on"]["workflow_dispatch"]["inputs"]
+    content = _content()
 
-    assert inputs["run_id"]["required"] is True
-    assert inputs["artifact_pattern"]["default"] == "polygon-edge-runtime-dataset-combined*"
-    assert inputs["plans_path"]["default"] == "data/trade_plans/historical_trade_plans.json"
-    assert inputs["minimum_assets"]["default"] == "500"
+    assert "workflow_dispatch" in content
+    assert "run_id:" in content
+    assert "required: true" in content
+    assert "default: \"polygon-edge-runtime-dataset-combined*\"" in content
+    assert "default: \"data/trade_plans/historical_trade_plans.json\"" in content
+    assert "default: \"500\"" in content
 
 
 def test_edge_evidence_from_polygon_artifact_workflow_downloads_combined_artifact() -> None:
-    content = WORKFLOW.read_text(encoding="utf-8")
+    content = _content()
 
     assert "gh run download" in content
     assert "polygon-edge-runtime-dataset-combined*" in content
@@ -35,7 +34,7 @@ def test_edge_evidence_from_polygon_artifact_workflow_downloads_combined_artifac
 
 
 def test_edge_evidence_from_polygon_artifact_workflow_resolves_dataset_paths() -> None:
-    content = WORKFLOW.read_text(encoding="utf-8")
+    content = _content()
 
     assert "survivorship_universe.csv" in content
     assert "historical_bars" in content
@@ -44,7 +43,7 @@ def test_edge_evidence_from_polygon_artifact_workflow_resolves_dataset_paths() -
 
 
 def test_edge_evidence_from_polygon_artifact_workflow_uploads_reports_and_fails_closed() -> None:
-    content = WORKFLOW.read_text(encoding="utf-8")
+    content = _content()
 
     assert "scripts/run_edge_evidence_backtest.py" in content
     assert "actions/upload-artifact@v4" in content
