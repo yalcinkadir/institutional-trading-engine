@@ -10,10 +10,22 @@ on:
         description: "Combined artifact name pattern"
         required: false
         default: "polygon-edge-runtime-dataset-combined*"
+      generate_plans:
+        description: "Generate historical trade plans from downloaded Polygon bars before backtest"
+        required: false
+        default: "true"
       plans_path:
         description: "Historical trade plans JSON path"
         required: false
         default: "data/trade_plans/historical_trade_plans.json"
+      max_generated_plans:
+        description: "Maximum generated historical trade plans"
+        required: false
+        default: "5000"
+      max_plans_per_symbol:
+        description: "Maximum generated plans per symbol"
+        required: false
+        default: "3"
       as_of:
         description: "Universe validation as-of date"
         required: false
@@ -82,6 +94,17 @@ jobs:
           echo "Using universe: $UNIVERSE"
           echo "Using bars root: $BARS_ROOT"
 
+      - name: Generate historical trade plans
+        if: inputs.generate_plans == 'true'
+        run: |
+          python scripts/generate_historical_trade_plans.py \
+            --bars-root "$POLYGON_EDGE_BARS_ROOT" \
+            --output "${{ inputs.plans_path }}" \
+            --max-plans "${{ inputs.max_generated_plans }}" \
+            --max-plans-per-symbol "${{ inputs.max_plans_per_symbol }}" \
+            --min-history 60 \
+            --lookahead-days "${{ inputs.max_bars_per_plan }}"
+
       - name: Run edge evidence backtest
         id: edge_backtest
         continue-on-error: true
@@ -95,6 +118,14 @@ jobs:
             --minimum-assets "${{ inputs.minimum_assets }}" \
             --oos-split-date "${{ inputs.oos_split_date }}" \
             --max-bars-per-plan "${{ inputs.max_bars_per_plan }}"
+
+      - name: Upload generated trade plans
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-historical-trade-plans
+          path: ${{ inputs.plans_path }}
+          if-no-files-found: warn
 
       - name: Upload edge evidence reports
         if: always()
