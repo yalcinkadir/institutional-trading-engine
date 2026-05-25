@@ -17,6 +17,25 @@ def _losing_records(date_value: str, count: int) -> list[dict[str, object]]:
     return [{"exit_date": date_value, "result_r": -1.0} for _ in range(count)]
 
 
+def _edge_config(
+    *,
+    min_total_trades: int = 1,
+    min_expectancy_r: float = -10,
+    min_profit_factor: float = 0,
+    max_drawdown_limit: float = 10,
+    min_sharpe_ratio: float = -10,
+) -> HistoricalEdgeValidationConfig:
+    return HistoricalEdgeValidationConfig(
+        min_total_trades=min_total_trades,
+        min_expectancy_r=min_expectancy_r,
+        min_profit_factor=min_profit_factor,
+        max_drawdown_limit=max_drawdown_limit,
+        min_sharpe_ratio=min_sharpe_ratio,
+        min_deflated_sharpe_probability=0.0,
+        bootstrap_iterations=100,
+    )
+
+
 def test_default_regime_phases_cover_required_market_periods() -> None:
     phases = default_regime_phases()
 
@@ -39,7 +58,7 @@ def test_records_are_assigned_to_correct_phases() -> None:
         {"exit_date": "2022-06-01", "result_r": -1.0},
         {"exit_date": "2023-07-01", "result_r": 1.0},
     ]
-    config = HistoricalEdgeValidationConfig(min_total_trades=1, min_expectancy_r=-10, min_profit_factor=0, max_drawdown_limit=10, min_sharpe_ratio=-10)
+    config = _edge_config()
 
     report = build_regime_phase_backtest_matrix(records, config=config, required_passing_phases=1)
 
@@ -67,11 +86,10 @@ def test_matrix_passes_when_at_least_three_phases_pass() -> None:
     records += _winning_records("2021-03-15", 3)
     records += _losing_records("2022-06-01", 3)
     records += _losing_records("2023-06-01", 3)
-    config = HistoricalEdgeValidationConfig(
+    config = _edge_config(
         min_total_trades=3,
         min_expectancy_r=0.5,
         min_profit_factor=1.0,
-        max_drawdown_limit=10,
         min_sharpe_ratio=0.0,
     )
 
@@ -89,11 +107,10 @@ def test_matrix_fails_when_fewer_than_three_phases_pass() -> None:
     records += _losing_records("2021-03-15", 3)
     records += _losing_records("2022-06-01", 3)
     records += _losing_records("2023-06-01", 3)
-    config = HistoricalEdgeValidationConfig(
+    config = _edge_config(
         min_total_trades=3,
         min_expectancy_r=0.5,
         min_profit_factor=1.0,
-        max_drawdown_limit=10,
         min_sharpe_ratio=0.0,
     )
 
@@ -105,7 +122,7 @@ def test_matrix_fails_when_fewer_than_three_phases_pass() -> None:
 
 def test_fallback_date_fields_are_supported() -> None:
     records = [{"signal_date": "2020-06-01", "r_multiple": 1.0}]
-    config = HistoricalEdgeValidationConfig(min_total_trades=1, min_expectancy_r=-10, min_profit_factor=0, max_drawdown_limit=10, min_sharpe_ratio=-10)
+    config = _edge_config()
 
     report = build_regime_phase_backtest_matrix(records, config=config, result_field="result_r", required_passing_phases=1)
 
@@ -117,7 +134,7 @@ def test_fallback_date_fields_are_supported() -> None:
 def test_render_markdown_contains_phase_table() -> None:
     report = build_regime_phase_backtest_matrix(
         _winning_records("2019-06-01", 1),
-        config=HistoricalEdgeValidationConfig(min_total_trades=1, min_expectancy_r=-10, min_profit_factor=0, max_drawdown_limit=10, min_sharpe_ratio=-10),
+        config=_edge_config(),
         required_passing_phases=1,
     )
 
@@ -131,7 +148,7 @@ def test_render_markdown_contains_phase_table() -> None:
 def test_write_regime_phase_matrix_report(tmp_path) -> None:
     report = build_regime_phase_backtest_matrix(
         _winning_records("2019-06-01", 1),
-        config=HistoricalEdgeValidationConfig(min_total_trades=1, min_expectancy_r=-10, min_profit_factor=0, max_drawdown_limit=10, min_sharpe_ratio=-10),
+        config=_edge_config(),
         required_passing_phases=1,
     )
     json_path = tmp_path / "matrix.json"
