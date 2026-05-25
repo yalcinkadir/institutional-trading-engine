@@ -92,9 +92,14 @@ Start only after Phase B and C produce credible evidence.
 | E6 | Add hierarchical risk parity allocation | P2 | Medium | Planned |
 | E7 | Build an audit dashboard for evidence, drift, risk and execution quality | P2 | Medium | Planned |
 
+## Recently completed evidence-visibility work
+
+- Edge-evidence diagnostics summary artifacts: done.
+- Edge-evidence workflow log snapshot: done.
+
 ## Current execution focus
 
-A3 and A4 are complete. The next implementation step is A5: replace the current linear slippage heuristic with a square-root impact model plus regime multipliers. That is the correct next move because execution cost realism directly affects whether simulated edge survives contact with the market.
+A3 and A4 are complete. Edge-evidence diagnostics are visible in artifacts and workflow logs. The next implementation step is A5: replace the current linear slippage heuristic with a square-root impact model plus regime multipliers. That is the correct next move because execution cost realism directly affects whether simulated edge survives contact with the market.
 
 ## Do not do yet
 
