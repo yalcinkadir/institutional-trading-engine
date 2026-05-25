@@ -9,12 +9,18 @@ from __future__ import annotations
 
 import argparse
 import csv
+import logging
 import os
 import time
 from pathlib import Path
 from typing import Any
 
 import requests
+
+from src.observability.structured_logging import configure_json_logging, emit_structured_log
+
+LOGGER = logging.getLogger("polygon.universe")
+COMPONENT = "polygon_universe_builder"
 
 COLUMNS = [
     "symbol",
@@ -52,12 +58,49 @@ def _with_api_key(params: dict[str, Any] | None, token: str) -> dict[str, Any]:
 
 def _fetch_json(session: requests.Session, url: str, params: dict[str, Any] | None, token: str) -> dict[str, Any]:
     response = session.get(url, params=_with_api_key(params, token), timeout=30)
-    if response.status_code == 429:
+    status_code = int(response.status_code)
+    if status_code == 429:
+        emit_structured_log(
+            LOGGER,
+            event="polygon_rate_limit",
+            level="WARNING",
+            component=COMPONENT,
+            url=url,
+            status_code=status_code,
+        )
         raise RuntimeError("rate limit reached")
-    response.raise_for_status()
+    try:
+        response.raise_for_status()
+    except Exception:
+        emit_structured_log(
+            LOGGER,
+            event="polygon_http_error",
+            level="ERROR",
+            component=COMPONENT,
+            url=url,
+            status_code=status_code,
+        )
+        raise
     payload = response.json()
     if not isinstance(payload, dict):
+        emit_structured_log(
+            LOGGER,
+            event="polygon_unexpected_payload",
+            level="ERROR",
+            component=COMPONENT,
+            url=url,
+            payload_type=type(payload).__name__,
+        )
         raise RuntimeError("unexpected JSON payload")
+    emit_structured_log(
+        LOGGER,
+        event="polygon_page_fetched",
+        component=COMPONENT,
+        url=url,
+        status_code=status_code,
+        result_count=len(payload.get("results") or []),
+        has_next_url=bool(payload.get("next_url")),
+    )
     return payload
 
 
@@ -71,7 +114,17 @@ def iter_tickers(session: requests.Session, *, market: str, sleep_seconds: float
         "sort": "ticker",
         "order": "asc",
     }
+    page = 0
     while url:
+        page += 1
+        emit_structured_log(
+            LOGGER,
+            event="polygon_ticker_page_request",
+            component=COMPONENT,
+            page=page,
+            market=market,
+            has_params=params is not None,
+        )
         payload = _fetch_json(session, url, params, credential)
         for item in payload.get("results") or []:
             if not isinstance(item, dict):
@@ -88,6 +141,13 @@ def iter_tickers(session: requests.Session, *, market: str, sleep_seconds: float
         url = str(payload.get("next_url") or "")
         params = None
         if url and sleep_seconds:
+            emit_structured_log(
+                LOGGER,
+                event="polygon_sleep_between_pages",
+                component=COMPONENT,
+                sleep_seconds=sleep_seconds,
+                next_page=page + 1,
+            )
             time.sleep(sleep_seconds)
 
 
@@ -99,6 +159,14 @@ def write_universe(args: argparse.Namespace) -> int:
     duplicates = 0
     seen_symbols: set[str] = set()
     max_symbols = args.max_symbols if args.max_symbols > 0 else None
+    emit_structured_log(
+        LOGGER,
+        event="polygon_universe_build_started",
+        component=COMPONENT,
+        output=str(args.output),
+        market=args.market,
+        max_symbols=args.max_symbols,
+    )
     with args.output.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=COLUMNS)
         writer.writeheader()
@@ -106,6 +174,13 @@ def write_universe(args: argparse.Namespace) -> int:
             symbol = ticker["symbol"]
             if symbol in seen_symbols:
                 duplicates += 1
+                emit_structured_log(
+                    LOGGER,
+                    event="polygon_duplicate_symbol_skipped",
+                    component=COMPONENT,
+                    symbol=symbol,
+                    duplicates=duplicates,
+                )
                 continue
             seen_symbols.add(symbol)
             if max_symbols is not None and count >= max_symbols:
@@ -128,15 +203,43 @@ def write_universe(args: argparse.Namespace) -> int:
             )
             count += 1
     if duplicates:
-        print(f"Skipped {duplicates} duplicate Polygon symbols")
+        emit_structured_log(
+            LOGGER,
+            event="polygon_duplicate_symbols_summary",
+            component=COMPONENT,
+            duplicates=duplicates,
+        )
+    emit_structured_log(
+        LOGGER,
+        event="polygon_universe_build_completed",
+        component=COMPONENT,
+        output=str(args.output),
+        symbols_written=count,
+        duplicates=duplicates,
+    )
     return count
 
 
 def main() -> int:
+    configure_json_logging()
     args = parse_args()
     count = write_universe(args)
-    print(f"Wrote {count} active symbols to {args.output}")
+    emit_structured_log(
+        LOGGER,
+        event="polygon_universe_output_written",
+        component=COMPONENT,
+        output=str(args.output),
+        symbols_written=count,
+    )
     if count < 500:
+        emit_structured_log(
+            LOGGER,
+            event="polygon_universe_coverage_failed",
+            level="ERROR",
+            component=COMPONENT,
+            symbols_written=count,
+            minimum_required=500,
+        )
         raise SystemExit("Polygon universe has fewer than 500 symbols")
     return 0
 
