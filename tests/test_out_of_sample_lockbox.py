@@ -25,17 +25,30 @@ def _versioned_records(date_value: str, result_r: float, count: int, version: st
     ]
 
 
+def _edge_config(
+    *,
+    min_total_trades: int = 2,
+    min_expectancy_r: float = 0.1,
+    min_profit_factor: float = 1.0,
+    max_drawdown_limit: float = 10,
+    min_sharpe_ratio: float = -10,
+) -> HistoricalEdgeValidationConfig:
+    return HistoricalEdgeValidationConfig(
+        min_total_trades=min_total_trades,
+        min_expectancy_r=min_expectancy_r,
+        min_profit_factor=min_profit_factor,
+        max_drawdown_limit=max_drawdown_limit,
+        min_sharpe_ratio=min_sharpe_ratio,
+        min_deflated_sharpe_probability=0.0,
+        bootstrap_iterations=100,
+    )
+
+
 def _config() -> OutOfSampleLockboxConfig:
     return OutOfSampleLockboxConfig(
         split_date=DEFAULT_OOS_SPLIT_DATE,
         max_core_metric_degradation=0.20,
-        edge_config=HistoricalEdgeValidationConfig(
-            min_total_trades=2,
-            min_expectancy_r=0.1,
-            min_profit_factor=1.0,
-            max_drawdown_limit=10,
-            min_sharpe_ratio=-10,
-        ),
+        edge_config=_edge_config(),
     )
 
 
@@ -76,13 +89,7 @@ def test_lockbox_fails_when_expectancy_degrades_too_much() -> None:
 def test_lockbox_fails_closed_on_stale_threshold_version() -> None:
     config = OutOfSampleLockboxConfig(
         threshold_version="2026.05.01-old",
-        edge_config=HistoricalEdgeValidationConfig(
-            min_total_trades=2,
-            min_expectancy_r=0.1,
-            min_profit_factor=1.0,
-            max_drawdown_limit=10,
-            min_sharpe_ratio=-10,
-        ),
+        edge_config=_edge_config(),
     )
     records = _records("2023-06-01", 1.0, 4) + _records("2024-06-01", 1.0, 4)
 
@@ -98,13 +105,7 @@ def test_lockbox_fails_closed_on_stale_threshold_version() -> None:
 def test_lockbox_can_require_matching_record_threshold_versions() -> None:
     config = OutOfSampleLockboxConfig(
         require_matching_record_threshold_version=True,
-        edge_config=HistoricalEdgeValidationConfig(
-            min_total_trades=2,
-            min_expectancy_r=0.1,
-            min_profit_factor=1.0,
-            max_drawdown_limit=10,
-            min_sharpe_ratio=-10,
-        ),
+        edge_config=_edge_config(),
     )
     records = _versioned_records("2023-06-01", 1.0, 4, DEFAULT_THRESHOLDS.version) + _versioned_records(
         "2024-06-01", 1.0, 4, DEFAULT_THRESHOLDS.version
@@ -119,13 +120,7 @@ def test_lockbox_can_require_matching_record_threshold_versions() -> None:
 def test_lockbox_fails_closed_when_record_threshold_versions_are_missing() -> None:
     config = OutOfSampleLockboxConfig(
         require_matching_record_threshold_version=True,
-        edge_config=HistoricalEdgeValidationConfig(
-            min_total_trades=2,
-            min_expectancy_r=0.1,
-            min_profit_factor=1.0,
-            max_drawdown_limit=10,
-            min_sharpe_ratio=-10,
-        ),
+        edge_config=_edge_config(),
     )
     records = _records("2023-06-01", 1.0, 4) + _records("2024-06-01", 1.0, 4)
 
@@ -138,13 +133,7 @@ def test_lockbox_fails_closed_when_record_threshold_versions_are_missing() -> No
 def test_lockbox_fails_closed_when_record_threshold_versions_mismatch() -> None:
     config = OutOfSampleLockboxConfig(
         require_matching_record_threshold_version=True,
-        edge_config=HistoricalEdgeValidationConfig(
-            min_total_trades=2,
-            min_expectancy_r=0.1,
-            min_profit_factor=1.0,
-            max_drawdown_limit=10,
-            min_sharpe_ratio=-10,
-        ),
+        edge_config=_edge_config(),
     )
     records = _versioned_records("2023-06-01", 1.0, 4, DEFAULT_THRESHOLDS.version) + _versioned_records(
         "2024-06-01", 1.0, 4, "old-version"
@@ -183,13 +172,7 @@ def test_fallback_date_and_r_multiple_fields_are_supported() -> None:
         {"closed_at": "2024-06-01T12:00:00Z", "r_multiple": 1.0},
     ]
     config = OutOfSampleLockboxConfig(
-        edge_config=HistoricalEdgeValidationConfig(
-            min_total_trades=1,
-            min_expectancy_r=0.1,
-            min_profit_factor=0.0,
-            max_drawdown_limit=10,
-            min_sharpe_ratio=-10,
-        )
+        edge_config=_edge_config(min_total_trades=1, min_profit_factor=0.0)
     )
 
     report = build_out_of_sample_lockbox(records, config=config, result_field="result_r")
@@ -203,13 +186,7 @@ def test_drawdown_check_is_lower_is_better() -> None:
     report = build_out_of_sample_lockbox(
         _records("2023-06-01", 1.0, 2) + _records("2024-06-01", 1.0, 2),
         config=OutOfSampleLockboxConfig(
-            edge_config=HistoricalEdgeValidationConfig(
-                min_total_trades=1,
-                min_expectancy_r=-10,
-                min_profit_factor=0.0,
-                max_drawdown_limit=10,
-                min_sharpe_ratio=-10,
-            )
+            edge_config=_edge_config(min_total_trades=1, min_expectancy_r=-10, min_profit_factor=0.0)
         ),
     )
 
@@ -237,13 +214,7 @@ def test_render_markdown_contains_invalidation_reasons() -> None:
         _records("2023-06-01", 1.0, 2) + _records("2024-06-01", 1.0, 2),
         config=OutOfSampleLockboxConfig(
             threshold_version="old-version",
-            edge_config=HistoricalEdgeValidationConfig(
-                min_total_trades=1,
-                min_expectancy_r=-10,
-                min_profit_factor=0.0,
-                max_drawdown_limit=10,
-                min_sharpe_ratio=-10,
-            ),
+            edge_config=_edge_config(min_total_trades=1, min_expectancy_r=-10, min_profit_factor=0.0),
         ),
     )
 
