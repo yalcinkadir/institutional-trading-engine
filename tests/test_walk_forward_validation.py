@@ -26,6 +26,25 @@ def _records_for_months(start_year: int, start_month: int, months: int, result_r
     return records
 
 
+def _edge_config(
+    *,
+    min_total_trades: int = 1,
+    min_expectancy_r: float = 0.1,
+    min_profit_factor: float = 0.0,
+    max_drawdown_limit: float = 10,
+    min_sharpe_ratio: float = 0.0,
+) -> HistoricalEdgeValidationConfig:
+    return HistoricalEdgeValidationConfig(
+        min_total_trades=min_total_trades,
+        min_expectancy_r=min_expectancy_r,
+        min_profit_factor=min_profit_factor,
+        max_drawdown_limit=max_drawdown_limit,
+        min_sharpe_ratio=min_sharpe_ratio,
+        min_deflated_sharpe_probability=0.0,
+        bootstrap_iterations=100,
+    )
+
+
 def test_generate_walk_forward_cycles_uses_default_window_structure() -> None:
     cycles = generate_walk_forward_cycles(
         start_date=date(2019, 1, 1),
@@ -53,13 +72,7 @@ def test_walk_forward_validation_passes_when_required_cycles_pass() -> None:
     records = _records_for_months(2019, 1, 60, result_r=1.0)
     config = WalkForwardConfig(
         min_cycles=6,
-        edge_config=HistoricalEdgeValidationConfig(
-            min_total_trades=1,
-            min_expectancy_r=0.1,
-            min_profit_factor=0.0,
-            max_drawdown_limit=10,
-            min_sharpe_ratio=0.0,
-        ),
+        edge_config=_edge_config(),
     )
 
     report = build_walk_forward_validation(records, config=config, min_required_passing_cycles=6)
@@ -74,13 +87,7 @@ def test_walk_forward_validation_fails_with_insufficient_cycles() -> None:
     records = _records_for_months(2022, 1, 20, result_r=1.0)
     config = WalkForwardConfig(
         min_cycles=6,
-        edge_config=HistoricalEdgeValidationConfig(
-            min_total_trades=1,
-            min_expectancy_r=0.1,
-            min_profit_factor=0.0,
-            max_drawdown_limit=10,
-            min_sharpe_ratio=0.0,
-        ),
+        edge_config=_edge_config(),
     )
 
     report = build_walk_forward_validation(records, config=config)
@@ -96,13 +103,7 @@ def test_walk_forward_validation_assigns_training_and_test_records() -> None:
         test_months=2,
         step_months=2,
         min_cycles=1,
-        edge_config=HistoricalEdgeValidationConfig(
-            min_total_trades=1,
-            min_expectancy_r=-10,
-            min_profit_factor=0.0,
-            max_drawdown_limit=10,
-            min_sharpe_ratio=-10,
-        ),
+        edge_config=_edge_config(min_expectancy_r=-10, min_sharpe_ratio=-10),
     )
 
     report = build_walk_forward_validation(records, config=config, min_required_passing_cycles=1)
@@ -130,13 +131,7 @@ def test_fallback_date_field_is_supported() -> None:
         test_months=2,
         step_months=2,
         min_cycles=1,
-        edge_config=HistoricalEdgeValidationConfig(
-            min_total_trades=1,
-            min_expectancy_r=-10,
-            min_profit_factor=0.0,
-            max_drawdown_limit=10,
-            min_sharpe_ratio=-10,
-        ),
+        edge_config=_edge_config(min_expectancy_r=-10, min_sharpe_ratio=-10),
     )
 
     report = build_walk_forward_validation(records, config=config, result_field="result_r", min_required_passing_cycles=1)
@@ -152,13 +147,7 @@ def test_render_walk_forward_markdown_contains_cycle_table() -> None:
         test_months=2,
         step_months=2,
         min_cycles=1,
-        edge_config=HistoricalEdgeValidationConfig(
-            min_total_trades=1,
-            min_expectancy_r=-10,
-            min_profit_factor=0.0,
-            max_drawdown_limit=10,
-            min_sharpe_ratio=-10,
-        ),
+        edge_config=_edge_config(min_expectancy_r=-10, min_sharpe_ratio=-10),
     )
     report = build_walk_forward_validation(records, config=config, min_required_passing_cycles=1)
 
@@ -176,13 +165,7 @@ def test_write_walk_forward_report(tmp_path) -> None:
         test_months=2,
         step_months=2,
         min_cycles=1,
-        edge_config=HistoricalEdgeValidationConfig(
-            min_total_trades=1,
-            min_expectancy_r=-10,
-            min_profit_factor=0.0,
-            max_drawdown_limit=10,
-            min_sharpe_ratio=-10,
-        ),
+        edge_config=_edge_config(min_expectancy_r=-10, min_sharpe_ratio=-10),
     )
     report = build_walk_forward_validation(records, config=config, min_required_passing_cycles=1)
     json_path = tmp_path / "walk-forward.json"
