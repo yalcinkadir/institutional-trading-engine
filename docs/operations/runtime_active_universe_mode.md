@@ -85,10 +85,33 @@ failed degradation checks
 
 The main summary also includes a compact diagnostics snapshot.
 
-The historical report writer path and diagnostics artifacts are covered by:
+## Workflow log snapshot
+
+The GitHub Actions workflow prints a compact diagnostics snapshot directly into the job log when `edge-evidence-diagnostics.json` exists.
+
+The log snapshot includes:
+
+```text
+historical results
+wins / losses / breakeven
+win rate
+average R
+cumulative R
+walk-forward passing cycles
+walk-forward failing cycles
+OOS count
+failed OOS gates
+failed degradation checks
+failing walk-forward cycle samples
+```
+
+This keeps the fail-closed behavior while making the reason visible without downloading the artifact first.
+
+The historical report writer path, diagnostics artifacts and workflow log snapshot are covered by:
 
 ```bash
 pytest tests/test_edge_evidence_backtest.py -q
+pytest tests/test_edge_evidence_from_polygon_artifact_workflow.py -q
 ```
 
 ## Workflow default

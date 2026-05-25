@@ -43,6 +43,7 @@ Code quality is not trading edge. The system is promising enough to test serious
 - historical trade plan generation from Polygon bars
 - configurable survivorship audit mode for runtime Polygon artifacts
 - edge-evidence diagnostics for failed validation gates
+- edge-evidence diagnostics snapshot in workflow logs
 - edge-evidence execution from combined Polygon artifacts
 - event-risk placeholder metadata
 - optional SQLite runtime persistence
@@ -83,6 +84,7 @@ Market analysis
 → Execution realism adjustment
 → Out-of-sample validation lockbox
 → Edge-evidence diagnostics
+→ Edge-evidence workflow log snapshot
 → Paper trading journal / live observation v2
 → Final live readiness gate
 → Human review
@@ -210,10 +212,26 @@ failed OOS gates
 failed degradation checks
 ```
 
-The historical report writer and diagnostics path are covered by:
+The GitHub Actions workflow also prints a compact diagnostics snapshot directly into the job log when diagnostics are available:
+
+```text
+Historical results
+Wins / losses / breakeven
+Win rate
+Average R
+Cumulative R
+Walk-forward passing / failing cycles
+OOS count
+Failed OOS gates
+Failed degradation checks
+Failing walk-forward cycle samples
+```
+
+The historical report writer, diagnostics artifacts and workflow log snapshot are covered by:
 
 ```bash
 pytest tests/test_edge_evidence_backtest.py -q
+pytest tests/test_edge_evidence_from_polygon_artifact_workflow.py -q
 ```
 
 It fails closed when:
@@ -488,6 +506,7 @@ docs/roadmap/decision_quality_p36_p40.md
 | Historical Trade Plan Generator | Implemented |
 | Runtime Active Universe Audit Mode | Implemented |
 | Edge Evidence Diagnostics | Implemented |
+| Edge Evidence Workflow Log Snapshot | Implemented |
 | Edge Evidence From Polygon Artifact Workflow | Implemented |
 | Liquidity Filter | Implemented |
 | Forward Outcome Tracker | Implemented |
@@ -535,6 +554,7 @@ docs/roadmap/decision_quality_p36_p40.md
 - Historical trade plan generation from Polygon bars
 - Runtime active universe audit mode for exploratory Polygon artifacts
 - Edge evidence diagnostics summary
+- Edge evidence workflow log snapshot
 
 ### Edge-Evidence Phase: 3-6 months evidence collection
 
@@ -542,7 +562,7 @@ docs/roadmap/decision_quality_p36_p40.md
 - ingest 10+ years of historical bars
 - generate deterministic historical trade plans from runtime bars
 - run exploratory runtime-active-universe evidence on Polygon artifacts
-- use diagnostics reports to tune setup filters and validation thresholds transparently
+- use diagnostics reports and workflow log snapshots to tune setup filters and validation thresholds transparently
 - enrich universe with second-source delisted lifecycle data
 - run strict walk-forward validation across full history once point-in-time lifecycles are available
 - evaluate which setups pass in which regimes

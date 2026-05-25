@@ -124,6 +124,64 @@ jobs:
             --max-bars-per-plan "${{ inputs.max_bars_per_plan }}" \
             --survivorship-mode "${{ inputs.survivorship_mode }}"
 
+      - name: Print edge diagnostics snapshot
+        if: always()
+        run: |
+          if [ ! -f reports/edge_evidence/edge-evidence-diagnostics.json ]; then
+            echo "Edge diagnostics file not found. Backtest likely stopped before diagnostics were generated."
+            exit 0
+          fi
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path("reports/edge_evidence/edge-evidence-diagnostics.json")
+          diagnostics = json.loads(path.read_text(encoding="utf-8"))
+          historical = diagnostics.get("historical_results", {})
+          walk_forward = diagnostics.get("walk_forward", {})
+          oos = diagnostics.get("out_of_sample", {})
+
+          print("## Edge Evidence Diagnostics Snapshot")
+          print(f"Historical results: {historical.get('total', 0)}")
+          print(f"Wins/Losses/Breakeven: {historical.get('wins', 0)}/{historical.get('losses', 0)}/{historical.get('breakeven', 0)}")
+          print(f"Win rate: {float(historical.get('win_rate', 0.0)):.2%}")
+          print(f"Average R: {float(historical.get('average_r', 0.0)):.4f}")
+          print(f"Cumulative R: {float(historical.get('cumulative_r', 0.0)):.4f}")
+          print(f"Walk-forward passing cycles: {walk_forward.get('passing_cycles', 0)}/{walk_forward.get('generated_cycles', 0)}")
+          print(f"Walk-forward failing cycles: {walk_forward.get('failing_cycles', 0)}")
+          print(f"OOS count: {oos.get('out_of_sample_count', 0)}")
+          print("Failed OOS gates: " + ", ".join(oos.get("failed_oos_gates", []) or ["-"]))
+
+          failed_checks = oos.get("failed_degradation_checks", [])
+          if failed_checks:
+            print("Failed degradation checks:")
+            for check in failed_checks[:10]:
+              print(
+                f"- {check.get('metric')}: "
+                f"in_sample={check.get('in_sample_value')}, "
+                f"oos={check.get('out_of_sample_value')}, "
+                f"degradation={float(check.get('degradation', 0.0)):.2%}, "
+                f"max={float(check.get('max_allowed_degradation', 0.0)):.2%}"
+              )
+          else:
+            print("Failed degradation checks: -")
+
+          samples = walk_forward.get("failing_cycle_samples", [])
+          if samples:
+            print("Failing walk-forward cycle samples:")
+            for sample in samples[:5]:
+              print(
+                f"- cycle={sample.get('cycle')}, "
+                f"test_records={sample.get('test_records')}, "
+                f"expectancy_r={float(sample.get('expectancy_r', 0.0)):.4f}, "
+                f"profit_factor={sample.get('profit_factor')}, "
+                f"sharpe={float(sample.get('sharpe_ratio', 0.0)):.4f}, "
+                f"failed_gates={','.join(sample.get('failed_gates', []) or ['-'])}"
+              )
+          else:
+            print("Failing walk-forward cycle samples: -")
+          PY
+
       - name: Upload generated trade plans
         if: always()
         uses: actions/upload-artifact@v4
