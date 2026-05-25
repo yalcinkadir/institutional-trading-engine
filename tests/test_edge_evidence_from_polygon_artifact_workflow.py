@@ -65,6 +65,22 @@ def test_edge_evidence_from_polygon_artifact_workflow_passes_survivorship_mode()
     assert "runtime_active_universe" in content
 
 
+def test_edge_evidence_from_polygon_artifact_workflow_prints_diagnostics_snapshot() -> None:
+    content = _content()
+
+    assert "Print edge diagnostics snapshot" in content
+    assert "edge-evidence-diagnostics.json" in content
+    assert "Edge Evidence Diagnostics Snapshot" in content
+    assert "Historical results:" in content
+    assert "Average R:" in content
+    assert "Cumulative R:" in content
+    assert "Walk-forward passing cycles:" in content
+    assert "Walk-forward failing cycles:" in content
+    assert "Failed OOS gates:" in content
+    assert "Failed degradation checks:" in content
+    assert "Failing walk-forward cycle samples:" in content
+
+
 def test_edge_evidence_from_polygon_artifact_workflow_uploads_reports_and_fails_closed() -> None:
     content = _content()
 
