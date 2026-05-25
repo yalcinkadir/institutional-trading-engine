@@ -23,6 +23,8 @@ def test_positive_edge_passes_with_custom_thresholds() -> None:
         min_profit_factor=1.4,
         max_drawdown_limit=0.5,
         min_sharpe_ratio=0.1,
+        min_deflated_sharpe_probability=0.0,
+        bootstrap_iterations=100,
     )
 
     report = validate_historical_edge(records, config=config)
@@ -32,11 +34,12 @@ def test_positive_edge_passes_with_custom_thresholds() -> None:
     assert report.metrics.win_rate == pytest.approx(0.8)
     assert report.metrics.expectancy_r == pytest.approx(0.7)
     assert report.metrics.profit_factor == pytest.approx(8.0)
+    assert report.statistical_robustness is not None
 
 
 def test_insufficient_sample_size_fails() -> None:
     records = [{"result_r": 1.0}] * 5
-    config = HistoricalEdgeValidationConfig(min_total_trades=10)
+    config = HistoricalEdgeValidationConfig(min_total_trades=10, min_deflated_sharpe_probability=0.0)
 
     report = validate_historical_edge(records, config=config)
 
@@ -54,6 +57,7 @@ def test_negative_expectancy_and_low_profit_factor_fail() -> None:
         min_profit_factor=1.1,
         max_drawdown_limit=1.0,
         min_sharpe_ratio=-10,
+        min_deflated_sharpe_probability=0.0,
     )
 
     report = validate_historical_edge(records, config=config)
@@ -64,6 +68,49 @@ def test_negative_expectancy_and_low_profit_factor_fail() -> None:
     assert profit_gate.passed is False
     assert report.metrics.expectancy_r < 0
     assert report.metrics.profit_factor < 1.1
+
+
+def test_deflated_sharpe_gate_can_fail_many_trials() -> None:
+    records = [{"result_r": 1.0}] * 8 + [{"result_r": -0.5}] * 2
+    config = HistoricalEdgeValidationConfig(
+        min_total_trades=10,
+        min_expectancy_r=0.0,
+        min_profit_factor=1.0,
+        max_drawdown_limit=1.0,
+        min_sharpe_ratio=0.0,
+        min_deflated_sharpe_probability=0.99,
+        estimated_trials=10_000,
+        bootstrap_iterations=100,
+    )
+
+    report = validate_historical_edge(records, config=config)
+
+    gate = next(gate for gate in report.gates if gate.name == "deflated_sharpe_probability")
+    assert report.statistical_robustness is not None
+    assert gate.passed is False
+    assert report.passed is False
+
+
+def test_bootstrap_expectancy_lower_bound_gate_can_be_required() -> None:
+    records = [{"result_r": 1.0}] * 6 + [{"result_r": -1.0}] * 4
+    config = HistoricalEdgeValidationConfig(
+        min_total_trades=10,
+        min_expectancy_r=0.0,
+        min_profit_factor=1.0,
+        max_drawdown_limit=1.0,
+        min_sharpe_ratio=-10,
+        min_deflated_sharpe_probability=0.0,
+        require_positive_expectancy_ci_lower_bound=True,
+        bootstrap_iterations=300,
+        bootstrap_seed=13,
+    )
+
+    report = validate_historical_edge(records, config=config)
+
+    gate = next(gate for gate in report.gates if gate.name == "bootstrap_expectancy_lower_bound")
+    assert gate.value <= 0.0
+    assert gate.passed is False
+    assert report.passed is False
 
 
 def test_profit_factor_handles_no_losses() -> None:
@@ -92,6 +139,7 @@ def test_extracts_r_multiple_fallback() -> None:
         min_profit_factor=1.0,
         max_drawdown_limit=1.0,
         min_sharpe_ratio=-10,
+        min_deflated_sharpe_probability=0.0,
     )
 
     report = validate_historical_edge(records, config=config)
@@ -109,6 +157,7 @@ def test_render_markdown_contains_status_and_metrics() -> None:
             min_profit_factor=1.0,
             max_drawdown_limit=1.0,
             min_sharpe_ratio=-10,
+            min_deflated_sharpe_probability=0.0,
         ),
     )
 
@@ -117,6 +166,8 @@ def test_render_markdown_contains_status_and_metrics() -> None:
     assert "# Historical Edge Validation" in markdown
     assert "Total trades" in markdown
     assert "profit_factor" in markdown
+    assert "Statistical Robustness" in markdown
+    assert "Deflated Sharpe probability" in markdown
 
 
 def test_write_historical_edge_report(tmp_path) -> None:
@@ -128,6 +179,7 @@ def test_write_historical_edge_report(tmp_path) -> None:
             min_profit_factor=1.0,
             max_drawdown_limit=1.0,
             min_sharpe_ratio=-10,
+            min_deflated_sharpe_probability=0.0,
         ),
     )
     json_path = tmp_path / "edge.json"
@@ -137,4 +189,5 @@ def test_write_historical_edge_report(tmp_path) -> None:
 
     data = json.loads(json_path.read_text(encoding="utf-8"))
     assert data["metrics"]["total_trades"] == 2
+    assert data["statistical_robustness"]["expectancy_ci"]["metric"] == "expectancy_r"
     assert markdown_path.read_text(encoding="utf-8").startswith("# Historical Edge Validation")
