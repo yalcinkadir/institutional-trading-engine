@@ -73,6 +73,28 @@ def test_edge_backtest_fails_closed_when_universe_too_small(tmp_path: Path) -> N
     assert (tmp_path / "reports" / "edge-evidence-summary.json").exists()
 
 
+def test_edge_backtest_fails_closed_when_trade_plans_file_is_missing(tmp_path: Path) -> None:
+    universe_path = tmp_path / "universe.csv"
+    bars_root = tmp_path / "bars"
+    _write_universe(universe_path, symbols=["TEST"])
+    _write_bars(bars_root, "TEST")
+
+    report = run_edge_evidence_backtest(
+        EdgeEvidenceBacktestConfig(
+            universe_path=universe_path,
+            trade_plans_path=tmp_path / "missing-plans.json",
+            bars_root=bars_root,
+            output_dir=tmp_path / "reports",
+            minimum_tradeable_count=1,
+        )
+    )
+
+    assert report.passed is False
+    assert report.trade_plan_count == 0
+    assert "no_trade_plans_loaded" in report.reasons
+    assert (tmp_path / "reports" / "edge-evidence-summary.md").exists()
+
+
 def test_edge_backtest_runs_when_gates_pass_with_relaxed_minimum(tmp_path: Path) -> None:
     universe_path = tmp_path / "universe.csv"
     plans_path = tmp_path / "plans.json"
