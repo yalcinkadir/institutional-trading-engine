@@ -1,7 +1,7 @@
 # Institutional Trading Engine Roadmap
 
 Status date: 2026-05-25  
-Current state: P36-P47 implemented, CI green, live trading is not authorized by code.
+Current state: Phase A Evidence Hygiene implemented and CI-green. P36-P47 validation stack implemented. Live trading is not authorized by code.
 
 ## Strategic direction
 
@@ -38,15 +38,16 @@ Goal: make the research foundation harder to fool.
 
 ## Phase A Stabilization Gate
 
-Phase A implementation is complete, but Phase B must not start until the stabilization gate is green.
+Phase A is now implementation-complete and CI-validated.
 
 | Gate | Status |
 |---|---|
-| Add Phase A tests to CI workflow | Next |
-| Execute CI test run | Planned |
-| Fix failures if any | Planned |
-| Final README update | Planned |
-| Approve Phase B start | Planned |
+| Add Phase A tests to CI workflow | Done |
+| Execute CI test run | Done |
+| Fix failures if any | Done |
+| Full regression suite green | Done |
+| Final README update | Done |
+| Approve Phase B start | Ready |
 
 ## Phase B — Real Forward Evidence
 
@@ -55,7 +56,7 @@ Goal: prove whether the rule-based system has live-observable edge before adding
 
 | ID | Task | Priority | Impact | Status |
 |---|---|---:|---:|---|
-| B1 | Run 3-6 months of paper observation with daily reconciliation | P0 | Critical | Planned |
+| B1 | Run 3-6 months of paper observation with daily reconciliation | P0 | Critical | Next |
 | B2 | Add live/paper vs. backtest drift detection | P0 | High | Planned |
 | B3 | Add SPRT or equivalent sequential test for edge decay | P1 | High | Planned |
 | B4 | Add regime-change detection using HMM or BOCPD-style logic | P1 | High | Planned |
@@ -117,10 +118,12 @@ Start only after Phase B and C produce credible evidence.
 - Phase A changelog and setup notes refresh: done.
 - Quarterly secrets rotation policy: done.
 - Phase A CI stabilization plan: done.
+- Phase A tests in CI: done.
+- Full regression suite green after stabilization fixes: done.
 
 ## Current execution focus
 
-A3-A10 are complete. The next implementation step is the Phase A stabilization gate: add the Phase A tests to CI, execute the workflow, fix failures if needed, then finalize README before Phase B starts.
+Phase A is complete and validated. The next implementation step is Phase B1: prepare and run 3-6 months of paper observation with daily reconciliation. Phase B must remain observation-only until there is enough forward evidence.
 
 ## Do not do yet
 
@@ -128,4 +131,4 @@ A3-A10 are complete. The next implementation step is the Phase A stabilization g
 - Do not add crypto or forex.
 - Do not add ML before rule-based edge is statistically significant.
 - Do not open or reuse lockbox evidence casually.
-- Do not start Phase B until the Phase A CI stabilization gate is green.
+- Do not skip forward paper observation.
