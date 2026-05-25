@@ -56,11 +56,36 @@ reports/edge_evidence/walk-forward-validation.json
 reports/edge_evidence/walk-forward-validation.md
 reports/edge_evidence/out-of-sample-lockbox.json
 reports/edge_evidence/out-of-sample-lockbox.md
+reports/edge_evidence/edge-evidence-diagnostics.json
+reports/edge_evidence/edge-evidence-diagnostics.md
 reports/edge_evidence/edge-evidence-summary.json
 reports/edge_evidence/edge-evidence-summary.md
 ```
 
-The historical report writer import is covered by:
+## Diagnostics summary
+
+`edge-evidence-diagnostics.json` and `edge-evidence-diagnostics.md` explain why evidence gates failed.
+
+They include:
+
+```text
+historical result count
+wins / losses / breakeven
+win rate
+average R
+cumulative R
+top result reasons
+walk-forward generated / passing / failing cycles
+walk-forward failing cycle samples
+out-of-sample in-sample and OOS counts
+out-of-sample metrics
+failed OOS gates
+failed degradation checks
+```
+
+The main summary also includes a compact diagnostics snapshot.
+
+The historical report writer path and diagnostics artifacts are covered by:
 
 ```bash
 pytest tests/test_edge_evidence_backtest.py -q

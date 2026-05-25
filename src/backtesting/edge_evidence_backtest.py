@@ -8,6 +8,7 @@ or when required historical bars are missing.
 from __future__ import annotations
 
 import json
+from collections import Counter
 from dataclasses import asdict, dataclass, field
 from datetime import date
 from pathlib import Path
@@ -23,11 +24,13 @@ from src.data.survivorship_universe import (
 )
 from src.validation.out_of_sample_lockbox import (
     OutOfSampleLockboxConfig,
+    OutOfSampleLockboxReport,
     build_out_of_sample_lockbox,
     write_out_of_sample_lockbox_report,
 )
 from src.validation.walk_forward_validation import (
     WalkForwardConfig,
+    WalkForwardValidationReport,
     build_walk_forward_validation,
     write_walk_forward_report,
 )
@@ -61,6 +64,7 @@ class EdgeEvidenceBacktestReport:
     output_dir: str = ""
     artifacts: dict[str, str] = field(default_factory=dict)
     survivorship_mode: SurvivorshipMode = "strict"
+    diagnostics: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -75,6 +79,7 @@ class EdgeEvidenceBacktestReport:
             "out_of_sample_passed": self.out_of_sample_passed,
             "output_dir": self.output_dir,
             "artifacts": self.artifacts,
+            "diagnostics": self.diagnostics,
         }
 
 
@@ -218,6 +223,15 @@ def run_edge_evidence_backtest(config: EdgeEvidenceBacktestConfig) -> EdgeEviden
         markdown_path=oos_md,
     )
 
+    diagnostics = build_edge_evidence_diagnostics(
+        validation_records,
+        walk_forward_report=walk_forward_report,
+        oos_report=oos_report,
+    )
+    diagnostics_json = config.output_dir / "edge-evidence-diagnostics.json"
+    diagnostics_md = config.output_dir / "edge-evidence-diagnostics.md"
+    _write_diagnostics(diagnostics, json_path=diagnostics_json, markdown_path=diagnostics_md)
+
     if not walk_forward_report.passed:
         reasons.append("walk_forward_failed")
     if not oos_report.passed:
@@ -234,6 +248,7 @@ def run_edge_evidence_backtest(config: EdgeEvidenceBacktestConfig) -> EdgeEviden
         out_of_sample_passed=oos_report.passed,
         output_dir=str(config.output_dir),
         survivorship_mode=config.survivorship_mode,
+        diagnostics=diagnostics,
         artifacts={
             "summary_json": str(summary_json),
             "summary_md": str(summary_md),
@@ -243,10 +258,81 @@ def run_edge_evidence_backtest(config: EdgeEvidenceBacktestConfig) -> EdgeEviden
             "walk_forward_md": str(walk_forward_md),
             "out_of_sample_json": str(oos_json),
             "out_of_sample_md": str(oos_md),
+            "diagnostics_json": str(diagnostics_json),
+            "diagnostics_md": str(diagnostics_md),
         },
     )
     _write_summary(report, json_path=summary_json, markdown_path=summary_md)
     return report
+
+
+def build_edge_evidence_diagnostics(
+    validation_records: list[dict[str, Any]],
+    *,
+    walk_forward_report: WalkForwardValidationReport,
+    oos_report: OutOfSampleLockboxReport,
+) -> dict[str, Any]:
+    result_values = [float(record.get("result_r") or 0.0) for record in validation_records]
+    positive = [value for value in result_values if value > 0]
+    negative = [value for value in result_values if value < 0]
+    breakeven = len(result_values) - len(positive) - len(negative)
+    failure_reasons = Counter(str(record.get("reason") or "unknown") for record in validation_records)
+
+    failing_cycles = [result for result in walk_forward_report.cycle_results if not result.passed]
+    failed_degradation_checks = [check for check in oos_report.degradation_checks if not check.passed]
+
+    return {
+        "historical_results": {
+            "total": len(result_values),
+            "wins": len(positive),
+            "losses": len(negative),
+            "breakeven": breakeven,
+            "win_rate": _safe_ratio(len(positive), len(result_values)),
+            "average_r": _rounded(sum(result_values) / len(result_values)) if result_values else 0.0,
+            "cumulative_r": _rounded(sum(result_values)),
+            "top_result_reasons": dict(failure_reasons.most_common(10)),
+        },
+        "walk_forward": {
+            "passed": walk_forward_report.passed,
+            "generated_cycles": walk_forward_report.generated_cycles,
+            "passing_cycles": walk_forward_report.passing_cycles,
+            "failing_cycles": len(failing_cycles),
+            "min_required_cycles": walk_forward_report.min_required_cycles,
+            "min_required_passing_cycles": walk_forward_report.min_required_passing_cycles,
+            "unassigned_records": walk_forward_report.unassigned_records,
+            "failing_cycle_samples": [
+                {
+                    "cycle": result.cycle.cycle_number,
+                    "test_records": result.test_records,
+                    "expectancy_r": result.validation_report.metrics.expectancy_r,
+                    "profit_factor": result.validation_report.metrics.profit_factor,
+                    "sharpe_ratio": result.validation_report.metrics.sharpe_ratio,
+                    "failed_gates": [gate.name for gate in result.validation_report.gates if not gate.passed],
+                }
+                for result in failing_cycles[:10]
+            ],
+        },
+        "out_of_sample": {
+            "passed": oos_report.passed,
+            "split_date": oos_report.split_date,
+            "in_sample_count": oos_report.in_sample_count,
+            "out_of_sample_count": oos_report.out_of_sample_count,
+            "unassigned_records": oos_report.unassigned_records,
+            "in_sample_metrics": oos_report.in_sample_report.metrics.to_dict(),
+            "out_of_sample_metrics": oos_report.out_of_sample_report.metrics.to_dict(),
+            "failed_degradation_checks": [
+                {
+                    "metric": check.metric,
+                    "in_sample_value": check.in_sample_value,
+                    "out_of_sample_value": check.out_of_sample_value,
+                    "degradation": check.degradation,
+                    "max_allowed_degradation": check.max_allowed_degradation,
+                }
+                for check in failed_degradation_checks
+            ],
+            "failed_oos_gates": [gate.name for gate in oos_report.out_of_sample_report.gates if not gate.passed],
+        },
+    }
 
 
 def _result_to_validation_record(result: Any) -> dict[str, Any]:
@@ -256,6 +342,98 @@ def _result_to_validation_record(result: Any) -> dict[str, Any]:
         "result_r": float(payload.get("r_multiple") or 0.0),
         "exit_date": payload.get("exit_date") or payload.get("signal_date"),
     }
+
+
+def _write_diagnostics(diagnostics: dict[str, Any], *, json_path: Path, markdown_path: Path) -> None:
+    json_path.parent.mkdir(parents=True, exist_ok=True)
+    markdown_path.parent.mkdir(parents=True, exist_ok=True)
+    json_path.write_text(json.dumps(diagnostics, indent=2), encoding="utf-8")
+    markdown_path.write_text(_render_diagnostics(diagnostics), encoding="utf-8")
+
+
+def _render_diagnostics(diagnostics: dict[str, Any]) -> str:
+    historical = diagnostics["historical_results"]
+    walk_forward = diagnostics["walk_forward"]
+    oos = diagnostics["out_of_sample"]
+    lines = [
+        "# Edge Evidence Diagnostics",
+        "",
+        "## Historical Results",
+        "",
+        f"- Total results: **{historical['total']}**",
+        f"- Wins / losses / breakeven: **{historical['wins']} / {historical['losses']} / {historical['breakeven']}**",
+        f"- Win rate: **{historical['win_rate']:.2%}**",
+        f"- Average R: **{historical['average_r']:.4f}**",
+        f"- Cumulative R: **{historical['cumulative_r']:.4f}**",
+        "",
+        "### Top Result Reasons",
+        "",
+    ]
+    for reason, count in historical["top_result_reasons"].items():
+        lines.append(f"- {reason}: {count}")
+
+    lines.extend(
+        [
+            "",
+            "## Walk-Forward Diagnostics",
+            "",
+            f"- Status: **{'PASS' if walk_forward['passed'] else 'FAIL'}**",
+            f"- Generated cycles: **{walk_forward['generated_cycles']}**",
+            f"- Passing cycles: **{walk_forward['passing_cycles']}**",
+            f"- Failing cycles: **{walk_forward['failing_cycles']}**",
+            f"- Minimum required cycles: **{walk_forward['min_required_cycles']}**",
+            f"- Minimum required passing cycles: **{walk_forward['min_required_passing_cycles']}**",
+            f"- Unassigned records: **{walk_forward['unassigned_records']}**",
+            "",
+            "### Failing Cycle Samples",
+            "",
+            "| Cycle | Test Records | Expectancy R | Profit Factor | Sharpe | Failed Gates |",
+            "|---:|---:|---:|---:|---:|---|",
+        ]
+    )
+    for item in walk_forward["failing_cycle_samples"]:
+        lines.append(
+            f"| {item['cycle']} | {item['test_records']} | {item['expectancy_r']:.4f} | "
+            f"{_format_number(item['profit_factor'])} | {item['sharpe_ratio']:.4f} | "
+            f"{', '.join(item['failed_gates']) or '-'} |"
+        )
+
+    in_metrics = oos["in_sample_metrics"]
+    out_metrics = oos["out_of_sample_metrics"]
+    lines.extend(
+        [
+            "",
+            "## Out-of-Sample Diagnostics",
+            "",
+            f"- Status: **{'PASS' if oos['passed'] else 'FAIL'}**",
+            f"- Split date: `{oos['split_date']}`",
+            f"- In-sample count: **{oos['in_sample_count']}**",
+            f"- Out-of-sample count: **{oos['out_of_sample_count']}**",
+            f"- Unassigned records: **{oos['unassigned_records']}**",
+            "",
+            "| Segment | Trades | Expectancy R | Profit Factor | Max DD R | Sharpe |",
+            "|---|---:|---:|---:|---:|---:|",
+            _diagnostic_metrics_row("in_sample", in_metrics),
+            _diagnostic_metrics_row("out_of_sample", out_metrics),
+            "",
+            "### Failed OOS Gates",
+            "",
+        ]
+    )
+    failed_oos_gates = oos["failed_oos_gates"]
+    lines.append("- " + (", ".join(failed_oos_gates) if failed_oos_gates else "-"))
+
+    lines.extend(["", "### Failed Degradation Checks", ""])
+    if oos["failed_degradation_checks"]:
+        for item in oos["failed_degradation_checks"]:
+            lines.append(
+                f"- {item['metric']}: in-sample={_format_number(item['in_sample_value'])}, "
+                f"OOS={_format_number(item['out_of_sample_value'])}, "
+                f"degradation={item['degradation']:.2%}, max={item['max_allowed_degradation']:.2%}"
+            )
+    else:
+        lines.append("- -")
+    return "\n".join(lines).rstrip() + "\n"
 
 
 def _write_summary(report: EdgeEvidenceBacktestReport, *, json_path: Path, markdown_path: Path) -> None:
@@ -283,9 +461,51 @@ def _render_summary(report: EdgeEvidenceBacktestReport) -> str:
         f"- Walk-forward: {'PASS' if report.walk_forward_passed else 'FAIL'}",
         f"- Out-of-sample lockbox: {'PASS' if report.out_of_sample_passed else 'FAIL'}",
         "",
-        "## Artifacts",
+        "## Diagnostics Snapshot",
         "",
     ]
+    if report.diagnostics:
+        historical = report.diagnostics.get("historical_results", {})
+        walk_forward = report.diagnostics.get("walk_forward", {})
+        oos = report.diagnostics.get("out_of_sample", {})
+        lines.extend(
+            [
+                f"- Average R: {_format_number(historical.get('average_r', 0.0))}",
+                f"- Win rate: {float(historical.get('win_rate', 0.0)):.2%}",
+                f"- Walk-forward cycles: {walk_forward.get('passing_cycles', 0)}/{walk_forward.get('generated_cycles', 0)} passing",
+                f"- OOS records: {oos.get('out_of_sample_count', 0)}",
+                "",
+            ]
+        )
+    else:
+        lines.extend(["- -", ""])
+    lines.extend(["## Artifacts", ""])
     for name, path in sorted(report.artifacts.items()):
         lines.append(f"- {name}: `{path}`")
     return "\n".join(lines).rstrip() + "\n"
+
+
+def _diagnostic_metrics_row(label: str, metrics: dict[str, Any]) -> str:
+    return (
+        f"| {label} | {metrics.get('total_trades', 0)} | {_format_number(metrics.get('expectancy_r', 0.0))} | "
+        f"{_format_number(metrics.get('profit_factor', 0.0))} | {_format_number(metrics.get('max_drawdown', 0.0))} | "
+        f"{_format_number(metrics.get('sharpe_ratio', 0.0))} |"
+    )
+
+
+def _safe_ratio(numerator: int, denominator: int) -> float:
+    return round(numerator / denominator, 6) if denominator else 0.0
+
+
+def _rounded(value: float) -> float:
+    return round(float(value), 6)
+
+
+def _format_number(value: Any) -> str:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return str(value)
+    if number == float("inf"):
+        return "inf"
+    return f"{number:.4f}"
