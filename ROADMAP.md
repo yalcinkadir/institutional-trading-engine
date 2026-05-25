@@ -31,8 +31,8 @@ Goal: make the research foundation harder to fool.
 | A4 | Invalidate backtest/lockbox evidence when threshold versions change | P1 | High | Done |
 | A5 | Replace linear slippage heuristic with square-root impact plus regime multipliers | P1 | High | Done |
 | A6 | Add Deflated Sharpe Ratio and bootstrap confidence intervals to edge validation | P1 | High | Done |
-| A7 | Convert Polygon client retry/rate-limit output to structured logging | P2 | Medium | Next |
-| A8 | Add cache locking for `.cache/polygon` writes | P2 | Medium | Planned |
+| A7 | Convert Polygon client retry/rate-limit output to structured logging | P2 | Medium | Done |
+| A8 | Add cache locking for `.cache/polygon` writes | P2 | Medium | Next |
 | A9 | Update `CHANGELOG.md` and `SETUP_NOTES.md` for P47 readiness state | P2 | Medium | Planned |
 | A10 | Document quarterly secrets rotation policy | P2 | Medium | Planned |
 
@@ -100,10 +100,11 @@ Start only after Phase B and C produce credible evidence.
 - Threshold-aware lockbox invalidation: done.
 - Square-root regime-aware slippage model: done.
 - Deflated Sharpe probability and bootstrap confidence intervals: done.
+- Polygon structured logging: done.
 
 ## Current execution focus
 
-A3, A4, A5 and A6 are complete. The next implementation step is A7: convert Polygon client retry/rate-limit output to structured logging. That is lower strategic impact than survivorship-safe data, but it improves observability and removes operational noise before larger data runs.
+A3, A4, A5, A6 and A7 are complete. The next implementation step is A8: add cache locking for `.cache/polygon` writes. That reduces corruption risk during repeated or parallel data runs.
 
 ## Do not do yet
 
