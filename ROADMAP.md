@@ -34,7 +34,19 @@ Goal: make the research foundation harder to fool.
 | A7 | Convert Polygon client retry/rate-limit output to structured logging | P2 | Medium | Done |
 | A8 | Add cache locking for `.cache/polygon` writes | P2 | Medium | Done |
 | A9 | Update `CHANGELOG.md` and `SETUP_NOTES.md` for P47 readiness state | P2 | Medium | Done |
-| A10 | Document quarterly secrets rotation policy | P2 | Medium | Next |
+| A10 | Document quarterly secrets rotation policy | P2 | Medium | Done |
+
+## Phase A Stabilization Gate
+
+Phase A implementation is complete, but Phase B must not start until the stabilization gate is green.
+
+| Gate | Status |
+|---|---|
+| Add Phase A tests to CI workflow | Next |
+| Execute CI test run | Planned |
+| Fix failures if any | Planned |
+| Final README update | Planned |
+| Approve Phase B start | Planned |
 
 ## Phase B — Real Forward Evidence
 
@@ -103,10 +115,12 @@ Start only after Phase B and C produce credible evidence.
 - Polygon structured logging: done.
 - Polygon cache locking: done.
 - Phase A changelog and setup notes refresh: done.
+- Quarterly secrets rotation policy: done.
+- Phase A CI stabilization plan: done.
 
 ## Current execution focus
 
-A3, A4, A5, A6, A7, A8 and A9 are complete. The next implementation step is A10: document quarterly secrets rotation policy. After A10, run the Phase A CI stabilization pass before Phase B starts.
+A3-A10 are complete. The next implementation step is the Phase A stabilization gate: add the Phase A tests to CI, execute the workflow, fix failures if needed, then finalize README before Phase B starts.
 
 ## Do not do yet
 
@@ -114,4 +128,4 @@ A3, A4, A5, A6, A7, A8 and A9 are complete. The next implementation step is A10:
 - Do not add crypto or forex.
 - Do not add ML before rule-based edge is statistically significant.
 - Do not open or reuse lockbox evidence casually.
-- Do not add more features on top of a non-survivorship-safe data foundation.
+- Do not start Phase B until the Phase A CI stabilization gate is green.
