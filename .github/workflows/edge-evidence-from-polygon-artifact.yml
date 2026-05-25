@@ -83,6 +83,7 @@ jobs:
           echo "Using bars root: $BARS_ROOT"
 
       - name: Run edge evidence backtest
+        id: edge_backtest
         continue-on-error: true
         run: |
           python scripts/run_edge_evidence_backtest.py \
@@ -102,3 +103,9 @@ jobs:
           name: edge-evidence-from-polygon-artifact
           path: reports/edge_evidence/
           if-no-files-found: warn
+
+      - name: Fail if edge evidence gates failed
+        if: steps.edge_backtest.outcome == 'failure'
+        run: |
+          echo "Edge evidence gates failed. Reports were uploaded for review."
+          exit 1
