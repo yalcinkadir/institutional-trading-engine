@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from datetime import date, timedelta
 from pathlib import Path
 
 from scripts.generate_historical_trade_plans import generate_plans, load_bars, write_output
@@ -12,8 +13,9 @@ def _write_bars(path: Path, *, days: int = 100, close_start: float = 100.0) -> N
     path.parent.mkdir(parents=True, exist_ok=True)
     rows = ["date,open,high,low,close,volume"]
     close = close_start
+    start = date(2024, 1, 1)
     for index in range(days):
-        day = index + 1
+        current_date = start + timedelta(days=index)
         if index % 15 == 0:
             close *= 0.97
         else:
@@ -21,7 +23,7 @@ def _write_bars(path: Path, *, days: int = 100, close_start: float = 100.0) -> N
         open_price = close * 0.995
         high = close * 1.02
         low = close * 0.985
-        rows.append(f"2024-01-{day:02d},{open_price:.2f},{high:.2f},{low:.2f},{close:.2f},100000")
+        rows.append(f"{current_date},{open_price:.2f},{high:.2f},{low:.2f},{close:.2f},100000")
     path.write_text("\n".join(rows) + "\n", encoding="utf-8")
 
 
