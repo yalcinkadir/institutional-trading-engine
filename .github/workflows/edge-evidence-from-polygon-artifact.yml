@@ -26,6 +26,10 @@ on:
         description: "Maximum generated plans per symbol"
         required: false
         default: "3"
+      survivorship_mode:
+        description: "Survivorship audit mode: strict or runtime_active_universe"
+        required: false
+        default: "runtime_active_universe"
       as_of:
         description: "Universe validation as-of date"
         required: false
@@ -117,7 +121,8 @@ jobs:
             --as-of "${{ inputs.as_of }}" \
             --minimum-assets "${{ inputs.minimum_assets }}" \
             --oos-split-date "${{ inputs.oos_split_date }}" \
-            --max-bars-per-plan "${{ inputs.max_bars_per_plan }}"
+            --max-bars-per-plan "${{ inputs.max_bars_per_plan }}" \
+            --survivorship-mode "${{ inputs.survivorship_mode }}"
 
       - name: Upload generated trade plans
         if: always()
