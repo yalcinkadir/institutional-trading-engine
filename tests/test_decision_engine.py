@@ -1,3 +1,4 @@
+from src.config.thresholds import DEFAULT_THRESHOLDS, DecisionThresholds
 from src.decision_engine import (
     Decision,
     MarketContext,
@@ -27,6 +28,53 @@ def test_low_vol_bull_allows_momentum_breakout():
     assert result.risk_tier == "tier_1"
     assert result.position_size_multiplier == 1.0
     assert SetupType.MOMENTUM_BREAKOUT in result.allowed_setups
+    assert f"thresholds_version={DEFAULT_THRESHOLDS.version}" in result.notes
+
+
+def test_custom_thresholds_can_downgrade_candidate_without_code_change():
+    context = MarketContext(market_state=MarketState.LOW_VOL_BULL)
+    candidate = SetupCandidate(
+        symbol="QQQ",
+        setup_type=SetupType.MOMENTUM_BREAKOUT,
+        setup_score=86,
+        regime_alignment=0.88,
+        asymmetry_score=0.78,
+        data_confidence=0.91,
+    )
+    strict_thresholds = DecisionThresholds(
+        tier1_setup_score=90.0,
+        tier1_regime_alignment=0.90,
+        tier1_asymmetry=0.85,
+        tier1_data_confidence=0.95,
+        version="test-strict-v1",
+    )
+
+    result = evaluate_candidate(context, candidate, strict_thresholds)
+
+    assert result.decision == Decision.APPROVED
+    assert result.risk_tier == "tier_2"
+    assert result.position_size_multiplier == 0.5
+    assert "thresholds_version=test-strict-v1" in result.notes
+
+
+def test_custom_minimum_thresholds_can_reject_candidate():
+    context = MarketContext(market_state=MarketState.LOW_VOL_BULL)
+    candidate = SetupCandidate(
+        symbol="AAPL",
+        setup_type=SetupType.PULLBACK_CONTINUATION,
+        setup_score=90,
+        regime_alignment=0.90,
+        asymmetry_score=0.45,
+        data_confidence=0.93,
+    )
+    strict_thresholds = DecisionThresholds(min_asymmetry=0.50, version="test-min-v1")
+
+    result = evaluate_candidate(context, candidate, strict_thresholds)
+
+    assert result.decision == Decision.NO_TRADE
+    assert result.risk_tier == "no_trade"
+    assert "poor_asymmetry" in result.blocked_reasons
+    assert "thresholds_version=test-min-v1" in result.notes
 
 
 def test_systemic_risk_cluster_blocks_score_before_setup_quality():
@@ -51,6 +99,7 @@ def test_systemic_risk_cluster_blocks_score_before_setup_quality():
     assert result.position_size_multiplier == 0.0
     assert "systemic_risk_cluster" in result.blocked_reasons
     assert "hard_override_before_score" in result.notes
+    assert f"thresholds_version={DEFAULT_THRESHOLDS.version}" in result.notes
 
 
 def test_risk_off_blocks_speculative_growth_even_with_good_score():
@@ -132,3 +181,27 @@ def test_ranking_prefers_approved_asymmetric_candidate_over_blocked_high_score()
     assert ranked[0][0].symbol == "MSFT"
     assert ranked[0][1].decision == Decision.APPROVED
     assert ranked[1][1].decision == Decision.BLOCKED
+
+
+def test_ranking_uses_custom_thresholds():
+    context = MarketContext(market_state=MarketState.LOW_VOL_BULL)
+    candidate = SetupCandidate(
+        symbol="MSFT",
+        setup_type=SetupType.PULLBACK_CONTINUATION,
+        setup_score=82,
+        regime_alignment=0.80,
+        asymmetry_score=0.82,
+        data_confidence=0.85,
+    )
+    strict_thresholds = DecisionThresholds(
+        tier1_setup_score=90.0,
+        tier1_regime_alignment=0.90,
+        tier1_asymmetry=0.90,
+        tier1_data_confidence=0.90,
+        version="rank-test-v1",
+    )
+
+    ranked = rank_candidates(context, [candidate], strict_thresholds)
+
+    assert ranked[0][1].risk_tier == "tier_2"
+    assert "thresholds_version=rank-test-v1" in ranked[0][1].notes
