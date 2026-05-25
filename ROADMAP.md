@@ -27,9 +27,9 @@ Goal: make the research foundation harder to fool.
 |---|---|---:|---:|---|
 | A1 | Add a survivorship-safe data source, for example Norgate, Sharadar or equivalent point-in-time universe coverage | P0 | Critical | Planned |
 | A2 | Add a second data provider abstraction for cross-validation against Polygon | P0 | Critical | Planned |
-| A3 | Centralize decision thresholds in `src/config/thresholds.py` with explicit versioning | P1 | High | In progress |
-| A4 | Invalidate backtest/lockbox evidence when threshold versions change | P1 | High | Planned |
-| A5 | Replace linear slippage heuristic with square-root impact plus regime multipliers | P1 | High | Planned |
+| A3 | Centralize decision thresholds in `src/config/thresholds.py` with explicit versioning | P1 | High | Done |
+| A4 | Invalidate backtest/lockbox evidence when threshold versions change | P1 | High | Done |
+| A5 | Replace linear slippage heuristic with square-root impact plus regime multipliers | P1 | High | Next |
 | A6 | Add Deflated Sharpe Ratio and bootstrap confidence intervals to edge validation | P1 | High | Planned |
 | A7 | Convert Polygon client retry/rate-limit output to structured logging | P2 | Medium | Planned |
 | A8 | Add cache locking for `.cache/polygon` writes | P2 | Medium | Planned |
@@ -94,7 +94,7 @@ Start only after Phase B and C produce credible evidence.
 
 ## Current execution focus
 
-Start with A3 because it is small, high-impact and removes unversioned magic numbers from the core decision layer. After A3, continue with A4 so threshold changes automatically invalidate prior evidence.
+A3 and A4 are complete. The next implementation step is A5: replace the current linear slippage heuristic with a square-root impact model plus regime multipliers. That is the correct next move because execution cost realism directly affects whether simulated edge survives contact with the market.
 
 ## Do not do yet
 
