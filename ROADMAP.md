@@ -30,8 +30,8 @@ Goal: make the research foundation harder to fool.
 | A3 | Centralize decision thresholds in `src/config/thresholds.py` with explicit versioning | P1 | High | Done |
 | A4 | Invalidate backtest/lockbox evidence when threshold versions change | P1 | High | Done |
 | A5 | Replace linear slippage heuristic with square-root impact plus regime multipliers | P1 | High | Done |
-| A6 | Add Deflated Sharpe Ratio and bootstrap confidence intervals to edge validation | P1 | High | Next |
-| A7 | Convert Polygon client retry/rate-limit output to structured logging | P2 | Medium | Planned |
+| A6 | Add Deflated Sharpe Ratio and bootstrap confidence intervals to edge validation | P1 | High | Done |
+| A7 | Convert Polygon client retry/rate-limit output to structured logging | P2 | Medium | Next |
 | A8 | Add cache locking for `.cache/polygon` writes | P2 | Medium | Planned |
 | A9 | Update `CHANGELOG.md` and `SETUP_NOTES.md` for P47 readiness state | P2 | Medium | Planned |
 | A10 | Document quarterly secrets rotation policy | P2 | Medium | Planned |
@@ -99,10 +99,11 @@ Start only after Phase B and C produce credible evidence.
 - Versioned decision thresholds: done.
 - Threshold-aware lockbox invalidation: done.
 - Square-root regime-aware slippage model: done.
+- Deflated Sharpe probability and bootstrap confidence intervals: done.
 
 ## Current execution focus
 
-A3, A4 and A5 are complete. The next implementation step is A6: add Deflated Sharpe Ratio and bootstrap confidence intervals to edge validation. That is the correct next move because apparent Sharpe and expectancy can be inflated by multiple testing and small sample noise.
+A3, A4, A5 and A6 are complete. The next implementation step is A7: convert Polygon client retry/rate-limit output to structured logging. That is lower strategic impact than survivorship-safe data, but it improves observability and removes operational noise before larger data runs.
 
 ## Do not do yet
 
