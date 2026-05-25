@@ -1,29 +1,86 @@
 # SETUP NOTES
 
-## Wo Secret liegt
+## Repository Secret
 
-Der API-Key liegt in GitHub unter:
+Der Polygon API-Key liegt in GitHub unter:
 
 **Settings → Secrets and variables → Actions**
 
 Name des Secrets:
 
-`POLYGON_API_KEY`
+```text
+POLYGON_API_KEY
+```
 
 Wichtig:
+
 - API-Key niemals im Code speichern
 - API-Key niemals in README oder Reports schreiben
 - Bei Verdacht auf Leak sofort rotieren
+- Vor großen Datenläufen prüfen, ob das Secret aktiv ist
+
+---
+
+## Aktueller Projektstatus
+
+Das Projekt ist inzwischen kein einfacher Cloud-Scanner mehr. Es ist ein institutionell ausgerichtetes Research- und Decision-Support-System.
+
+Aktueller Stand:
+
+```text
+P36-P47 validation stack: implemented
+Phase A evidence-hygiene work A3-A8: implemented
+Broker execution: not implemented
+Live trading authorization: not granted by code
+Phase B: not started
+```
+
+Das System dient weiterhin der Analyse, Validierung, Marktbeobachtung und Entscheidungsunterstützung. Es führt keine Live-Trades aus.
+
+---
+
+## Phase A Evidence-Hygiene Features
+
+Implementiert:
+
+```text
+A3 Versioned decision thresholds
+A4 Threshold-aware evidence / lockbox invalidation
+A5 Square-root regime-aware slippage model
+A6 Deflated Sharpe probability + bootstrap confidence intervals
+A7 Polygon structured logging
+A8 Polygon cache locking
+```
+
+Noch offen vor Phase B:
+
+```text
+A9 CHANGELOG.md and SETUP_NOTES.md update
+A10 Quarterly secrets rotation policy
+Phase A CI stabilization pass
+```
+
+---
+
+## Relevante neue Dokumentation
+
+```text
+docs/operations/threshold_evidence_contract.md
+docs/operations/slippage_model.md
+docs/operations/statistical_robustness.md
+docs/operations/polygon_structured_logging.md
+docs/operations/polygon_cache_locking.md
+ROADMAP.md
+```
 
 ---
 
 ## Was aktuell funktioniert
 
-Der Cloud-Scanner läuft aktuell über **GitHub Actions** und erzeugt automatisch Markdown-Reports im Ordner `reports/`.
+### Scanner / Reporting
 
-### Funktionsfähig:
 - Polygon-Datenabruf über GitHub Actions
-- automatischer Report mit Zeitstempel im Dateinamen
+- automatische Markdown-Reports im Ordner `reports/`
 - Berechnung von:
   - RSI(14)
   - ATR(14)
@@ -47,85 +104,124 @@ Der Cloud-Scanner läuft aktuell über **GitHub Actions** und erzeugt automatisc
   - Setup Readiness
   - Data / Risk Warnings
   - Full Asset Report
-- Benchmark-Logik aktuell angepasst für:
-  - QQQ-basierte Tech/Growth-Aktien
-  - SPY für SPY selbst
-  - GLD für GLD/SLV Vergleich
 
-### Aktuell gescannte Symbole:
-- AAPL
-- MSFT
-- NVDA
-- META
-- AMZN
-- GOOGL
-- AVGO
-- AMD
-- MU
-- ADBE
-- CSCO
-- CRM
-- QQQ
-- SPY
-- GLD
-- SLV
+### Evidence / Validation
 
----
+- Historical edge validation
+- Regime-phase backtest matrix
+- Walk-forward validation
+- Execution realism adjustment
+- Out-of-sample validation lockbox
+- Threshold evidence contract
+- Deflated Sharpe probability
+- Bootstrap confidence intervals for expectancy and win rate
+- Paper trading journal / live observation v2
+- Final live readiness gate
 
-## Was bewusst noch fehlt
+### Polygon Data Operations
 
-Diese Punkte sind aktuell **absichtlich noch nicht umgesetzt**:
-
-- kein MCP-Server
-- kein Dashboard / Frontend
-- keine Datenbank
-- kein Backtesting
-- keine Alerts per Telegram / E-Mail
-- keine automatische Order-Logik
-- keine Exit-Engine im Scanner integriert
-- keine Portfolio-Heat / Positionsgrößen-Steuerung
-- keine VIX-Integration mit stabilem Feed
-- keine feinere Branchen-/ETF-Benchmark-Zuordnung wie:
-  - SMH für Semis
-  - IGV für Software
-  - XLF / XLV / XLY etc. für weitere Sektoren
+- Polygon active universe builder
+- Polygon daily bars downloader
+- Polygon artifact consolidation workflow
+- Polygon structured logging
+- Polygon cache locking infrastructure
+- Edge-evidence diagnostics artifacts
+- Edge-evidence workflow log snapshot
 
 ---
 
-## Nächste Ideen
+## Phase A Test Commands
 
-Sinnvolle nächste Schritte:
+Vor Phase B müssen mindestens diese Tests in CI laufen und grün sein:
 
-### Kurzfristig
-- `SYMBOLS` in `config.py` auslagern
-- README aktuell halten
-- VIX sauber anbinden
-- Benchmark-Zuordnung weiter verbessern
-- Watchlist um weitere Qualitätsnamen erweitern
+```bash
+pytest tests/test_decision_engine.py -q
+pytest tests/test_out_of_sample_lockbox.py -q
+pytest tests/test_slippage_model.py -q
+pytest tests/test_execution_realism.py -q
+pytest tests/test_statistical_robustness.py -q
+pytest tests/test_historical_edge_validation.py -q
+pytest tests/test_polygon_structured_logging.py -q
+pytest tests/test_polygon_data_pipeline.py -q
+pytest tests/test_polygon_cache.py -q
+```
 
-### Mittelfristig
-- Exit-Logik integrieren
-- Portfolio-Risiko-Modul ergänzen
-- Reports kompakter und priorisierter machen
-- Candidate-Scoring einbauen
-- „Clean Setup Score“ ergänzen
+Danach vollständige Regression:
 
-### Später
-- Backtesting
-- Datenbank / Journal
-- Dashboard
-- MCP / API-Schicht
-- Mobile-optimierte Bedienung
+```bash
+pytest -q
+```
 
 ---
 
-## Aktueller Projektstatus
+## CI-Stabilization-Regel vor Phase B
 
-Der Scanner ist aktuell auf einem brauchbaren Stand für:
+Phase B darf erst starten, wenn:
 
-- Marktüberblick
-- relative Stärke / Schwäche
-- Setup-Vorsortierung
-- Erkennung von überdehnten oder riskanten Kandidaten
+1. alle Phase-A Feature-Tests im CI-Workflow enthalten sind
+2. der CI-Run ausgeführt wurde
+3. alle Fehler analysiert und gefixt wurden
+4. `pytest -q` grün ist
+5. README, CHANGELOG und SETUP_NOTES aktuell sind
 
-Er ist aktuell **ein Cloud-basierter Analyse-Scanner**, kein vollständiges Trading-System.
+---
+
+## Polygon Datenläufe
+
+Aktiver Polygon Runtime Universe Build:
+
+```bash
+POLYGON_API_KEY=... python scripts/build_polygon_universe.py \
+  --output data/universe/survivorship_universe.csv \
+  --active-from 2026-05-24
+```
+
+Daily Bars Download:
+
+```bash
+POLYGON_API_KEY=... python scripts/download_polygon_daily_bars.py \
+  --universe data/universe/survivorship_universe.csv \
+  --output-dir data/historical_bars \
+  --from-date 2016-01-01 \
+  --to-date 2026-05-24 \
+  --min-bars 120
+```
+
+Für große Läufe bevorzugt batching nutzen:
+
+```bash
+POLYGON_API_KEY=... python scripts/download_polygon_daily_bars.py \
+  --universe data/universe/survivorship_universe.csv \
+  --output-dir data/historical_bars \
+  --from-date 2016-01-01 \
+  --to-date 2026-05-24 \
+  --min-bars 120 \
+  --batch-size 500 \
+  --batch-index 0
+```
+
+---
+
+## Bewusst noch nicht umgesetzt
+
+Diese Punkte sind absichtlich noch nicht aktiv:
+
+- keine Live-Trading-Freigabe
+- keine Broker-Orderausführung
+- keine automatische Kapitalallokation
+- keine Crypto-/Forex-Erweiterung
+- kein ML-Layer vor statistisch signifikanter regelbasierter Edge
+- keine Phase-B Forward Evidence ohne vorherige CI-Stabilisierung
+
+---
+
+## Nächste Schritte
+
+```text
+A10 Quarterly secrets rotation policy
+Phase A CI workflow update
+Phase A test execution
+Fixes if needed
+README final update
+Phase B start only after green CI
+```
