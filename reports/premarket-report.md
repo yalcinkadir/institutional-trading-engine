@@ -1,6 +1,6 @@
 # Institutional Trading Engine — PREMARKET REPORT
 
-Generated: 2026-05-25 20:05 UTC
+Generated: 2026-05-25 22:23 UTC
 
 ## Market Regime
 
@@ -78,41 +78,49 @@ Generated: 2026-05-25 20:05 UTC
 - Decision: **approved** | Risk Tier: tier_2
 - Setup Type: pullback_continuation | Size: 0.5x
 - Setup Score: 82.0 | Regime Alignment: 0.82 | Asymmetry Score: 0.72 | Data Confidence: 0.65
+- Notes: thresholds_version=2026.05.25-v1
 
 #### NVDA
 - Decision: **approved** | Risk Tier: tier_2
 - Setup Type: pullback_continuation | Size: 0.5x
 - Setup Score: 79.0 | Regime Alignment: 0.78 | Asymmetry Score: 0.69 | Data Confidence: 0.65
+- Notes: thresholds_version=2026.05.25-v1
 
 #### META
 - Decision: **approved** | Risk Tier: tier_2
 - Setup Type: pullback_continuation | Size: 0.5x
 - Setup Score: 76.0 | Regime Alignment: 0.74 | Asymmetry Score: 0.66 | Data Confidence: 0.65
+- Notes: thresholds_version=2026.05.25-v1
 
 #### AAPL
 - Decision: **approved** | Risk Tier: tier_2
 - Setup Type: pullback_continuation | Size: 0.5x
 - Setup Score: 73.0 | Regime Alignment: 0.7 | Asymmetry Score: 0.63 | Data Confidence: 0.65
+- Notes: thresholds_version=2026.05.25-v1
 
 #### MU
 - Decision: **approved** | Risk Tier: tier_2
 - Setup Type: pullback_continuation | Size: 0.5x
 - Setup Score: 70.0 | Regime Alignment: 0.66 | Asymmetry Score: 0.6 | Data Confidence: 0.65
+- Notes: thresholds_version=2026.05.25-v1
 
 #### QQQ
 - Decision: **approved** | Risk Tier: tier_2
 - Setup Type: pullback_continuation | Size: 0.5x
 - Setup Score: 67.0 | Regime Alignment: 0.62 | Asymmetry Score: 0.57 | Data Confidence: 0.65
+- Notes: thresholds_version=2026.05.25-v1
 
 #### GLD
 - Decision: **watch** | Risk Tier: tier_3
 - Setup Type: pullback_continuation | Size: 0.25x
 - Setup Score: 64.0 | Regime Alignment: 0.58 | Asymmetry Score: 0.54 | Data Confidence: 0.65
+- Notes: thresholds_version=2026.05.25-v1
 
 #### SLV
 - Decision: **watch** | Risk Tier: tier_3
 - Setup Type: pullback_continuation | Size: 0.25x
 - Setup Score: 61.0 | Regime Alignment: 0.54 | Asymmetry Score: 0.51 | Data Confidence: 0.65
+- Notes: thresholds_version=2026.05.25-v1
 
 ## Pre-Market Watchlist
 
