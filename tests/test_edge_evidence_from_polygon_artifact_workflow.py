@@ -20,6 +20,10 @@ def test_edge_evidence_from_polygon_artifact_workflow_inputs() -> None:
     assert "workflow_dispatch" in content
     assert "run_id:" in content
     assert "required: true" in content
+    assert "generate_plans:" in content
+    assert "default: \"true\"" in content
+    assert "max_generated_plans:" in content
+    assert "max_plans_per_symbol:" in content
     assert "default: \"polygon-edge-runtime-dataset-combined*\"" in content
     assert "default: \"data/trade_plans/historical_trade_plans.json\"" in content
     assert "default: \"500\"" in content
@@ -40,6 +44,16 @@ def test_edge_evidence_from_polygon_artifact_workflow_resolves_dataset_paths() -
     assert "historical_bars" in content
     assert "POLYGON_EDGE_UNIVERSE" in content
     assert "POLYGON_EDGE_BARS_ROOT" in content
+
+
+def test_edge_evidence_from_polygon_artifact_workflow_generates_trade_plans() -> None:
+    content = _content()
+
+    assert "Generate historical trade plans" in content
+    assert "scripts/generate_historical_trade_plans.py" in content
+    assert "--bars-root \"$POLYGON_EDGE_BARS_ROOT\"" in content
+    assert "--max-plans \"${{ inputs.max_generated_plans }}\"" in content
+    assert "generated-historical-trade-plans" in content
 
 
 def test_edge_evidence_from_polygon_artifact_workflow_uploads_reports_and_fails_closed() -> None:
