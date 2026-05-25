@@ -10,9 +10,13 @@ def _load_workflow() -> dict:
     return yaml.safe_load(workflow.read_text(encoding="utf-8"))
 
 
+def _workflow_on(data: dict) -> dict:
+    return data.get("on", data.get(True, {}))
+
+
 def test_polygon_artifact_consolidation_workflow_has_manual_inputs() -> None:
     data = _load_workflow()
-    inputs = data["on"]["workflow_dispatch"]["inputs"]
+    inputs = _workflow_on(data)["workflow_dispatch"]["inputs"]
 
     assert inputs["run_ids"]["required"] is True
     assert inputs["artifact_pattern"]["default"] == "polygon-edge-runtime-dataset*"
