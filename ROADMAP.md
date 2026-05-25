@@ -32,8 +32,8 @@ Goal: make the research foundation harder to fool.
 | A5 | Replace linear slippage heuristic with square-root impact plus regime multipliers | P1 | High | Done |
 | A6 | Add Deflated Sharpe Ratio and bootstrap confidence intervals to edge validation | P1 | High | Done |
 | A7 | Convert Polygon client retry/rate-limit output to structured logging | P2 | Medium | Done |
-| A8 | Add cache locking for `.cache/polygon` writes | P2 | Medium | Next |
-| A9 | Update `CHANGELOG.md` and `SETUP_NOTES.md` for P47 readiness state | P2 | Medium | Planned |
+| A8 | Add cache locking for `.cache/polygon` writes | P2 | Medium | Done |
+| A9 | Update `CHANGELOG.md` and `SETUP_NOTES.md` for P47 readiness state | P2 | Medium | Next |
 | A10 | Document quarterly secrets rotation policy | P2 | Medium | Planned |
 
 ## Phase B — Real Forward Evidence
@@ -101,10 +101,11 @@ Start only after Phase B and C produce credible evidence.
 - Square-root regime-aware slippage model: done.
 - Deflated Sharpe probability and bootstrap confidence intervals: done.
 - Polygon structured logging: done.
+- Polygon cache locking: done.
 
 ## Current execution focus
 
-A3, A4, A5, A6 and A7 are complete. The next implementation step is A8: add cache locking for `.cache/polygon` writes. That reduces corruption risk during repeated or parallel data runs.
+A3, A4, A5, A6, A7 and A8 are complete. The next implementation step is A9: update `CHANGELOG.md` and `SETUP_NOTES.md` for the Phase-A evidence-hygiene state.
 
 ## Do not do yet
 
