@@ -18,7 +18,7 @@ jobs:
   tests:
     name: Pytest
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     steps:
       - name: Checkout repository
@@ -34,8 +34,22 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run tests
+      - name: Phase A stabilization tests
         env:
           POLYGON_API_KEY: test-key
         run: |
-          pytest
+          pytest tests/test_decision_engine.py -q
+          pytest tests/test_out_of_sample_lockbox.py -q
+          pytest tests/test_slippage_model.py -q
+          pytest tests/test_execution_realism.py -q
+          pytest tests/test_statistical_robustness.py -q
+          pytest tests/test_historical_edge_validation.py -q
+          pytest tests/test_polygon_structured_logging.py -q
+          pytest tests/test_polygon_data_pipeline.py -q
+          pytest tests/test_polygon_cache.py -q
+
+      - name: Full regression suite
+        env:
+          POLYGON_API_KEY: test-key
+        run: |
+          pytest -q
