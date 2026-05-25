@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Iterable
 
+from src.config.thresholds import DEFAULT_THRESHOLDS
 from src.validation.historical_edge_validation import (
     HistoricalEdgeValidationConfig,
     HistoricalEdgeValidationReport,
@@ -14,6 +16,11 @@ from src.validation.historical_edge_validation import (
 
 DEFAULT_OOS_SPLIT_DATE = date(2024, 1, 1)
 MAX_CORE_METRIC_DEGRADATION = 0.20
+THRESHOLD_VERSION_FIELDS = (
+    "thresholds_version",
+    "threshold_version",
+    "decision_thresholds_version",
+)
 
 
 @dataclass(frozen=True)
@@ -21,6 +28,8 @@ class OutOfSampleLockboxConfig:
     split_date: date = DEFAULT_OOS_SPLIT_DATE
     max_core_metric_degradation: float = MAX_CORE_METRIC_DEGRADATION
     edge_config: HistoricalEdgeValidationConfig = HistoricalEdgeValidationConfig()
+    threshold_version: str = DEFAULT_THRESHOLDS.version
+    require_matching_record_threshold_version: bool = False
 
 
 @dataclass(frozen=True)
@@ -41,23 +50,29 @@ class MetricDegradation:
 class OutOfSampleLockboxReport:
     passed: bool
     split_date: str
+    threshold_version: str
+    evidence_contract_hash: str
     in_sample_count: int
     out_of_sample_count: int
     unassigned_records: int
     in_sample_report: HistoricalEdgeValidationReport
     out_of_sample_report: HistoricalEdgeValidationReport
     degradation_checks: list[MetricDegradation] = field(default_factory=list)
+    invalidation_reasons: tuple[str, ...] = field(default_factory=tuple)
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "passed": self.passed,
             "split_date": self.split_date,
+            "threshold_version": self.threshold_version,
+            "evidence_contract_hash": self.evidence_contract_hash,
             "in_sample_count": self.in_sample_count,
             "out_of_sample_count": self.out_of_sample_count,
             "unassigned_records": self.unassigned_records,
             "in_sample_report": self.in_sample_report.to_dict(),
             "out_of_sample_report": self.out_of_sample_report.to_dict(),
             "degradation_checks": [check.to_dict() for check in self.degradation_checks],
+            "invalidation_reasons": list(self.invalidation_reasons),
         }
 
 
@@ -101,8 +116,13 @@ def build_out_of_sample_lockbox(
         out_of_sample_report,
         max_allowed_degradation=config.max_core_metric_degradation,
     )
+    invalidation_reasons = build_invalidation_reasons(
+        [*in_sample_records, *out_of_sample_records],
+        config=config,
+    )
     passed = (
-        in_sample_report.passed
+        not invalidation_reasons
+        and in_sample_report.passed
         and out_of_sample_report.passed
         and all(check.passed for check in degradation_checks)
     )
@@ -110,12 +130,15 @@ def build_out_of_sample_lockbox(
     return OutOfSampleLockboxReport(
         passed=passed,
         split_date=config.split_date.isoformat(),
+        threshold_version=config.threshold_version,
+        evidence_contract_hash=build_evidence_contract_hash(config),
         in_sample_count=len(in_sample_records),
         out_of_sample_count=len(out_of_sample_records),
         unassigned_records=unassigned_records,
         in_sample_report=in_sample_report,
         out_of_sample_report=out_of_sample_report,
         degradation_checks=degradation_checks,
+        invalidation_reasons=tuple(invalidation_reasons),
     )
 
 
@@ -155,28 +178,86 @@ def build_degradation_checks(
     ]
 
 
+def build_invalidation_reasons(
+    assigned_records: Iterable[dict[str, Any]],
+    *,
+    config: OutOfSampleLockboxConfig,
+) -> list[str]:
+    reasons: list[str] = []
+
+    if config.threshold_version != DEFAULT_THRESHOLDS.version:
+        reasons.append(
+            f"stale_threshold_version:{config.threshold_version}!={DEFAULT_THRESHOLDS.version}"
+        )
+
+    if not config.require_matching_record_threshold_version:
+        return reasons
+
+    observed_versions = _collect_record_threshold_versions(assigned_records)
+    if not observed_versions:
+        reasons.append("missing_record_threshold_versions")
+        return reasons
+
+    mismatched_versions = sorted(version for version in observed_versions if version != config.threshold_version)
+    if mismatched_versions:
+        reasons.append(
+            "record_threshold_version_mismatch:"
+            + ",".join(mismatched_versions)
+            + f"!={config.threshold_version}"
+        )
+
+    return reasons
+
+
+def build_evidence_contract_hash(config: OutOfSampleLockboxConfig) -> str:
+    payload = {
+        "split_date": config.split_date.isoformat(),
+        "max_core_metric_degradation": config.max_core_metric_degradation,
+        "edge_config": asdict(config.edge_config),
+        "threshold_version": config.threshold_version,
+        "require_matching_record_threshold_version": config.require_matching_record_threshold_version,
+    }
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
 def render_out_of_sample_lockbox_markdown(report: OutOfSampleLockboxReport) -> str:
     lines = [
         "# Out-of-Sample Validation Lockbox",
         "",
         f"Status: **{'PASS' if report.passed else 'FAIL'}**",
         f"Split date: `{report.split_date}`",
+        f"Threshold version: `{report.threshold_version}`",
+        f"Evidence contract hash: `{report.evidence_contract_hash}`",
         f"In-sample records: **{report.in_sample_count}**",
         f"Out-of-sample records: **{report.out_of_sample_count}**",
         f"Unassigned records: **{report.unassigned_records}**",
         "",
-        "## Core Metrics",
-        "",
-        "| Segment | Trades | Expectancy R | Profit Factor | Max DD R | Sharpe |",
-        "|---|---:|---:|---:|---:|---:|",
-        _metrics_row("in_sample", report.in_sample_report),
-        _metrics_row("out_of_sample", report.out_of_sample_report),
-        "",
-        "## Degradation Checks",
-        "",
-        "| Metric | Status | In-Sample | OOS | Degradation | Max Allowed |",
-        "|---|---:|---:|---:|---:|---:|",
     ]
+    if report.invalidation_reasons:
+        lines.extend(
+            [
+                "## Invalidation Reasons",
+                "",
+                *[f"- `{reason}`" for reason in report.invalidation_reasons],
+                "",
+            ]
+        )
+    lines.extend(
+        [
+            "## Core Metrics",
+            "",
+            "| Segment | Trades | Expectancy R | Profit Factor | Max DD R | Sharpe |",
+            "|---|---:|---:|---:|---:|---:|",
+            _metrics_row("in_sample", report.in_sample_report),
+            _metrics_row("out_of_sample", report.out_of_sample_report),
+            "",
+            "## Degradation Checks",
+            "",
+            "| Metric | Status | In-Sample | OOS | Degradation | Max Allowed |",
+            "|---|---:|---:|---:|---:|---:|",
+        ]
+    )
     for check in report.degradation_checks:
         lines.append(
             f"| {check.metric} | {'PASS' if check.passed else 'FAIL'} | "
@@ -279,6 +360,17 @@ def _parse_date(value: Any) -> date | None:
             except ValueError:
                 return None
     return None
+
+
+def _collect_record_threshold_versions(records: Iterable[dict[str, Any]]) -> set[str]:
+    versions: set[str] = set()
+    for record in records:
+        for field in THRESHOLD_VERSION_FIELDS:
+            value = record.get(field)
+            if isinstance(value, str) and value.strip():
+                versions.add(value.strip())
+                break
+    return versions
 
 
 def _format_number(value: float | int) -> str:
