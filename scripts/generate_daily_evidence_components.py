@@ -89,6 +89,11 @@ def parse_args() -> argparse.Namespace:
         default=250,
         help="Monte Carlo simulations for the generated component report.",
     )
+    parser.add_argument(
+        "--observation-only",
+        action="store_true",
+        help="Write reports and keep the run green when component gates fail during bootstrap observation mode.",
+    )
     return parser.parse_args()
 
 
@@ -150,6 +155,9 @@ def main() -> int:
     print(f"Generated {len(reports)} daily evidence component reports in {output_dir}")
     if failed:
         print("Failed components: " + ", ".join(failed))
+        if args.observation_only:
+            print("Observation-only mode: failed component gates are recorded but do not fail the workflow.")
+            return 0
         return 1
     print("All generated daily evidence components passed")
     return 0
