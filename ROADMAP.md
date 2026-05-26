@@ -1,7 +1,7 @@
 # Institutional Trading Engine Roadmap
 
 Status date: 2026-05-25  
-Current state: Phase B2 performance drift detection implemented and CI-green. Phase A Evidence Hygiene implemented and CI-green. P36-P47 validation stack implemented. Live trading is not authorized by code.
+Current state: Phase B3 sequential edge-decay testing implemented and CI-green. Phase A Evidence Hygiene implemented and CI-green. P36-P47 validation stack implemented. Live trading is not authorized by code.
 
 ## Strategic direction
 
@@ -59,8 +59,8 @@ Goal: prove whether the rule-based system has live-observable edge before adding
 | B1 | Prepare paper observation daily reconciliation gate and report model | P0 | Critical | Done |
 | B1.1 | Run 3-6 months of observation-only paper evidence with daily reconciliation | P0 | Critical | In Progress |
 | B2 | Add paper vs. backtest performance drift detection | P0 | High | Done |
-| B3 | Add SPRT or equivalent sequential test for edge decay | P1 | High | Next |
-| B4 | Add regime-change detection using HMM or BOCPD-style logic | P1 | High | Planned |
+| B3 | Add SPRT-style sequential test for edge decay | P1 | High | Done |
+| B4 | Add regime-change detection using HMM or BOCPD-style logic | P1 | High | Next |
 | B5 | Add position-level risk attribution by beta, sector, factor and single-name contribution | P1 | High | Planned |
 | B6 | Add Monte Carlo robustness suite with bootstrap and permutation tests | P1 | Medium | Planned |
 | B7 | Emit a daily evidence report for paper/live observation | P2 | Medium | Planned |
@@ -123,10 +123,11 @@ Start only after Phase B and C produce credible evidence.
 - Full regression suite green after stabilization fixes: done.
 - Paper observation daily reconciliation gate and report model: done.
 - Performance drift detection engine: done and CI-green.
+- Sequential edge-decay test: done and CI-green.
 
 ## Current execution focus
 
-B1.1 remains the long-running evidence collection period. The next implementation step is B3: sequential edge-decay testing. Phase B must remain observation-only until enough forward evidence exists.
+B1.1 remains the long-running evidence collection period. The next implementation step is B4: regime-change detection. Phase B must remain observation-only until enough forward evidence exists.
 
 ## Do not do yet
 
