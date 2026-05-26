@@ -42,33 +42,24 @@ jobs:
             echo "value=$(date -u +%F)" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Prepare placeholder component reports
+      - name: Generate B1-B6 evidence component reports
         run: |
-          mkdir -p reports/daily_evidence_components
-          cat > reports/daily_evidence_components/paper_observation_reconciliation.json <<'JSON'
-          {"passed": true, "metrics": {"observation_days": 1, "action_mismatch_rate": 0.0, "max_abs_daily_drift_r": 0.0, "unresolved_records": 0}}
-          JSON
-          cat > reports/daily_evidence_components/performance_drift_detection.json <<'JSON'
-          {"passed": true, "metrics": {"forward_expectancy_r": 0.0, "expectancy_drift_r": 0.0, "win_rate_drift": 0.0, "z_score": 0.0}}
-          JSON
-          cat > reports/daily_evidence_components/sequential_edge_decay.json <<'JSON'
-          {"passed": true, "metrics": {"observations": 1, "win_rate": 0.0, "expectancy_r": 0.0, "decision": "continue_observation"}}
-          JSON
-          cat > reports/daily_evidence_components/regime_change_detection.json <<'JSON'
-          {"passed": true, "metrics": {"latest_regime": "unknown", "change_score": 0.0, "state": "stable"}}
-          JSON
+          python scripts/generate_daily_evidence_components.py \
+            --input-dir reports/daily_evidence_inputs \
+            --output-dir reports/daily_evidence_components \
+            --report-date "${{ steps.report-date.outputs.value }}"
 
       - name: Build daily evidence report
         run: |
           python scripts/run_daily_evidence_report.py \
             --input-dir reports/daily_evidence_components \
             --output-dir reports/daily_evidence \
-            --report-date "${{ steps.report-date.outputs.value }}" \
-            --allow-missing-risk-attribution \
-            --allow-missing-monte-carlo
+            --report-date "${{ steps.report-date.outputs.value }}"
 
       - name: Upload daily evidence artifact
         uses: actions/upload-artifact@v4
         with:
           name: daily-evidence-report-${{ steps.report-date.outputs.value }}
-          path: reports/daily_evidence/
+          path: |
+            reports/daily_evidence/
+            reports/daily_evidence_components/
