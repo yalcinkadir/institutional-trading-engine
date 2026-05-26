@@ -1,7 +1,7 @@
 # Institutional Trading Engine Roadmap
 
 Status date: 2026-05-25  
-Current state: Phase B9 daily evidence artifact workflow verified with PASS report and uploaded artifact. Phase A Evidence Hygiene implemented and CI-green. P36-P47 validation stack implemented. Live trading is not authorized by code.
+Current state: Phase B10 generated B1-B6 evidence component reports implemented and CI-green. Phase A Evidence Hygiene implemented and CI-green. P36-P47 validation stack implemented. Live trading is not authorized by code.
 
 ## Strategic direction
 
@@ -66,7 +66,8 @@ Goal: prove whether the rule-based system has live-observable edge before adding
 | B7 | Emit a daily evidence report for paper/live observation | P2 | Medium | Done |
 | B8 | Add daily evidence CLI and scheduled artifact workflow | P2 | Medium | Done |
 | B9 | Run daily scheduled observation workflow and review artifacts | P2 | Medium | Done |
-| B10 | Replace placeholder component reports with real generated B1-B6 component artifacts | P1 | High | Next |
+| B10 | Replace placeholder component reports with real generated B1-B6 component artifacts | P1 | High | Done |
+| B11 | Replace smoke-fixture workflow mode with real daily observation input artifacts | P1 | High | Next |
 
 ## Phase C — Execution Reality
 
@@ -106,7 +107,7 @@ Start only after Phase B and C produce credible evidence.
 | E3 | Automate daily live vs. backtest reconciliation | P1 | High | Planned |
 | E4 | Add meta-labeling layer for trade/no-trade decision after primary signal | P2 | Medium | Planned |
 | E5 | Add capacity modeling to estimate how much capital the strategy can absorb | P2 | High | Planned |
-| E6 | Add hierarchical risk parity allocation | P2 | Medium | Planned |
+| E6 | Add hierarchical risk parity allocation | P2 | Medium |
 | E7 | Build an audit dashboard for evidence, drift, risk and execution quality | P2 | Medium | Planned |
 
 ## Recently completed evidence-visibility work
@@ -133,10 +134,11 @@ Start only after Phase B and C produce credible evidence.
 - Daily evidence report generator: done and CI-green.
 - Daily evidence CLI and scheduled artifact workflow: done and CI-green.
 - Daily evidence artifact workflow verified with uploaded PASS artifact: done.
+- Generated B1-B6 daily evidence component CLI: done and CI-green.
 
 ## Current execution focus
 
-B1.1 remains the long-running evidence collection period. The next step is B10: replace placeholder component reports with real generated B1-B6 component artifacts. Phase B must remain observation-only until enough forward evidence exists.
+B1.1 remains the long-running evidence collection period. The next step is B11: replace deterministic smoke-fixture workflow mode with real daily observation input artifacts. Phase B must remain observation-only until enough forward evidence exists.
 
 ## Do not do yet
 
