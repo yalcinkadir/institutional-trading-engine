@@ -9,6 +9,7 @@ from src.validation.daily_evidence_source_bootstrap import bootstrap_daily_evide
 
 
 SCRIPT = Path("scripts/bootstrap_daily_evidence_sources.py")
+COMPONENT_SCRIPT = Path("scripts/generate_daily_evidence_components.py")
 
 
 def test_bootstrap_daily_evidence_sources_writes_required_source_files(tmp_path: Path):
@@ -37,6 +38,38 @@ def test_bootstrap_sources_can_feed_builder_and_validator(tmp_path: Path):
     assert build_report.passed is True
     assert validation_report.passed is True
     assert validation_report.metrics.files_valid == 5
+
+
+def test_bootstrap_sources_can_feed_component_generator(tmp_path: Path):
+    source_dir = tmp_path / "sources"
+    input_dir = tmp_path / "inputs"
+    output_dir = tmp_path / "components"
+    bootstrap_daily_evidence_sources(source_dir, report_date="2026-05-26")
+    build_daily_evidence_inputs(source_dir, input_dir)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(COMPONENT_SCRIPT),
+            "--input-dir",
+            str(input_dir),
+            "--output-dir",
+            str(output_dir),
+            "--report-date",
+            "2026-05-26",
+            "--simulations",
+            "25",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "All generated daily evidence components passed" in result.stdout
+    assert (output_dir / "performance_drift_detection.json").exists()
+    assert (output_dir / "sequential_edge_decay.json").exists()
+    assert (output_dir / "monte_carlo_robustness.json").exists()
 
 
 def test_bootstrap_source_records_are_marked_observation_only(tmp_path: Path):
