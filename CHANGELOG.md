@@ -35,15 +35,20 @@
   - `docs/operations/statistical_robustness.md`
   - `docs/operations/polygon_structured_logging.md`
   - `docs/operations/polygon_cache_locking.md`
+  - `docs/operations/secrets_rotation_policy.md`
+  - `docs/operations/phase_a_ci_stabilization.md`
 
 ### Tests Added / Updated
+- `tests/test_decision_engine.py`
 - `tests/test_out_of_sample_lockbox.py`
 - `tests/test_slippage_model.py`
 - `tests/test_execution_realism.py`
 - `tests/test_statistical_robustness.py`
 - `tests/test_historical_edge_validation.py`
 - `tests/test_polygon_structured_logging.py`
+- `tests/test_polygon_data_pipeline.py`
 - `tests/test_polygon_cache.py`
+- Regression test expectations updated after stricter A5/A6 evidence gates.
 
 ### Improved
 - Backtest and lockbox evidence now fails closed when the threshold contract is stale.
@@ -54,12 +59,16 @@
 - Historical edge validation can require a positive bootstrap lower bound for expectancy.
 - Polygon data workflows now emit machine-readable logs for rate limits, HTTP errors, skipped symbols, failed symbols and run summaries.
 - Polygon cache writes now have a safe write primitive for future large data runs.
+- Phase A stabilization tests were added to CI before Phase B.
+- Full regression suite was executed and fixed until CI green.
 
-### Notes
-- Tests have been written but still need to be executed in CI as part of the Phase A stabilization pass before Phase B starts.
+### Stabilization Result
+- Phase A implementation status: complete.
+- Phase A CI stabilization status: green.
+- Full regression suite status: green.
 - Broker execution remains intentionally not implemented.
 - Live trading remains intentionally not authorized by code.
-- Phase B should not start until Phase A tests are added to CI, executed and fixed if needed.
+- Phase B may start as observation-only paper evidence collection.
 
 ---
 
