@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import math
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Iterable
@@ -160,7 +159,15 @@ def _calculate_metrics(records: list[dict[str, Any]], *, config: RegimeChangeCon
         correlation_jump=correlation_jump,
         drawdown_jump=max(0.0, drawdown_jump),
     )
-    state = _classify_state(change_score=change_score, latest_regime=latest_regime, config=config)
+    state = _classify_state(
+        change_score=change_score,
+        latest_regime=latest_regime,
+        label_change_rate=label_change_rate,
+        volatility_jump=volatility_jump,
+        correlation_jump=correlation_jump,
+        drawdown_jump=drawdown_jump,
+        config=config,
+    )
     return RegimeChangeMetrics(
         observations=observations,
         lookback_window=window,
@@ -283,12 +290,35 @@ def _change_score(*, label_change_rate: float, volatility_jump: float, correlati
     return max(0.0, min(1.0, score))
 
 
-def _classify_state(*, change_score: float, latest_regime: str, config: RegimeChangeConfig) -> str:
+def _classify_state(
+    *,
+    change_score: float,
+    latest_regime: str,
+    label_change_rate: float,
+    volatility_jump: float,
+    correlation_jump: float,
+    drawdown_jump: float,
+    config: RegimeChangeConfig,
+) -> str:
     if latest_regime == "unknown" and config.require_latest_regime_known:
         return "unknown_regime"
-    if change_score >= config.max_change_score:
+    hard_threshold_breached = (
+        label_change_rate > config.max_label_change_rate
+        or volatility_jump > config.max_volatility_jump
+        or correlation_jump > config.max_correlation_jump
+        or drawdown_jump > config.max_drawdown_jump
+        or change_score > config.max_change_score
+    )
+    if hard_threshold_breached:
         return "regime_change_alert"
-    if change_score >= config.max_change_score * 0.70:
+    watch_threshold_reached = (
+        label_change_rate >= config.max_label_change_rate * 0.70
+        or volatility_jump >= config.max_volatility_jump * 0.70
+        or correlation_jump >= config.max_correlation_jump * 0.70
+        or drawdown_jump >= config.max_drawdown_jump * 0.70
+        or change_score >= config.max_change_score * 0.70
+    )
+    if watch_threshold_reached:
         return "regime_change_watch"
     return "stable"
 
