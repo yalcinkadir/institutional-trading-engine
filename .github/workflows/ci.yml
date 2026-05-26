@@ -90,6 +90,12 @@ jobs:
         run: |
           pytest tests/test_daily_evidence_report.py -q
 
+      - name: Phase B8 daily evidence CLI tests
+        env:
+          POLYGON_API_KEY: test-key
+        run: |
+          pytest tests/test_run_daily_evidence_report_cli.py -q
+
       - name: Full regression suite
         env:
           POLYGON_API_KEY: test-key
