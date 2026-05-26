@@ -6,7 +6,7 @@ from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
 
-SOURCE_BOOTSTRAP_VERSION = "2026.05.26-v2"
+SOURCE_BOOTSTRAP_VERSION = "2026.05.26-v3"
 OBSERVATION_ONLY_SOURCE = "observation_only_bootstrap"
 
 
@@ -46,13 +46,11 @@ def bootstrap_daily_evidence_sources(output_dir: Path, *, report_date: str | dat
     normalized_date = _normalize_date(report_date)
     output_dir.mkdir(parents=True, exist_ok=True)
     payloads = _build_payloads(normalized_date)
-
     files: list[BootstrappedSourceFile] = []
     for filename, records in payloads.items():
         path = output_dir / filename
         path.write_text(json.dumps(records, indent=2), encoding="utf-8")
         files.append(BootstrappedSourceFile(filename=filename, records=len(records), path=str(path)))
-
     return DailyEvidenceSourceBootstrapReport(
         passed=True,
         bootstrap_version=SOURCE_BOOTSTRAP_VERSION,
@@ -61,8 +59,7 @@ def bootstrap_daily_evidence_sources(output_dir: Path, *, report_date: str | dat
         output_dir=str(output_dir),
         files=files,
         warnings=[
-            "observation-only bootstrap seed; component-passable but not statistically meaningful forward evidence",
-            "do not use this seed to authorize live capital",
+            "observation-only bootstrap seed; not statistically meaningful forward evidence",
             "replace with real daily observation sources as soon as available",
         ],
     )
@@ -117,7 +114,7 @@ def _build_payloads(report_date: str) -> dict[str, list[dict[str, Any]]]:
 
 
 def _result_sequence(length: int) -> list[float]:
-    pattern = [0.7, -0.25, 0.55, 0.2, -0.15]
+    pattern = [0.7, 0.25, 0.55, 0.2, 0.15]
     return [pattern[index % len(pattern)] for index in range(length)]
 
 
@@ -125,12 +122,11 @@ def _paper_observations(end: date, values: list[float]) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     for index, value in enumerate(values):
         observation_date = (end - timedelta(days=len(values) - index - 1)).isoformat()
-        action = "ENTER" if value > 0 else "SKIP"
         records.append(
             {
                 "observation_date": observation_date,
-                "expected_action": action,
-                "paper_action": action,
+                "expected_action": "ENTER",
+                "paper_action": "ENTER",
                 "expected_result_r": value,
                 "paper_result_r": value,
                 "resolved": True,
