@@ -102,6 +102,7 @@ jobs:
         run: |
           pytest tests/test_daily_evidence_input_validation.py -q
           pytest tests/test_daily_evidence_input_builder.py -q
+          pytest tests/test_daily_evidence_source_bootstrap.py -q
 
       - name: Full regression suite
         env:
