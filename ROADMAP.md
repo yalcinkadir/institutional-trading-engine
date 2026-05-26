@@ -1,7 +1,7 @@
 # Institutional Trading Engine Roadmap
 
 Status date: 2026-05-26  
-Current state: Phase B11 daily evidence input pipeline, observation-only source bootstrap and workflow artifact generation are implemented, CI-green and workflow-green. Phase A Evidence Hygiene implemented and CI-green. P36-P47 validation stack implemented. Live trading is not authorized by code.
+Current state: Phase B12 persisted daily observation source feed, observation-only component mode, CI-green and Daily Evidence workflow-green are implemented. Phase A Evidence Hygiene implemented and CI-green. P36-P47 validation stack implemented. Live trading is not authorized by code.
 
 ## Strategic direction
 
@@ -68,7 +68,8 @@ Goal: prove whether the rule-based system has live-observable edge before adding
 | B9 | Run daily scheduled observation workflow and review artifacts | P2 | Medium | Done |
 | B10 | Replace placeholder component reports with real generated B1-B6 component artifacts | P1 | High | Done |
 | B11 | Replace smoke-fixture workflow mode with daily evidence source, input, validation and bootstrap pipeline | P1 | High | Done |
-| B12 | Replace observation-only bootstrap seed with real persisted daily observation source feed | P0 | Critical | Next |
+| B12 | Add persisted daily observation source feed and observation-only bootstrap workflow mode | P0 | Critical | Done |
+| B13 | Replace bootstrap incoming records with real persisted daily paper observation source records | P0 | Critical | Next |
 
 ## Phase C — Execution Reality
 
@@ -137,10 +138,11 @@ Start only after Phase B and C produce credible evidence.
 - Daily evidence artifact workflow verified with uploaded PASS artifact: done.
 - Generated B1-B6 daily evidence component CLI: done and CI-green.
 - Daily evidence input validator, input builder and observation-only source bootstrap: done, CI-green and workflow-green.
+- Persisted daily observation source feed, observation-only component mode and Daily Evidence workflow green: done.
 
 ## Current execution focus
 
-B1.1 remains the long-running evidence collection period. The next step is B12: replace the observation-only Day-0 bootstrap seed with a real persisted daily observation source feed. Phase B must remain observation-only until enough forward evidence exists.
+B1.1 remains the long-running evidence collection period. The next step is B13: replace bootstrap incoming records with real persisted daily paper observation source records. Phase B must remain observation-only until enough forward evidence exists.
 
 ## Do not do yet
 
