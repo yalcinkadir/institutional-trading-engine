@@ -1,7 +1,7 @@
 # Institutional Trading Engine Roadmap
 
 Status date: 2026-05-25  
-Current state: Phase A Evidence Hygiene implemented and CI-green. P36-P47 validation stack implemented. Live trading is not authorized by code.
+Current state: Phase B2 performance drift detection implemented and CI-green. Phase A Evidence Hygiene implemented and CI-green. P36-P47 validation stack implemented. Live trading is not authorized by code.
 
 ## Strategic direction
 
@@ -38,7 +38,7 @@ Goal: make the research foundation harder to fool.
 
 ## Phase A Stabilization Gate
 
-Phase A is now implementation-complete and CI-validated.
+Phase A is implementation-complete and CI-validated.
 
 | Gate | Status |
 |---|---|
@@ -47,7 +47,7 @@ Phase A is now implementation-complete and CI-validated.
 | Fix failures if any | Done |
 | Full regression suite green | Done |
 | Final README update | Done |
-| Approve Phase B start | Ready |
+| Approve Phase B start | Done |
 
 ## Phase B — Real Forward Evidence
 
@@ -56,9 +56,10 @@ Goal: prove whether the rule-based system has live-observable edge before adding
 
 | ID | Task | Priority | Impact | Status |
 |---|---|---:|---:|---|
-| B1 | Run 3-6 months of paper observation with daily reconciliation | P0 | Critical | Next |
-| B2 | Add live/paper vs. backtest drift detection | P0 | High | Planned |
-| B3 | Add SPRT or equivalent sequential test for edge decay | P1 | High | Planned |
+| B1 | Prepare paper observation daily reconciliation gate and report model | P0 | Critical | Done |
+| B1.1 | Run 3-6 months of observation-only paper evidence with daily reconciliation | P0 | Critical | In Progress |
+| B2 | Add paper vs. backtest performance drift detection | P0 | High | Done |
+| B3 | Add SPRT or equivalent sequential test for edge decay | P1 | High | Next |
 | B4 | Add regime-change detection using HMM or BOCPD-style logic | P1 | High | Planned |
 | B5 | Add position-level risk attribution by beta, sector, factor and single-name contribution | P1 | High | Planned |
 | B6 | Add Monte Carlo robustness suite with bootstrap and permutation tests | P1 | Medium | Planned |
@@ -120,10 +121,12 @@ Start only after Phase B and C produce credible evidence.
 - Phase A CI stabilization plan: done.
 - Phase A tests in CI: done.
 - Full regression suite green after stabilization fixes: done.
+- Paper observation daily reconciliation gate and report model: done.
+- Performance drift detection engine: done and CI-green.
 
 ## Current execution focus
 
-Phase A is complete and validated. The next implementation step is Phase B1: prepare and run 3-6 months of paper observation with daily reconciliation. Phase B must remain observation-only until there is enough forward evidence.
+B1.1 remains the long-running evidence collection period. The next implementation step is B3: sequential edge-decay testing. Phase B must remain observation-only until enough forward evidence exists.
 
 ## Do not do yet
 
