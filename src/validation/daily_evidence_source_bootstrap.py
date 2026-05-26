@@ -6,7 +6,8 @@ from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
 
-SOURCE_BOOTSTRAP_VERSION = "2026.05.26-v1"
+SOURCE_BOOTSTRAP_VERSION = "2026.05.26-v2"
+OBSERVATION_ONLY_SOURCE = "observation_only_bootstrap"
 
 
 @dataclass(frozen=True)
@@ -60,7 +61,7 @@ def bootstrap_daily_evidence_sources(output_dir: Path, *, report_date: str | dat
         output_dir=str(output_dir),
         files=files,
         warnings=[
-            "observation-only bootstrap seed; not statistically meaningful forward evidence",
+            "observation-only bootstrap seed; component-passable but not statistically meaningful forward evidence",
             "do not use this seed to authorize live capital",
             "replace with real daily observation sources as soon as available",
         ],
@@ -104,16 +105,20 @@ def write_daily_evidence_source_bootstrap_report(
 
 def _build_payloads(report_date: str) -> dict[str, list[dict[str, Any]]]:
     end = date.fromisoformat(report_date)
-    forward_values = [0.25, 0.15, -0.10, 0.30, 0.05, -0.05, 0.20, 0.10, 0.35, -0.15,
-                      0.25, 0.15, -0.10, 0.30, 0.05, -0.05, 0.20, 0.10, 0.35, -0.15]
-    backtest_values = forward_values * 2
+    forward_values = _result_sequence(40)
+    backtest_values = _result_sequence(80)
     return {
-        "paper_observations.json": _paper_observations(end, forward_values),
-        "backtest_results.json": [{"result_r": value, "source": "observation_only_bootstrap"} for value in backtest_values],
-        "forward_results.json": [{"result_r": value, "source": "observation_only_bootstrap"} for value in forward_values],
+        "paper_observations.json": _paper_observations(end, forward_values[:20]),
+        "backtest_results.json": [{"result_r": value, "source": OBSERVATION_ONLY_SOURCE} for value in backtest_values],
+        "forward_results.json": [{"result_r": value, "source": OBSERVATION_ONLY_SOURCE} for value in forward_values],
         "regime_observations.json": _regime_observations(end, 24),
         "position_snapshots.json": _position_snapshots(),
     }
+
+
+def _result_sequence(length: int) -> list[float]:
+    pattern = [0.7, -0.25, 0.55, 0.2, -0.15]
+    return [pattern[index % len(pattern)] for index in range(length)]
 
 
 def _paper_observations(end: date, values: list[float]) -> list[dict[str, Any]]:
@@ -129,7 +134,7 @@ def _paper_observations(end: date, values: list[float]) -> list[dict[str, Any]]:
                 "expected_result_r": value,
                 "paper_result_r": value,
                 "resolved": True,
-                "source": "observation_only_bootstrap",
+                "source": OBSERVATION_ONLY_SOURCE,
             }
         )
     return records
@@ -145,7 +150,7 @@ def _regime_observations(end: date, length: int) -> list[dict[str, Any]]:
                 "volatility_pct": 0.18 + (index % 3) * 0.001,
                 "corr": 0.42 + (index % 2) * 0.002,
                 "drawdown_pct": 0.02 + (index % 4) * 0.001,
-                "source": "observation_only_bootstrap",
+                "source": OBSERVATION_ONLY_SOURCE,
             }
         )
     return records
@@ -157,23 +162,23 @@ def _position_snapshots() -> list[dict[str, Any]]:
             "symbol": "AAPL",
             "sector": "Technology",
             "portfolio_weight": 0.5,
-            "paper_r": 0.2,
+            "paper_r": 0.6,
             "beta": 1.1,
             "market_r": 0.1,
             "factor_exposures": {"momentum": 0.4, "quality": 0.2},
             "factor_returns": {"momentum": 0.2, "quality": 0.1},
-            "source": "observation_only_bootstrap",
+            "source": OBSERVATION_ONLY_SOURCE,
         },
         {
             "symbol": "MSFT",
             "sector": "Technology",
             "portfolio_weight": 0.5,
-            "paper_r": 0.15,
+            "paper_r": 0.4,
             "beta": 1.0,
             "market_r": 0.1,
             "factor_exposures": {"momentum": 0.3, "quality": 0.3},
             "factor_returns": {"momentum": 0.2, "quality": 0.1},
-            "source": "observation_only_bootstrap",
+            "source": OBSERVATION_ONLY_SOURCE,
         },
     ]
 
