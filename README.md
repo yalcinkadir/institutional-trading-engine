@@ -15,12 +15,72 @@ P36-P47 validation roadmap: implemented
 Phase A Evidence Hygiene A3-A10: implemented
 Phase A CI stabilization: green
 Full regression suite: green
-Phase B: ready to start as observation-only paper evidence collection
+Phase B1-B11 evidence pipeline: implemented, CI-green and workflow-green
+Phase B1.1: active 3-6 month observation-only evidence collection
 Live trading authorization: not granted by code
 Broker execution: not implemented
 ```
 
 Code quality is not trading edge. The system is promising enough to test seriously, but real capital still requires forward evidence, drift detection, regime-change monitoring, position-level risk attribution and manual review.
+
+## Phase B Daily Evidence Pipeline
+
+The Daily Evidence workflow now runs as a fail-closed evidence chain. It no longer builds green reports from placeholder component JSONs.
+
+```text
+Observation-only source bootstrap when explicitly requested
+→ Daily evidence input builder
+→ Daily evidence input validator
+→ B1-B6 component report generation
+→ Daily evidence report generation
+→ Artifact upload
+```
+
+Manual workflow path:
+
+```text
+Actions → Daily Evidence Report → Run workflow
+bootstrap_observation_only_sources=true
+```
+
+The bootstrap mode is only a Day-0 observation-only seed. Records are marked as `observation_only_bootstrap` and are not statistically meaningful 3-6 month forward evidence.
+
+Operational documentation:
+
+```text
+docs/operations/generated_daily_evidence_components.md
+docs/operations/daily_evidence_input_pipeline.md
+docs/operations/daily_evidence_input_builder.md
+docs/operations/daily_evidence_source_bootstrap.md
+```
+
+Core CLI commands:
+
+```bash
+python scripts/bootstrap_daily_evidence_sources.py \
+  --output-dir reports/daily_evidence_sources \
+  --report-dir reports/daily_evidence_source_bootstrap \
+  --report-date 2026-05-26
+
+python scripts/build_daily_evidence_inputs.py \
+  --source-dir reports/daily_evidence_sources \
+  --output-dir reports/daily_evidence_inputs \
+  --report-dir reports/daily_evidence_input_build
+
+python scripts/validate_daily_evidence_inputs.py \
+  --input-dir reports/daily_evidence_inputs \
+  --output-dir reports/daily_evidence_input_validation
+
+python scripts/generate_daily_evidence_components.py \
+  --input-dir reports/daily_evidence_inputs \
+  --output-dir reports/daily_evidence_components \
+  --report-date 2026-05-26
+
+python scripts/run_daily_evidence_report.py \
+  --input-dir reports/daily_evidence_components \
+  --output-dir reports/daily_evidence \
+  --report-date 2026-05-26
+```
 
 ## Phase A Evidence Hygiene
 
@@ -76,6 +136,7 @@ docs/operations/phase_a_ci_stabilization.md
 - execution realism adjustment with square-root regime-aware slippage
 - out-of-sample validation lockbox with threshold-aware evidence invalidation
 - paper trading journal / live observation v2
+- Phase B daily evidence input pipeline and report artifacts
 - final live readiness gate
 - cross-asset market-data coverage
 - Polygon active universe runtime builder
@@ -131,6 +192,8 @@ Market analysis
 → Edge-evidence diagnostics
 → Edge-evidence workflow log snapshot
 → Paper trading journal / live observation v2
+→ Daily evidence input pipeline
+→ Daily evidence report artifact
 → Final live readiness gate
 → Human review
 ```
@@ -155,6 +218,23 @@ pytest tests/test_historical_edge_validation.py -q
 pytest tests/test_polygon_structured_logging.py -q
 pytest tests/test_polygon_data_pipeline.py -q
 pytest tests/test_polygon_cache.py -q
+```
+
+Phase B daily evidence tests:
+
+```bash
+pytest tests/test_paper_observation_reconciliation.py -q
+pytest tests/test_performance_drift_detection.py -q
+pytest tests/test_sequential_edge_decay.py -q
+pytest tests/test_regime_change_detection.py -q
+pytest tests/test_position_risk_attribution.py -q
+pytest tests/test_monte_carlo_robustness.py -q
+pytest tests/test_daily_evidence_report.py -q
+pytest tests/test_run_daily_evidence_report_cli.py -q
+pytest tests/test_generate_daily_evidence_components_cli.py -q
+pytest tests/test_daily_evidence_input_validation.py -q
+pytest tests/test_daily_evidence_input_builder.py -q
+pytest tests/test_daily_evidence_source_bootstrap.py -q
 ```
 
 Representative validation tests:
@@ -218,8 +298,6 @@ Generate historical trade plans from Polygon bars before the backtest:
 python scripts/generate_historical_trade_plans.py \
   --bars-root data/historical_bars \
   --output data/trade_plans/historical_trade_plans.json \
-  --max-plans 5000 \
-  --max-plans-per-symbol 3 \
   --min-history 60 \
   --lookahead-days 20
 ```
@@ -563,6 +641,7 @@ ROADMAP.md
 | Out-of-Sample Validation Lockbox | Implemented |
 | Threshold-Aware Evidence Invalidation | Implemented |
 | Paper Trading Journal / Live Observation v2 | Implemented |
+| Phase B Daily Evidence Pipeline | Implemented |
 | Final Live Readiness Gate | Implemented |
 | Survivorship Universe Loader | Implemented |
 | 500+ Universe Coverage Gate | Implemented |
@@ -607,6 +686,7 @@ ROADMAP.md
 
 ### Done
 
+- Phase B11 daily evidence source/input/validation/bootstrap pipeline
 - P47 final live readiness gate
 - P46 paper trading journal / live observation v2
 - P45 out-of-sample validation lockbox
@@ -630,6 +710,7 @@ ROADMAP.md
 
 ### Phase B: 3-6 months observation-only evidence collection
 
+- replace observation-only bootstrap seed with real persisted daily observation source feed
 - run 3-6 months of paper observation with daily reconciliation
 - maintain 500+ active scan universe
 - ingest 10+ years of historical bars
@@ -641,12 +722,11 @@ ROADMAP.md
 - evaluate which setups pass in which regimes
 - open the out-of-sample lockbox once, record result, then keep it locked
 - append forward live/paper outcomes for every generated signal
-- add live/paper vs. backtest drift detection
-- add position-level risk attribution
+- monitor paper-vs-backtest drift, sequential edge decay, regime change, risk attribution and Monte Carlo robustness daily
 
 ### Planned Next
 
-Phase A is implemented and CI-green. Future work should focus on observation-only forward evidence, report review and paper-observation quality, not feature expansion.
+Phase B11 is implemented, CI-green and workflow-green. Future work should replace the Day-0 observation-only bootstrap with a real persisted observation source feed, while continuing the 3-6 month observation-only evidence period.
 
 ## Disclaimer
 
