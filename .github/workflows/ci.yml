@@ -54,6 +54,12 @@ jobs:
         run: |
           pytest tests/test_paper_observation_reconciliation.py -q
 
+      - name: Phase B2 performance drift tests
+        env:
+          POLYGON_API_KEY: test-key
+        run: |
+          pytest tests/test_performance_drift_detection.py -q
+
       - name: Full regression suite
         env:
           POLYGON_API_KEY: test-key
