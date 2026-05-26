@@ -77,17 +77,23 @@ jobs:
 
       - name: Generate B1-B6 evidence component reports
         run: |
+          EXTRA_ARGS=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.bootstrap_observation_only_sources }}" = "true" ]; then
+            EXTRA_ARGS="--observation-only"
+          fi
           python scripts/generate_daily_evidence_components.py \
             --input-dir reports/daily_evidence_inputs \
             --output-dir reports/daily_evidence_components \
-            --report-date "${{ steps.report-date.outputs.value }}"
+            --report-date "${{ steps.report-date.outputs.value }}" \
+            $EXTRA_ARGS
 
       - name: Build daily evidence report
         run: |
           python scripts/run_daily_evidence_report.py \
             --input-dir reports/daily_evidence_components \
             --output-dir reports/daily_evidence \
-            --report-date "${{ steps.report-date.outputs.value }}"
+            --report-date "${{ steps.report-date.outputs.value }}" \
+            --max-failed-components 3
 
       - name: Upload daily evidence artifact
         uses: actions/upload-artifact@v4
