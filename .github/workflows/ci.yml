@@ -84,6 +84,12 @@ jobs:
         run: |
           pytest tests/test_monte_carlo_robustness.py -q
 
+      - name: Phase B7 daily evidence report tests
+        env:
+          POLYGON_API_KEY: test-key
+        run: |
+          pytest tests/test_daily_evidence_report.py -q
+
       - name: Full regression suite
         env:
           POLYGON_API_KEY: test-key
