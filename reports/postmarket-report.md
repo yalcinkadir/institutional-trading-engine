@@ -1,6 +1,6 @@
 # Institutional Trading Engine — POSTMARKET REPORT
 
-Generated: 2026-05-26 07:28 UTC
+Generated: 2026-05-26 07:29 UTC
 
 ## Market Regime
 
