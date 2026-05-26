@@ -1,7 +1,7 @@
 # Institutional Trading Engine Roadmap
 
 Status date: 2026-05-25  
-Current state: Phase B6 Monte Carlo robustness implemented and CI-green. Phase A Evidence Hygiene implemented and CI-green. P36-P47 validation stack implemented. Live trading is not authorized by code.
+Current state: Phase B7 daily evidence report implemented and CI-green. Phase A Evidence Hygiene implemented and CI-green. P36-P47 validation stack implemented. Live trading is not authorized by code.
 
 ## Strategic direction
 
@@ -63,7 +63,8 @@ Goal: prove whether the rule-based system has live-observable edge before adding
 | B4 | Add deterministic regime-change detection gate | P1 | High | Done |
 | B5 | Add position-level risk attribution by beta, sector, factor and single-name contribution | P1 | High | Done |
 | B6 | Add Monte Carlo robustness suite with bootstrap and permutation tests | P1 | Medium | Done |
-| B7 | Emit a daily evidence report for paper/live observation | P2 | Medium | Next |
+| B7 | Emit a daily evidence report for paper/live observation | P2 | Medium | Done |
+| B8 | Add daily evidence CLI and scheduled artifact workflow | P2 | Medium | Next |
 
 ## Phase C — Execution Reality
 
@@ -127,10 +128,11 @@ Start only after Phase B and C produce credible evidence.
 - Regime-change detection gate: done and CI-green.
 - Position-level risk attribution: done and CI-green.
 - Monte Carlo robustness suite: done and CI-green.
+- Daily evidence report generator: done and CI-green.
 
 ## Current execution focus
 
-B1.1 remains the long-running evidence collection period. The next implementation step is B7: daily evidence report generation for paper observation. Phase B must remain observation-only until enough forward evidence exists.
+B1.1 remains the long-running evidence collection period. The next implementation step is B8: daily evidence CLI and scheduled artifact workflow. Phase B must remain observation-only until enough forward evidence exists.
 
 ## Do not do yet
 
