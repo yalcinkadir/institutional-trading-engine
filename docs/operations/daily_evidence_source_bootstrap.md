@@ -1,12 +1,14 @@
 # Daily Evidence Source Bootstrap
 
-B11.3 adds an explicit observation-only Day-0 bootstrap for the Daily Evidence workflow.
+B11.3/B12.2 provide an explicit observation-only Day-0 bootstrap for the Daily Evidence workflow.
 
 ## Purpose
 
-The Daily Evidence workflow now requires source files before it can build validated inputs and B1-B6 evidence component reports.
+The Daily Evidence workflow requires source files before it can build validated inputs and B1-B6 evidence component reports.
 
 The bootstrap exists only to activate the workflow path for observation-only operation when no real source feed is available yet. It must not be treated as statistically meaningful forward evidence.
+
+B12.2 stabilizes the bootstrap payload so it is compatible with the full component generator. The seed now contains enough synthetic observation-only records for performance drift, sequential edge decay, regime change, position risk attribution and Monte Carlo component generation to complete.
 
 ## Workflow input
 
@@ -16,15 +18,22 @@ Manual workflow dispatch supports:
 bootstrap_observation_only_sources=true
 ```
 
-When enabled, the workflow writes source files into:
+When enabled, the workflow writes incoming source files into:
 
 ```text
-reports/daily_evidence_sources/
+reports/daily_observation_incoming/
 ```
 
-and then continues through:
+The persisted feed step then writes:
 
 ```text
+reports/daily_observation_feed/
+```
+
+and the workflow continues through:
+
+```text
+Persist daily observation sources
 Build daily evidence inputs
 Validate daily evidence inputs
 Generate B1-B6 evidence component reports
@@ -52,7 +61,7 @@ source = observation_only_bootstrap
 
 ```bash
 python scripts/bootstrap_daily_evidence_sources.py \
-  --output-dir reports/daily_evidence_sources \
+  --output-dir reports/daily_observation_incoming \
   --report-dir reports/daily_evidence_source_bootstrap \
   --report-date 2026-05-26
 ```
