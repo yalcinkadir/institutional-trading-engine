@@ -8,7 +8,7 @@ on:
         required: true
         default: "2026-05-25"
       bootstrap_observation_only_sources:
-        description: "Create observation-only Day-0 source seed when no real sources are present"
+        description: "Create observation-only Day-0 incoming seed when no real incoming sources are present"
         required: true
         default: "false"
   schedule:
@@ -46,18 +46,26 @@ jobs:
             echo "value=$(date -u +%F)" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Bootstrap observation-only sources
+      - name: Bootstrap observation-only incoming sources
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.bootstrap_observation_only_sources == 'true' }}
         run: |
           python scripts/bootstrap_daily_evidence_sources.py \
-            --output-dir reports/daily_evidence_sources \
+            --output-dir reports/daily_observation_incoming \
             --report-dir reports/daily_evidence_source_bootstrap \
+            --report-date "${{ steps.report-date.outputs.value }}"
+
+      - name: Persist daily observation sources
+        run: |
+          python scripts/persist_daily_observation_sources.py \
+            --incoming-dir reports/daily_observation_incoming \
+            --feed-dir reports/daily_observation_feed \
+            --report-dir reports/daily_observation_source_feed \
             --report-date "${{ steps.report-date.outputs.value }}"
 
       - name: Build daily evidence inputs
         run: |
           python scripts/build_daily_evidence_inputs.py \
-            --source-dir reports/daily_evidence_sources \
+            --source-dir reports/daily_observation_feed \
             --output-dir reports/daily_evidence_inputs \
             --report-dir reports/daily_evidence_input_build
 
@@ -87,6 +95,8 @@ jobs:
           name: daily-evidence-report-${{ steps.report-date.outputs.value }}
           path: |
             reports/daily_evidence_source_bootstrap/
+            reports/daily_observation_source_feed/
+            reports/daily_observation_feed/
             reports/daily_evidence_input_build/
             reports/daily_evidence_input_validation/
             reports/daily_evidence/
