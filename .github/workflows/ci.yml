@@ -66,6 +66,12 @@ jobs:
         run: |
           pytest tests/test_sequential_edge_decay.py -q
 
+      - name: Phase B4 regime change detection tests
+        env:
+          POLYGON_API_KEY: test-key
+        run: |
+          pytest tests/test_regime_change_detection.py -q
+
       - name: Full regression suite
         env:
           POLYGON_API_KEY: test-key
