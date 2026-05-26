@@ -42,6 +42,13 @@ jobs:
             echo "value=$(date -u +%F)" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Build daily evidence inputs
+        run: |
+          python scripts/build_daily_evidence_inputs.py \
+            --source-dir reports/daily_evidence_sources \
+            --output-dir reports/daily_evidence_inputs \
+            --report-dir reports/daily_evidence_input_build
+
       - name: Validate daily evidence inputs
         run: |
           python scripts/validate_daily_evidence_inputs.py \
@@ -67,6 +74,7 @@ jobs:
         with:
           name: daily-evidence-report-${{ steps.report-date.outputs.value }}
           path: |
+            reports/daily_evidence_input_build/
             reports/daily_evidence_input_validation/
             reports/daily_evidence/
             reports/daily_evidence_components/
