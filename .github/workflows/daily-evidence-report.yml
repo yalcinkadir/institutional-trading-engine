@@ -7,6 +7,10 @@ on:
         description: "Report date YYYY-MM-DD"
         required: true
         default: "2026-05-25"
+      bootstrap_observation_only_sources:
+        description: "Create observation-only Day-0 source seed when no real sources are present"
+        required: true
+        default: "false"
   schedule:
     - cron: "30 22 * * 1-5"
 
@@ -42,6 +46,14 @@ jobs:
             echo "value=$(date -u +%F)" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Bootstrap observation-only sources
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.bootstrap_observation_only_sources == 'true' }}
+        run: |
+          python scripts/bootstrap_daily_evidence_sources.py \
+            --output-dir reports/daily_evidence_sources \
+            --report-dir reports/daily_evidence_source_bootstrap \
+            --report-date "${{ steps.report-date.outputs.value }}"
+
       - name: Build daily evidence inputs
         run: |
           python scripts/build_daily_evidence_inputs.py \
@@ -74,6 +86,7 @@ jobs:
         with:
           name: daily-evidence-report-${{ steps.report-date.outputs.value }}
           path: |
+            reports/daily_evidence_source_bootstrap/
             reports/daily_evidence_input_build/
             reports/daily_evidence_input_validation/
             reports/daily_evidence/
