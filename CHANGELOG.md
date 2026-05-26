@@ -1,5 +1,38 @@
 # CHANGELOG
 
+## Phase B Real Forward Evidence — 2026-05-25
+
+### Added
+- Paper observation daily reconciliation model in `src/validation/paper_observation_reconciliation.py`.
+- Performance drift detection engine in `src/validation/performance_drift_detection.py`.
+- SPRT-style sequential edge-decay test in `src/validation/sequential_edge_decay.py`.
+- Operational documentation:
+  - `docs/operations/paper_observation_reconciliation.md`
+  - `docs/operations/performance_drift_detection.md`
+  - `docs/operations/sequential_edge_decay.md`
+
+### Tests Added / Updated
+- `tests/test_paper_observation_reconciliation.py`
+- `tests/test_performance_drift_detection.py`
+- `tests/test_sequential_edge_decay.py`
+- CI workflow now includes explicit Phase B1, B2 and B3 test steps before the full regression suite.
+
+### Improved
+- Phase B now has observation-only reconciliation infrastructure.
+- Forward paper results can be compared against expected/backtest actions and R values.
+- Paper-vs-backtest drift can be monitored through expectancy drift, win-rate drift, cumulative drift and z-score gates.
+- Sequential edge-decay testing can distinguish baseline-compatible, degraded, inconclusive and continue-observation states.
+
+### Stabilization Result
+- B1 paper observation reconciliation: implemented and CI-green.
+- B2 performance drift detection: implemented and CI-green.
+- B3 sequential edge-decay testing: implemented and CI-green.
+- B1.1 remains a long-running 3-6 month observation-only evidence period.
+- Broker execution remains intentionally not implemented.
+- Live trading remains intentionally not authorized by code.
+
+---
+
 ## Phase A Evidence Hygiene — 2026-05-25
 
 ### Added
