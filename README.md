@@ -2,7 +2,7 @@
 
 ![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
 ![CI](https://img.shields.io/badge/CI-pytest-brightgreen.svg)
-![Status](https://img.shields.io/badge/status-production--oriented-orange.svg)
+![Status](https://img.shields.io/badge/status-research--evidence--platform-orange.svg)
 
 Institutional Trading Engine is a production-oriented market intelligence, screening, reporting, runtime orchestration, observability, historical validation and decision-support platform.
 
@@ -12,13 +12,54 @@ The system is designed for research and decision support. It does not place live
 
 ```text
 P36-P47 validation roadmap: implemented
-P47 final live readiness gate: completed
-CI status: green
+Phase A Evidence Hygiene A3-A10: implemented
+Phase A CI stabilization: green
+Full regression suite: green
+Phase B: ready to start as observation-only paper evidence collection
 Live trading authorization: not granted by code
 Broker execution: not implemented
 ```
 
-Code quality is not trading edge. The system is promising enough to test seriously, but real capital still requires evidence from the validation gates, paper observation and manual review.
+Code quality is not trading edge. The system is promising enough to test seriously, but real capital still requires forward evidence, drift detection, regime-change monitoring, position-level risk attribution and manual review.
+
+## Phase A Evidence Hygiene
+
+Phase A strengthened the foundation before Phase B forward observation. It added evidence governance, statistical robustness, execution realism, observability and operational hygiene.
+
+Implemented Phase A items:
+
+```text
+A3 Versioned decision thresholds
+A4 Threshold-aware evidence / lockbox invalidation
+A5 Square-root regime-aware slippage model
+A6 Deflated Sharpe + Bootstrap Confidence Intervals
+A7 Polygon structured logging
+A8 Polygon cache locking
+A9 CHANGELOG / SETUP_NOTES refresh
+A10 Quarterly secrets rotation policy
+```
+
+Phase A stabilization gate:
+
+```text
+Phase A tests added to CI: done
+CI test run executed: done
+Regression failures fixed: done
+Full regression suite green: done
+README finalized: done
+```
+
+Operational documentation:
+
+```text
+docs/operations/threshold_evidence_contract.md
+docs/operations/slippage_model.md
+docs/operations/statistical_robustness.md
+docs/operations/polygon_structured_logging.md
+docs/operations/polygon_cache_locking.md
+docs/operations/secrets_rotation_policy.md
+docs/operations/phase_a_ci_stabilization.md
+```
 
 ## Core Capabilities
 
@@ -29,15 +70,18 @@ Code quality is not trading edge. The system is promising enough to test serious
 - adaptive feedback decay weighting
 - multi-factor fusion recalibration
 - historical edge validation
+- Deflated Sharpe probability and bootstrap confidence intervals
 - regime-phase backtest matrix
 - walk-forward validation
-- execution realism adjustment
-- out-of-sample validation lockbox
+- execution realism adjustment with square-root regime-aware slippage
+- out-of-sample validation lockbox with threshold-aware evidence invalidation
 - paper trading journal / live observation v2
 - final live readiness gate
 - cross-asset market-data coverage
 - Polygon active universe runtime builder
 - Polygon all-assets data workflow
+- Polygon structured JSON logging
+- Polygon cache locking and atomic writes
 - Polygon daily OHLCV bars downloader
 - Polygon artifact consolidation workflow
 - historical trade plan generation from Polygon bars
@@ -79,6 +123,7 @@ Market analysis
 → Survivorship universe audit
 → 500+ universe coverage gate
 → Historical edge validation
+→ Statistical robustness checks
 → Regime-phase backtest matrix
 → Walk-forward validation
 → Execution realism adjustment
@@ -92,8 +137,29 @@ Market analysis
 
 ## Main Test Commands
 
+Full suite:
+
 ```bash
-pytest
+pytest -q
+```
+
+Phase A stabilization tests:
+
+```bash
+pytest tests/test_decision_engine.py -q
+pytest tests/test_out_of_sample_lockbox.py -q
+pytest tests/test_slippage_model.py -q
+pytest tests/test_execution_realism.py -q
+pytest tests/test_statistical_robustness.py -q
+pytest tests/test_historical_edge_validation.py -q
+pytest tests/test_polygon_structured_logging.py -q
+pytest tests/test_polygon_data_pipeline.py -q
+pytest tests/test_polygon_cache.py -q
+```
+
+Representative validation tests:
+
+```bash
 pytest tests/test_decision_confidence.py
 pytest tests/test_probabilistic_decisions.py
 pytest tests/test_regime_similarity_engine.py
@@ -164,11 +230,7 @@ GitHub Actions:
 Actions → Edge Evidence From Polygon Artifact → Run workflow
 ```
 
-Use the successful Polygon artifact-consolidation run ID as `run_id`, for example:
-
-```text
-26375916598
-```
+Use the successful Polygon artifact-consolidation run ID as `run_id`.
 
 The workflow can generate historical trade plans automatically when `generate_plans` is set to `true`.
 
@@ -374,6 +436,8 @@ Detailed documentation:
 ```text
 docs/operations/polygon_edge_data_pipeline.md
 docs/operations/polygon_artifact_consolidation.md
+docs/operations/polygon_structured_logging.md
+docs/operations/polygon_cache_locking.md
 ```
 
 ## Historical Data Requirement
@@ -478,6 +542,7 @@ Detailed roadmap:
 
 ```text
 docs/roadmap/decision_quality_p36_p40.md
+ROADMAP.md
 ```
 
 ## Implemented Components
@@ -490,16 +555,21 @@ docs/roadmap/decision_quality_p36_p40.md
 | Adaptive Feedback Decay Weighting | Implemented |
 | MultiFactorFusion Recalibration | Implemented |
 | Historical Edge Validation | Implemented |
+| Statistical Robustness | Implemented |
 | Regime-Phase Backtest Matrix | Implemented |
 | Walk-Forward Validation | Implemented |
 | Execution Realism Layer | Implemented |
+| Square-Root Slippage Model | Implemented |
 | Out-of-Sample Validation Lockbox | Implemented |
+| Threshold-Aware Evidence Invalidation | Implemented |
 | Paper Trading Journal / Live Observation v2 | Implemented |
 | Final Live Readiness Gate | Implemented |
 | Survivorship Universe Loader | Implemented |
 | 500+ Universe Coverage Gate | Implemented |
 | S&P 500 + ETF Universe Builder | Implemented |
 | Polygon Active Universe Builder | Implemented |
+| Polygon Structured Logging | Implemented |
+| Polygon Cache Locking | Implemented |
 | Polygon All-Assets Data Workflow | Implemented |
 | Polygon Daily Bars Downloader | Implemented |
 | Polygon Artifact Consolidation Workflow | Implemented |
@@ -555,9 +625,12 @@ docs/roadmap/decision_quality_p36_p40.md
 - Runtime active universe audit mode for exploratory Polygon artifacts
 - Edge evidence diagnostics summary
 - Edge evidence workflow log snapshot
+- Phase A Evidence Hygiene A3-A10
+- Phase A CI stabilization gate
 
-### Edge-Evidence Phase: 3-6 months evidence collection
+### Phase B: 3-6 months observation-only evidence collection
 
+- run 3-6 months of paper observation with daily reconciliation
 - maintain 500+ active scan universe
 - ingest 10+ years of historical bars
 - generate deterministic historical trade plans from runtime bars
@@ -568,10 +641,12 @@ docs/roadmap/decision_quality_p36_p40.md
 - evaluate which setups pass in which regimes
 - open the out-of-sample lockbox once, record result, then keep it locked
 - append forward live/paper outcomes for every generated signal
+- add live/paper vs. backtest drift detection
+- add position-level risk attribution
 
 ### Planned Next
 
-Validation roadmap P36-P47 is implemented. Future work should focus on real evidence collection, report review and paper-observation quality, not feature expansion.
+Phase A is implemented and CI-green. Future work should focus on observation-only forward evidence, report review and paper-observation quality, not feature expansion.
 
 ## Disclaimer
 
