@@ -1,7 +1,7 @@
 # Institutional Trading Engine Roadmap
 
 Status date: 2026-05-25  
-Current state: Phase B8 daily evidence CLI and artifact workflow implemented and CI-green. Phase A Evidence Hygiene implemented and CI-green. P36-P47 validation stack implemented. Live trading is not authorized by code.
+Current state: Phase B9 daily evidence artifact workflow verified with PASS report and uploaded artifact. Phase A Evidence Hygiene implemented and CI-green. P36-P47 validation stack implemented. Live trading is not authorized by code.
 
 ## Strategic direction
 
@@ -65,7 +65,8 @@ Goal: prove whether the rule-based system has live-observable edge before adding
 | B6 | Add Monte Carlo robustness suite with bootstrap and permutation tests | P1 | Medium | Done |
 | B7 | Emit a daily evidence report for paper/live observation | P2 | Medium | Done |
 | B8 | Add daily evidence CLI and scheduled artifact workflow | P2 | Medium | Done |
-| B9 | Run daily scheduled observation workflow and review artifacts | P2 | Medium | Next |
+| B9 | Run daily scheduled observation workflow and review artifacts | P2 | Medium | Done |
+| B10 | Replace placeholder component reports with real generated B1-B6 component artifacts | P1 | High | Next |
 
 ## Phase C — Execution Reality
 
@@ -131,10 +132,11 @@ Start only after Phase B and C produce credible evidence.
 - Monte Carlo robustness suite: done and CI-green.
 - Daily evidence report generator: done and CI-green.
 - Daily evidence CLI and scheduled artifact workflow: done and CI-green.
+- Daily evidence artifact workflow verified with uploaded PASS artifact: done.
 
 ## Current execution focus
 
-B1.1 remains the long-running evidence collection period. The next step is B9: run the scheduled daily evidence workflow and review generated artifacts. Phase B must remain observation-only until enough forward evidence exists.
+B1.1 remains the long-running evidence collection period. The next step is B10: replace placeholder component reports with real generated B1-B6 component artifacts. Phase B must remain observation-only until enough forward evidence exists.
 
 ## Do not do yet
 
