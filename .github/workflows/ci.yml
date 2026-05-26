@@ -104,6 +104,12 @@ jobs:
           pytest tests/test_daily_evidence_input_builder.py -q
           pytest tests/test_daily_evidence_source_bootstrap.py -q
 
+      - name: Phase B12 persisted source feed tests
+        env:
+          POLYGON_API_KEY: test-key
+        run: |
+          pytest tests/test_daily_observation_source_feed.py -q
+
       - name: Full regression suite
         env:
           POLYGON_API_KEY: test-key
