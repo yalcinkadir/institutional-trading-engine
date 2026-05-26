@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-26T16:23:13.440966+00:00",
+  "generated_at": "2026-05-26T21:37:50.830927+00:00",
   "date": "2026-05-26",
   "market_regime": "Bullish (VIX missing)",
   "total_signals": 8,
@@ -7,7 +7,7 @@
   "no_trade_count": 8,
   "signals": [
     {
-      "signal_id": "sig_MSFT_dfe76f687c293b7a",
+      "signal_id": "sig_MSFT_8073b871696beef8",
       "symbol": "MSFT",
       "action": "NO_TRADE",
       "setup_type": "pullback_continuation",
@@ -29,13 +29,13 @@
       "regime_alignment": 0.82,
       "valid_until": "2026-05-29",
       "market_regime": "Bullish (VIX missing)",
-      "generated_at": "2026-05-26T16:23:13.438687+00:00",
+      "generated_at": "2026-05-26T21:37:50.828657+00:00",
       "notes": "notes: thresholds_version=2026.05.25-v1; entry_quality: missing_close; stop_quality: missing_entry_trigger; exit_quality: missing_entry_trigger; downgraded: invalid trade plan reasons missing_entry_trigger, missing_stop_loss, missing_target_1",
       "exit_model": "n/a",
       "exit_reason": "invalid_exit: missing_entry_trigger"
     },
     {
-      "signal_id": "sig_NVDA_c8869e5c25eaed12",
+      "signal_id": "sig_NVDA_a25f13d00962f54b",
       "symbol": "NVDA",
       "action": "NO_TRADE",
       "setup_type": "pullback_continuation",
@@ -57,13 +57,13 @@
       "regime_alignment": 0.78,
       "valid_until": "2026-05-29",
       "market_regime": "Bullish (VIX missing)",
-      "generated_at": "2026-05-26T16:23:13.438687+00:00",
+      "generated_at": "2026-05-26T21:37:50.828657+00:00",
       "notes": "notes: thresholds_version=2026.05.25-v1; entry_quality: missing_close; stop_quality: missing_entry_trigger; exit_quality: missing_entry_trigger; downgraded: invalid trade plan reasons missing_entry_trigger, missing_stop_loss, missing_target_1",
       "exit_model": "n/a",
       "exit_reason": "invalid_exit: missing_entry_trigger"
     },
     {
-      "signal_id": "sig_META_cb60eed487c005d4",
+      "signal_id": "sig_META_33d173cb9bde2d82",
       "symbol": "META",
       "action": "NO_TRADE",
       "setup_type": "pullback_continuation",
@@ -85,13 +85,13 @@
       "regime_alignment": 0.74,
       "valid_until": "2026-05-29",
       "market_regime": "Bullish (VIX missing)",
-      "generated_at": "2026-05-26T16:23:13.438687+00:00",
+      "generated_at": "2026-05-26T21:37:50.828657+00:00",
       "notes": "notes: thresholds_version=2026.05.25-v1; entry_quality: missing_close; stop_quality: missing_entry_trigger; exit_quality: missing_entry_trigger; downgraded: invalid trade plan reasons missing_entry_trigger, missing_stop_loss, missing_target_1",
       "exit_model": "n/a",
       "exit_reason": "invalid_exit: missing_entry_trigger"
     },
     {
-      "signal_id": "sig_AAPL_4b0ba340ae99d5f5",
+      "signal_id": "sig_AAPL_f32430b9b1b8f71c",
       "symbol": "AAPL",
       "action": "NO_TRADE",
       "setup_type": "pullback_continuation",
@@ -113,13 +113,13 @@
       "regime_alignment": 0.7,
       "valid_until": "2026-05-29",
       "market_regime": "Bullish (VIX missing)",
-      "generated_at": "2026-05-26T16:23:13.438687+00:00",
+      "generated_at": "2026-05-26T21:37:50.828657+00:00",
       "notes": "notes: thresholds_version=2026.05.25-v1; entry_quality: missing_close; stop_quality: missing_entry_trigger; exit_quality: missing_entry_trigger; downgraded: invalid trade plan reasons missing_entry_trigger, missing_stop_loss, missing_target_1",
       "exit_model": "n/a",
       "exit_reason": "invalid_exit: missing_entry_trigger"
     },
     {
-      "signal_id": "sig_MU_6627450a5c1672fa",
+      "signal_id": "sig_MU_f735dae56f63a7d5",
       "symbol": "MU",
       "action": "NO_TRADE",
       "setup_type": "pullback_continuation",
@@ -141,13 +141,13 @@
       "regime_alignment": 0.66,
       "valid_until": "2026-05-29",
       "market_regime": "Bullish (VIX missing)",
-      "generated_at": "2026-05-26T16:23:13.438687+00:00",
+      "generated_at": "2026-05-26T21:37:50.828657+00:00",
       "notes": "notes: thresholds_version=2026.05.25-v1; entry_quality: missing_close; stop_quality: missing_entry_trigger; exit_quality: missing_entry_trigger; downgraded: invalid trade plan reasons missing_entry_trigger, missing_stop_loss, missing_target_1",
       "exit_model": "n/a",
       "exit_reason": "invalid_exit: missing_entry_trigger"
     },
     {
-      "signal_id": "sig_QQQ_d79cf68a36462265",
+      "signal_id": "sig_QQQ_3a3fc551d9fdb848",
       "symbol": "QQQ",
       "action": "NO_TRADE",
       "setup_type": "pullback_continuation",
@@ -169,13 +169,13 @@
       "regime_alignment": 0.62,
       "valid_until": "2026-05-29",
       "market_regime": "Bullish (VIX missing)",
-      "generated_at": "2026-05-26T16:23:13.438687+00:00",
+      "generated_at": "2026-05-26T21:37:50.828657+00:00",
       "notes": "notes: thresholds_version=2026.05.25-v1; entry_quality: missing_close; stop_quality: missing_entry_trigger; exit_quality: missing_entry_trigger; downgraded: invalid trade plan reasons missing_entry_trigger, missing_stop_loss, missing_target_1",
       "exit_model": "n/a",
       "exit_reason": "invalid_exit: missing_entry_trigger"
     },
     {
-      "signal_id": "sig_GLD_e0843bf07fb0bdff",
+      "signal_id": "sig_GLD_ef697fee6a479728",
       "symbol": "GLD",
       "action": "NO_TRADE",
       "setup_type": "pullback_continuation",
@@ -197,13 +197,13 @@
       "regime_alignment": 0.58,
       "valid_until": "2026-05-29",
       "market_regime": "Bullish (VIX missing)",
-      "generated_at": "2026-05-26T16:23:13.438687+00:00",
+      "generated_at": "2026-05-26T21:37:50.828657+00:00",
       "notes": "notes: thresholds_version=2026.05.25-v1; entry_quality: missing_close; stop_quality: missing_entry_trigger; exit_quality: missing_entry_trigger; downgraded: invalid trade plan reasons missing_entry_trigger, missing_stop_loss, missing_target_1",
       "exit_model": "n/a",
       "exit_reason": "invalid_exit: missing_entry_trigger"
     },
     {
-      "signal_id": "sig_SLV_91451f27de73898e",
+      "signal_id": "sig_SLV_8901e2caf475df09",
       "symbol": "SLV",
       "action": "NO_TRADE",
       "setup_type": "pullback_continuation",
@@ -225,7 +225,7 @@
       "regime_alignment": 0.54,
       "valid_until": "2026-05-29",
       "market_regime": "Bullish (VIX missing)",
-      "generated_at": "2026-05-26T16:23:13.438687+00:00",
+      "generated_at": "2026-05-26T21:37:50.828657+00:00",
       "notes": "notes: thresholds_version=2026.05.25-v1; entry_quality: missing_close; stop_quality: missing_entry_trigger; exit_quality: missing_entry_trigger; downgraded: invalid trade plan reasons missing_entry_trigger, missing_stop_loss, missing_target_1",
       "exit_model": "n/a",
       "exit_reason": "invalid_exit: missing_entry_trigger"
