@@ -60,6 +60,12 @@ jobs:
         run: |
           pytest tests/test_performance_drift_detection.py -q
 
+      - name: Phase B3 sequential edge decay tests
+        env:
+          POLYGON_API_KEY: test-key
+        run: |
+          pytest tests/test_sequential_edge_decay.py -q
+
       - name: Full regression suite
         env:
           POLYGON_API_KEY: test-key
