@@ -48,6 +48,12 @@ jobs:
           pytest tests/test_polygon_data_pipeline.py -q
           pytest tests/test_polygon_cache.py -q
 
+      - name: Phase B1 paper observation tests
+        env:
+          POLYGON_API_KEY: test-key
+        run: |
+          pytest tests/test_paper_observation_reconciliation.py -q
+
       - name: Full regression suite
         env:
           POLYGON_API_KEY: test-key
