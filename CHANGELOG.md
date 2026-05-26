@@ -1,5 +1,48 @@
 # CHANGELOG
 
+## Phase B11 Daily Evidence Pipeline — 2026-05-26
+
+### Added
+- Daily evidence input contract validator in `src/validation/daily_evidence_input_validation.py`.
+- Daily evidence input builder in `src/validation/daily_evidence_input_builder.py`.
+- Observation-only source bootstrap in `src/validation/daily_evidence_source_bootstrap.py`.
+- CLI tools:
+  - `scripts/validate_daily_evidence_inputs.py`
+  - `scripts/build_daily_evidence_inputs.py`
+  - `scripts/bootstrap_daily_evidence_sources.py`
+- Operational documentation:
+  - `docs/operations/daily_evidence_input_pipeline.md`
+  - `docs/operations/daily_evidence_input_builder.md`
+  - `docs/operations/daily_evidence_source_bootstrap.md`
+
+### Tests Added / Updated
+- `tests/test_daily_evidence_input_validation.py`
+- `tests/test_daily_evidence_input_builder.py`
+- `tests/test_daily_evidence_source_bootstrap.py`
+- CI workflow includes explicit Phase B11 input pipeline tests.
+
+### Improved
+- Daily Evidence workflow no longer uses placeholder component JSONs.
+- Workflow now follows a full evidence chain:
+  - source bootstrap when explicitly requested for observation-only Day-0 operation
+  - input build
+  - input validation
+  - B1-B6 component report generation
+  - daily evidence report generation
+  - artifact upload
+- Missing or invalid sources fail closed before evidence generation.
+- Observation-only bootstrap records are marked as `observation_only_bootstrap` and are not treated as statistically meaningful forward evidence.
+
+### Stabilization Result
+- CI status: green.
+- Daily Evidence workflow status: green with explicit observation-only bootstrap input.
+- B11 status: done.
+- B1.1 remains a long-running 3-6 month observation-only evidence period.
+- Broker execution remains intentionally not implemented.
+- Live trading remains intentionally not authorized by code.
+
+---
+
 ## Phase B Real Forward Evidence — 2026-05-25
 
 ### Added
