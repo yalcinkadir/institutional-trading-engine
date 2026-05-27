@@ -11,6 +11,14 @@ on:
         description: "Create observation-only Day-0 incoming seed when no real incoming sources are present"
         required: true
         default: "false"
+      use_real_paper_observation_source:
+        description: "Build incoming sources from real daily paper observation raw files"
+        required: true
+        default: "false"
+      real_paper_observation_source_dir:
+        description: "Directory containing real daily paper observation raw source files"
+        required: true
+        default: "reports/daily_paper_observation_raw"
   schedule:
     - cron: "30 22 * * 1-5"
 
@@ -46,6 +54,22 @@ jobs:
             echo "value=$(date -u +%F)" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Validate observation source mode
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          if [ "${{ github.event.inputs.bootstrap_observation_only_sources }}" = "true" ] && [ "${{ github.event.inputs.use_real_paper_observation_source }}" = "true" ]; then
+            echo "Choose either bootstrap_observation_only_sources or use_real_paper_observation_source, not both."
+            exit 1
+          fi
+
+      - name: Build real paper observation incoming sources
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.use_real_paper_observation_source == 'true' }}
+        run: |
+          python scripts/build_daily_paper_observation_sources.py \
+            --source-dir "${{ github.event.inputs.real_paper_observation_source_dir }}" \
+            --output-dir reports/daily_observation_incoming \
+            --report-dir reports/daily_paper_observation_source
+
       - name: Bootstrap observation-only incoming sources
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.bootstrap_observation_only_sources == 'true' }}
         run: |
@@ -78,7 +102,7 @@ jobs:
       - name: Generate B1-B6 evidence component reports
         run: |
           EXTRA_ARGS=""
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.bootstrap_observation_only_sources }}" = "true" ]; then
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && { [ "${{ github.event.inputs.bootstrap_observation_only_sources }}" = "true" ] || [ "${{ github.event.inputs.use_real_paper_observation_source }}" = "true" ]; }; then
             EXTRA_ARGS="--observation-only"
           fi
           python scripts/generate_daily_evidence_components.py \
@@ -89,11 +113,15 @@ jobs:
 
       - name: Build daily evidence report
         run: |
+          EXTRA_ARGS=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && { [ "${{ github.event.inputs.bootstrap_observation_only_sources }}" = "true" ] || [ "${{ github.event.inputs.use_real_paper_observation_source }}" = "true" ]; }; then
+            EXTRA_ARGS="--max-failed-components 3"
+          fi
           python scripts/run_daily_evidence_report.py \
             --input-dir reports/daily_evidence_components \
             --output-dir reports/daily_evidence \
             --report-date "${{ steps.report-date.outputs.value }}" \
-            --max-failed-components 3
+            $EXTRA_ARGS
 
       - name: Upload daily evidence artifact
         uses: actions/upload-artifact@v4
@@ -101,6 +129,7 @@ jobs:
           name: daily-evidence-report-${{ steps.report-date.outputs.value }}
           path: |
             reports/daily_evidence_source_bootstrap/
+            reports/daily_paper_observation_source/
             reports/daily_observation_source_feed/
             reports/daily_observation_feed/
             reports/daily_evidence_input_build/
