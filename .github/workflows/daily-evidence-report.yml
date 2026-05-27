@@ -144,6 +144,23 @@ jobs:
           echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
           exit 0
 
+      - name: Review real paper observation cadence
+        id: cadence
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.use_real_paper_observation_source == 'true' }}
+        continue-on-error: true
+        run: |
+          mkdir -p reports/daily_observation_cadence
+          set +e
+          python scripts/review_daily_observation_cadence.py \
+            --report-date "${{ steps.report-date.outputs.value }}" \
+            --raw-source-dir "${{ github.event.inputs.real_paper_observation_source_dir }}" \
+            --artifact-root reports \
+            --output-dir reports/daily_observation_cadence
+          STATUS=$?
+          echo "$STATUS" > reports/daily_observation_cadence/cadence_exit_code.txt
+          echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
+          exit 0
+
       - name: Upload daily evidence artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -153,6 +170,7 @@ jobs:
           path: |
             reports/daily_evidence_source_bootstrap/
             reports/daily_paper_observation_source/
+            reports/daily_observation_cadence/
             reports/daily_observation_source_feed/
             reports/daily_observation_feed/
             reports/daily_evidence_input_build/
@@ -170,4 +188,10 @@ jobs:
         if: ${{ steps.report.outputs.exit_code != '0' && !(github.event_name == 'workflow_dispatch' && (github.event.inputs.bootstrap_observation_only_sources == 'true' || github.event.inputs.use_real_paper_observation_source == 'true')) }}
         run: |
           echo "Daily evidence report build failed outside observation-only dispatch mode. Artifact was uploaded for diagnostics."
+          exit 1
+
+      - name: Fail workflow on real paper cadence failure
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.use_real_paper_observation_source == 'true' && steps.cadence.outputs.exit_code != '0' }}
+        run: |
+          echo "Real paper observation cadence review failed. Artifact was uploaded for diagnostics."
           exit 1
