@@ -131,13 +131,14 @@ jobs:
             --min-score 75
 
       - name: Commit all outputs to repository
+        if: github.ref_name == 'main'
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          # Commit reports AND data (decision log, signals, outcomes).
-          # data/ must be committed so decision history survives across runs.
+          # Commit reports AND data only on main.
+          # Feature branches and PR branches must stay free of generated report diffs.
           git add reports/
           git add data/ 2>/dev/null || true
 
@@ -148,6 +149,13 @@ jobs:
             git pull --rebase origin "${GITHUB_REF_NAME}"
             git push origin "HEAD:${GITHUB_REF_NAME}"
           fi
+
+      - name: Skip repository commit outside main
+        if: github.ref_name != 'main'
+        shell: bash
+        run: |
+          echo "Generated reports are uploaded as artifacts only on ${GITHUB_REF_NAME}."
+          echo "Repository commits for reports/data are restricted to main."
 
       - name: Upload dated report artifact
         uses: actions/upload-artifact@v4
