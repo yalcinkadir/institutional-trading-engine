@@ -18,8 +18,9 @@ Full regression suite: green
 Phase B1-B14 evidence pipeline: implemented, CI-green and workflow-green
 Phase B15 observation cadence review: implemented and CI-green
 Phase B1.1: active 3-6 month observation-only evidence collection
+Phase C3/C4: paper-only execution planning and reconciliation infrastructure
 Live trading authorization: not granted by code
-Broker execution: not implemented
+Broker execution: paper-only infrastructure; live execution is not implemented
 ```
 
 Code quality is not trading edge. The system is promising enough to test seriously, but real capital still requires forward evidence, drift detection, regime-change monitoring, position-level risk attribution and manual review.
@@ -71,6 +72,8 @@ docs/operations/daily_evidence_input_builder.md
 docs/operations/daily_evidence_source_bootstrap.md
 docs/operations/daily_paper_observation_source.md
 docs/operations/daily_observation_cadence.md
+docs/operations/vwap_twap_slicing.md
+docs/operations/order_reconciliation.md
 ```
 
 Core CLI commands:
@@ -201,6 +204,9 @@ docs/operations/phase_a_ci_stabilization.md
 - historical Entry / Stop / Exit backtesting
 - out-of-sample validation
 - paper-live observation
+- paper broker adapter interface
+- VWAP/TWAP paper order slicing
+- paper order reconciliation and portfolio-state derivation
 - operational readiness review
 - scheduled decision-support dry runs
 - persistent report archive
@@ -236,6 +242,9 @@ Market analysis
 → Daily evidence input pipeline
 → Daily evidence report artifact
 → Daily observation cadence review
+→ Paper execution planning
+→ Order / Fill reconciliation
+→ Portfolio-state snapshot
 → Final live readiness gate
 → Human review
 ```
@@ -260,4 +269,11 @@ pytest tests/test_historical_edge_validation.py -q
 pytest tests/test_polygon_structured_logging.py -q
 pytest tests/test_polygon_data_pipeline.py -q
 pytest tests/test_polygon_cache.py -q
+```
+
+Phase C paper execution tests:
+
+```bash
+pytest tests/test_order_slicing.py -q
+pytest tests/test_order_reconciliation.py -q
 ```
