@@ -46,13 +46,6 @@ class AlpacaPaperAdapterConfig:
 
 
 class AlpacaPaperAdapter:
-    """Paper-only Alpaca adapter around an injected transport.
-
-    This class intentionally contains no live-trading path and no direct network
-    implementation. A concrete transport can be added later behind the same
-    paper-only guard; CI uses an in-memory transport.
-    """
-
     mode = BrokerMode.PAPER
 
     def __init__(self, config: AlpacaPaperAdapterConfig, *, transport: AlpacaPaperTransport) -> None:
@@ -79,11 +72,7 @@ class AlpacaPaperAdapter:
             payload["stop_price"] = request.stop_price
 
         response = self.transport.post_order(payload)
-        return _alpaca_order_to_broker_order(
-            response,
-            strategy_id=request.strategy_id,
-            signal_id=request.signal_id,
-        )
+        return _alpaca_order_to_broker_order(response, strategy_id=request.strategy_id, signal_id=request.signal_id)
 
     def cancel_order(self, order_id: str) -> BrokerOrder:
         if not order_id.strip():
@@ -94,11 +83,7 @@ class AlpacaPaperAdapter:
     def get_order_status(self, order_id: str) -> BrokerOrder:
         if not order_id.strip():
             raise ValueError("order_id is required")
-        return _alpaca_order_to_broker_order(
-            self.transport.get_order(order_id),
-            strategy_id="unknown",
-            signal_id="unknown",
-        )
+        return _alpaca_order_to_broker_order(self.transport.get_order(order_id), strategy_id="unknown", signal_id="unknown")
 
     def list_positions(self) -> list[BrokerPosition]:
         return [_alpaca_position_to_broker_position(item) for item in self.transport.list_positions()]
@@ -143,8 +128,6 @@ class AlpacaPaperAdapter:
 
 
 class InMemoryAlpacaPaperTransport:
-    """Deterministic in-memory Alpaca-like paper transport for tests and dry runs."""
-
     def __init__(self, *, account_id: str = "alpaca-paper-test", cash: float = 100_000.0) -> None:
         self.account_id = account_id
         self.cash = cash
@@ -170,8 +153,9 @@ class InMemoryAlpacaPaperTransport:
         return order
 
     def cancel_order(self, order_id: str) -> None:
-        order = self.get_order(order_id)
-        order["status"] = "canceled"
+        if order_id not in self.orders:
+            raise KeyError(f"unknown alpaca paper order id: {order_id}")
+        self.orders[order_id]["status"] = "canceled"
 
     def get_order(self, order_id: str) -> dict[str, Any]:
         if order_id not in self.orders:
