@@ -1,7 +1,7 @@
 # Institutional Trading Engine Roadmap
 
 Status date: 2026-05-27  
-Current state: Phase C1 paper broker adapter interface is implemented and CI-green. Phase B17 daily real paper observation runbook discipline is implemented and CI-green. Phase B16 real paper observation raw data contract is implemented and CI-green. Phase B15 observation cadence review is implemented and CI-green. Phase B14 Daily Evidence workflow dispatch integration is implemented, CI-green and workflow-green with uploaded artifact. Phase B13 real daily paper observation source builder is implemented and CI-green. Phase B12 persisted daily observation source feed and observation-only component mode are implemented. Phase A Evidence Hygiene implemented and CI-green. P36-P47 validation stack implemented. Live trading is not authorized by code.
+Current state: Phase C2 Alpaca paper adapter is implemented and CI-green. Phase C1 paper broker adapter interface is implemented and CI-green. Phase B17 daily real paper observation runbook discipline is implemented and CI-green. Phase B16 real paper observation raw data contract is implemented and CI-green. Phase B15 observation cadence review is implemented and CI-green. Phase B14 Daily Evidence workflow dispatch integration is implemented, CI-green and workflow-green with uploaded artifact. Phase B13 real daily paper observation source builder is implemented and CI-green. Phase B12 persisted daily observation source feed and observation-only component mode are implemented. Phase A Evidence Hygiene implemented and CI-green. P36-P47 validation stack implemented. Real-money execution is not authorized by code.
 
 ## Strategic direction
 
@@ -16,7 +16,7 @@ The project is already a strong research and decision-support system. To become 
 5. portfolio-level risk attribution
 6. multi-strategy expansion only after the base edge is proven
 
-Hard rule: no live capital before real forward evidence, drift detection, regime-change monitoring and position-level risk attribution are in place.
+Hard rule: no real-money execution before real forward evidence, drift detection, regime-change monitoring and position-level risk attribution are in place.
 
 ## Phase A — Foundation Repair and Evidence Hygiene
 
@@ -78,13 +78,13 @@ Goal: prove whether the rule-based system has live-observable edge before adding
 ## Phase C — Execution Reality
 
 Target window: starts after B16 foundation; runs in parallel with B1.1 observation period  
-Goal: ensure simulated edge survives realistic execution assumptions without enabling live capital.
+Goal: ensure simulated edge survives realistic execution assumptions without enabling real-money execution.
 
 | ID | Task | Priority | Impact | Status |
 |---|---|---:|---:|---|
 | C1 | Define broker adapter interface for paper execution first | P0 | High | Done |
-| C2 | Add Alpaca paper adapter as first broker implementation | P1 | High | Next |
-| C3 | Add VWAP/TWAP order slicing | P1 | High | Planned |
+| C2 | Add Alpaca paper adapter as first broker implementation | P1 | High | Done |
+| C3 | Add VWAP/TWAP order slicing | P1 | High | Next |
 | C4 | Add order reconciliation engine for signal, order, fill and portfolio state | P1 | High | Planned |
 | C5 | Add live vs. backtest daily reconciliation workflow | P1 | High | Planned |
 | C6 | Add fill-quality report for slippage, spread, delay and partial fills | P2 | Medium | Planned |
@@ -149,15 +149,16 @@ Start only after Phase B and C produce credible evidence.
 - Real paper observation raw data contract and capture template: done and CI-green.
 - Daily real paper observation runbook discipline: done and CI-green.
 - Paper broker adapter interface and mock paper execution adapter: done and CI-green.
+- Alpaca paper adapter with deterministic in-memory transport: done and CI-green.
 
 ## Current execution focus
 
-B1.1 remains the long-running evidence collection period. Phase C is active for paper execution only. Next execution focus is C2: Alpaca paper adapter as the first concrete broker implementation. Phase B and Phase C must remain observation-only until enough forward evidence exists.
+B1.1 remains the long-running evidence collection period. Phase C is active for paper execution only. Next execution focus is C3: VWAP/TWAP order slicing. Phase B and Phase C must remain observation-only until enough forward evidence exists.
 
 ## Do not do yet
 
-- Do not enable live capital.
-- Do not add crypto or forex.
+- Do not enable real-money execution.
+- Do not add new asset classes.
 - Do not add ML before rule-based edge is statistically significant.
 - Do not open or reuse lockbox evidence casually.
 - Do not skip forward paper observation.
