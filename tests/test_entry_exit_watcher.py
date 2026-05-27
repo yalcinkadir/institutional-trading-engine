@@ -53,6 +53,47 @@ def test_ensure_signal_identity_preserves_existing_signal_id():
     assert result["signal_id"] == "existing-id"
 
 
+def test_pending_signal_invalidates_before_entry_when_stop_is_breached():
+    signal = _signal(signal_id="gap-risk-id")
+    bar = PriceBar(symbol="NVDA", timestamp="2026-05-21T13:30:00Z", high=100.0, low=94.0, close=96.0)
+
+    alert, update = evaluate_signal_against_bar(signal, bar, today=date(2026, 5, 21))
+
+    assert alert is not None
+    assert update is not None
+    assert alert.alert_type == "INVALIDATED_BEFORE_ENTRY"
+    assert alert.previous_status == "PENDING"
+    assert alert.new_status == "INVALIDATED_BEFORE_ENTRY"
+    assert alert.trigger_price == 95.0
+    assert update.event_type == "INVALIDATED_BEFORE_ENTRY"
+    assert update.signal["status"] == "INVALIDATED_BEFORE_ENTRY"
+    assert update.signal["last_event_price"] == 95.0
+
+
+def test_pending_signal_invalidates_before_entry_when_same_bar_touches_entry_and_stop():
+    signal = _signal(signal_id="same-bar-risk-id")
+    bar = PriceBar(symbol="NVDA", timestamp="2026-05-21T13:30:00Z", high=102.0, low=94.0, close=101.0)
+
+    alert, update = evaluate_signal_against_bar(signal, bar, today=date(2026, 5, 21))
+
+    assert alert is not None
+    assert update is not None
+    assert alert.alert_type == "INVALIDATED_BEFORE_ENTRY"
+    assert update.signal["status"] == "INVALIDATED_BEFORE_ENTRY"
+    assert "entry_triggered_at" not in update.signal
+    assert "entry_price" not in update.signal
+
+
+def test_invalidated_before_entry_is_terminal_and_never_retriggers():
+    signal = _signal(status="INVALIDATED_BEFORE_ENTRY", signal_id="terminal-id")
+    bar = PriceBar(symbol="NVDA", timestamp="2026-05-22T13:30:00Z", high=130.0, low=120.0, close=125.0)
+
+    alert, update = evaluate_signal_against_bar(signal, bar, today=date(2026, 5, 22))
+
+    assert alert is None
+    assert update is None
+
+
 def test_pending_signal_triggers_entry_when_high_crosses_entry():
     signal = _signal()
     bar = PriceBar(symbol="NVDA", timestamp="2026-05-21T15:00:00Z", high=102.0, low=99.0, close=101.5)
