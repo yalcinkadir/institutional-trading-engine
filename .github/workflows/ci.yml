@@ -134,6 +134,12 @@ jobs:
         run: |
           pytest tests/test_daily_observation_runbook.py -q
 
+      - name: Phase C1 paper broker adapter tests
+        env:
+          POLYGON_API_KEY: test-key
+        run: |
+          pytest tests/test_broker_adapter.py -q
+
       - name: Full regression suite
         env:
           POLYGON_API_KEY: test-key
