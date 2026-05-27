@@ -1,7 +1,7 @@
 # Institutional Trading Engine Roadmap
 
 Status date: 2026-05-27  
-Current state: Phase B16 real paper observation raw data contract is implemented and CI-green. Phase B15 observation cadence review is implemented and CI-green. Phase B14 Daily Evidence workflow dispatch integration is implemented, CI-green and workflow-green with uploaded artifact. Phase B13 real daily paper observation source builder is implemented and CI-green. Phase B12 persisted daily observation source feed and observation-only component mode are implemented. Phase A Evidence Hygiene implemented and CI-green. P36-P47 validation stack implemented. Live trading is not authorized by code.
+Current state: Phase C1 paper broker adapter interface is implemented and CI-green. Phase B17 daily real paper observation runbook discipline is implemented and CI-green. Phase B16 real paper observation raw data contract is implemented and CI-green. Phase B15 observation cadence review is implemented and CI-green. Phase B14 Daily Evidence workflow dispatch integration is implemented, CI-green and workflow-green with uploaded artifact. Phase B13 real daily paper observation source builder is implemented and CI-green. Phase B12 persisted daily observation source feed and observation-only component mode are implemented. Phase A Evidence Hygiene implemented and CI-green. P36-P47 validation stack implemented. Live trading is not authorized by code.
 
 ## Strategic direction
 
@@ -73,7 +73,7 @@ Goal: prove whether the rule-based system has live-observable edge before adding
 | B14 | Integrate real paper observation source path into Daily Evidence workflow dispatch | P0 | Critical | Done |
 | B15 | Start real daily paper observation data capture and artifact review cadence | P0 | Critical | Done |
 | B16 | Define real paper observation raw data contract and daily capture template | P0 | Critical | Done |
-| B17 | Begin daily real paper observation runbook and evidence review discipline | P0 | Critical | Next |
+| B17 | Begin daily real paper observation runbook and evidence review discipline | P0 | Critical | Done |
 
 ## Phase C — Execution Reality
 
@@ -82,8 +82,8 @@ Goal: ensure simulated edge survives realistic execution assumptions without ena
 
 | ID | Task | Priority | Impact | Status |
 |---|---|---:|---:|---|
-| C1 | Define broker adapter interface for paper execution first | P0 | High | Next |
-| C2 | Add Alpaca paper adapter as first broker implementation | P1 | High | Planned |
+| C1 | Define broker adapter interface for paper execution first | P0 | High | Done |
+| C2 | Add Alpaca paper adapter as first broker implementation | P1 | High | Next |
 | C3 | Add VWAP/TWAP order slicing | P1 | High | Planned |
 | C4 | Add order reconciliation engine for signal, order, fill and portfolio state | P1 | High | Planned |
 | C5 | Add live vs. backtest daily reconciliation workflow | P1 | High | Planned |
@@ -147,10 +147,12 @@ Start only after Phase B and C produce credible evidence.
 - Daily Evidence workflow dispatch integration with fail-safe artifact upload: done, CI-green and workflow-green.
 - Real paper observation cadence review: done and CI-green.
 - Real paper observation raw data contract and capture template: done and CI-green.
+- Daily real paper observation runbook discipline: done and CI-green.
+- Paper broker adapter interface and mock paper execution adapter: done and CI-green.
 
 ## Current execution focus
 
-B1.1 remains the long-running evidence collection period. Phase C can now start with C1 broker adapter interface for paper execution only, while B17 keeps daily real paper observation discipline active. Phase B and Phase C must remain observation-only until enough forward evidence exists.
+B1.1 remains the long-running evidence collection period. Phase C is active for paper execution only. Next execution focus is C2: Alpaca paper adapter as the first concrete broker implementation. Phase B and Phase C must remain observation-only until enough forward evidence exists.
 
 ## Do not do yet
 
