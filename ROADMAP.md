@@ -1,22 +1,92 @@
 # Institutional Trading Engine Roadmap
 
 Status date: 2026-05-27  
-Current state: Phase C2 Alpaca paper adapter is implemented and CI-green. Phase C1 paper broker adapter interface is implemented and CI-green. Phase B17 daily real paper observation runbook discipline is implemented and CI-green. Phase B16 real paper observation raw data contract is implemented and CI-green. Phase B15 observation cadence review is implemented and CI-green. Phase B14 Daily Evidence workflow dispatch integration is implemented, CI-green and workflow-green with uploaded artifact. Phase B13 real daily paper observation source builder is implemented and CI-green. Phase B12 persisted daily observation source feed and observation-only component mode are implemented. Phase A Evidence Hygiene implemented and CI-green. P36-P47 validation stack implemented. Real-money execution is not authorized by code.
+Current state: Phase C2 Alpaca paper adapter is implemented and CI-green. Phase C1 paper broker adapter interface is implemented and CI-green. Phase B17 daily real paper observation runbook discipline is implemented and CI-green. Phase B16 real paper observation raw data contract is implemented and CI-green. Phase B15 observation cadence review is implemented and CI-green. Phase B14 Daily Evidence workflow dispatch integration is implemented, CI-green and workflow-green with uploaded artifact. Phase B13 real daily paper observation source builder is implemented and CI-green. Phase B12 persisted daily observation source feed and observation-only component mode are implemented. Phase A Evidence Hygiene implemented and CI-green. P36-P47 validation stack implemented. Real-money execution is not authorized by code. New P0 governance focus: public framework / private edge separation before further proprietary strategy development.
 
 ## Strategic direction
 
-The next stage is not more scanner features. The next stage is institutional evidence.
+The next stage is not more scanner features. The next stage is institutional evidence and controlled intellectual-property separation.
 
 The project is already a strong research and decision-support system. To become top-tier, the roadmap now prioritizes:
 
-1. survivorship-safe data
-2. statistically defensible edge validation
-3. forward paper evidence
-4. execution realism
-5. portfolio-level risk attribution
-6. multi-strategy expansion only after the base edge is proven
+1. public framework / private edge separation
+2. survivorship-safe data
+3. statistically defensible edge validation
+4. forward paper evidence
+5. execution realism
+6. portfolio-level risk attribution
+7. multi-strategy expansion only after the base edge is proven
 
 Hard rule: no real-money execution before real forward evidence, drift detection, regime-change monitoring and position-level risk attribution are in place.
+
+Hard IP rule: the public repository may demonstrate architecture, evidence discipline and deterministic framework behavior, but proprietary edge configuration must not be developed further in public by default.
+
+## Phase IP — Public Framework / Private Edge Separation
+
+Target window: immediate  
+Goal: keep the repository useful as a public framework while protecting proprietary strategy edge.
+
+| ID | Task | Priority | Impact | Status |
+|---|---|---:|---:|---|
+| IP1 | Define the public/private boundary for framework code, strategy configuration, thresholds, setup mappings, exit profiles, scoring weights and evidence artifacts | P0 | Critical | Next |
+| IP2 | Add an operational policy document for public repository hygiene and private edge handling | P0 | Critical | Planned |
+| IP3 | Replace public production-like thresholds and strategy constants with clearly marked demo defaults or external configurable interfaces | P0 | Critical | Planned |
+| IP4 | Add a private-edge adapter/import boundary so local/private modules can provide real thresholds, regime maps, scoring weights and exit profiles without being committed to the public repo | P0 | Critical | Planned |
+| IP5 | Move real reports, ranked opportunities, raw evidence outputs and non-synthetic artifacts out of public version control or replace them with synthetic examples | P0 | Critical | Planned |
+| IP6 | Expand `.gitignore` for private configs, generated reports, databases, caches, logs, coverage output and local artifacts | P0 | High | Planned |
+| IP7 | Update README to state that the public repo contains framework/demo defaults only, not proprietary production edge configuration | P1 | High | Planned |
+| IP8 | Add tests proving the public fallback path works without private modules and that private modules are optional imports only | P1 | High | Planned |
+| IP9 | Review open PRs for newly introduced edge constants before merge, especially setup-specific target profiles and scoring changes | P0 | Critical | Planned |
+| IP10 | Add license and usage disclaimer appropriate for a public decision-support research framework | P1 | Medium | Planned |
+
+## Phase IP Implementation Order
+
+The immediate execution order is:
+
+```text
+1. Roadmap and policy update
+2. Public/private boundary interfaces
+3. Demo defaults and optional private imports
+4. Tests for fallback and private-edge absence
+5. Public artifact hygiene and .gitignore hardening
+6. README and operational documentation update
+7. CI / regression run
+8. Fixes until green
+```
+
+C3 VWAP/TWAP order slicing remains important, but it must wait until IP1-IP4 are complete or must use public demo profiles only.
+
+## Public vs Private Boundary
+
+Public repository may contain:
+
+```text
+framework orchestration
+interfaces and protocols
+demo thresholds
+demo setup maps
+synthetic example reports
+test fixtures
+paper-observation infrastructure
+evidence validation machinery
+broker adapter interfaces
+security and operations documentation
+```
+
+Private edge should contain:
+
+```text
+real decision thresholds
+real regime-to-setup mappings
+proprietary scoring weights
+non-public entry/exit profiles
+real ranked opportunity reports
+private evidence artifacts
+private experiment results
+provider-specific operational settings
+```
+
+Secrets remain outside both public and private source control. API keys, tokens, database URLs and broker credentials must stay in GitHub Actions secrets, local environment variables or a dedicated secret manager.
 
 ## Phase A — Foundation Repair and Evidence Hygiene
 
@@ -84,7 +154,7 @@ Goal: ensure simulated edge survives realistic execution assumptions without ena
 |---|---|---:|---:|---|
 | C1 | Define broker adapter interface for paper execution first | P0 | High | Done |
 | C2 | Add Alpaca paper adapter as first broker implementation | P1 | High | Done |
-| C3 | Add VWAP/TWAP order slicing | P1 | High | Next |
+| C3 | Add VWAP/TWAP order slicing using public demo profiles only until private-edge boundary exists | P1 | High | Planned after IP1-IP4 |
 | C4 | Add order reconciliation engine for signal, order, fill and portfolio state | P1 | High | Planned |
 | C5 | Add live vs. backtest daily reconciliation workflow | P1 | High | Planned |
 | C6 | Add fill-quality report for slippage, spread, delay and partial fills | P2 | Medium | Planned |
@@ -92,11 +162,11 @@ Goal: ensure simulated edge survives realistic execution assumptions without ena
 
 ## Phase D — Strategy Expansion
 
-Start only after Phase B and C produce credible evidence.
+Start only after Phase B and C produce credible evidence and after the private-edge boundary exists.
 
 | ID | Task | Priority | Impact | Status |
 |---|---|---:|---:|---|
-| D1 | Add mean-reversion strategy sleeve with separate validation | P1 | High | Planned |
+| D1 | Add mean-reversion strategy sleeve with separate validation behind the private-edge boundary or with demo-only public constants | P1 | High | Planned |
 | D2 | Add multi-strategy risk-parity allocator | P1 | High | Planned |
 | D3 | Add factor, sector and style exposure caps | P1 | High | Planned |
 | D4 | Add correlation-aware position sizing | P1 | High | Planned |
@@ -111,7 +181,7 @@ Start only after Phase B and C produce credible evidence.
 | E1 | Add continuous backtesting in CI | P1 | Medium | Planned |
 | E2 | Add statistically significant PR gates against previous evidence baselines | P1 | Medium | Planned |
 | E3 | Automate daily live vs. backtest reconciliation | P1 | High | Planned |
-| E4 | Add meta-labeling layer for trade/no-trade decision after primary signal | P2 | Medium | Planned |
+| E4 | Add meta-labeling layer for trade/no-trade decision after primary signal behind private-edge boundary or demo-only public constants | P2 | Medium | Planned |
 | E5 | Add capacity modeling to estimate how much capital the strategy can absorb | P2 | High | Planned |
 | E6 | Add hierarchical risk parity allocation | P2 | Medium | Planned |
 | E7 | Build an audit dashboard for evidence, drift, risk and execution quality | P2 | Medium | Planned |
@@ -153,7 +223,7 @@ Start only after Phase B and C produce credible evidence.
 
 ## Current execution focus
 
-B1.1 remains the long-running evidence collection period. Phase C is active for paper execution only. Next execution focus is C3: VWAP/TWAP order slicing. Phase B and Phase C must remain observation-only until enough forward evidence exists.
+B1.1 remains the long-running evidence collection period. Phase C is active for paper execution only. Immediate focus is Phase IP: public framework / private edge separation. C3 VWAP/TWAP order slicing is paused until IP1-IP4 are complete or implemented with demo-only public constants.
 
 ## Do not do yet
 
@@ -162,3 +232,5 @@ B1.1 remains the long-running evidence collection period. Phase C is active for 
 - Do not add ML before rule-based edge is statistically significant.
 - Do not open or reuse lockbox evidence casually.
 - Do not skip forward paper observation.
+- Do not add new proprietary thresholds, setup maps, scoring weights or exit profiles directly to the public repo unless they are explicitly demo-only.
+- Do not commit real ranked opportunity reports, raw evidence outputs, provider credentials or private strategy experiments to the public repo.
