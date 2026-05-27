@@ -100,6 +100,8 @@ def derive_exit_target_quality(
     - pullback_targets
     - retest_targets
     - gap_fill_targets
+    - mean_reversion_targets
+    - defensive_rotation_targets
     - default_risk_targets
     """
 
@@ -170,6 +172,34 @@ def derive_exit_target_quality(
             target_2=target_2,
             exit_model="gap_fill_targets",
             exit_reason="gap-fill targets at 1.35R and 2.0R",
+        )
+
+    if normalized_setup == "mean_reversion":
+        target_1 = entry_trigger + 1.0 * risk
+        target_2 = entry_trigger + 1.5 * risk
+        if atr is not None and atr > 0:
+            target_1 = min(target_1, entry_trigger + 1.0 * atr)
+            target_2 = min(target_2, entry_trigger + 1.5 * atr)
+        return _validate_targets(
+            entry_trigger=entry_trigger,
+            target_1=target_1,
+            target_2=target_2,
+            exit_model="mean_reversion_targets",
+            exit_reason="mean-reversion targets use quicker 1.0R/1.5R exits capped by 1.0/1.5 ATR when available",
+        )
+
+    if normalized_setup == "defensive_rotation":
+        target_1 = entry_trigger + 1.2 * risk
+        target_2 = entry_trigger + 1.8 * risk
+        if atr is not None and atr > 0:
+            target_1 = max(target_1, entry_trigger + 1.0 * atr)
+            target_2 = max(target_2, entry_trigger + 1.5 * atr)
+        return _validate_targets(
+            entry_trigger=entry_trigger,
+            target_1=target_1,
+            target_2=target_2,
+            exit_model="defensive_rotation_targets",
+            exit_reason="defensive rotation targets use moderated 1.2R/1.8R exits with ATR floor when available",
         )
 
     target_1 = entry_trigger + 1.5 * risk
