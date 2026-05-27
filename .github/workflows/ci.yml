@@ -110,6 +110,12 @@ jobs:
         run: |
           pytest tests/test_daily_observation_source_feed.py -q
 
+      - name: Phase B13 real paper observation source tests
+        env:
+          POLYGON_API_KEY: test-key
+        run: |
+          pytest tests/test_daily_paper_observation_source.py -q
+
       - name: Full regression suite
         env:
           POLYGON_API_KEY: test-key
