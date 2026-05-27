@@ -166,8 +166,8 @@ jobs:
           echo "Component generation failed outside observation-only dispatch mode."
           exit 1
 
-      - name: Fail workflow on report build failure
-        if: ${{ steps.report.outputs.exit_code != '0' }}
+      - name: Fail workflow on non-observation report build failure
+        if: ${{ steps.report.outputs.exit_code != '0' && !(github.event_name == 'workflow_dispatch' && (github.event.inputs.bootstrap_observation_only_sources == 'true' || github.event.inputs.use_real_paper_observation_source == 'true')) }}
         run: |
-          echo "Daily evidence report build failed. Artifact was uploaded for diagnostics."
+          echo "Daily evidence report build failed outside observation-only dispatch mode. Artifact was uploaded for diagnostics."
           exit 1
