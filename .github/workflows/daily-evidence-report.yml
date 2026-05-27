@@ -100,33 +100,56 @@ jobs:
             --output-dir reports/daily_evidence_input_validation
 
       - name: Generate B1-B6 evidence component reports
+        id: components
+        continue-on-error: true
         run: |
+          mkdir -p reports/daily_evidence_components
           EXTRA_ARGS=""
+          OBSERVATION_MODE="false"
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && { [ "${{ github.event.inputs.bootstrap_observation_only_sources }}" = "true" ] || [ "${{ github.event.inputs.use_real_paper_observation_source }}" = "true" ]; }; then
             EXTRA_ARGS="--observation-only"
+            OBSERVATION_MODE="true"
           fi
+          echo "Observation-only component mode: ${OBSERVATION_MODE}"
+          echo "Component extra args: ${EXTRA_ARGS:-none}"
+          set +e
           python scripts/generate_daily_evidence_components.py \
             --input-dir reports/daily_evidence_inputs \
             --output-dir reports/daily_evidence_components \
             --report-date "${{ steps.report-date.outputs.value }}" \
             $EXTRA_ARGS
+          STATUS=$?
+          echo "$STATUS" > reports/daily_evidence_components/component_exit_code.txt
+          echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
+          exit 0
 
       - name: Build daily evidence report
+        id: report
+        continue-on-error: true
         run: |
+          mkdir -p reports/daily_evidence
           EXTRA_ARGS=""
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && { [ "${{ github.event.inputs.bootstrap_observation_only_sources }}" = "true" ] || [ "${{ github.event.inputs.use_real_paper_observation_source }}" = "true" ]; }; then
             EXTRA_ARGS="--max-failed-components 3"
           fi
+          echo "Daily report extra args: ${EXTRA_ARGS:-none}"
+          set +e
           python scripts/run_daily_evidence_report.py \
             --input-dir reports/daily_evidence_components \
             --output-dir reports/daily_evidence \
             --report-date "${{ steps.report-date.outputs.value }}" \
             $EXTRA_ARGS
+          STATUS=$?
+          echo "$STATUS" > reports/daily_evidence/report_exit_code.txt
+          echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
+          exit 0
 
       - name: Upload daily evidence artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: daily-evidence-report-${{ steps.report-date.outputs.value }}
+          if-no-files-found: ignore
           path: |
             reports/daily_evidence_source_bootstrap/
             reports/daily_paper_observation_source/
@@ -136,3 +159,15 @@ jobs:
             reports/daily_evidence_input_validation/
             reports/daily_evidence/
             reports/daily_evidence_components/
+
+      - name: Fail workflow on non-observation evidence failure
+        if: ${{ steps.components.outputs.exit_code != '0' && !(github.event_name == 'workflow_dispatch' && (github.event.inputs.bootstrap_observation_only_sources == 'true' || github.event.inputs.use_real_paper_observation_source == 'true')) }}
+        run: |
+          echo "Component generation failed outside observation-only dispatch mode."
+          exit 1
+
+      - name: Fail workflow on report build failure
+        if: ${{ steps.report.outputs.exit_code != '0' }}
+        run: |
+          echo "Daily evidence report build failed. Artifact was uploaded for diagnostics."
+          exit 1
