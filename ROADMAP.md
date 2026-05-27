@@ -1,7 +1,7 @@
 # Institutional Trading Engine Roadmap
 
 Status date: 2026-05-27  
-Current state: Phase B14 Daily Evidence workflow dispatch integration is implemented, CI-green and workflow-green with uploaded artifact. Phase B13 real daily paper observation source builder is implemented and CI-green. Phase B12 persisted daily observation source feed and observation-only component mode are implemented. Phase A Evidence Hygiene implemented and CI-green. P36-P47 validation stack implemented. Live trading is not authorized by code.
+Current state: Phase B16 real paper observation raw data contract is implemented and CI-green. Phase B15 observation cadence review is implemented and CI-green. Phase B14 Daily Evidence workflow dispatch integration is implemented, CI-green and workflow-green with uploaded artifact. Phase B13 real daily paper observation source builder is implemented and CI-green. Phase B12 persisted daily observation source feed and observation-only component mode are implemented. Phase A Evidence Hygiene implemented and CI-green. P36-P47 validation stack implemented. Live trading is not authorized by code.
 
 ## Strategic direction
 
@@ -71,16 +71,18 @@ Goal: prove whether the rule-based system has live-observable edge before adding
 | B12 | Add persisted daily observation source feed and observation-only bootstrap workflow mode | P0 | Critical | Done |
 | B13 | Replace bootstrap incoming records with real persisted daily paper observation source records | P0 | Critical | Done |
 | B14 | Integrate real paper observation source path into Daily Evidence workflow dispatch | P0 | Critical | Done |
-| B15 | Start real daily paper observation data capture and artifact review cadence | P0 | Critical | Next |
+| B15 | Start real daily paper observation data capture and artifact review cadence | P0 | Critical | Done |
+| B16 | Define real paper observation raw data contract and daily capture template | P0 | Critical | Done |
+| B17 | Begin daily real paper observation runbook and evidence review discipline | P0 | Critical | Next |
 
 ## Phase C — Execution Reality
 
-Target window: parallel with Phase B  
-Goal: ensure simulated edge survives realistic execution assumptions.
+Target window: starts after B16 foundation; runs in parallel with B1.1 observation period  
+Goal: ensure simulated edge survives realistic execution assumptions without enabling live capital.
 
 | ID | Task | Priority | Impact | Status |
 |---|---|---:|---:|---|
-| C1 | Define broker adapter interface for paper execution first | P0 | High | Planned |
+| C1 | Define broker adapter interface for paper execution first | P0 | High | Next |
 | C2 | Add Alpaca paper adapter as first broker implementation | P1 | High | Planned |
 | C3 | Add VWAP/TWAP order slicing | P1 | High | Planned |
 | C4 | Add order reconciliation engine for signal, order, fill and portfolio state | P1 | High | Planned |
@@ -109,7 +111,7 @@ Start only after Phase B and C produce credible evidence.
 | E1 | Add continuous backtesting in CI | P1 | Medium | Planned |
 | E2 | Add statistically significant PR gates against previous evidence baselines | P1 | Medium | Planned |
 | E3 | Automate daily live vs. backtest reconciliation | P1 | High | Planned |
-| E4 | Add meta-labeling layer for trade/no-trade decision after primary signal | P2 | Medium |
+| E4 | Add meta-labeling layer for trade/no-trade decision after primary signal | P2 | Medium | Planned |
 | E5 | Add capacity modeling to estimate how much capital the strategy can absorb | P2 | High | Planned |
 | E6 | Add hierarchical risk parity allocation | P2 | Medium | Planned |
 | E7 | Build an audit dashboard for evidence, drift, risk and execution quality | P2 | Medium | Planned |
@@ -143,10 +145,12 @@ Start only after Phase B and C produce credible evidence.
 - Persisted daily observation source feed, observation-only component mode and Daily Evidence workflow green: done.
 - Real daily paper observation source builder with bootstrap rejection: done and CI-green.
 - Daily Evidence workflow dispatch integration with fail-safe artifact upload: done, CI-green and workflow-green.
+- Real paper observation cadence review: done and CI-green.
+- Real paper observation raw data contract and capture template: done and CI-green.
 
 ## Current execution focus
 
-B1.1 remains the long-running evidence collection period. The next step is B15: start real daily paper observation data capture and artifact review cadence. Phase B must remain observation-only until enough forward evidence exists.
+B1.1 remains the long-running evidence collection period. Phase C can now start with C1 broker adapter interface for paper execution only, while B17 keeps daily real paper observation discipline active. Phase B and Phase C must remain observation-only until enough forward evidence exists.
 
 ## Do not do yet
 
