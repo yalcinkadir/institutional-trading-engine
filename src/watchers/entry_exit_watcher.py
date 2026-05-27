@@ -10,6 +10,7 @@ alerts + lifecycle updates.
 Responsibilities:
 - assign deterministic signal identity as fallback for legacy signals
 - detect ENTRY_TRIGGERED
+- detect INVALIDATED_BEFORE_ENTRY
 - detect STOP_HIT
 - detect TARGET_1_HIT
 - detect TARGET_2_HIT
@@ -43,6 +44,7 @@ LIFECYCLE_LOG = Path("data/signal_lifecycle.jsonl")
 
 ACTIONABLE_ACTIONS = {"BUY_WATCH"}
 TERMINAL_STATUSES = {
+    "INVALIDATED_BEFORE_ENTRY",
     "STOP_HIT",
     "TARGET_2_HIT",
     "EXPIRED",
@@ -172,14 +174,17 @@ def evaluate_signal_against_bar(
     Evaluate one signal against one price bar.
 
     For BUY_WATCH signals:
+    - PENDING becomes INVALIDATED_BEFORE_ENTRY when low <= stop_loss.
     - PENDING becomes TRIGGERED when high >= entry_trigger.
     - TRIGGERED becomes STOP_HIT when low <= stop_loss.
     - TRIGGERED becomes TARGET_1_HIT when high >= target_1.
     - TARGET_1_HIT becomes TARGET_2_HIT when high >= target_2.
     - PENDING becomes EXPIRED after valid_until.
 
-    Conservative ordering when a single bar touches both stop and target:
-    stop is evaluated before targets. This avoids optimistic backtest bias.
+    Conservative ordering when a single bar touches invalidation/stop and entry/target:
+    invalidation/stop is evaluated before entry/targets. This avoids optimistic
+    backtest bias and prevents stale PENDING plans from activating after their
+    original risk boundary was already breached.
     """
     signal = ensure_signal_identity(signal)
     signal_id = str(signal["signal_id"])
@@ -208,7 +213,12 @@ def evaluate_signal_against_bar(
     new_status: str | None = None
     trigger_price: float | None = None
 
-    if previous_status == "PENDING" and _is_expired(signal, today=today):
+    if previous_status == "PENDING" and stop is not None and low is not None and low <= stop:
+        event_type = "INVALIDATED_BEFORE_ENTRY"
+        new_status = "INVALIDATED_BEFORE_ENTRY"
+        trigger_price = stop
+
+    elif previous_status == "PENDING" and _is_expired(signal, today=today):
         event_type = "EXPIRED"
         new_status = "EXPIRED"
         trigger_price = None
@@ -241,7 +251,13 @@ def evaluate_signal_against_bar(
     if event_type == "ENTRY_TRIGGERED":
         updated_signal["entry_triggered_at"] = bar.timestamp
         updated_signal["entry_price"] = trigger_price
-    elif event_type in {"STOP_HIT", "TARGET_1_HIT", "TARGET_2_HIT", "EXPIRED"}:
+    elif event_type in {
+        "INVALIDATED_BEFORE_ENTRY",
+        "STOP_HIT",
+        "TARGET_1_HIT",
+        "TARGET_2_HIT",
+        "EXPIRED",
+    }:
         updated_signal["last_event_at"] = bar.timestamp
         updated_signal["last_event_price"] = trigger_price
 
