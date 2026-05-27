@@ -1,7 +1,7 @@
 # Institutional Trading Engine Roadmap
 
 Status date: 2026-05-26  
-Current state: Phase B12 persisted daily observation source feed, observation-only component mode, CI-green and Daily Evidence workflow-green are implemented. Phase A Evidence Hygiene implemented and CI-green. P36-P47 validation stack implemented. Live trading is not authorized by code.
+Current state: Phase B13 real daily paper observation source builder is implemented and CI-green. Phase B12 persisted daily observation source feed, observation-only component mode and Daily Evidence workflow-green are implemented. Phase A Evidence Hygiene implemented and CI-green. P36-P47 validation stack implemented. Live trading is not authorized by code.
 
 ## Strategic direction
 
@@ -69,7 +69,8 @@ Goal: prove whether the rule-based system has live-observable edge before adding
 | B10 | Replace placeholder component reports with real generated B1-B6 component artifacts | P1 | High | Done |
 | B11 | Replace smoke-fixture workflow mode with daily evidence source, input, validation and bootstrap pipeline | P1 | High | Done |
 | B12 | Add persisted daily observation source feed and observation-only bootstrap workflow mode | P0 | Critical | Done |
-| B13 | Replace bootstrap incoming records with real persisted daily paper observation source records | P0 | Critical | Next |
+| B13 | Replace bootstrap incoming records with real persisted daily paper observation source records | P0 | Critical | Done |
+| B14 | Integrate real paper observation source path into Daily Evidence workflow dispatch | P0 | Critical | Next |
 
 ## Phase C — Execution Reality
 
@@ -139,10 +140,11 @@ Start only after Phase B and C produce credible evidence.
 - Generated B1-B6 daily evidence component CLI: done and CI-green.
 - Daily evidence input validator, input builder and observation-only source bootstrap: done, CI-green and workflow-green.
 - Persisted daily observation source feed, observation-only component mode and Daily Evidence workflow green: done.
+- Real daily paper observation source builder with bootstrap rejection: done and CI-green.
 
 ## Current execution focus
 
-B1.1 remains the long-running evidence collection period. The next step is B13: replace bootstrap incoming records with real persisted daily paper observation source records. Phase B must remain observation-only until enough forward evidence exists.
+B1.1 remains the long-running evidence collection period. The next step is B14: integrate the real paper observation source path into Daily Evidence workflow dispatch. Phase B must remain observation-only until enough forward evidence exists.
 
 ## Do not do yet
 
