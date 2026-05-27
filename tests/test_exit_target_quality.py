@@ -60,6 +60,36 @@ def test_gap_fill_targets_are_risk_based() -> None:
     assert result.exit_model == "gap_fill_targets"
 
 
+def test_mean_reversion_uses_dedicated_quicker_exit_profile() -> None:
+    result = derive_exit_target_quality(
+        setup_type="mean_reversion",
+        entry_trigger=100.0,
+        stop_loss=94.0,
+        atr=4.0,
+    )
+
+    assert result.is_valid
+    assert result.target_1 == 104.0
+    assert result.target_2 == 106.0
+    assert result.exit_model == "mean_reversion_targets"
+    assert "mean-reversion" in result.exit_reason
+
+
+def test_defensive_rotation_uses_dedicated_moderated_exit_profile() -> None:
+    result = derive_exit_target_quality(
+        setup_type="defensive_rotation",
+        entry_trigger=100.0,
+        stop_loss=94.0,
+        atr=4.0,
+    )
+
+    assert result.is_valid
+    assert result.target_1 == 107.2
+    assert result.target_2 == 110.8
+    assert result.exit_model == "defensive_rotation_targets"
+    assert "defensive rotation" in result.exit_reason
+
+
 def test_scanner_provided_targets_are_used_when_valid() -> None:
     result = derive_exit_target_quality(
         setup_type="momentum_breakout",
