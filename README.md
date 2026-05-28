@@ -19,11 +19,36 @@ Phase B1-B14 evidence pipeline: implemented, CI-green and workflow-green
 Phase B15 observation cadence review: implemented and CI-green
 Phase B1.1: active 3-6 month observation-only evidence collection
 Phase C3/C4/C5/C6/C7: paper-only execution planning, reconciliation, drift, fill-quality and kill-switch governance infrastructure
+Phase IP1: public/private edge boundary guardrail implemented
 Live trading authorization: not granted by code
 Broker execution: paper-only infrastructure; live execution is not implemented
 ```
 
 Code quality is not trading edge. The system is promising enough to test seriously, but real capital still requires forward evidence, drift detection, regime-change monitoring, position-level risk attribution and manual review.
+
+## Public / Private Edge Boundary
+
+The public repository is intended to expose the framework, validation discipline, paper-execution controls, auditability, tests and documentation. It is not intended to expose proprietary production edge configuration.
+
+IP1 adds a conservative repository hygiene scanner:
+
+```bash
+python scripts/check_ip_boundary.py --root . --no-write
+```
+
+Policy file:
+
+```text
+.ip-boundary.yml
+```
+
+Operational documentation:
+
+```text
+docs/operations/ip_boundary.md
+```
+
+Public-safe content may include architecture, interfaces, demo defaults, synthetic examples, tests, documentation and paper-observation infrastructure. Private edge should stay outside the public repository, including real thresholds, real scoring weights, proprietary setup rankings, non-public entry/exit profiles and private evidence artifacts.
 
 ## Phase B Daily Evidence Pipeline
 
@@ -77,6 +102,7 @@ docs/operations/order_reconciliation.md
 docs/operations/daily_execution_reconciliation.md
 docs/operations/fill_quality_report.md
 docs/operations/execution_kill_switch.md
+docs/operations/ip_boundary.md
 ```
 
 Core CLI commands:
@@ -137,6 +163,10 @@ python scripts/generate_fill_quality_report.py \
 python scripts/evaluate_execution_kill_switch.py \
   --input-file reports/execution_kill_switch_input/input.json \
   --output-dir reports/execution_kill_switch
+
+python scripts/check_ip_boundary.py \
+  --root . \
+  --no-write
 ```
 
 ## Phase A Evidence Hygiene
@@ -226,6 +256,7 @@ docs/operations/phase_a_ci_stabilization.md
 - daily expected-vs-observed execution reconciliation
 - fill-quality reporting for slippage, spread, delay and partial fills
 - execution kill-switch governance for failed evidence and execution-quality drift
+- public/private edge boundary guardrail
 - operational readiness review
 - scheduled decision-support dry runs
 - persistent report archive
@@ -267,6 +298,7 @@ Market analysis
 → Daily expected-vs-observed execution reconciliation
 → Fill-quality reporting
 → Execution kill-switch decision
+→ Public/private edge boundary scan
 → Final live readiness gate
 → Human review
 ```
@@ -301,4 +333,10 @@ pytest tests/test_order_reconciliation.py -q
 pytest tests/test_daily_execution_reconciliation.py -q
 pytest tests/test_fill_quality_report.py -q
 pytest tests/test_execution_kill_switch.py -q
+```
+
+IP boundary tests:
+
+```bash
+pytest tests/test_ip_boundary.py -q
 ```
