@@ -1,7 +1,7 @@
 # Institutional Trading Engine Roadmap
 
 Status date: 2026-05-28  
-Current state: Phase C6 fill-quality reporting is implemented as paper/live observation audit infrastructure. Phase C5 daily expected-vs-observed execution reconciliation is implemented as paper/live observation infrastructure. Phase C4 order reconciliation is implemented as paper-only infrastructure. Phase C3 VWAP/TWAP paper order slicing is implemented and CI-green. Phase C2 Alpaca paper adapter is implemented and CI-green. Phase C1 paper broker adapter interface is implemented and CI-green. Phase B17 daily real paper observation runbook discipline is implemented and CI-green. Phase B16 real paper observation raw data contract is implemented and CI-green. Phase B15 observation cadence review is implemented and CI-green. Phase B14 Daily Evidence workflow dispatch integration is implemented, CI-green and workflow-green with uploaded artifact. Phase B13 real daily paper observation source builder is implemented and CI-green. Phase B12 persisted daily observation source feed and observation-only component mode are implemented. Phase A Evidence Hygiene implemented and CI-green. P36-P47 validation stack implemented. Real-money execution is not authorized by code. New P0 governance focus: public framework / private edge separation before further proprietary strategy development.
+Current state: Phase C7 execution kill-switch governance is implemented as paper/live observation audit infrastructure. Phase C6 fill-quality reporting is implemented as paper/live observation audit infrastructure. Phase C5 daily expected-vs-observed execution reconciliation is implemented as paper/live observation infrastructure. Phase C4 order reconciliation is implemented as paper-only infrastructure. Phase C3 VWAP/TWAP paper order slicing is implemented and CI-green. Phase C2 Alpaca paper adapter is implemented and CI-green. Phase C1 paper broker adapter interface is implemented and CI-green. Phase B17 daily real paper observation runbook discipline is implemented and CI-green. Phase B16 real paper observation raw data contract is implemented and CI-green. Phase B15 observation cadence review is implemented and CI-green. Phase B14 Daily Evidence workflow dispatch integration is implemented, CI-green and workflow-green with uploaded artifact. Phase B13 real daily paper observation source builder is implemented and CI-green. Phase B12 persisted daily observation source feed and observation-only component mode are implemented. Phase A Evidence Hygiene implemented and CI-green. P36-P47 validation stack implemented. Real-money execution is not authorized by code. New P0 governance focus: public framework / private edge separation before further proprietary strategy development.
 
 ## Strategic direction
 
@@ -54,7 +54,7 @@ The immediate execution order is:
 8. Fixes until green
 ```
 
-C3, C4, C5 and C6 are implemented as public paper-execution/evidence infrastructure only. They do not add proprietary strategy edge and do not authorize live trading.
+C3, C4, C5, C6 and C7 are implemented as public paper-execution/evidence infrastructure only. They do not add proprietary strategy edge and do not authorize live trading.
 
 ## Public vs Private Boundary
 
@@ -158,7 +158,7 @@ Goal: ensure simulated edge survives realistic execution assumptions without ena
 | C4 | Add order reconciliation engine for signal, order, fill and portfolio state | P1 | High | Done |
 | C5 | Add live vs. backtest daily reconciliation workflow | P1 | High | Done |
 | C6 | Add fill-quality report for slippage, spread, delay and partial fills | P2 | Medium | Done |
-| C7 | Add execution kill switch when execution drift exceeds limits | P1 | High | Planned |
+| C7 | Add execution kill switch when execution drift exceeds limits | P1 | High | Done |
 
 ## Phase D — Strategy Expansion
 
@@ -224,10 +224,11 @@ Start only after Phase B and C produce credible evidence and after the private-e
 - Order reconciliation engine for signal, order, fill and portfolio state: done.
 - Daily expected-vs-observed execution reconciliation workflow: done.
 - Fill-quality report for slippage, spread, delay and partial fills: done.
+- Execution kill-switch governance for failed evidence and execution-quality drift: done.
 
 ## Current execution focus
 
-B1.1 remains the long-running evidence collection period. Phase C is active for paper execution only. Immediate focus remains Phase IP: public framework / private edge separation, while C7 can proceed as paper-only execution drift control on top of C3-C6.
+B1.1 remains the long-running evidence collection period. Phase C is active for paper execution only. Immediate focus remains Phase IP: public framework / private edge separation, while the C3-C7 execution-control stack can now be used for observation-only governance.
 
 ## Do not do yet
 
