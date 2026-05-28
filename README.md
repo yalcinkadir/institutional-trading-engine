@@ -18,7 +18,7 @@ Full regression suite: green
 Phase B1-B14 evidence pipeline: implemented, CI-green and workflow-green
 Phase B15 observation cadence review: implemented and CI-green
 Phase B1.1: active 3-6 month observation-only evidence collection
-Phase C3/C4/C5: paper-only execution planning, reconciliation and daily execution drift infrastructure
+Phase C3/C4/C5/C6: paper-only execution planning, reconciliation, drift and fill-quality infrastructure
 Live trading authorization: not granted by code
 Broker execution: paper-only infrastructure; live execution is not implemented
 ```
@@ -75,6 +75,7 @@ docs/operations/daily_observation_cadence.md
 docs/operations/vwap_twap_slicing.md
 docs/operations/order_reconciliation.md
 docs/operations/daily_execution_reconciliation.md
+docs/operations/fill_quality_report.md
 ```
 
 Core CLI commands:
@@ -127,6 +128,10 @@ python scripts/reconcile_daily_execution.py \
   --expected-file reports/daily_expected_execution/expected.json \
   --observed-file reports/daily_observed_execution/observed.json \
   --output-dir reports/daily_execution_reconciliation
+
+python scripts/generate_fill_quality_report.py \
+  --input-file reports/fill_quality_input/fills.json \
+  --output-dir reports/fill_quality
 ```
 
 ## Phase A Evidence Hygiene
@@ -214,6 +219,7 @@ docs/operations/phase_a_ci_stabilization.md
 - VWAP/TWAP paper order slicing
 - paper order reconciliation and portfolio-state derivation
 - daily expected-vs-observed execution reconciliation
+- fill-quality reporting for slippage, spread, delay and partial fills
 - operational readiness review
 - scheduled decision-support dry runs
 - persistent report archive
@@ -253,6 +259,7 @@ Market analysis
 → Order / Fill reconciliation
 → Portfolio-state snapshot
 → Daily expected-vs-observed execution reconciliation
+→ Fill-quality reporting
 → Final live readiness gate
 → Human review
 ```
@@ -285,4 +292,5 @@ Phase C paper execution tests:
 pytest tests/test_order_slicing.py -q
 pytest tests/test_order_reconciliation.py -q
 pytest tests/test_daily_execution_reconciliation.py -q
+pytest tests/test_fill_quality_report.py -q
 ```
