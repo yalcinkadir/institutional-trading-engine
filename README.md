@@ -20,6 +20,7 @@ Phase B15 observation cadence review: implemented and CI-green
 Phase B1.1: active 3-6 month observation-only evidence collection
 Phase C3/C4/C5/C6/C7: paper-only execution planning, reconciliation, drift, fill-quality and kill-switch governance infrastructure
 Phase IP1: public/private edge boundary guardrail implemented
+Phase IP2: public repository hygiene policy implemented
 Live trading authorization: not granted by code
 Broker execution: paper-only infrastructure; live execution is not implemented
 ```
@@ -36,16 +37,24 @@ IP1 adds a conservative repository hygiene scanner:
 python scripts/check_ip_boundary.py --root . --no-write
 ```
 
-Policy file:
+IP2 adds the operational public repository hygiene policy:
+
+```bash
+python scripts/validate_public_repo_policy.py --no-write
+```
+
+Policy files:
 
 ```text
 .ip-boundary.yml
+docs/operations/public_repo_hygiene_policy.md
 ```
 
 Operational documentation:
 
 ```text
 docs/operations/ip_boundary.md
+docs/operations/public_repo_hygiene_policy.md
 ```
 
 Public-safe content may include architecture, interfaces, demo defaults, synthetic examples, tests, documentation and paper-observation infrastructure. Private edge should stay outside the public repository, including real thresholds, real scoring weights, proprietary setup rankings, non-public entry/exit profiles and private evidence artifacts.
@@ -103,6 +112,7 @@ docs/operations/daily_execution_reconciliation.md
 docs/operations/fill_quality_report.md
 docs/operations/execution_kill_switch.md
 docs/operations/ip_boundary.md
+docs/operations/public_repo_hygiene_policy.md
 ```
 
 Core CLI commands:
@@ -166,6 +176,9 @@ python scripts/evaluate_execution_kill_switch.py \
 
 python scripts/check_ip_boundary.py \
   --root . \
+  --no-write
+
+python scripts/validate_public_repo_policy.py \
   --no-write
 ```
 
@@ -257,6 +270,7 @@ docs/operations/phase_a_ci_stabilization.md
 - fill-quality reporting for slippage, spread, delay and partial fills
 - execution kill-switch governance for failed evidence and execution-quality drift
 - public/private edge boundary guardrail
+- public repository hygiene policy validation
 - operational readiness review
 - scheduled decision-support dry runs
 - persistent report archive
@@ -299,6 +313,7 @@ Market analysis
 → Fill-quality reporting
 → Execution kill-switch decision
 → Public/private edge boundary scan
+→ Public repository policy validation
 → Final live readiness gate
 → Human review
 ```
@@ -335,8 +350,9 @@ pytest tests/test_fill_quality_report.py -q
 pytest tests/test_execution_kill_switch.py -q
 ```
 
-IP boundary tests:
+IP boundary and policy tests:
 
 ```bash
 pytest tests/test_ip_boundary.py -q
+pytest tests/test_public_repo_policy.py -q
 ```
