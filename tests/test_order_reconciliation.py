@@ -149,3 +149,36 @@ def test_reconcile_open_order_with_fill_is_warning_but_not_failed():
     assert snapshot.passed
     assert snapshot.issues[0].severity == ReconciliationSeverity.WARNING
     assert snapshot.issues[0].code == "open_order_has_fills"
+
+
+def test_reconcile_duplicate_order_id_fails_closed():
+    first = _order(order_id="order-1", quantity=1)
+    second = _order(order_id="order-1", quantity=1)
+
+    snapshot = reconcile_orders_and_fills(orders=[first, second], fills=[])
+
+    assert not snapshot.passed
+    assert snapshot.issues[0].severity == ReconciliationSeverity.ERROR
+    assert snapshot.issues[0].code == "duplicate_order_id"
+
+
+def test_reconcile_fill_symbol_mismatch_fails_closed():
+    order = _order(order_id="order-1", symbol="AAPL", quantity=1)
+    fill = _fill(fill_id="fill-1", order_id="order-1", symbol="MSFT", quantity=1)
+
+    snapshot = reconcile_orders_and_fills(orders=[order], fills=[fill])
+
+    assert not snapshot.passed
+    assert snapshot.issues[0].code == "fill_symbol_mismatch"
+    assert snapshot.position_count == 0
+
+
+def test_reconcile_fill_side_mismatch_fails_closed():
+    order = _order(order_id="order-1", side=OrderSide.BUY, quantity=1)
+    fill = _fill(fill_id="fill-1", order_id="order-1", side=OrderSide.SELL, quantity=1)
+
+    snapshot = reconcile_orders_and_fills(orders=[order], fills=[fill])
+
+    assert not snapshot.passed
+    assert snapshot.issues[0].code == "fill_side_mismatch"
+    assert snapshot.position_count == 0
