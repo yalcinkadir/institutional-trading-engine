@@ -1,14 +1,18 @@
 from src.execution.broker_adapter import BrokerFill, BrokerOrder, OrderSide, OrderStatus, OrderType
-from src.execution.order_reconciliation import reconcile_orders_and_fills
+from src.execution.reconciliation import (
+    ReconciliationSeverity,
+    ReconciliationStatus,
+    reconcile_orders,
+)
 
 
 def _order(
     *,
-    order_id: str = "ord-1",
+    order_id: str,
     symbol: str = "AAPL",
     side: OrderSide = OrderSide.BUY,
     quantity: float = 10,
-    status: OrderStatus = OrderStatus.FILLED,
+    status: OrderStatus = OrderStatus.ACCEPTED,
 ) -> BrokerOrder:
     return BrokerOrder(
         order_id=order_id,
@@ -19,20 +23,18 @@ def _order(
         status=status,
         strategy_id="strategy-1",
         signal_id="signal-1",
-        submitted_at="2026-05-27T10:00:00+00:00",
-        client_order_id=f"client-{order_id}",
+        submitted_at="2026-05-28T09:30:00+00:00",
     )
 
 
 def _fill(
     *,
-    fill_id: str = "fill-1",
-    order_id: str = "ord-1",
+    fill_id: str,
+    order_id: str,
     symbol: str = "AAPL",
     side: OrderSide = OrderSide.BUY,
     quantity: float = 10,
     fill_price: float = 100,
-    commission: float = 1.0,
 ) -> BrokerFill:
     return BrokerFill(
         fill_id=fill_id,
@@ -41,123 +43,103 @@ def _fill(
         side=side,
         quantity=quantity,
         fill_price=fill_price,
-        filled_at="2026-05-27T10:01:00+00:00",
-        commission=commission,
+        filled_at="2026-05-28T09:31:00+00:00",
     )
 
 
-def test_reconciles_filled_buy_order_into_portfolio_state():
-    snapshot = reconcile_orders_and_fills(
-        orders=[_order(quantity=10, status=OrderStatus.FILLED)],
-        fills=[_fill(quantity=4, fill_price=100), _fill(fill_id="fill-2", quantity=6, fill_price=110)],
-        starting_cash=10_000,
-    )
+def test_reconcile_filled_order_and_position_snapshot():
+    order = _order(order_id="order-1", quantity=10)
+    fills = [
+        _fill(fill_id="fill-1", order_id="order-1", quantity=4, fill_price=100),
+        _fill(fill_id="fill-2", order_id="order-1", quantity=6, fill_price=110),
+    ]
 
-    assert snapshot.passed is True
-    assert snapshot.order_count == 1
-    assert snapshot.fill_count == 2
-    assert snapshot.position_count == 1
-    order_state = snapshot.orders[0]
-    assert order_state.filled_quantity == 10
-    assert order_state.remaining_quantity == 0
-    assert order_state.average_fill_price == 106
+    report = reconcile_orders([order], fills)
 
-    position = snapshot.portfolio.get_position("AAPL")
-    assert position is not None
-    assert position.quantity == 10
+    reconciled_order = report.order_by_id("order-1")
+    assert reconciled_order.status == ReconciliationStatus.FILLED
+    assert reconciled_order.filled_quantity == 10
+    assert reconciled_order.remaining_quantity == 0
+    assert reconciled_order.average_fill_price == 106
+    assert reconciled_order.fill_ids == ("fill-1", "fill-2")
+
+    position = report.position_by_symbol("AAPL")
+    assert position.net_quantity == 10
     assert position.average_price == 106
-    assert snapshot.portfolio.cash == 8938
-    assert snapshot.portfolio.total_commissions == 2
+    assert not report.has_critical_issues
 
 
-def test_partial_fill_state_tracks_remaining_quantity():
-    snapshot = reconcile_orders_and_fills(
-        orders=[_order(quantity=10, status=OrderStatus.PARTIALLY_FILLED)],
-        fills=[_fill(quantity=3, fill_price=50, commission=0.5)],
-        starting_cash=1_000,
-    )
+def test_reconcile_partially_filled_order():
+    order = _order(order_id="order-1", quantity=10)
+    fill = _fill(fill_id="fill-1", order_id="order-1", quantity=4, fill_price=100)
 
-    assert snapshot.passed is True
-    order_state = snapshot.orders[0]
-    assert order_state.filled_quantity == 3
-    assert order_state.remaining_quantity == 7
-    assert order_state.fill_count == 1
-    assert snapshot.portfolio.get_position("AAPL").quantity == 3
-    assert snapshot.portfolio.cash == 849.5
+    report = reconcile_orders([order], [fill])
+
+    reconciled_order = report.order_by_id("order-1")
+    assert reconciled_order.status == ReconciliationStatus.PARTIALLY_FILLED
+    assert reconciled_order.filled_quantity == 4
+    assert reconciled_order.remaining_quantity == 6
+    assert reconciled_order.average_fill_price == 100
+    assert report.position_by_symbol("AAPL").net_quantity == 4
 
 
-def test_overfilled_order_fails_closed():
-    snapshot = reconcile_orders_and_fills(
-        orders=[_order(quantity=10, status=OrderStatus.FILLED)],
-        fills=[_fill(quantity=12, fill_price=100)],
-    )
+def test_reconcile_sell_fill_reduces_net_position():
+    buy_order = _order(order_id="buy-1", quantity=10, side=OrderSide.BUY)
+    sell_order = _order(order_id="sell-1", quantity=3, side=OrderSide.SELL)
+    fills = [
+        _fill(fill_id="fill-1", order_id="buy-1", quantity=10, fill_price=100, side=OrderSide.BUY),
+        _fill(fill_id="fill-2", order_id="sell-1", quantity=3, fill_price=120, side=OrderSide.SELL),
+    ]
 
-    assert snapshot.passed is False
-    assert any(issue.code == "overfilled_order" for issue in snapshot.issues)
+    report = reconcile_orders([buy_order, sell_order], fills)
 
-
-def test_orphan_fill_fails_closed_and_does_not_create_position():
-    snapshot = reconcile_orders_and_fills(
-        orders=[],
-        fills=[_fill(order_id="missing-order", quantity=1, fill_price=100)],
-        starting_cash=1_000,
-    )
-
-    assert snapshot.passed is False
-    assert any(issue.code == "orphan_fill" for issue in snapshot.issues)
-    assert snapshot.portfolio.position_count == 0
-    assert snapshot.portfolio.cash == 1_000
+    position = report.position_by_symbol("AAPL")
+    assert position.net_quantity == 7
+    assert position.average_price == 91.428571
 
 
-def test_rejected_order_with_fill_fails_closed():
-    snapshot = reconcile_orders_and_fills(
-        orders=[_order(quantity=5, status=OrderStatus.REJECTED)],
-        fills=[_fill(quantity=5, fill_price=100)],
-    )
+def test_reconcile_detects_overfilled_order_as_critical():
+    order = _order(order_id="order-1", quantity=5)
+    fill = _fill(fill_id="fill-1", order_id="order-1", quantity=6, fill_price=100)
 
-    assert snapshot.passed is False
-    assert any(issue.code == "terminal_order_has_fills" for issue in snapshot.issues)
+    report = reconcile_orders([order], [fill])
 
-
-def test_fill_symbol_and_side_mismatch_fail_closed():
-    snapshot = reconcile_orders_and_fills(
-        orders=[_order(symbol="AAPL", side=OrderSide.BUY, quantity=5, status=OrderStatus.FILLED)],
-        fills=[_fill(symbol="MSFT", side=OrderSide.SELL, quantity=5, fill_price=100)],
-    )
-
-    assert snapshot.passed is False
-    assert any(issue.code == "fill_symbol_mismatch" for issue in snapshot.issues)
-    assert any(issue.code == "fill_side_mismatch" for issue in snapshot.issues)
-    assert snapshot.portfolio.position_count == 0
+    reconciled_order = report.order_by_id("order-1")
+    assert reconciled_order.status == ReconciliationStatus.OVERFILLED
+    assert report.has_critical_issues
+    assert report.issues[0].severity == ReconciliationSeverity.CRITICAL
+    assert report.issues[0].code == "order_overfilled"
 
 
-def test_buy_then_sell_updates_realized_pnl_and_cash():
-    buy_order = _order(order_id="buy-1", side=OrderSide.BUY, quantity=10, status=OrderStatus.FILLED)
-    sell_order = _order(order_id="sell-1", side=OrderSide.SELL, quantity=4, status=OrderStatus.FILLED)
-    snapshot = reconcile_orders_and_fills(
-        orders=[buy_order, sell_order],
-        fills=[
-            _fill(fill_id="buy-fill", order_id="buy-1", side=OrderSide.BUY, quantity=10, fill_price=100, commission=1),
-            _fill(fill_id="sell-fill", order_id="sell-1", side=OrderSide.SELL, quantity=4, fill_price=120, commission=1),
-        ],
-        starting_cash=2_000,
-    )
+def test_reconcile_detects_orphan_fill_as_critical():
+    fill = _fill(fill_id="fill-1", order_id="missing-order", quantity=1, fill_price=100)
 
-    assert snapshot.passed is True
-    position = snapshot.portfolio.get_position("AAPL")
-    assert position is not None
-    assert position.quantity == 6
-    assert position.average_price == 100
-    assert position.realized_pnl == 78
-    assert snapshot.portfolio.realized_pnl == 78
-    assert snapshot.portfolio.cash == 1478
+    report = reconcile_orders([], [fill])
+
+    assert report.orders == []
+    assert report.positions == []
+    assert report.has_critical_issues
+    assert report.issues[0].code == "orphan_fill"
 
 
-def test_duplicate_order_id_fails_closed():
-    snapshot = reconcile_orders_and_fills(
-        orders=[_order(order_id="dup"), _order(order_id="dup")],
-        fills=[],
-    )
+def test_reconcile_cancelled_without_fills_is_informational():
+    order = _order(order_id="order-1", status=OrderStatus.CANCELLED)
 
-    assert snapshot.passed is False
-    assert any(issue.code == "duplicate_order_id" for issue in snapshot.issues)
+    report = reconcile_orders([order], [])
+
+    reconciled_order = report.order_by_id("order-1")
+    assert reconciled_order.status == ReconciliationStatus.CANCELLED
+    assert not report.has_critical_issues
+    assert report.issues[0].severity == ReconciliationSeverity.INFO
+    assert report.issues[0].code == "cancelled_without_fills"
+
+
+def test_reconcile_rejected_order_with_fill_is_critical():
+    order = _order(order_id="order-1", status=OrderStatus.REJECTED)
+    fill = _fill(fill_id="fill-1", order_id="order-1", quantity=1, fill_price=100)
+
+    report = reconcile_orders([order], [fill])
+
+    assert report.order_by_id("order-1").status == ReconciliationStatus.REJECTED
+    assert report.has_critical_issues
+    assert report.issues[0].code == "rejected_order_has_fills"
