@@ -1,0 +1,48 @@
+# IP1 Public / Private Edge Boundary
+#
+# This policy defines which repository areas are public-safe and which
+# expressions are private-edge indicators. The scanner is conservative by
+# design and is intended for CI/PR hygiene, not legal classification.
+
+public_safe_paths:
+  - README.md
+  - ROADMAP.md
+  - docs/
+  - scripts/
+  - src/
+  - tests/
+  - .github/
+
+ignored_paths:
+  - .git/
+  - .venv/
+  - venv/
+  - __pycache__/
+  - .pytest_cache/
+  - .mypy_cache/
+  - reports/
+  - artifacts/
+  - data/private/
+  - private/
+
+forbidden_terms:
+  - alpha_weight
+  - alpha_weights
+  - private_edge
+  - proprietary_edge
+  - secret_threshold
+  - production_threshold
+  - live_signal_threshold
+  - live_entry_threshold
+  - proprietary_setup
+  - hidden_edge
+  - private_factor
+  - model_weight_secret
+  - edge_formula
+
+suspicious_patterns:
+  - "edge[_-]?score\s*=\s*[0-9]"
+  - "alpha[_-]?weight[s]?\s*=\s*\{"
+  - "live[_-]?threshold\s*=\s*[0-9]"
+  - "production[_-]?threshold\s*=\s*[0-9]"
+  - "secret[_-]?threshold\s*=\s*[0-9]"
