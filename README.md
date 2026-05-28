@@ -18,7 +18,7 @@ Full regression suite: green
 Phase B1-B14 evidence pipeline: implemented, CI-green and workflow-green
 Phase B15 observation cadence review: implemented and CI-green
 Phase B1.1: active 3-6 month observation-only evidence collection
-Phase C3/C4: paper-only execution planning and reconciliation infrastructure
+Phase C3/C4/C5: paper-only execution planning, reconciliation and daily execution drift infrastructure
 Live trading authorization: not granted by code
 Broker execution: paper-only infrastructure; live execution is not implemented
 ```
@@ -74,6 +74,7 @@ docs/operations/daily_paper_observation_source.md
 docs/operations/daily_observation_cadence.md
 docs/operations/vwap_twap_slicing.md
 docs/operations/order_reconciliation.md
+docs/operations/daily_execution_reconciliation.md
 ```
 
 Core CLI commands:
@@ -121,6 +122,11 @@ python scripts/review_daily_observation_cadence.py \
   --raw-source-dir reports/daily_paper_observation_raw \
   --artifact-root reports \
   --output-dir reports/daily_observation_cadence
+
+python scripts/reconcile_daily_execution.py \
+  --expected-file reports/daily_expected_execution/expected.json \
+  --observed-file reports/daily_observed_execution/observed.json \
+  --output-dir reports/daily_execution_reconciliation
 ```
 
 ## Phase A Evidence Hygiene
@@ -207,6 +213,7 @@ docs/operations/phase_a_ci_stabilization.md
 - paper broker adapter interface
 - VWAP/TWAP paper order slicing
 - paper order reconciliation and portfolio-state derivation
+- daily expected-vs-observed execution reconciliation
 - operational readiness review
 - scheduled decision-support dry runs
 - persistent report archive
@@ -245,6 +252,7 @@ Market analysis
 → Paper execution planning
 → Order / Fill reconciliation
 → Portfolio-state snapshot
+→ Daily expected-vs-observed execution reconciliation
 → Final live readiness gate
 → Human review
 ```
@@ -276,4 +284,5 @@ Phase C paper execution tests:
 ```bash
 pytest tests/test_order_slicing.py -q
 pytest tests/test_order_reconciliation.py -q
+pytest tests/test_daily_execution_reconciliation.py -q
 ```
