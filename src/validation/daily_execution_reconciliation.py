@@ -190,7 +190,7 @@ def reconcile_daily_execution(
     issues.extend(comparison_issues)
     metrics = _build_metrics(expected, observed, comparisons, issues)
 
-    if abs(metrics.total_r_drift) > config.max_abs_total_r_drift:
+    if metrics.matched_count > 0 and abs(metrics.total_r_drift) > config.max_abs_total_r_drift:
         issues.append(
             DailyExecutionIssue(
                 severity=DailyExecutionSeverity.ERROR,
@@ -429,17 +429,14 @@ def _build_metrics(
 ) -> DailyExecutionMetrics:
     expected_keys = {record.key() for record in expected}
     observed_keys = {record.key() for record in observed}
-    missing = len(expected_keys - observed_keys)
-    unexpected = len(observed_keys - expected_keys)
     expected_total_r = round(sum(record.expected_r for record in expected), 6)
     observed_total_r = round(sum(record.realized_r for record in observed if record.key() in expected_keys), 6)
-    error_codes_by_key = {(issue.key, issue.code) for issue in issues if issue.severity == DailyExecutionSeverity.ERROR}
     return DailyExecutionMetrics(
         expected_count=len(expected),
         observed_count=len(observed),
         matched_count=len(comparisons),
-        missing_count=missing,
-        unexpected_count=unexpected,
+        missing_count=len(expected_keys - observed_keys),
+        unexpected_count=len(observed_keys - expected_keys),
         failed_comparison_count=sum(1 for comparison in comparisons if comparison.status == DailyExecutionStatus.FAIL),
         warning_comparison_count=sum(1 for issue in issues if issue.severity == DailyExecutionSeverity.WARNING),
         expected_total_r=expected_total_r,
