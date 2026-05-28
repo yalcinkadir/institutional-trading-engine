@@ -218,4 +218,3 @@ def test_write_strategy_test_matrix_report_outputs_json_and_markdown(tmp_path: P
     assert markdown_path.exists()
     assert '"passed": true' in json_path.read_text(encoding="utf-8")
     assert "BT2 Strategy Test Matrix" in markdown_path.read_text(encoding="utf-8")
-}
