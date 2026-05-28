@@ -22,6 +22,7 @@ Phase C3/C4/C5/C6/C7: paper-only execution planning, reconciliation, drift, fill
 Phase IP1: public/private edge boundary guardrail implemented
 Phase IP2: public repository hygiene policy implemented
 TG1: Telegram research-only report dispatcher implemented
+BT1: deterministic backtest run contract implemented
 Live trading authorization: not granted by code
 Broker execution: paper-only infrastructure; live execution is not implemented
 ```
@@ -96,6 +97,24 @@ Operational documentation:
 docs/operations/telegram_report_dispatcher.md
 ```
 
+## Backtesting Contracts
+
+BT1 creates deterministic backtest run contracts before strategy scenario testing starts.
+
+```bash
+python scripts/create_backtest_run_contract.py --help
+```
+
+Each contract records strategy version, universe, date range, data-source version, config-version labels and execution assumptions. It emits a stable `contract_id` so later results can be traced back to the exact run assumptions.
+
+Operational documentation:
+
+```text
+docs/operations/backtest_run_contract.md
+```
+
+BT1 does not add strategy edge. It only makes later backtests reproducible and auditable.
+
 ## Phase B Daily Evidence Pipeline
 
 The Daily Evidence workflow now runs as an auditable evidence chain. It no longer builds green reports from placeholder component JSONs.
@@ -151,6 +170,7 @@ docs/operations/execution_kill_switch.md
 docs/operations/ip_boundary.md
 docs/operations/public_repo_hygiene_policy.md
 docs/operations/telegram_report_dispatcher.md
+docs/operations/backtest_run_contract.md
 ```
 
 Core CLI commands:
@@ -218,192 +238,4 @@ python scripts/check_ip_boundary.py \
 
 python scripts/validate_public_repo_policy.py \
   --no-write
-
-python scripts/send_telegram_report.py \
-  --report-file reports/daily_evidence/latest.md \
-  --title "Daily Evidence" \
-  --dry-run
-```
-
-## Phase A Evidence Hygiene
-
-Phase A strengthened the foundation before Phase B forward observation. It added evidence governance, statistical robustness, execution realism, observability and operational hygiene.
-
-Implemented Phase A items:
-
-```text
-A3 Versioned decision thresholds
-A4 Threshold-aware evidence / lockbox invalidation
-A5 Square-root regime-aware slippage model
-A6 Deflated Sharpe + Bootstrap Confidence Intervals
-A7 Polygon structured logging
-A8 Polygon cache locking
-A9 CHANGELOG / SETUP_NOTES refresh
-A10 Quarterly secrets rotation policy
-```
-
-Phase A stabilization gate:
-
-```text
-Phase A tests added to CI: done
-CI test run executed: done
-Regression failures fixed: done
-Full regression suite green: done
-README finalized: done
-```
-
-Operational documentation:
-
-```text
-docs/operations/threshold_evidence_contract.md
-docs/operations/slippage_model.md
-docs/operations/statistical_robustness.md
-docs/operations/polygon_structured_logging.md
-docs/operations/polygon_cache_locking.md
-docs/operations/secrets_rotation_policy.md
-docs/operations/phase_a_ci_stabilization.md
-```
-
-## Core Capabilities
-
-- market regime analysis
-- decision confidence scoring
-- probabilistic decision normalization
-- weighted regime similarity scoring
-- adaptive feedback decay weighting
-- multi-factor fusion recalibration
-- historical edge validation
-- Deflated Sharpe probability and bootstrap confidence intervals
-- regime-phase backtest matrix
-- walk-forward validation
-- execution realism adjustment with square-root regime-aware slippage
-- out-of-sample validation lockbox with threshold-aware evidence invalidation
-- paper trading journal / live observation v2
-- persisted daily observation source feed
-- real paper observation source builder
-- daily observation cadence review
-- Phase B daily evidence input pipeline and report artifacts
-- final live readiness gate
-- cross-asset market-data coverage
-- Polygon active universe runtime builder
-- Polygon all-assets data workflow
-- Polygon structured JSON logging
-- Polygon cache locking and atomic writes
-- Polygon daily OHLCV bars downloader
-- Polygon artifact consolidation workflow
-- historical trade plan generation from Polygon bars
-- configurable survivorship audit mode for runtime Polygon artifacts
-- edge-evidence diagnostics for failed validation gates
-- edge-evidence diagnostics snapshot in workflow logs
-- edge-evidence execution from combined Polygon artifacts
-- event-risk placeholder metadata
-- optional SQLite runtime persistence
-- static dashboard HTML reporting
-- signal generation with entry, stop and target planning
-- watcher-based lifecycle tracking
-- manual portfolio synchronization
-- historical Polygon data ingestion
-- historical Entry / Stop / Exit backtesting
-- out-of-sample validation
-- paper-live observation
-- paper broker adapter interface
-- VWAP/TWAP paper order slicing
-- paper order reconciliation and portfolio-state derivation
-- daily expected-vs-observed execution reconciliation
-- fill-quality reporting for slippage, spread, delay and partial fills
-- execution kill-switch governance for failed evidence and execution-quality drift
-- public/private edge boundary guardrail
-- public repository hygiene policy validation
-- Telegram research-only report dispatching
-- operational readiness review
-- scheduled decision-support dry runs
-- persistent report archive
-- feedback and expectancy analysis
-
-## Core Flow
-
-```text
-Market analysis
-→ Expanded universe scan
-→ Event-risk metadata check
-→ Scanner metrics normalization
-→ Liquidity filter
-→ Signal generation
-→ Entry / Stop / Exit quality engines
-→ Trade plan validation
-→ Decision confidence scoring
-→ Probabilistic decision normalization
-→ Weighted regime similarity scoring
-→ Adaptive feedback decay weighting
-→ Multi-factor fusion recalibration
-→ Survivorship universe audit
-→ 500+ universe coverage gate
-→ Historical edge validation
-→ Statistical robustness checks
-→ Regime-phase backtest matrix
-→ Walk-forward validation
-→ Execution realism adjustment
-→ Out-of-sample validation lockbox
-→ Edge-evidence diagnostics
-→ Edge-evidence workflow log snapshot
-→ Paper trading journal / live observation v2
-→ Daily evidence input pipeline
-→ Daily evidence report artifact
-→ Daily observation cadence review
-→ Paper execution planning
-→ Order / Fill reconciliation
-→ Portfolio-state snapshot
-→ Daily expected-vs-observed execution reconciliation
-→ Fill-quality reporting
-→ Execution kill-switch decision
-→ Public/private edge boundary scan
-→ Public repository policy validation
-→ Telegram report dispatch guardrails
-→ Final live readiness gate
-→ Human review
-```
-
-## Main Test Commands
-
-Full suite:
-
-```bash
-pytest -q
-```
-
-Phase A stabilization tests:
-
-```bash
-pytest tests/test_decision_engine.py -q
-pytest tests/test_out_of_sample_lockbox.py -q
-pytest tests/test_slippage_model.py -q
-pytest tests/test_execution_realism.py -q
-pytest tests/test_statistical_robustness.py -q
-pytest tests/test_historical_edge_validation.py -q
-pytest tests/test_polygon_structured_logging.py -q
-pytest tests/test_polygon_data_pipeline.py -q
-pytest tests/test_polygon_cache.py -q
-```
-
-Phase C paper execution tests:
-
-```bash
-pytest tests/test_order_slicing.py -q
-pytest tests/test_order_reconciliation.py -q
-pytest tests/test_daily_execution_reconciliation.py -q
-pytest tests/test_fill_quality_report.py -q
-pytest tests/test_execution_kill_switch.py -q
-```
-
-IP boundary and policy tests:
-
-```bash
-pytest tests/test_ip_boundary.py -q
-pytest tests/test_public_repo_policy.py -q
-```
-
-Telegram report tests:
-
-```bash
-pytest tests/test_telegram_report_dispatcher.py -q
 ```
