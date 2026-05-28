@@ -21,6 +21,7 @@ Phase B1.1: active 3-6 month observation-only evidence collection
 Phase C3/C4/C5/C6/C7: paper-only execution planning, reconciliation, drift, fill-quality and kill-switch governance infrastructure
 Phase IP1: public/private edge boundary guardrail implemented
 Phase IP2: public repository hygiene policy implemented
+TG1: Telegram research-only report dispatcher implemented
 Live trading authorization: not granted by code
 Broker execution: paper-only infrastructure; live execution is not implemented
 ```
@@ -58,6 +59,42 @@ docs/operations/public_repo_hygiene_policy.md
 ```
 
 Public-safe content may include architecture, interfaces, demo defaults, synthetic examples, tests, documentation and paper-observation infrastructure. Private edge should stay outside the public repository, including real thresholds, real scoring weights, proprietary setup rankings, non-public entry/exit profiles and private evidence artifacts.
+
+## Telegram Research-Only Reports
+
+TG1 can dispatch Telegram reports in research-only mode. It blocks live-trading language, order-action phrases and private-edge terms before sending.
+
+Dry-run mode:
+
+```bash
+python scripts/send_telegram_report.py \
+  --report-file reports/daily_evidence/latest.md \
+  --title "Daily Evidence" \
+  --dry-run
+```
+
+Actual Telegram delivery requires explicit `--send` plus secrets in the environment:
+
+```bash
+TELEGRAM_BOT_TOKEN=...
+TELEGRAM_CHAT_ID=...
+python scripts/send_telegram_report.py \
+  --report-file reports/daily_evidence/latest.md \
+  --title "Daily Evidence" \
+  --send
+```
+
+Every Telegram report must remain compatible with:
+
+```text
+Research / Paper Observation Only. No live trading authorization.
+```
+
+Operational documentation:
+
+```text
+docs/operations/telegram_report_dispatcher.md
+```
 
 ## Phase B Daily Evidence Pipeline
 
@@ -113,6 +150,7 @@ docs/operations/fill_quality_report.md
 docs/operations/execution_kill_switch.md
 docs/operations/ip_boundary.md
 docs/operations/public_repo_hygiene_policy.md
+docs/operations/telegram_report_dispatcher.md
 ```
 
 Core CLI commands:
@@ -180,6 +218,11 @@ python scripts/check_ip_boundary.py \
 
 python scripts/validate_public_repo_policy.py \
   --no-write
+
+python scripts/send_telegram_report.py \
+  --report-file reports/daily_evidence/latest.md \
+  --title "Daily Evidence" \
+  --dry-run
 ```
 
 ## Phase A Evidence Hygiene
@@ -271,6 +314,7 @@ docs/operations/phase_a_ci_stabilization.md
 - execution kill-switch governance for failed evidence and execution-quality drift
 - public/private edge boundary guardrail
 - public repository hygiene policy validation
+- Telegram research-only report dispatching
 - operational readiness review
 - scheduled decision-support dry runs
 - persistent report archive
@@ -314,6 +358,7 @@ Market analysis
 → Execution kill-switch decision
 → Public/private edge boundary scan
 → Public repository policy validation
+→ Telegram report dispatch guardrails
 → Final live readiness gate
 → Human review
 ```
@@ -355,4 +400,10 @@ IP boundary and policy tests:
 ```bash
 pytest tests/test_ip_boundary.py -q
 pytest tests/test_public_repo_policy.py -q
+```
+
+Telegram report tests:
+
+```bash
+pytest tests/test_telegram_report_dispatcher.py -q
 ```
