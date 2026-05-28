@@ -1,7 +1,7 @@
 # Institutional Trading Engine Roadmap
 
 Status date: 2026-05-27  
-Current state: Phase C2 Alpaca paper adapter is implemented and CI-green. Phase C1 paper broker adapter interface is implemented and CI-green. Phase B17 daily real paper observation runbook discipline is implemented and CI-green. Phase B16 real paper observation raw data contract is implemented and CI-green. Phase B15 observation cadence review is implemented and CI-green. Phase B14 Daily Evidence workflow dispatch integration is implemented, CI-green and workflow-green with uploaded artifact. Phase B13 real daily paper observation source builder is implemented and CI-green. Phase B12 persisted daily observation source feed and observation-only component mode are implemented. Phase A Evidence Hygiene implemented and CI-green. P36-P47 validation stack implemented. Real-money execution is not authorized by code. New P0 governance focus: public framework / private edge separation before further proprietary strategy development.
+Current state: Phase C4 order reconciliation is implemented as paper-only infrastructure. Phase C3 VWAP/TWAP paper order slicing is implemented and CI-green. Phase C2 Alpaca paper adapter is implemented and CI-green. Phase C1 paper broker adapter interface is implemented and CI-green. Phase B17 daily real paper observation runbook discipline is implemented and CI-green. Phase B16 real paper observation raw data contract is implemented and CI-green. Phase B15 observation cadence review is implemented and CI-green. Phase B14 Daily Evidence workflow dispatch integration is implemented, CI-green and workflow-green with uploaded artifact. Phase B13 real daily paper observation source builder is implemented and CI-green. Phase B12 persisted daily observation source feed and observation-only component mode are implemented. Phase A Evidence Hygiene implemented and CI-green. P36-P47 validation stack implemented. Real-money execution is not authorized by code. New P0 governance focus: public framework / private edge separation before further proprietary strategy development.
 
 ## Strategic direction
 
@@ -54,7 +54,7 @@ The immediate execution order is:
 8. Fixes until green
 ```
 
-C3 VWAP/TWAP order slicing remains important, but it must wait until IP1-IP4 are complete or must use public demo profiles only.
+C3 and C4 are implemented as public paper-execution infrastructure only. They do not add proprietary strategy edge and do not authorize live trading.
 
 ## Public vs Private Boundary
 
@@ -154,8 +154,8 @@ Goal: ensure simulated edge survives realistic execution assumptions without ena
 |---|---|---:|---:|---|
 | C1 | Define broker adapter interface for paper execution first | P0 | High | Done |
 | C2 | Add Alpaca paper adapter as first broker implementation | P1 | High | Done |
-| C3 | Add VWAP/TWAP order slicing using public demo profiles only until private-edge boundary exists | P1 | High | Planned after IP1-IP4 |
-| C4 | Add order reconciliation engine for signal, order, fill and portfolio state | P1 | High | Planned |
+| C3 | Add VWAP/TWAP order slicing using public demo profiles only until private-edge boundary exists | P1 | High | Done |
+| C4 | Add order reconciliation engine for signal, order, fill and portfolio state | P1 | High | Done |
 | C5 | Add live vs. backtest daily reconciliation workflow | P1 | High | Planned |
 | C6 | Add fill-quality report for slippage, spread, delay and partial fills | P2 | Medium | Planned |
 | C7 | Add execution kill switch when execution drift exceeds limits | P1 | High | Planned |
@@ -220,10 +220,12 @@ Start only after Phase B and C produce credible evidence and after the private-e
 - Daily real paper observation runbook discipline: done and CI-green.
 - Paper broker adapter interface and mock paper execution adapter: done and CI-green.
 - Alpaca paper adapter with deterministic in-memory transport: done and CI-green.
+- VWAP/TWAP paper order slicing: done and CI-green.
+- Order reconciliation engine for signal, order, fill and portfolio state: done.
 
 ## Current execution focus
 
-B1.1 remains the long-running evidence collection period. Phase C is active for paper execution only. Immediate focus is Phase IP: public framework / private edge separation. C3 VWAP/TWAP order slicing is paused until IP1-IP4 are complete or implemented with demo-only public constants.
+B1.1 remains the long-running evidence collection period. Phase C is active for paper execution only. Immediate focus remains Phase IP: public framework / private edge separation, while C5 can proceed as paper-only workflow integration on top of C3/C4.
 
 ## Do not do yet
 
