@@ -159,6 +159,24 @@ def validate_backtest_run_contract(contract: BacktestRunContract) -> BacktestRun
 
     return normalized
 
+def with_created_at(self) -> "BacktestRunContract":
+    return BacktestRunContract(
+        strategy_id=self.strategy_id,
+        strategy_version=self.strategy_version,
+        universe=self.universe,
+        start_date=self.start_date,
+        end_date=self.end_date,
+        data_source=self.data_source,
+        data_source_version=self.data_source_version,
+        threshold_version=self.threshold_version,
+        setup_config_version=self.setup_config_version,
+        execution_assumptions=self.execution_assumptions,
+        benchmark_id=self.benchmark_id,
+        run_purpose=self.run_purpose,
+        schema_version=self.schema_version,
+        created_at_utc=datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+        metadata=dict(self.metadata),
+    )
 
 def backtest_run_contract_from_dict(payload: dict[str, Any]) -> BacktestRunContract:
     universe_payload = payload.get("universe") or {}
