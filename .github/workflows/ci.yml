@@ -146,6 +146,12 @@ jobs:
         run: |
           pytest tests/test_alpaca_paper_adapter.py -q
 
+      - name: BT2 strategy test matrix tests
+        env:
+          POLYGON_API_KEY: test-key
+        run: |
+          pytest tests/test_strategy_test_matrix.py -q
+
       - name: Full regression suite
         env:
           POLYGON_API_KEY: test-key
