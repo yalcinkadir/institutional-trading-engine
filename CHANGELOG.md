@@ -1,5 +1,30 @@
 # CHANGELOG
 
+## BT2 Strategy Test Matrix — 2026-05-28
+
+### Added
+- Strategy Test Matrix model in `src/validation/strategy_test_matrix.py`.
+- Public-safe demo matrix in `data/demo_strategy_test_matrix.json`.
+- CLI report generator in `scripts/generate_strategy_test_matrix.py`.
+- Operational documentation in `docs/operations/strategy_test_matrix.md`.
+
+### Tests Added / Updated
+- `tests/test_strategy_test_matrix.py`.
+- CI workflow includes an explicit BT2 Strategy Test Matrix test step before the full regression suite.
+
+### Improved
+- Strategy coverage can now be validated across regimes, setup families, validation stages and data modes.
+- BT2 blocks live-trading authorization terms and private/proprietary edge terminology in public matrix cases.
+- Generated matrix reports remain research/paper-observation only.
+
+### Stabilization Result
+- BT2 implementation status: PR-ready.
+- Live trading remains intentionally not authorized by code.
+- Broker execution remains paper-only infrastructure.
+- Public matrix data remains synthetic/demo-only.
+
+---
+
 ## Phase B11 Daily Evidence Pipeline — 2026-05-26
 
 ### Added
