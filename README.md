@@ -18,7 +18,7 @@ Full regression suite: green
 Phase B1-B14 evidence pipeline: implemented, CI-green and workflow-green
 Phase B15 observation cadence review: implemented and CI-green
 Phase B1.1: active 3-6 month observation-only evidence collection
-Phase C3/C4/C5/C6: paper-only execution planning, reconciliation, drift and fill-quality infrastructure
+Phase C3/C4/C5/C6/C7: paper-only execution planning, reconciliation, drift, fill-quality and kill-switch governance infrastructure
 Live trading authorization: not granted by code
 Broker execution: paper-only infrastructure; live execution is not implemented
 ```
@@ -76,6 +76,7 @@ docs/operations/vwap_twap_slicing.md
 docs/operations/order_reconciliation.md
 docs/operations/daily_execution_reconciliation.md
 docs/operations/fill_quality_report.md
+docs/operations/execution_kill_switch.md
 ```
 
 Core CLI commands:
@@ -132,6 +133,10 @@ python scripts/reconcile_daily_execution.py \
 python scripts/generate_fill_quality_report.py \
   --input-file reports/fill_quality_input/fills.json \
   --output-dir reports/fill_quality
+
+python scripts/evaluate_execution_kill_switch.py \
+  --input-file reports/execution_kill_switch_input/input.json \
+  --output-dir reports/execution_kill_switch
 ```
 
 ## Phase A Evidence Hygiene
@@ -220,6 +225,7 @@ docs/operations/phase_a_ci_stabilization.md
 - paper order reconciliation and portfolio-state derivation
 - daily expected-vs-observed execution reconciliation
 - fill-quality reporting for slippage, spread, delay and partial fills
+- execution kill-switch governance for failed evidence and execution-quality drift
 - operational readiness review
 - scheduled decision-support dry runs
 - persistent report archive
@@ -260,6 +266,7 @@ Market analysis
 → Portfolio-state snapshot
 → Daily expected-vs-observed execution reconciliation
 → Fill-quality reporting
+→ Execution kill-switch decision
 → Final live readiness gate
 → Human review
 ```
@@ -293,4 +300,5 @@ pytest tests/test_order_slicing.py -q
 pytest tests/test_order_reconciliation.py -q
 pytest tests/test_daily_execution_reconciliation.py -q
 pytest tests/test_fill_quality_report.py -q
+pytest tests/test_execution_kill_switch.py -q
 ```
