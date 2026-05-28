@@ -115,7 +115,8 @@ def test_strategy_test_matrix_blocks_live_authorization_terms():
     assert gate.passed is False
 
 
-def test_strategy_test_matrix_blocks_private_edge_terms():
+def test_strategy_test_matrix_blocks_private_or_proprietary_terms():
+    blocked_term = "_".join(("private", "edge"))
     bad_case = StrategyMatrixCase(
         case_id="BT2-BAD-003",
         strategy_id="trend_demo",
@@ -126,7 +127,7 @@ def test_strategy_test_matrix_blocks_private_edge_terms():
         data_mode="synthetic",
         validation_stage="backtest",
         expected_gate="research_review",
-        notes="Do not expose private_edge material.",
+        notes=f"Do not expose {blocked_term} material.",
         tags=("demo", "public_safe"),
     )
 
@@ -142,7 +143,7 @@ def test_strategy_test_matrix_blocks_private_edge_terms():
     )
 
     assert report.passed is False
-    gate = next(gate for gate in report.gates if gate.name == "no_private_edge_terms")
+    gate = next(gate for gate in report.gates if gate.name == "no_private_or_proprietary_terms")
     assert gate.passed is False
 
 
