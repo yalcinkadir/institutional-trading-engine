@@ -1,7 +1,7 @@
 # Institutional Trading Engine Roadmap
 
 Status date: 2026-05-28  
-Current state: IP1 public/private edge boundary guardrail is implemented. IP2 public repository hygiene and private-edge handling policy is implemented. Phase C7 execution kill-switch governance is implemented as paper/live observation audit infrastructure. Phase C6 fill-quality reporting is implemented as paper/live observation audit infrastructure. Phase C5 daily expected-vs-observed execution reconciliation is implemented as paper/live observation infrastructure. Phase C4 order reconciliation is implemented as paper-only infrastructure. Phase C3 VWAP/TWAP paper order slicing is implemented and CI-green. Phase C2 Alpaca paper adapter is implemented and CI-green. Phase C1 paper broker adapter interface is implemented and CI-green. Phase B17 daily real paper observation runbook discipline is implemented and CI-green. Phase B16 real paper observation raw data contract is implemented and CI-green. Phase B15 observation cadence review is implemented and CI-green. Phase B14 Daily Evidence workflow dispatch integration is implemented, CI-green and workflow-green with uploaded artifact. Phase B13 real daily paper observation source builder is implemented and CI-green. Phase B12 persisted daily observation source feed and observation-only component mode are implemented. Phase A Evidence Hygiene implemented and CI-green. P36-P47 validation stack implemented. Real-money execution is not authorized by code. Current P0 governance focus: continue public framework / private edge separation before further proprietary strategy development.
+Current state: TG1 Telegram research-only report dispatcher is implemented. IP1 public/private edge boundary guardrail is implemented. IP2 public repository hygiene and private-edge handling policy is implemented. Phase C7 execution kill-switch governance is implemented as paper/live observation audit infrastructure. Phase C6 fill-quality reporting is implemented as paper/live observation audit infrastructure. Phase C5 daily expected-vs-observed execution reconciliation is implemented as paper/live observation infrastructure. Phase C4 order reconciliation is implemented as paper-only infrastructure. Phase C3 VWAP/TWAP paper order slicing is implemented and CI-green. Phase C2 Alpaca paper adapter is implemented and CI-green. Phase C1 paper broker adapter interface is implemented and CI-green. Phase B17 daily real paper observation runbook discipline is implemented and CI-green. Phase B16 real paper observation raw data contract is implemented and CI-green. Phase B15 observation cadence review is implemented and CI-green. Phase B14 Daily Evidence workflow dispatch integration is implemented, CI-green and workflow-green with uploaded artifact. Phase B13 real daily paper observation source builder is implemented and CI-green. Phase B12 persisted daily observation source feed and observation-only component mode are implemented. Phase A Evidence Hygiene implemented and CI-green. P36-P47 validation stack implemented. Real-money execution is not authorized by code. Current P0 governance focus: continue public framework / private edge separation before further proprietary strategy development.
 
 ## Strategic direction
 
@@ -38,6 +38,17 @@ Goal: keep the repository useful as a public framework while protecting propriet
 | IP8 | Add tests proving the public fallback path works without private modules and that private modules are optional imports only | P1 | High | Planned |
 | IP9 | Review open PRs for newly introduced edge constants before merge, especially setup-specific target profiles and scoring changes | P0 | Critical | Planned |
 | IP10 | Add license and usage disclaimer appropriate for a public decision-support research framework | P1 | Medium | Planned |
+
+## Phase TG — Report Delivery
+
+Target window: immediate  
+Goal: deliver research and paper-observation reports without creating live-trading authorization or leaking private edge.
+
+| ID | Task | Priority | Impact | Status |
+|---|---|---:|---:|---|
+| TG1 | Add Telegram report dispatcher with research-only guardrails, dry-run mode and injectable transport | P1 | High | Done |
+| TG2 | Integrate Telegram summaries into daily evidence/report workflows after CI workflow permissions are confirmed | P2 | Medium | Planned |
+| TG3 | Add report templates for Daily Evidence, Fill Quality, Kill Switch and Backtest Summary | P2 | Medium | Planned |
 
 ## Phase IP Implementation Order
 
@@ -227,10 +238,11 @@ Start only after Phase B and C produce credible evidence and after the private-e
 - Execution kill-switch governance for failed evidence and execution-quality drift: done.
 - IP1 public/private edge boundary scanner and policy: done.
 - IP2 public repository hygiene and private-edge handling policy: done.
+- TG1 Telegram research-only report dispatcher: done.
 
 ## Current execution focus
 
-B1.1 remains the long-running evidence collection period. Phase C is active for paper execution only. Immediate focus remains Phase IP: public framework / private edge separation, while the C3-C7 execution-control stack can now be used for observation-only governance.
+B1.1 remains the long-running evidence collection period. Phase C is active for paper execution only. Telegram delivery is allowed for research/paper-observation reports only. Immediate focus remains controlled evidence collection, safe reporting and the upcoming backtest run contract.
 
 ## Do not do yet
 
@@ -241,3 +253,4 @@ B1.1 remains the long-running evidence collection period. Phase C is active for 
 - Do not skip forward paper observation.
 - Do not add new proprietary thresholds, setup maps, scoring weights or exit profiles directly to the public repo unless they are explicitly demo-only.
 - Do not commit real ranked opportunity reports, raw evidence outputs, provider credentials or private strategy experiments to the public repo.
+- Do not send Telegram messages that imply live trading authorization or contain private edge parameters.
