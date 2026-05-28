@@ -145,7 +145,12 @@ def build_strategy_test_matrix(
 
 def load_strategy_test_matrix_json(path: Path) -> list[StrategyMatrixCase]:
     payload = json.loads(path.read_text(encoding="utf-8"))
-    raw_cases = payload.get("cases", payload if isinstance(payload, list) else [])
+    if isinstance(payload, list):
+        raw_cases = payload
+    elif isinstance(payload, dict):
+        raw_cases = payload.get("cases", [])
+    else:
+        raise ValueError("strategy test matrix JSON must contain a list or an object with a 'cases' list")
     if not isinstance(raw_cases, list):
         raise ValueError("strategy test matrix JSON must contain a list or a 'cases' list")
     return [StrategyMatrixCase.from_dict(raw) for raw in raw_cases]
@@ -308,7 +313,7 @@ def _build_gates(
     metrics: StrategyTestMatrixMetrics,
     config: StrategyTestMatrixConfig,
 ) -> list[StrategyTestMatrixGate]:
-    required_fields_complete = all(
+    required_fields_complete = bool(cases) and all(
         case.case_id
         and case.strategy_id
         and case.sleeve
@@ -323,9 +328,9 @@ def _build_gates(
     minimum_cases_passed = bool(metrics.cases_per_strategy) and all(
         count >= config.min_cases_per_strategy for count in metrics.cases_per_strategy.values()
     )
-    public_demo_passed = (not config.public_demo_only) or all(
+    public_demo_passed = bool(cases) and ((not config.public_demo_only) or all(
         "demo" in case.tags and "public_safe" in case.tags for case in cases
-    )
+    ))
     no_live_terms_passed = not _contains_forbidden_terms(cases, FORBIDDEN_LIVE_TERMS)
     no_private_edge_terms_passed = not _contains_forbidden_terms(cases, FORBIDDEN_PRIVATE_EDGE_TERMS)
     return [
@@ -370,7 +375,7 @@ def _build_gates(
         ),
         StrategyTestMatrixGate(
             name="research_footer_present",
-            passed=(not config.require_research_footer) or RESEARCH_ONLY_FOOTER != "",
+            passed=(not config.require_research_footer) or bool(RESEARCH_ONLY_FOOTER.strip()),
             value=RESEARCH_ONLY_FOOTER,
             threshold="required",
             message="BT2 reports must remain research/paper-observation only.",
