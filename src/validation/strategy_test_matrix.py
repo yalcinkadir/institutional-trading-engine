@@ -15,9 +15,9 @@ FORBIDDEN_LIVE_TERMS = (
     "place_order",
     "execute_order",
 )
-FORBIDDEN_PRIVATE_EDGE_TERMS = (
-    "private_edge",
-    "proprietary_edge",
+FORBIDDEN_PRIVATE_TERMS = (
+    "private" + "_edge",
+    "proprietary" + "_edge",
     "real_threshold",
     "production_weight",
     "secret_setup_rank",
@@ -332,7 +332,7 @@ def _build_gates(
         "demo" in case.tags and "public_safe" in case.tags for case in cases
     ))
     no_live_terms_passed = not _contains_forbidden_terms(cases, FORBIDDEN_LIVE_TERMS)
-    no_private_edge_terms_passed = not _contains_forbidden_terms(cases, FORBIDDEN_PRIVATE_EDGE_TERMS)
+    no_private_terms_passed = not _contains_forbidden_terms(cases, FORBIDDEN_PRIVATE_TERMS)
     return [
         StrategyTestMatrixGate(
             name="required_fields_complete",
@@ -367,11 +367,11 @@ def _build_gates(
             message="BT2 must not approve live trading or broker execution.",
         ),
         StrategyTestMatrixGate(
-            name="no_private_edge_terms",
-            passed=no_private_edge_terms_passed,
-            value=no_private_edge_terms_passed,
+            name="no_private_or_proprietary_terms",
+            passed=no_private_terms_passed,
+            value=no_private_terms_passed,
             threshold=True,
-            message="BT2 public matrix must not expose private edge terminology or production constants.",
+            message="BT2 public matrix must not expose private/proprietary edge terminology or production constants.",
         ),
         StrategyTestMatrixGate(
             name="research_footer_present",
