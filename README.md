@@ -22,6 +22,7 @@ Phase C3/C4/C5/C6/C7: paper-only execution planning, reconciliation, drift, fill
 Phase IP1: public/private edge boundary guardrail implemented
 Phase IP2: public repository hygiene policy implemented
 TG1: Telegram research-only report dispatcher implemented
+BT2: Strategy Test Matrix model, demo matrix, CLI, docs and tests added
 Live trading authorization: not granted by code
 Broker execution: paper-only infrastructure; live execution is not implemented
 ```
@@ -59,6 +60,45 @@ docs/operations/public_repo_hygiene_policy.md
 ```
 
 Public-safe content may include architecture, interfaces, demo defaults, synthetic examples, tests, documentation and paper-observation infrastructure. Private edge should stay outside the public repository, including real thresholds, real scoring weights, proprietary setup rankings, non-public entry/exit profiles and private evidence artifacts.
+
+## BT2 Strategy Test Matrix
+
+BT2 adds a public-safe strategy coverage matrix for validating whether strategy sleeves are covered across regimes, setup families, validation stages and data modes.
+
+The public matrix is intentionally demo-only. It must not contain proprietary thresholds, production scoring weights, private setup rankings, real-money instructions or broker execution authorization.
+
+Demo command:
+
+```bash
+python scripts/generate_strategy_test_matrix.py --demo
+```
+
+File-based command:
+
+```bash
+python scripts/generate_strategy_test_matrix.py \
+  --input-json data/demo_strategy_test_matrix.json \
+  --output-json reports/strategy_test_matrix/strategy_test_matrix.json \
+  --output-md reports/strategy_test_matrix/strategy_test_matrix.md
+```
+
+BT2 test command:
+
+```bash
+pytest tests/test_strategy_test_matrix.py -q
+```
+
+Operational documentation:
+
+```text
+docs/operations/strategy_test_matrix.md
+```
+
+Every generated BT2 report remains compatible with:
+
+```text
+Research / Paper Observation Only. No live trading authorization.
+```
 
 ## Telegram Research-Only Reports
 
@@ -151,6 +191,7 @@ docs/operations/execution_kill_switch.md
 docs/operations/ip_boundary.md
 docs/operations/public_repo_hygiene_policy.md
 docs/operations/telegram_report_dispatcher.md
+docs/operations/strategy_test_matrix.md
 ```
 
 Core CLI commands:
@@ -223,6 +264,8 @@ python scripts/send_telegram_report.py \
   --report-file reports/daily_evidence/latest.md \
   --title "Daily Evidence" \
   --dry-run
+
+python scripts/generate_strategy_test_matrix.py --demo
 ```
 
 ## Phase A Evidence Hygiene
@@ -262,148 +305,4 @@ docs/operations/polygon_structured_logging.md
 docs/operations/polygon_cache_locking.md
 docs/operations/secrets_rotation_policy.md
 docs/operations/phase_a_ci_stabilization.md
-```
-
-## Core Capabilities
-
-- market regime analysis
-- decision confidence scoring
-- probabilistic decision normalization
-- weighted regime similarity scoring
-- adaptive feedback decay weighting
-- multi-factor fusion recalibration
-- historical edge validation
-- Deflated Sharpe probability and bootstrap confidence intervals
-- regime-phase backtest matrix
-- walk-forward validation
-- execution realism adjustment with square-root regime-aware slippage
-- out-of-sample validation lockbox with threshold-aware evidence invalidation
-- paper trading journal / live observation v2
-- persisted daily observation source feed
-- real paper observation source builder
-- daily observation cadence review
-- Phase B daily evidence input pipeline and report artifacts
-- final live readiness gate
-- cross-asset market-data coverage
-- Polygon active universe runtime builder
-- Polygon all-assets data workflow
-- Polygon structured JSON logging
-- Polygon cache locking and atomic writes
-- Polygon daily OHLCV bars downloader
-- Polygon artifact consolidation workflow
-- historical trade plan generation from Polygon bars
-- configurable survivorship audit mode for runtime Polygon artifacts
-- edge-evidence diagnostics for failed validation gates
-- edge-evidence diagnostics snapshot in workflow logs
-- edge-evidence execution from combined Polygon artifacts
-- event-risk placeholder metadata
-- optional SQLite runtime persistence
-- static dashboard HTML reporting
-- signal generation with entry, stop and target planning
-- watcher-based lifecycle tracking
-- manual portfolio synchronization
-- historical Polygon data ingestion
-- historical Entry / Stop / Exit backtesting
-- out-of-sample validation
-- paper-live observation
-- paper broker adapter interface
-- VWAP/TWAP paper order slicing
-- paper order reconciliation and portfolio-state derivation
-- daily expected-vs-observed execution reconciliation
-- fill-quality reporting for slippage, spread, delay and partial fills
-- execution kill-switch governance for failed evidence and execution-quality drift
-- public/private edge boundary guardrail
-- public repository hygiene policy validation
-- Telegram research-only report dispatching
-- operational readiness review
-- scheduled decision-support dry runs
-- persistent report archive
-- feedback and expectancy analysis
-
-## Core Flow
-
-```text
-Market analysis
-→ Expanded universe scan
-→ Event-risk metadata check
-→ Scanner metrics normalization
-→ Liquidity filter
-→ Signal generation
-→ Entry / Stop / Exit quality engines
-→ Trade plan validation
-→ Decision confidence scoring
-→ Probabilistic decision normalization
-→ Weighted regime similarity scoring
-→ Adaptive feedback decay weighting
-→ Multi-factor fusion recalibration
-→ Survivorship universe audit
-→ 500+ universe coverage gate
-→ Historical edge validation
-→ Statistical robustness checks
-→ Regime-phase backtest matrix
-→ Walk-forward validation
-→ Execution realism adjustment
-→ Out-of-sample validation lockbox
-→ Edge-evidence diagnostics
-→ Edge-evidence workflow log snapshot
-→ Paper trading journal / live observation v2
-→ Daily evidence input pipeline
-→ Daily evidence report artifact
-→ Daily observation cadence review
-→ Paper execution planning
-→ Order / Fill reconciliation
-→ Portfolio-state snapshot
-→ Daily expected-vs-observed execution reconciliation
-→ Fill-quality reporting
-→ Execution kill-switch decision
-→ Public/private edge boundary scan
-→ Public repository policy validation
-→ Telegram report dispatch guardrails
-→ Final live readiness gate
-→ Human review
-```
-
-## Main Test Commands
-
-Full suite:
-
-```bash
-pytest -q
-```
-
-Phase A stabilization tests:
-
-```bash
-pytest tests/test_decision_engine.py -q
-pytest tests/test_out_of_sample_lockbox.py -q
-pytest tests/test_slippage_model.py -q
-pytest tests/test_execution_realism.py -q
-pytest tests/test_statistical_robustness.py -q
-pytest tests/test_historical_edge_validation.py -q
-pytest tests/test_polygon_structured_logging.py -q
-pytest tests/test_polygon_data_pipeline.py -q
-pytest tests/test_polygon_cache.py -q
-```
-
-Phase C paper execution tests:
-
-```bash
-pytest tests/test_order_slicing.py -q
-pytest tests/test_order_reconciliation.py -q
-pytest tests/test_daily_execution_reconciliation.py -q
-pytest tests/test_fill_quality_report.py -q
-pytest tests/test_execution_kill_switch.py -q
-```
-
-IP boundary and policy tests:
-
-```bash
-pytest tests/test_ip_boundary.py -q
-pytest tests/test_public_repo_policy.py -q
-```
-
-Telegram report tests:
-
-```bash
-pytest tests/test_telegram_report_dispatcher.py -q
 ```
