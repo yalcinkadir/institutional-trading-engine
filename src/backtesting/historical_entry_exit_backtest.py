@@ -21,8 +21,8 @@ from src.backtesting.historical_models import (
     HistoricalTradePlan,
 )
 
-SUPPORTED_STOP_MODELS = {None, "fixed", "breakeven_after_t1"}
-SUPPORTED_EXIT_MODELS = {None, "t1_t2", "t1_only"}
+SUPPORTED_STOP_MODELS = {None, "fixed", "percentage_stop", "breakeven_after_t1"}
+SUPPORTED_EXIT_MODELS = {None, "t1_t2", "r_multiple_targets", "t1_only"}
 
 
 @dataclass(frozen=True)
