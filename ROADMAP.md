@@ -1,25 +1,41 @@
 # Institutional Trading Engine Roadmap
 
 Status date: 2026-05-29  
-Current state: BT7 Capacity / Turnover / Realism Gate is implemented with tests, CLI, documentation, demo fixture, dedicated workflow and main CI coverage. BT6 Evidence Baseline Regression Gate is implemented and CI-green. BT5 Walk-Forward / Out-of-Sample Robustness Gate is implemented and CI-green. TG1 Telegram research-only report dispatcher is implemented. IP1 public/private edge boundary guardrail is implemented. IP2 public repository hygiene and private-edge handling policy is implemented. Phase C7 execution kill-switch governance is implemented as paper/live observation audit infrastructure. Phase C6 fill-quality reporting is implemented as paper/live observation audit infrastructure. Phase C5 daily expected-vs-observed execution reconciliation is implemented as paper/live observation infrastructure. Phase C4 order reconciliation is implemented as paper-only infrastructure. Phase C3 VWAP/TWAP paper order slicing is implemented and CI-green. Phase C2 Alpaca paper adapter is implemented and CI-green. Phase C1 paper broker adapter interface is implemented and CI-green. Phase B17 daily real paper observation runbook discipline is implemented and CI-green. Phase B16 real paper observation raw data contract is implemented and CI-green. Phase B15 observation cadence review is implemented and CI-green. Phase B14 Daily Evidence workflow dispatch integration is implemented, CI-green and workflow-green with uploaded artifact. Phase B13 real daily paper observation source builder is implemented and CI-green. Phase B12 persisted daily observation source feed and observation-only component mode are implemented. Phase A Evidence Hygiene implemented and CI-green. P36-P47 validation stack implemented. Real-money execution is not authorized by code. Current P0 governance focus: continue public framework / private edge separation before further proprietary strategy development.
+Current state: BT7 Capacity / Turnover / Realism Gate is implemented and CI-green. BT6 Evidence Baseline Regression Gate is implemented and CI-green. BT5 Walk-Forward / Out-of-Sample Robustness Gate is implemented and CI-green. TG1 Telegram research-only report dispatcher is implemented. IP1 public/private edge boundary guardrail is implemented. IP2 public repository hygiene and private-edge handling policy is implemented. Phase C paper-execution audit infrastructure is implemented for planning, reconciliation, fill-quality and kill-switch governance. Phase B1.1 remains the active 3-6 month observation-only evidence collection period. Real-money execution is not authorized by code.
 
 ## Strategic direction
 
-The next stage is not more scanner features. The next stage is institutional evidence and controlled intellectual-property separation.
+The next stage is not more scanner features. The next stage is institutional evidence, realistic execution assumptions and controlled intellectual-property separation.
 
-The project is already a strong research and decision-support system. To become top-tier, the roadmap now prioritizes:
+The project now prioritizes:
 
 1. public framework / private edge separation
 2. survivorship-safe data
 3. statistically defensible edge validation
 4. forward paper evidence
 5. execution realism
-6. portfolio-level risk attribution
-7. multi-strategy expansion only after the base edge is proven
+6. capacity / turnover realism
+7. portfolio-level risk attribution
+8. multi-strategy expansion only after the base edge is proven
 
-Hard rule: no real-money execution before real forward evidence, drift detection, regime-change monitoring, position-level risk attribution and manual approval are in place.
+Hard rule: no real-money execution before real forward evidence, drift detection, regime-change monitoring, position-level risk attribution, capacity/turnover realism and manual approval are in place.
 
 Hard IP rule: the public repository may demonstrate architecture, evidence discipline and deterministic framework behavior, but proprietary edge configuration must not be developed further in public by default.
+
+## Phase BT — Backtest Evidence Hardening
+
+Target window: immediate  
+Goal: make historical validation evidence deterministic, reproducible and harder to overfit.
+
+| ID | Task | Priority | Impact | Status |
+|---|---|---:|---:|---|
+| BT2 | Add public-safe Strategy Test Matrix coverage validation | P1 | High | Done |
+| BT3 | Add reproducible backtest run contract with pinned inputs, dataset fingerprints, metrics and artifact hashes | P1 | High | Done |
+| BT5 | Add Walk-Forward / Out-of-Sample Robustness Gate with OOS pass rate, degradation, drawdown, trade-count and chronology checks | P0 | Critical | Done / CI-green |
+| BT6 | Add previous-run evidence baseline comparison for regression gates | P1 | High | Done / CI-green |
+| BT7 | Add capacity and turnover realism gates before any private production sizing work | P1 | High | Done / CI-green |
+
+BT5 is a robustness gate only. BT6 is a baseline-regression gate only. BT7 is a capacity/turnover realism gate only. None of them prove production edge and none authorize live trading.
 
 ## Phase IP — Public Framework / Private Edge Separation
 
@@ -41,83 +57,13 @@ Goal: keep the repository useful as a public framework while protecting propriet
 
 ## Phase TG — Report Delivery
 
-Target window: immediate  
-Goal: deliver research and paper-observation reports without creating live-trading authorization or leaking private edge.
-
 | ID | Task | Priority | Impact | Status |
 |---|---|---:|---:|---|
 | TG1 | Add Telegram report dispatcher with research-only guardrails, dry-run mode and injectable transport | P1 | High | Done |
 | TG2 | Integrate Telegram summaries into daily evidence/report workflows after CI workflow permissions are confirmed | P2 | Medium | Planned |
 | TG3 | Add report templates for Daily Evidence, Fill Quality, Kill Switch and Backtest Summary | P2 | Medium | Planned |
 
-## Phase BT — Backtest Evidence Hardening
-
-Target window: immediate  
-Goal: make historical validation evidence deterministic, reproducible and harder to overfit.
-
-| ID | Task | Priority | Impact | Status |
-|---|---|---:|---:|---|
-| BT2 | Add public-safe Strategy Test Matrix coverage validation | P1 | High | Done |
-| BT3 | Add reproducible backtest run contract with pinned inputs, dataset fingerprints, metrics and artifact hashes | P1 | High | Done |
-| BT5 | Add Walk-Forward / Out-of-Sample Robustness Gate with OOS pass rate, degradation, drawdown, trade-count and chronology checks | P0 | Critical | Done / CI-green |
-| BT6 | Add previous-run evidence baseline comparison for regression gates | P1 | High | Done / CI-green |
-| BT7 | Add capacity and turnover realism gates before any private production sizing work | P1 | High | Done / CI-pending |
-
-BT5 is a robustness gate only. BT6 is a baseline-regression gate only. BT7 is a capacity/turnover realism gate only. None of them prove production edge and none authorize live trading.
-
-## Phase IP Implementation Order
-
-The immediate execution order is:
-
-```text
-1. Roadmap and policy update
-2. Public/private boundary interfaces
-3. Demo defaults and optional private imports
-4. Tests for fallback and private-edge absence
-5. Public artifact hygiene and .gitignore hardening
-6. README and operational documentation update
-7. CI / regression run
-8. Fixes until green
-```
-
-C3, C4, C5, C6 and C7 are implemented as public paper-execution/evidence infrastructure only. They do not add proprietary strategy edge and do not authorize live trading.
-
-## Public vs Private Boundary
-
-Public repository may contain:
-
-```text
-framework orchestration
-interfaces and protocols
-demo thresholds
-demo setup maps
-synthetic example reports
-test fixtures
-paper-observation infrastructure
-evidence validation machinery
-broker adapter interfaces
-security and operations documentation
-```
-
-Private edge should contain:
-
-```text
-real decision thresholds
-real regime-to-setup mappings
-proprietary scoring weights
-non-public entry/exit profiles
-real ranked opportunity reports
-private evidence artifacts
-private experiment results
-provider-specific operational settings
-```
-
-Secrets remain outside both public and private source control. API keys, tokens, database URLs and broker credentials must stay in GitHub Actions secrets, local environment variables or a dedicated secret manager.
-
 ## Phase A — Foundation Repair and Evidence Hygiene
-
-Target window: 4-8 weeks  
-Goal: make the research foundation harder to fool.
 
 | ID | Task | Priority | Impact | Status |
 |---|---|---:|---:|---|
@@ -131,19 +77,6 @@ Goal: make the research foundation harder to fool.
 | A8 | Add cache locking for `.cache/polygon` writes | P2 | Medium | Done |
 | A9 | Update `CHANGELOG.md` and `SETUP_NOTES.md` for P47 readiness state | P2 | Medium | Done |
 | A10 | Document quarterly secrets rotation policy | P2 | Medium | Done |
-
-## Phase A Stabilization Gate
-
-Phase A is implementation-complete and CI-validated.
-
-| Gate | Status |
-|---|---|
-| Add Phase A tests to CI workflow | Done |
-| Execute CI test run | Done |
-| Fix failures if any | Done |
-| Full regression suite green | Done |
-| Final README update | Done |
-| Approve Phase B start | Done |
 
 ## Phase B — Real Forward Evidence
 
@@ -159,22 +92,9 @@ Goal: prove whether the rule-based system has live-observable edge before adding
 | B4 | Add deterministic regime-change detection gate | P1 | High | Done |
 | B5 | Add position-level risk attribution by beta, sector, factor and single-name contribution | P1 | High | Done |
 | B6 | Add Monte Carlo robustness suite with bootstrap and permutation tests | P1 | Medium | Done |
-| B7 | Emit a daily evidence report for paper/live observation | P2 | Medium | Done |
-| B8 | Add daily evidence CLI and scheduled artifact workflow | P2 | Medium | Done |
-| B9 | Run daily scheduled observation workflow and review artifacts | P2 | Medium | Done |
-| B10 | Replace placeholder component reports with real generated B1-B6 component artifacts | P1 | High | Done |
-| B11 | Replace smoke-fixture workflow mode with daily evidence source, input, validation and bootstrap pipeline | P1 | High | Done |
-| B12 | Add persisted daily observation source feed and observation-only bootstrap workflow mode | P0 | Critical | Done |
-| B13 | Replace bootstrap incoming records with real persisted daily paper observation source records | P0 | Critical | Done |
-| B14 | Integrate real paper observation source path into Daily Evidence workflow dispatch | P0 | Critical | Done |
-| B15 | Start real daily paper observation data capture and artifact review cadence | P0 | Critical | Done |
-| B16 | Define real paper observation raw data contract and daily capture template | P0 | Critical | Done |
-| B17 | Begin daily real paper observation runbook and evidence review discipline | P0 | Critical | Done |
+| B7-B17 | Daily evidence pipeline, persisted observation feed, raw contract and real paper observation runbook discipline | P0/P1 | Critical/High | Done |
 
 ## Phase C — Execution Reality
-
-Target window: starts after B16 foundation; runs in parallel with B1.1 observation period  
-Goal: ensure simulated edge survives realistic execution assumptions without enabling real-money execution.
 
 | ID | Task | Priority | Impact | Status |
 |---|---|---:|---:|---|
@@ -208,61 +128,29 @@ Start only after Phase B and C produce credible evidence and after the private-e
 | E2 | Add statistically significant PR gates against previous evidence baselines | P1 | Medium | Planned |
 | E3 | Automate daily live vs. backtest reconciliation | P1 | High | Planned |
 | E4 | Add meta-labeling layer for trade/no-trade decision after primary signal behind private-edge boundary or demo-only public constants | P2 | Medium | Planned |
-| E5 | Add capacity modeling to estimate how much capital the strategy can absorb | P2 | High | Planned |
+| E5 | Add capacity modeling to estimate how much capital the strategy can absorb | P2 | High | Superseded by BT7 baseline gate / future expansion |
 | E6 | Add hierarchical risk parity allocation | P2 | Medium | Planned |
 | E7 | Build an audit dashboard for evidence, drift, risk and execution quality | P2 | Medium | Planned |
 
 ## Recently completed evidence-visibility work
 
-- BT7 Capacity / Turnover / Realism Gate: done, locally tested and CI-wired.
+- BT7 Capacity / Turnover / Realism Gate: done and CI-green.
 - BT6 Evidence Baseline Regression Gate: done and CI-green.
 - BT5 Walk-Forward / Out-of-Sample Robustness Gate: done and CI-green.
-- BT5 dedicated workflow: done and CI-green.
-- BT5 CLI, synthetic demo fixture and operational documentation: done.
-- Edge-evidence diagnostics summary artifacts: done.
-- Edge-evidence workflow log snapshot: done.
-- Versioned decision thresholds: done.
-- Threshold-aware lockbox invalidation: done.
-- Square-root regime-aware slippage model: done.
-- Deflated Sharpe probability and bootstrap confidence intervals: done.
-- Polygon structured logging: done.
-- Polygon cache locking: done.
-- Phase A changelog and setup notes refresh: done.
-- Quarterly secrets rotation policy: done.
-- Phase A CI stabilization plan: done.
-- Phase A tests in CI: done.
-- Full regression suite green after stabilization fixes: done.
-- Paper observation daily reconciliation gate and report model: done.
-- Performance drift detection engine: done and CI-green.
-- Sequential edge-decay test: done and CI-green.
-- Regime-change detection gate: done and CI-green.
-- Position-level risk attribution: done and CI-green.
-- Monte Carlo robustness suite: done and CI-green.
-- Daily evidence report generator: done and CI-green.
-- Daily evidence CLI and scheduled artifact workflow: done and CI-green.
-- Daily evidence artifact workflow verified with uploaded PASS artifact: done.
-- Generated B1-B6 daily evidence component CLI: done and CI-green.
-- Daily evidence input validator, input builder and observation-only source bootstrap: done, CI-green and workflow-green.
-- Persisted daily observation source feed, observation-only component mode and Daily Evidence workflow green: done.
-- Real daily paper observation source builder with bootstrap rejection: done and CI-green.
-- Daily Evidence workflow dispatch integration with fail-safe artifact upload: done, CI-green and workflow-green.
-- Real paper observation cadence review: done and CI-green.
-- Real paper observation raw data contract and capture template: done and CI-green.
-- Daily real paper observation runbook discipline: done and CI-green.
-- Paper broker adapter interface and mock paper execution adapter: done and CI-green.
-- Alpaca paper adapter with deterministic in-memory transport: done and CI-green.
-- VWAP/TWAP paper order slicing: done and CI-green.
-- Order reconciliation engine for signal, order, fill and portfolio state: done.
-- Daily expected-vs-observed execution reconciliation workflow: done.
-- Fill-quality report for slippage, spread, delay and partial fills: done.
-- Execution kill-switch governance for failed evidence and execution-quality drift: done.
+- TG1 Telegram research-only report dispatcher: done.
 - IP1 public/private edge boundary guardrail: done.
 - IP2 public repository hygiene and private-edge handling policy: done.
-- TG1 Telegram research-only report dispatcher: done.
+- Phase C paper execution and audit infrastructure: done.
+- Phase B daily evidence pipeline and paper observation discipline: done.
+- Phase A evidence hygiene: done and CI-green.
 
 ## Current execution focus
 
-B1.1 remains the long-running evidence collection period. Phase C is active for paper execution only. Telegram delivery is allowed for research/paper-observation reports only. BT7 is implemented and CI-wired. Immediate focus remains controlled evidence collection, safe reporting, public/private edge separation and CI stabilization until all BT7 workflows are green.
+B1.1 remains the long-running evidence collection period. Phase C is active for paper execution only. Telegram delivery is allowed for research/paper-observation reports only. BT7 is complete and CI-green. Immediate focus remains controlled evidence collection, safe reporting, public/private edge separation and the next high-value governance step.
+
+## Recommended next block
+
+The next rational block is **IP3/IP4**: replace any remaining public production-like constants with demo defaults and introduce a private-edge adapter/import boundary. This protects the real edge before more proprietary strategy work is added.
 
 ## Do not do yet
 
