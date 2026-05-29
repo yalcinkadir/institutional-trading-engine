@@ -109,6 +109,21 @@ def test_pullback_structure_stop() -> None:
     assert "1.5 ATR below entry" in result.stop_reason
 
 
+def test_pullback_structure_stop_rejects_non_positive_computed_stop() -> None:
+    result = derive_stop_loss_quality(
+        setup_type="pullback_continuation",
+        entry_trigger=3.0,
+        close=3.5,
+        atr=2.0,
+        entry_type="pullback",
+    )
+
+    assert not result.is_valid
+    assert result.stop_loss is None
+    assert result.stop_model == "pullback_structure_stop"
+    assert result.reasons == ["computed_stop_non_positive"]
+
+
 def test_retest_structure_stop() -> None:
     result = derive_stop_loss_quality(
         setup_type="retest_continuation",
@@ -182,6 +197,19 @@ def test_missing_entry_is_rejected() -> None:
     assert result.reasons == ["missing_entry_trigger"]
 
 
+def test_non_positive_entry_is_rejected() -> None:
+    result = derive_stop_loss_quality(
+        setup_type="momentum_breakout",
+        entry_trigger=0.0,
+        close=100.0,
+        atr=4.0,
+        entry_type="breakout",
+    )
+
+    assert not result.is_valid
+    assert result.reasons == ["invalid_entry_trigger"]
+
+
 def test_missing_close_is_rejected() -> None:
     result = derive_stop_loss_quality(
         setup_type="momentum_breakout",
@@ -193,6 +221,19 @@ def test_missing_close_is_rejected() -> None:
 
     assert not result.is_valid
     assert result.reasons == ["missing_close"]
+
+
+def test_non_positive_close_is_rejected() -> None:
+    result = derive_stop_loss_quality(
+        setup_type="momentum_breakout",
+        entry_trigger=102.0,
+        close=0.0,
+        atr=4.0,
+        entry_type="breakout",
+    )
+
+    assert not result.is_valid
+    assert result.reasons == ["missing_or_invalid_close"]
 
 
 def test_missing_atr_is_rejected() -> None:
