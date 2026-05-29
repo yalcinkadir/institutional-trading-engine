@@ -23,14 +23,12 @@ class ReportOutputBoundaryError(ValueError):
 def normalize_report_output_path(path: str | Path, *, repo_root: str | Path | None = None) -> str:
     candidate = Path(path).expanduser()
     base = Path(repo_root).expanduser().resolve() if repo_root is not None else Path.cwd().resolve()
-    if candidate.is_absolute():
-        try:
-            candidate = candidate.resolve().relative_to(base)
-        except ValueError:
-            return candidate.resolve().as_posix()
-    else:
-        candidate = Path(candidate.as_posix())
-    return candidate.as_posix().lstrip("./")
+    if not candidate.is_absolute():
+        candidate = base / candidate
+    try:
+        return candidate.resolve().relative_to(base).as_posix()
+    except ValueError:
+        return candidate.resolve().as_posix()
 
 
 def is_protected_public_report_path(
