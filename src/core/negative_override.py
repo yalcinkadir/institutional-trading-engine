@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from typing import Any
 
 
@@ -17,6 +18,18 @@ OVERRIDE_RANK = {
 }
 
 REVERSE_OVERRIDE_RANK = {value: key for key, value in OVERRIDE_RANK.items()}
+
+
+def _safe_float(value: Any) -> float | None:
+    if value is None:
+        return None
+    try:
+        result = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(result):
+        return None
+    return result
 
 
 def evaluate_negative_overrides(context: dict[str, Any]) -> dict:
@@ -58,14 +71,24 @@ def evaluate_negative_overrides(context: dict[str, Any]) -> dict:
             }
         )
 
-    if context.get("vix", 0) >= 30:
-        overrides.append(
-            {
-                "severity": SEVERITY_MAJOR,
-                "reason": "extreme_vix",
-                "message": "VIX indicates elevated market stress",
-            }
-        )
+    if "vix" in context:
+        vix = _safe_float(context.get("vix"))
+        if vix is None:
+            overrides.append(
+                {
+                    "severity": SEVERITY_MINOR,
+                    "reason": "vix_unavailable",
+                    "message": "VIX is unavailable and was not treated as zero market stress",
+                }
+            )
+        elif vix >= 30:
+            overrides.append(
+                {
+                    "severity": SEVERITY_MAJOR,
+                    "reason": "extreme_vix",
+                    "message": "VIX indicates elevated market stress",
+                }
+            )
 
     if context.get("event_risk", "low") == "high":
         overrides.append(
