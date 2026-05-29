@@ -69,6 +69,12 @@ jobs:
         run: |
           pytest tests/test_backtest_fidelity_ev3_ev6.py -q
 
+      - name: EV7 decision ranking regression tests
+        env:
+          POLYGON_API_KEY: test-key
+        run: |
+          pytest tests/test_decision_engine.py -q
+
       - name: Phase A stabilization tests
         env:
           POLYGON_API_KEY: test-key
