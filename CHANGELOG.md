@@ -1,5 +1,46 @@
 # CHANGELOG
 
+## CL1 Core Decision Logic Remediation — 2026-05-29
+
+### Fixed
+- Corrected downside asymmetry calculation in `src/setup_scoring.py` so assets below SMA50 no longer receive inflated reward/risk scores from a negative `close - sma50` distance.
+- Updated `src/portfolio_risk.py` so elevated portfolio risk reduces all tradable tiers, not only Tier 1 candidates.
+- Updated `src/outcome_tracking.py` so breakeven outcomes are neutral in basic expectancy instead of being counted as losses.
+- Added defensive short-history guards for direct calls to setup-scoring helper functions.
+
+### Added
+- Regression coverage for downside asymmetry inflation in `tests/test_setup_scoring.py`.
+- Regression coverage for all-tier portfolio-risk reduction in `tests/test_portfolio_risk.py`.
+- Regression coverage for breakeven expectancy handling in `tests/test_outcome_tracking.py`.
+- CI step for CL1 core logic remediation tests.
+
+### Stabilization Result
+- CL1 implementation status: done.
+- CI status: wired; final workflow-green status must be confirmed in GitHub Actions.
+- Live trading remains intentionally not authorized by code.
+
+---
+
+## IP5/IP6 Artifact Hygiene and `.gitignore` Hardening — 2026-05-29
+
+### Added
+- Hardened `.gitignore` coverage for private edge modules, local strategy configuration, generated reports, raw data, evidence, lockbox output, caches, databases, logs and runtime artifacts.
+- Public-safe synthetic report examples for premarket, postmarket and weekly report files.
+- Artifact hygiene regression tests in `tests/test_artifact_hygiene.py`.
+- CI step for IP5/IP6 artifact hygiene tests.
+
+### Improved
+- Public report files no longer contain live-looking ranked opportunities or provider-backed market data.
+- Generated live/private/raw reports are blocked from normal version-control hygiene by ignore rules.
+
+### Stabilization Result
+- IP5 implementation status: done.
+- IP6 implementation status: done.
+- CI status: wired; final workflow-green status must be confirmed in GitHub Actions.
+- Live trading remains intentionally not authorized by code.
+
+---
+
 ## IP3/IP4 Public Demo Defaults and Private Edge Boundary — 2026-05-29
 
 ### Added
