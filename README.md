@@ -16,6 +16,7 @@ Phase A Evidence Hygiene A3-A10: implemented and CI-green
 Phase B evidence pipeline: implemented, CI-green and workflow-green
 Phase B1.1: evidence operation discipline implemented / CI-wired; 3-6 month observation-only evidence collection remains active
 Phase C paper execution infrastructure: implemented for planning, reconciliation, drift, fill-quality and kill-switch governance
+Phase EV1-EV2: Sharpe/Deflated-Sharpe evidence-unit correction implemented / CI-wired
 Phase IP1/IP2: public/private edge boundary and public repository hygiene policy implemented
 IP3/IP4: public-demo defaults and optional external edge provider boundary implemented and CI-green
 IP5/IP6: artifact hygiene and .gitignore hardening implemented / CI-wired
@@ -41,6 +42,33 @@ Broker execution: paper-only infrastructure; live execution is not implemented
 ```
 
 Code quality is not trading edge. The system is promising enough to test seriously, but real capital still requires long-running forward evidence, drift detection, regime-change monitoring, position-level risk attribution, execution-quality review, capacity/turnover realism and manual approval.
+
+## EV1-EV2 Sharpe / Deflated-Sharpe Evidence Fix
+
+EV1-EV2 corrects the most important evidence-unit issue from the static code review:
+
+```text
+src/validation/historical_edge_validation.py
+src/config/thresholds.py
+tests/test_sharpe_definition_regression.py
+```
+
+Implemented safeguards:
+
+- `calculate_sharpe_ratio` now returns sample-size-independent per-trade Sharpe: `mean(R) / std(R)`.
+- `calculate_sharpe_tstat` exposes the sample-size-scaled significance proxy separately.
+- Deflated Sharpe now receives the per-trade Sharpe unit expected by the robustness formula.
+- Historical edge metrics now include `sharpe_tstat` and `sharpe_definition_version` for auditability.
+- `MIN_SHARPE_RATIO` was recalibrated from `0.8` to `0.10` for the corrected per-trade Sharpe semantics.
+- `THRESHOLDS_VERSION` was bumped to invalidate older public-demo evidence artifacts using the prior Sharpe definition.
+- The drawdown gate now reports the effective absolute R threshold instead of only the raw multiplier.
+- No broker execution, no live trading authorization and no private edge parameters are introduced.
+
+EV1-EV2 test command:
+
+```bash
+pytest tests/test_sharpe_definition_regression.py -q
+```
 
 ## GOV7-GOV10 Pre-Live Hygiene
 
@@ -315,6 +343,7 @@ pytest -q
 Backtest, IP, report-boundary, evidence-operation, runtime-governance and core-logic validation gates:
 
 ```bash
+pytest tests/test_sharpe_definition_regression.py -q
 pytest tests/test_b11_evidence_operation_discipline.py -q
 pytest tests/test_gov7_gov10_pre_live_hygiene.py -q
 pytest tests/test_negative_override.py -q
@@ -341,4 +370,4 @@ pytest tests/test_decision_engine.py -q
 
 ## Hard Safety Rule
 
-This repository is a research and decision-support framework. No B1.1 evidence operation record, GOV7-GOV10 pre-live hygiene validator, GOV4-GOV6 stability hardening, TG2/TG3 report template, generated report, protected public report example, backtest, walk-forward result, evidence baseline comparison, capacity/turnover realism report, paper execution artifact, Telegram dispatch, external edge provider, core-logic remediation, scoring audit, kill-switch drawdown-source validation, ATR governance change, threshold-version bump, regime-alignment governance change, report output boundary guard, IP9/IP10 governance check or CI-green state authorizes live trading.
+This repository is a research and decision-support framework. No B1.1 evidence operation record, EV1-EV2 Sharpe definition fix, GOV7-GOV10 pre-live hygiene validator, GOV4-GOV6 stability hardening, TG2/TG3 report template, generated report, protected public report example, backtest, walk-forward result, evidence baseline comparison, capacity/turnover realism report, paper execution artifact, Telegram dispatch, external edge provider, core-logic remediation, scoring audit, kill-switch drawdown-source validation, ATR governance change, threshold-version bump, regime-alignment governance change, report output boundary guard, IP9/IP10 governance check or CI-green state authorizes live trading.
