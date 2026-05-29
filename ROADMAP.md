@@ -1,7 +1,7 @@
 # Institutional Trading Engine Roadmap
 
 Status date: 2026-05-29  
-Current state: IP3 public-demo threshold defaults are implemented. IP4 optional external edge provider boundary is implemented and CI-wired. BT7 Capacity / Turnover / Realism Gate is implemented and CI-green. BT6 Evidence Baseline Regression Gate is implemented and CI-green. BT5 Walk-Forward / Out-of-Sample Robustness Gate is implemented and CI-green. Phase B1.1 remains the active 3-6 month observation-only evidence collection period. Real-money execution is not authorized by code.
+Current state: IP3 public-demo threshold defaults are implemented and CI-green. IP4 optional external edge provider boundary is implemented and CI-green. IP8 fallback/private-edge absence test coverage is implemented and CI-green. BT7 Capacity / Turnover / Realism Gate is implemented and CI-green. BT6 Evidence Baseline Regression Gate is implemented and CI-green. BT5 Walk-Forward / Out-of-Sample Robustness Gate is implemented and CI-green. Phase B1.1 remains the active 3-6 month observation-only evidence collection period. Real-money execution is not authorized by code.
 
 ## Strategic direction
 
@@ -31,12 +31,12 @@ Goal: keep the repository useful as a public framework while protecting propriet
 |---|---|---:|---:|---|
 | IP1 | Define the public/private boundary for framework code, strategy configuration, thresholds, setup mappings, exit profiles, scoring weights and evidence artifacts | P0 | Critical | Done |
 | IP2 | Add an operational policy document for public repository hygiene and private edge handling | P0 | Critical | Done |
-| IP3 | Replace public production-like thresholds and strategy constants with clearly marked demo defaults or external configurable interfaces | P0 | Critical | Done / CI-pending |
-| IP4 | Add a private-edge adapter/import boundary so local/private modules can provide real thresholds, regime maps, scoring weights and exit profiles without being committed to the public repo | P0 | Critical | Done / CI-pending |
+| IP3 | Replace public production-like thresholds and strategy constants with clearly marked demo defaults or external configurable interfaces | P0 | Critical | Done / CI-green |
+| IP4 | Add a private-edge adapter/import boundary so local/private modules can provide real thresholds, regime maps, scoring weights and exit profiles without being committed to the public repo | P0 | Critical | Done / CI-green |
 | IP5 | Move real reports, ranked opportunities, raw evidence outputs and non-synthetic artifacts out of public version control or replace them with synthetic examples | P0 | Critical | Planned |
 | IP6 | Expand `.gitignore` for private configs, generated reports, databases, caches, logs, coverage output and local artifacts | P0 | High | Planned |
 | IP7 | Update README to state that the public repo contains framework/demo defaults only, not proprietary production edge configuration | P1 | High | Done |
-| IP8 | Add tests proving the public fallback path works without private modules and that private modules are optional imports only | P1 | High | Done / CI-pending |
+| IP8 | Add tests proving the public fallback path works without private modules and that private modules are optional imports only | P1 | High | Done / CI-green |
 | IP9 | Review open PRs for newly introduced edge constants before merge, especially setup-specific target profiles and scoring changes | P0 | Critical | Planned |
 | IP10 | Add license and usage disclaimer appropriate for a public decision-support research framework | P1 | Medium | Planned |
 
@@ -131,9 +131,9 @@ Start only after Phase B and C produce credible evidence and after the private-e
 
 ## Recently completed evidence-visibility work
 
-- IP3 public-demo threshold defaults: done and CI-wired.
-- IP4 optional external edge provider boundary: done and CI-wired.
-- IP8 fallback/private-edge absence tests: done and CI-wired.
+- IP3 public-demo threshold defaults: done and CI-green.
+- IP4 optional external edge provider boundary: done and CI-green.
+- IP8 fallback/private-edge absence tests: done and CI-green.
 - BT7 Capacity / Turnover / Realism Gate: done and CI-green.
 - BT6 Evidence Baseline Regression Gate: done and CI-green.
 - BT5 Walk-Forward / Out-of-Sample Robustness Gate: done and CI-green.
@@ -146,11 +146,11 @@ Start only after Phase B and C produce credible evidence and after the private-e
 
 ## Current execution focus
 
-B1.1 remains the long-running evidence collection period. Phase C is active for paper execution only. Telegram delivery is allowed for research/paper-observation reports only. IP3/IP4 is implemented and CI-wired. Immediate focus: CI run, fixes if needed, then mark IP3/IP4 as CI-green.
+B1.1 remains the long-running evidence collection period. Phase C is active for paper execution only. Telegram delivery is allowed for research/paper-observation reports only. IP3/IP4 is complete and CI-green. Immediate focus: IP5/IP6 artifact hygiene and `.gitignore` hardening.
 
 ## Recommended next block
 
-After IP3/IP4 is green, the next rational block is **IP5/IP6**: move non-synthetic artifacts out of public version control and harden `.gitignore` for private configs, reports, caches, logs and local artifacts.
+The next rational block is **IP5/IP6**: move non-synthetic artifacts out of public version control and harden `.gitignore` for private configs, reports, caches, logs and local artifacts.
 
 ## Do not do yet
 
