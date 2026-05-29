@@ -189,17 +189,19 @@ def calculate_max_drawdown(r_values: Iterable[float]) -> float:
 
 
 def calculate_sharpe_ratio(r_values: Iterable[float]) -> float:
-    """Per-trade Sharpe = mean(R) / std(R), independent of sample size.
+    """Per-trade Sharpe = mean(R) / population std(R).
 
-    The t-statistic is intentionally exposed separately through
-    `calculate_sharpe_tstat`. Do not feed the t-statistic into DSR.
+    Population variance is intentional here: the evidence gate treats the supplied
+    R series as the evaluated distribution for that artifact. This keeps the
+    definition invariant when the same distribution is duplicated, while the
+    t-statistic is exposed separately through `calculate_sharpe_tstat`.
     """
 
     values = [float(value) for value in r_values]
     if len(values) < 2:
         return 0.0
     mean = sum(values) / len(values)
-    variance = sum((value - mean) ** 2 for value in values) / (len(values) - 1)
+    variance = sum((value - mean) ** 2 for value in values) / len(values)
     std_dev = math.sqrt(variance)
     if std_dev == 0:
         return 0.0
