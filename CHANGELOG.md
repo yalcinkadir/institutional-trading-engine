@@ -19,7 +19,8 @@
 - IP3 implementation status: done.
 - IP4 implementation status: done.
 - IP8 fallback/private-edge absence test coverage: done.
-- CI status: wired / pending remote workflow confirmation.
+- CI status: green.
+- Full regression status: green.
 - Live trading remains intentionally not authorized by code.
 
 ---
@@ -34,20 +35,8 @@
 - Dedicated BT7 GitHub Actions workflow in `.github/workflows/bt7.yml`.
 - Main CI step for `tests/test_bt7_capacity_turnover_realism_gate.py`.
 
-### Tests Added / Updated
-- `tests/test_bt7_capacity_turnover_realism_gate.py`.
-- BT7 tests cover happy path, missing identity fields, missing and non-numeric metrics, non-positive scale, position ADV limits, portfolio ADV limits, daily turnover limits, annual turnover limits, transaction-cost drag, net expectancy floor, holding-period floor, trade-count floor, slippage-model coverage, missing artifact hashes, missing public-safe tags, missing research-only footer, JSON loading, report writing and Markdown rendering.
-
-### Improved
-- Historical evidence now has a deterministic capacity and turnover realism gate before any private production sizing work.
-- BT7 blocks results that look attractive but require unrealistic liquidity usage, excessive turnover, excessive transaction-cost drag or incomplete slippage coverage.
-- Generated BT7 reports remain research-only and do not authorize execution.
-
 ### Stabilization Result
 - BT7 implementation status: done.
-- BT7 local test status: 19 tests passing.
 - BT7 CI status: green.
 - Full regression status: green.
-- Public demo capacity and turnover data remains synthetic/demo-only.
-- Broker execution remains intentionally paper-only infrastructure.
 - Live trading remains intentionally not authorized by code.
