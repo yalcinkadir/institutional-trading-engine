@@ -43,6 +43,14 @@ jobs:
           pytest tests/test_entry_quality.py -q
           pytest tests/test_stop_loss_quality.py -q
 
+      - name: GOV4-GOV6 runtime stability hardening tests
+        env:
+          POLYGON_API_KEY: test-key
+        run: |
+          pytest tests/test_negative_override.py -q
+          pytest tests/test_runtime_state.py -q
+          pytest tests/test_runtime_loop.py -q
+
       - name: Phase A stabilization tests
         env:
           POLYGON_API_KEY: test-key
