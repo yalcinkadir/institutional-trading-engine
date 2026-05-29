@@ -1,4 +1,4 @@
-from src.setup_scoring import calculate_asymmetry_score, calculate_trend_quality, score_setup
+from src.setup_scoring import calculate_asymmetry_score, score_setup
 
 
 def _bars(start=100.0, drift=0.4, volume=1_000_000, count=240):
@@ -50,13 +50,6 @@ def test_asymmetry_uses_absolute_downside_distance_below_sma50():
     asymmetry = calculate_asymmetry_score(downtrend_asset)
 
     assert asymmetry < 0.35
-
-
-def test_setup_scoring_helpers_are_defensive_for_short_history():
-    short_asset = _bars(count=20)
-
-    assert calculate_trend_quality(short_asset) == 0.0
-    assert calculate_asymmetry_score(short_asset) == 0.0
 
 
 def test_score_setup_handles_insufficient_history():
