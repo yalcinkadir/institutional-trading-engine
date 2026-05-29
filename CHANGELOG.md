@@ -1,5 +1,27 @@
 # CHANGELOG
 
+## EV8 Fixed-Date Holdout Semantics — 2026-05-29
+
+### Fixed
+- EV8: the lockbox report no longer overstates fixed-date split evidence as broad out-of-sample or walk-forward validation.
+- Report title changed to `Fixed-Date Holdout Validation Lockbox`.
+- Validation scope now explicitly states the evidence is not walk-forward optimization, not k-fold cross-validation, and not proof against overfitting.
+
+### Added
+- `validation_method = fixed_date_holdout_degradation_check` in lockbox JSON and markdown reports.
+- `validation_scope_note` in lockbox JSON and markdown reports.
+- Validation method and scope note are included in the evidence contract hash.
+- Regression coverage proving the report declares fixed-date holdout semantics and does not use the previous overbroad title.
+- Regression coverage proving JSON output contains the validation method and scope note.
+- Dedicated main CI step for EV8 fixed-date holdout semantics regression tests.
+
+### Stabilization Result
+- EV8 implementation status: done.
+- CI status: green.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## EV11 Conservative Setup Scoring Fallbacks — 2026-05-29
 
 ### Fixed
