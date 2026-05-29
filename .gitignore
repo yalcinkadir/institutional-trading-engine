@@ -1,4 +1,85 @@
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Secrets and private configuration
 .env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+secrets/
+private/
+private_config/
+local_config/
+
+# Private edge modules and proprietary strategy configuration
+private_edge/
+external_edge/
+edge_config.local.*
+strategy_config.local.*
+thresholds.local.*
+scoring_weights.local.*
+exit_profiles.local.*
+setup_mappings.local.*
+
+# Generated market data, evidence and reports
+.cache/
+cache/
+data/raw/
+data/live/
+data/private/
+data/vendor/
+evidence/
+lockbox/
+artifacts/
+outputs/
+generated/
+reports/generated/
+reports/private/
+reports/live/
+reports/raw/
+reports/*.html
+reports/*.csv
+reports/*.json
+reports/*.parquet
+reports/*.xlsx
+reports/*-live.md
+reports/*-private.md
+reports/*-raw.md
+reports/*-generated.md
+
+# Databases and local state
+*.db
+*.sqlite
+*.sqlite3
+*.duckdb
+*.parquet
+*.feather
+
+# Logs and runtime files
+logs/
+*.log
+*.pid
+*.tmp
+*.bak
+
+# OS / editor
 .DS_Store
+.idea/
+.vscode/
