@@ -164,6 +164,12 @@ jobs:
         run: |
           pytest tests/test_external_edge_provider.py -q
 
+      - name: IP5/IP6 artifact hygiene tests
+        env:
+          POLYGON_API_KEY: test-key
+        run: |
+          pytest tests/test_artifact_hygiene.py -q
+
       - name: BT7 capacity turnover realism tests
         env:
           POLYGON_API_KEY: test-key
