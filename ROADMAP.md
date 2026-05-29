@@ -1,7 +1,7 @@
 # Institutional Trading Engine Roadmap
 
 Status date: 2026-05-29  
-Current state: IP3 public-demo threshold defaults are implemented and CI-green. IP4 optional external edge provider boundary is implemented and CI-green. IP8 fallback/private-edge absence test coverage is implemented and CI-green. BT7 Capacity / Turnover / Realism Gate is implemented and CI-green. BT6 Evidence Baseline Regression Gate is implemented and CI-green. BT5 Walk-Forward / Out-of-Sample Robustness Gate is implemented and CI-green. Phase B1.1 remains the active 3-6 month observation-only evidence collection period. Real-money execution is not authorized by code.
+Current state: IP3 public-demo threshold defaults are implemented and CI-green. IP4 optional external edge provider boundary is implemented and CI-green. IP8 fallback/private-edge absence test coverage is implemented and CI-green. Report Output Boundary Guard is implemented and CI-wired for protected public report examples. BT7 Capacity / Turnover / Realism Gate is implemented and CI-green. BT6 Evidence Baseline Regression Gate is implemented and CI-green. BT5 Walk-Forward / Out-of-Sample Robustness Gate is implemented and CI-green. Phase B1.1 remains the active 3-6 month observation-only evidence collection period. Real-money execution is not authorized by code.
 
 ## Strategic direction
 
@@ -16,11 +16,14 @@ The project now prioritizes:
 5. execution realism
 6. capacity / turnover realism
 7. portfolio-level risk attribution
-8. multi-strategy expansion only after the base edge is proven
+8. report-output boundary protection
+9. multi-strategy expansion only after the base edge is proven
 
 Hard rule: no real-money execution before real forward evidence, drift detection, regime-change monitoring, position-level risk attribution, capacity/turnover realism and manual approval are in place.
 
 Hard IP rule: the public repository may demonstrate architecture, evidence discipline and deterministic framework behavior, but proprietary edge configuration must not be developed further in public by default.
+
+Hard report-output rule: committed public report examples must stay synthetic and must not be overwritten by runtime generators.
 
 ## Phase IP — Public Framework / Private Edge Separation
 
@@ -33,12 +36,13 @@ Goal: keep the repository useful as a public framework while protecting propriet
 | IP2 | Add an operational policy document for public repository hygiene and private edge handling | P0 | Critical | Done |
 | IP3 | Replace public production-like thresholds and strategy constants with clearly marked demo defaults or external configurable interfaces | P0 | Critical | Done / CI-green |
 | IP4 | Add a private-edge adapter/import boundary so local/private modules can provide real thresholds, regime maps, scoring weights and exit profiles without being committed to the public repo | P0 | Critical | Done / CI-green |
-| IP5 | Move real reports, ranked opportunities, raw evidence outputs and non-synthetic artifacts out of public version control or replace them with synthetic examples | P0 | Critical | Planned |
-| IP6 | Expand `.gitignore` for private configs, generated reports, databases, caches, logs, coverage output and local artifacts | P0 | High | Planned |
+| IP5 | Move real reports, ranked opportunities, raw evidence outputs and non-synthetic artifacts out of public version control or replace them with synthetic examples | P0 | Critical | Done / CI-wired |
+| IP6 | Expand `.gitignore` for private configs, generated reports, databases, caches, logs, coverage output and local artifacts | P0 | High | Done / CI-wired |
 | IP7 | Update README to state that the public repo contains framework/demo defaults only, not proprietary production edge configuration | P1 | High | Done |
 | IP8 | Add tests proving the public fallback path works without private modules and that private modules are optional imports only | P1 | High | Done / CI-green |
 | IP9 | Review open PRs for newly introduced edge constants before merge, especially setup-specific target profiles and scoring changes | P0 | Critical | Planned |
 | IP10 | Add license and usage disclaimer appropriate for a public decision-support research framework | P1 | Medium | Planned |
+| IP11 | Add Report Output Boundary Guard so runtime generators cannot overwrite committed public report examples with generated content | P0 | Critical | Done / CI-wired |
 
 ## Phase BT — Backtest Evidence Hardening
 
@@ -131,6 +135,8 @@ Start only after Phase B and C produce credible evidence and after the private-e
 
 ## Recently completed evidence-visibility work
 
+- Report Output Boundary Guard: done and CI-wired.
+- IP5/IP6 artifact hygiene and public synthetic report example policy: done and CI-wired.
 - IP3 public-demo threshold defaults: done and CI-green.
 - IP4 optional external edge provider boundary: done and CI-green.
 - IP8 fallback/private-edge absence tests: done and CI-green.
@@ -146,11 +152,11 @@ Start only after Phase B and C produce credible evidence and after the private-e
 
 ## Current execution focus
 
-B1.1 remains the long-running evidence collection period. Phase C is active for paper execution only. Telegram delivery is allowed for research/paper-observation reports only. IP3/IP4 is complete and CI-green. Immediate focus: IP5/IP6 artifact hygiene and `.gitignore` hardening.
+B1.1 remains the long-running evidence collection period. Phase C is active for paper execution only. Telegram delivery is allowed for research/paper-observation reports only. IP3/IP4 and the Report Output Boundary Guard are complete and CI-wired. Immediate focus: IP9/IP10 public-repository governance before adding new strategy complexity.
 
 ## Recommended next block
 
-The next rational block is **IP5/IP6**: move non-synthetic artifacts out of public version control and harden `.gitignore` for private configs, reports, caches, logs and local artifacts.
+The next rational block is **IP9/IP10**: review future PRs for newly introduced public edge constants and add a license/usage disclaimer appropriate for a public decision-support research framework.
 
 ## Do not do yet
 
@@ -161,4 +167,5 @@ The next rational block is **IP5/IP6**: move non-synthetic artifacts out of publ
 - Do not skip forward paper observation.
 - Do not add new proprietary thresholds, setup maps, scoring weights or exit profiles directly to the public repo unless they are explicitly demo-only.
 - Do not commit real ranked opportunity reports, raw evidence outputs, provider credentials or private strategy experiments to the public repo.
+- Do not overwrite `reports/premarket-report.md`, `reports/postmarket-report.md` or `reports/weekly-report.md` with runtime-generated report content.
 - Do not send Telegram messages that imply live trading authorization or contain private edge parameters.
