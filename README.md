@@ -22,7 +22,8 @@ IP5/IP6: artifact hygiene and .gitignore hardening implemented / CI-wired
 CL1: core decision logic remediation for asymmetry, portfolio-risk tier handling and breakeven expectancy implemented / CI-wired
 CL2: scoring-system audit registry and report-vs-decision separation implemented / CI-wired
 CL3: kill-switch drawdown-source validation implemented / CI-wired
-CL4/CL5: ATR migration and regime_alignment review remain planned
+CL4: ATR calculation governance, Wilder ATR evaluation and threshold-version bump implemented / CI-wired
+CL5: regime_alignment review remains planned
 TG1: Telegram research-only report dispatcher implemented
 BT2: Strategy Test Matrix model, demo matrix, CLI, docs and tests implemented
 BT3: Backtest reproducibility contract implemented
@@ -34,6 +35,38 @@ Broker execution: paper-only infrastructure; live execution is not implemented
 ```
 
 Code quality is not trading edge. The system is promising enough to test seriously, but real capital still requires long-running forward evidence, drift detection, regime-change monitoring, position-level risk attribution, execution-quality review, capacity/turnover realism and manual approval.
+
+## CL4 ATR Governance
+
+CL4 makes ATR semantics explicit, versioned and regression-tested before ATR-dependent evidence can be trusted across reports, ranking, backtests, paper execution or validation gates:
+
+```text
+src/validation/atr_governance.py
+tests/test_atr_governance.py
+src/config/thresholds.py
+```
+
+Implemented safeguards:
+
+- True range explicitly includes previous-close gap risk.
+- Supported ATR methods are explicit: simple rolling ATR and Wilder-smoothed ATR.
+- Wilder ATR is seeded by the first simple average and then recursively smoothed.
+- `ATR_CALCULATION_VERSION` records the public-demo ATR semantics.
+- `THRESHOLDS_VERSION` was bumped because ATR migration is evidence-affecting.
+- ATR method changes require evidence invalidation instead of silently reusing older ATR-dependent artifacts.
+- Insufficient ATR history blocks migration approval.
+
+CL4 test command:
+
+```bash
+pytest tests/test_atr_governance.py -q
+```
+
+Operational documentation:
+
+```text
+docs/operations/cl4_atr_governance.md
+```
 
 ## CL2/CL3 Scoring and Drawdown-Source Governance
 
@@ -187,8 +220,9 @@ pytest tests/test_portfolio_risk.py -q
 pytest tests/test_outcome_tracking.py -q
 pytest tests/test_scoring_audit.py -q
 pytest tests/test_execution_kill_switch.py -q
+pytest tests/test_atr_governance.py -q
 ```
 
 ## Hard Safety Rule
 
-This repository is a research and decision-support framework. No generated report, backtest, walk-forward result, evidence baseline comparison, capacity/turnover realism report, paper execution artifact, Telegram dispatch, external edge provider, core-logic remediation, scoring audit, kill-switch drawdown-source validation or CI-green state authorizes live trading.
+This repository is a research and decision-support framework. No generated report, backtest, walk-forward result, evidence baseline comparison, capacity/turnover realism report, paper execution artifact, Telegram dispatch, external edge provider, core-logic remediation, scoring audit, kill-switch drawdown-source validation, ATR governance change, threshold-version bump or CI-green state authorizes live trading.
