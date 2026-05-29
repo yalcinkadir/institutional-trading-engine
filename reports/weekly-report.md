@@ -1,25 +1,39 @@
-# Institutional Trading Engine — WEEKLY REPORT
+# Institutional Trading Engine — Weekly Report Example
 
-Generated: 2026-05-29 15:19 UTC
+Synthetic example: yes
+Public-safe artifact: yes
+Live data source: none
+
+## Purpose
+
+This committed file is a synthetic public example only. It demonstrates the intended weekly report structure without publishing live market data, real ranked opportunities, provider-backed values, private thresholds or proprietary edge configuration.
 
 ## Weekly Summary
 
-This report summarizes market structure, leadership quality, risk conditions and focus areas for the upcoming trading week.
+This example summarizes a fictional research week. It must not contain real recommended assets, real ranked opportunities or provider-backed market observations.
 
-### Recommended Assets
-- MSFT — monitor only when market regime and cross-asset risk remain supportive.
-- NVDA — high-quality leader candidate, but position size should depend on volatility and sector heat.
-- META — watch relative strength versus QQQ and confirm follow-through before new exposure.
-- QQQ — use as the primary growth benchmark for leadership and risk-on confirmation.
+## Example Focus Areas
 
-### Focus For Next Week
-- Validate whether AI and semiconductor leaders continue to outperform the benchmark.
-- Track whether cross-asset conditions confirm risk-on behavior or shift toward defensive rotation.
-- Use the Decision Engine to separate strong trend from efficient asymmetric entry quality.
-- Prioritize no-trade discipline if breadth weakens or failed breakout pressure expands.
+- Synthetic market-structure review
+- Synthetic risk-condition review
+- Synthetic observation-process review
+- Synthetic report-quality review
 
-### Risk Notes
-- Monitor macroeconomic calendar events before increasing exposure.
-- Track volatility expansion and reduce position size during high-volatility transitions.
-- Avoid concentrated exposure when multiple candidates share the same sector or factor risk.
-- Treat all outputs as research and decision support, not financial advice.
+## Example Watchlist Discipline
+
+This section intentionally contains no real recommended assets.
+
+| Example Symbol | Example Theme | Example State |
+|---|---|---|
+| DEMO_WEEKLY_ALPHA | example_leadership | monitor_only |
+| DEMO_WEEKLY_BETA | example_risk_review | no_trade_example |
+
+## Data / Risk Warnings
+
+- Public example report only.
+- Generated live, private, raw or provider-backed reports must be written outside committed public report paths.
+- This file must not contain real ranked opportunities.
+
+## Safety Note
+
+This public report is research documentation only. It does not authorize live trading.
