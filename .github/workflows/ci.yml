@@ -158,6 +158,12 @@ jobs:
         run: |
           pytest tests/test_bt3_backtest_run_contract.py -q
 
+      - name: IP3/IP4 public demo and external edge boundary tests
+        env:
+          POLYGON_API_KEY: test-key
+        run: |
+          pytest tests/test_external_edge_provider.py -q
+
       - name: BT7 capacity turnover realism tests
         env:
           POLYGON_API_KEY: test-key
