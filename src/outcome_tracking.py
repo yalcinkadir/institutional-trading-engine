@@ -154,7 +154,6 @@ def read_decision_records(path: str | Path) -> list[dict[str, Any]]:
             return _read_jsonl_records(input_path)
 
         return _read_csv_records(input_path)
-
     except Exception:
         return []
 
@@ -181,11 +180,12 @@ def calculate_basic_expectancy(records: list[dict[str, Any]], result_field: str 
         }
 
     wins = [value for value in numeric_results if value > 0]
-    losses = [value for value in numeric_results if value <= 0]
+    losses = [value for value in numeric_results if value < 0]
     win_rate = len(wins) / len(numeric_results)
     average_win = sum(wins) / len(wins) if wins else 0.0
     average_loss = sum(losses) / len(losses) if losses else 0.0
-    expectancy = (win_rate * average_win) + ((1 - win_rate) * average_loss)
+    loss_rate = len(losses) / len(numeric_results)
+    expectancy = (win_rate * average_win) + (loss_rate * average_loss)
 
     return {
         "count": len(numeric_results),
