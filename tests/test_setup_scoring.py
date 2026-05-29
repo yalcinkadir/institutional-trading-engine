@@ -61,3 +61,35 @@ def test_score_setup_handles_insufficient_history():
     assert result.setup_score == 0.0
     assert result.data_confidence == 0.0
     assert "insufficient_history" in result.notes
+
+
+def test_ev11_missing_long_horizon_indicators_are_conservative_not_optimistic():
+    asset = _bars(drift=0.9, count=120)
+    benchmark = _bars(drift=0.3, count=120)
+
+    result = score_setup("PARTIAL", asset, benchmark)
+
+    assert result.trend_quality == 0.0
+    assert result.asymmetry_score == 0.0
+    assert result.data_confidence <= 0.5
+    assert result.setup_score < 45
+    assert result.regime_alignment <= 0.5
+    assert "conservative_missing_long_horizon_trend" in result.notes
+    assert "conservative_missing_long_horizon_asymmetry" in result.notes
+    assert "weak_asymmetry" in result.notes
+
+
+def test_ev11_invalid_close_values_do_not_create_optimistic_scores():
+    asset = _bars(drift=0.9, count=120)
+    benchmark = _bars(drift=0.3, count=120)
+    for index in range(0, len(asset), 10):
+        asset[index]["c"] = "invalid"
+
+    result = score_setup("BAD_CLOSES", asset, benchmark)
+
+    assert result.trend_quality == 0.0
+    assert result.asymmetry_score == 0.0
+    assert result.data_confidence <= 0.5
+    assert "missing_or_invalid_close_data" in result.notes
+    assert "conservative_missing_long_horizon_trend" in result.notes
+    assert "conservative_missing_long_horizon_asymmetry" in result.notes
