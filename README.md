@@ -21,6 +21,7 @@ TG1: Telegram research-only report dispatcher implemented
 BT2: Strategy Test Matrix model, demo matrix, CLI, docs and tests implemented
 BT3: Backtest reproducibility contract implemented
 BT5: Walk-Forward / Out-of-Sample Robustness Gate implemented and CI-green
+BT6: Evidence Baseline Regression Gate implemented; CI workflow added
 Live trading authorization: not granted by code
 Broker execution: paper-only infrastructure; live execution is not implemented
 ```
@@ -131,6 +132,60 @@ Every generated BT5 report remains compatible with:
 Research / Paper Observation Only. Execution is not authorized by this report.
 ```
 
+## BT6 Evidence Baseline Regression Gate
+
+BT6 compares a new evidence snapshot against a previously accepted baseline snapshot. It blocks silent regression after strategy, parameter, dataset or validation-code changes.
+
+BT6 validates:
+
+```text
+baseline and current run identity
+strategy comparability
+dataset comparability
+required metric presence and numeric validity
+artifact hash references
+expectancy degradation
+Sharpe degradation
+OOS pass-rate degradation
+drawdown increase
+trade-count collapse
+public-safe demo tags
+research-only footer
+```
+
+Demo command:
+
+```bash
+python scripts/generate_bt6_baseline_regression_report.py --demo
+```
+
+File-based command:
+
+```bash
+python scripts/generate_bt6_baseline_regression_report.py \
+  --input-json data/demo_bt6_evidence_baseline.json \
+  --output-json reports/bt6_baseline_regression/report.json \
+  --output-md reports/bt6_baseline_regression/report.md
+```
+
+BT6 test command:
+
+```bash
+pytest tests/test_bt6_evidence_baseline_regression_gate.py -q
+```
+
+Operational documentation:
+
+```text
+docs/operations/bt6_evidence_baseline_regression_gate.md
+```
+
+Every generated BT6 report remains compatible with:
+
+```text
+Research / Paper Observation Only. Execution is not authorized by this report.
+```
+
 ## Telegram Research-Only Reports
 
 TG1 can dispatch Telegram reports in research-only mode. It blocks live-trading language, order-action phrases and private-edge terms before sending.
@@ -229,6 +284,7 @@ README finalized: done
 - regime-phase backtest matrix
 - walk-forward validation
 - BT5 walk-forward / out-of-sample robustness gate
+- BT6 evidence baseline regression gate
 - execution realism adjustment with square-root regime-aware slippage
 - out-of-sample validation lockbox with threshold-aware evidence invalidation
 - paper trading journal / live observation v2
@@ -276,6 +332,7 @@ Market analysis
 → Regime-phase backtest matrix
 → Walk-forward validation
 → BT5 walk-forward / out-of-sample robustness gate
+→ BT6 evidence baseline regression gate
 → Execution realism adjustment
 → Out-of-sample validation lockbox
 → Edge-evidence diagnostics
@@ -348,8 +405,9 @@ Backtest validation gates:
 pytest tests/test_strategy_test_matrix.py -q
 pytest tests/test_bt3_backtest_run_contract.py -q
 pytest tests/test_bt5_walk_forward_robustness_gate.py -q
+pytest tests/test_bt6_evidence_baseline_regression_gate.py -q
 ```
 
 ## Hard Safety Rule
 
-This repository is a research and decision-support framework. No generated report, backtest, walk-forward result, paper execution artifact, Telegram dispatch or CI-green state authorizes live trading.
+This repository is a research and decision-support framework. No generated report, backtest, walk-forward result, evidence baseline comparison, paper execution artifact, Telegram dispatch or CI-green state authorizes live trading.
