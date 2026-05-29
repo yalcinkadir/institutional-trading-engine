@@ -15,8 +15,9 @@ MIN_TOTAL_TRADES = 300
 MIN_PROFIT_FACTOR = 1.4
 MIN_EXPECTANCY_R = 0.5
 MAX_DRAWDOWN_LIMIT = 0.25
-MIN_SHARPE_RATIO = 0.8
+MIN_SHARPE_RATIO = 0.10
 MIN_DEFLATED_SHARPE_PROBABILITY = 0.95
+SHARPE_DEFINITION_VERSION = "per-trade-sharpe-2026.05.29-v1"
 
 
 @dataclass(frozen=True)
@@ -45,6 +46,8 @@ class HistoricalEdgeMetrics:
     profit_factor: float
     max_drawdown: float
     sharpe_ratio: float
+    sharpe_tstat: float
+    sharpe_definition_version: str
     max_consecutive_losses: int
     recovery_time_trades: int
     cumulative_r: float
@@ -140,6 +143,7 @@ def calculate_historical_edge_metrics(r_values: Iterable[float]) -> HistoricalEd
     profit_factor = calculate_profit_factor(values)
     max_drawdown = calculate_max_drawdown(values)
     sharpe_ratio = calculate_sharpe_ratio(values)
+    sharpe_tstat = calculate_sharpe_tstat(values)
     max_consecutive_losses = calculate_max_consecutive_losses(values)
     recovery_time_trades = calculate_recovery_time_trades(values)
     cumulative_r = sum(values)
@@ -154,6 +158,8 @@ def calculate_historical_edge_metrics(r_values: Iterable[float]) -> HistoricalEd
         profit_factor=round(profit_factor, 6),
         max_drawdown=round(max_drawdown, 6),
         sharpe_ratio=round(sharpe_ratio, 6),
+        sharpe_tstat=round(sharpe_tstat, 6),
+        sharpe_definition_version=SHARPE_DEFINITION_VERSION,
         max_consecutive_losses=max_consecutive_losses,
         recovery_time_trades=recovery_time_trades,
         cumulative_r=round(cumulative_r, 6),
@@ -183,6 +189,12 @@ def calculate_max_drawdown(r_values: Iterable[float]) -> float:
 
 
 def calculate_sharpe_ratio(r_values: Iterable[float]) -> float:
+    """Per-trade Sharpe = mean(R) / std(R), independent of sample size.
+
+    The t-statistic is intentionally exposed separately through
+    `calculate_sharpe_tstat`. Do not feed the t-statistic into DSR.
+    """
+
     values = [float(value) for value in r_values]
     if len(values) < 2:
         return 0.0
@@ -191,7 +203,16 @@ def calculate_sharpe_ratio(r_values: Iterable[float]) -> float:
     std_dev = math.sqrt(variance)
     if std_dev == 0:
         return 0.0
-    return mean / std_dev * math.sqrt(len(values))
+    return mean / std_dev
+
+
+def calculate_sharpe_tstat(r_values: Iterable[float]) -> float:
+    """Significance proxy: per-trade Sharpe multiplied by sqrt(N)."""
+
+    values = [float(value) for value in r_values]
+    if len(values) < 2:
+        return 0.0
+    return calculate_sharpe_ratio(values) * math.sqrt(len(values))
 
 
 def calculate_max_consecutive_losses(r_values: Iterable[float]) -> int:
@@ -231,6 +252,7 @@ def build_historical_edge_gates(
     config: HistoricalEdgeValidationConfig,
     statistical_robustness: StatisticalRobustnessMetrics | None = None,
 ) -> list[HistoricalEdgeGate]:
+    effective_drawdown_threshold = config.max_drawdown_limit * max(1.0, abs(metrics.cumulative_r))
     gates = [
         HistoricalEdgeGate(
             name="minimum_sample_size",
@@ -255,17 +277,20 @@ def build_historical_edge_gates(
         ),
         HistoricalEdgeGate(
             name="drawdown_limit",
-            passed=metrics.max_drawdown <= config.max_drawdown_limit * max(1.0, abs(metrics.cumulative_r)),
+            passed=metrics.max_drawdown <= effective_drawdown_threshold,
             value=metrics.max_drawdown,
-            threshold=config.max_drawdown_limit,
-            message="Max drawdown must stay within configured risk tolerance.",
+            threshold=round(effective_drawdown_threshold, 6),
+            message=(
+                "Max drawdown (R) must stay within max_drawdown_limit * max(1, |cumulative_r|). "
+                "Threshold shown is the effective absolute R limit."
+            ),
         ),
         HistoricalEdgeGate(
             name="sharpe_ratio",
             passed=metrics.sharpe_ratio >= config.min_sharpe_ratio,
             value=metrics.sharpe_ratio,
             threshold=config.min_sharpe_ratio,
-            message="Risk-adjusted return must clear the configured threshold.",
+            message="Per-trade Sharpe must clear the configured threshold.",
         ),
     ]
 
@@ -279,7 +304,7 @@ def build_historical_edge_gates(
                 ),
                 value=statistical_robustness.deflated_sharpe_probability,
                 threshold=config.min_deflated_sharpe_probability,
-                message="Observed Sharpe must remain significant after multiple-testing deflation.",
+                message="Per-trade Sharpe must remain significant after multiple-testing deflation.",
             )
         )
         gates.append(
@@ -313,6 +338,8 @@ def render_historical_edge_markdown(report: HistoricalEdgeValidationReport) -> s
         f"- Profit factor: {_format_number(metrics.profit_factor)}",
         f"- Max drawdown R: {metrics.max_drawdown:.4f}",
         f"- Sharpe ratio: {metrics.sharpe_ratio:.4f}",
+        f"- Sharpe t-stat: {metrics.sharpe_tstat:.4f}",
+        f"- Sharpe definition: {metrics.sharpe_definition_version}",
         f"- Max consecutive losses: {metrics.max_consecutive_losses}",
         f"- Recovery time trades: {metrics.recovery_time_trades}",
         f"- Cumulative R: {metrics.cumulative_r:.4f}",
@@ -360,22 +387,23 @@ def write_historical_edge_report(
 ) -> None:
     json_path.parent.mkdir(parents=True, exist_ok=True)
     markdown_path.parent.mkdir(parents=True, exist_ok=True)
-    json_path.write_text(json.dumps(report.to_dict(), indent=2), encoding="utf-8")
+    json_path.write_text(json.dumps(report.to_dict(), indent=2, sort_keys=True), encoding="utf-8")
     markdown_path.write_text(render_historical_edge_markdown(report), encoding="utf-8")
 
 
-def _format_number(value: float | int) -> str:
-    if isinstance(value, float) and math.isinf(value):
-        return "inf"
-    if isinstance(value, int):
-        return str(value)
-    return f"{float(value):.4f}"
-
-
 def _safe_float(value: Any) -> float | None:
-    if value is None:
-        return None
     try:
-        return float(value)
+        result = float(value)
     except (TypeError, ValueError):
         return None
+    if not math.isfinite(result):
+        return None
+    return result
+
+
+def _format_number(value: float | int) -> str:
+    if isinstance(value, float):
+        if math.isinf(value):
+            return "inf"
+        return f"{value:.6g}"
+    return str(value)
