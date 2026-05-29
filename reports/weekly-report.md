@@ -1,32 +1,25 @@
-# Institutional Trading Engine — WEEKLY REPORT EXAMPLE
+# Institutional Trading Engine — WEEKLY REPORT
 
-Synthetic example: yes  
-Public-safe artifact: yes  
-Generated timestamp: example-only  
-Live data source: none
-
-> This file is a synthetic public demonstration artifact. It must not contain real ranked opportunities, raw provider output, live evidence, private thresholds, proprietary scoring weights or production strategy configuration.
+Generated: 2026-05-29 10:45 UTC
 
 ## Weekly Summary
 
-This example shows the intended weekly report structure for public documentation and demo workflows only.
+This report summarizes market structure, leadership quality, risk conditions and focus areas for the upcoming trading week.
 
-### Demonstration Assets
-
-- DEMO_ASSET_A — synthetic placeholder for formatting only.
-- DEMO_ASSET_B — synthetic placeholder for formatting only.
-- DEMO_ASSET_C — synthetic placeholder for formatting only.
-- DEMO_INDEX_A — synthetic benchmark placeholder.
+### Recommended Assets
+- MSFT — monitor only when market regime and cross-asset risk remain supportive.
+- NVDA — high-quality leader candidate, but position size should depend on volatility and sector heat.
+- META — watch relative strength versus QQQ and confirm follow-through before new exposure.
+- QQQ — use as the primary growth benchmark for leadership and risk-on confirmation.
 
 ### Focus For Next Week
-
-- Demonstrate how weekly market structure notes are organized.
-- Keep public examples deterministic and synthetic.
-- Store real weekly evidence, ranked opportunities and provider-backed outputs outside public version control.
+- Validate whether AI and semiconductor leaders continue to outperform the benchmark.
+- Track whether cross-asset conditions confirm risk-on behavior or shift toward defensive rotation.
+- Use the Decision Engine to separate strong trend from efficient asymmetric entry quality.
+- Prioritize no-trade discipline if breadth weakens or failed breakout pressure expands.
 
 ### Risk Notes
-
-- This repository is a research and decision-support framework.
-- Public report files are examples only.
-- Generated live, raw, private or provider-backed reports must not be committed.
-- No report authorizes real-money trading.
+- Monitor macroeconomic calendar events before increasing exposure.
+- Track volatility expansion and reduce position size during high-volatility transitions.
+- Avoid concentrated exposure when multiple candidates share the same sector or factor risk.
+- Treat all outputs as research and decision support, not financial advice.
