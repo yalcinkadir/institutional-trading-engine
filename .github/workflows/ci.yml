@@ -191,6 +191,12 @@ jobs:
         run: |
           pytest tests/test_atr_governance.py -q
 
+      - name: CL5 regime alignment governance tests
+        env:
+          POLYGON_API_KEY: test-key
+        run: |
+          pytest tests/test_decision_engine.py -q
+
       - name: BT7 capacity turnover realism tests
         env:
           POLYGON_API_KEY: test-key
