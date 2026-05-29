@@ -2,7 +2,7 @@
 Live setup scoring for Decision Engine v3.
 
 This module converts market bars into deterministic setup-quality inputs for
-	the Decision Engine. It is intentionally simple and explainable:
+the Decision Engine. It is intentionally simple and explainable:
 
 - trend quality from SMA50/SMA200 structure
 - relative strength versus a benchmark
@@ -57,9 +57,6 @@ def calculate_relative_strength(asset_bars: list[dict], benchmark_bars: list[dic
 
 
 def calculate_trend_quality(bars: list[dict]) -> float:
-    if len(bars) < 200:
-        return 0.0
-
     closes = _close_series(bars)
     close = closes[-1]
     sma50 = sma(closes, 50)
@@ -77,9 +74,6 @@ def calculate_trend_quality(bars: list[dict]) -> float:
 
 
 def calculate_asymmetry_score(bars: list[dict]) -> float:
-    if len(bars) < 50:
-        return 0.0
-
     closes = _close_series(bars)
     close = closes[-1]
     sma50 = sma(closes, 50)
