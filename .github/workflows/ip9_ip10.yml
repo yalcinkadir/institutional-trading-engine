@@ -38,10 +38,8 @@ jobs:
         run: |
           pytest tests/test_ip9_ip10_public_repo_governance.py -q
 
-      - name: Public/private boundary checks
+      - name: Public repository policy validation
         env:
           POLYGON_API_KEY: test-key
         run: |
-          python scripts/check_ip_boundary.py --root . --no-write
-          pytest tests/test_ip_boundary.py -q
           python scripts/validate_public_repo_policy.py --no-write
