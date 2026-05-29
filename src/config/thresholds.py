@@ -14,8 +14,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 
-THRESHOLDS_VERSION = "public-demo-2026.05.29-v1"
+THRESHOLDS_VERSION = "public-demo-2026.05.29-v2-cl4-atr-governance"
 PUBLIC_DEMO_DEFAULTS = True
+ATR_CALCULATION_VERSION = "public-demo-atr-wilder-2026.05.29-v1"
 
 
 @dataclass(frozen=True)
@@ -50,6 +51,7 @@ class DecisionThresholds:
 
     version: str = THRESHOLDS_VERSION
     public_demo_defaults: bool = PUBLIC_DEMO_DEFAULTS
+    atr_calculation_version: str = ATR_CALCULATION_VERSION
 
 
 DEFAULT_THRESHOLDS = DecisionThresholds()
