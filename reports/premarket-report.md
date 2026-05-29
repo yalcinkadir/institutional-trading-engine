@@ -1,75 +1,150 @@
-# Institutional Trading Engine — PREMARKET REPORT EXAMPLE
+# Institutional Trading Engine — PREMARKET REPORT
 
-Synthetic example: yes  
-Public-safe artifact: yes  
-Generated timestamp: example-only  
-Live data source: none
-
-> This file is a synthetic public demonstration artifact. It must not contain real ranked opportunities, raw provider output, live evidence, private thresholds, proprietary scoring weights or production strategy configuration.
+Generated: 2026-05-29 10:24 UTC
 
 ## Market Regime
 
-- Data Status: SYNTHETIC
-- Regime: example_neutral
-- Market Health Score: 50
+- Data Status: PARTIAL
+- Regime: Bullish (VIX missing)
+- Market Health Score: 65
 
 ### Core Market Metrics
 
-#### DEMO_INDEX_A
-- Close: 100.00
-- SMA50: 99.50
-- SMA200: 95.00
-- ATR14: 1.25
+#### SPY
+- Close: 694.07
+- SMA50: 680.01 ✅
+- SMA200: 630.55 ✅
+- ATR14: 4.49
 
-#### DEMO_VOL_INDEX
-- Close: 20.00
-- SMA50: 19.50
-- SMA200: 21.00
-- ATR14: 1.10
+#### QQQ
+- Close: 626.65
+- SMA50: 616.77 ✅
+- SMA200: 561.93 ✅
+- ATR14: 5.97
+
+#### VIX
+- Close: DATA_UNAVAILABLE
+- SMA50: DATA_UNAVAILABLE
+- SMA200: DATA_UNAVAILABLE
+- ATR14: DATA_UNAVAILABLE
 
 ### Market Breadth
+- Universe Size: 16
+- Above SMA50: 5
+- Breadth %: 31.25%
 
-- Universe Size: 4
-- Above SMA50: 2
-- Breadth %: 50.00%
+## Cross-Asset Regime
+
+- Data Status: LIVE
+- Cross-Asset Regime: cross_asset_neutral
+- Risk Score: 86
+- Risk-On Score: 51
+- Risk-Off Score: 15
+
+### Cross-Asset Warnings
+- defensive_gold_outperformance
+
+### Cross-Asset Confirmations
+- usd_pressure_contained
+- duration_stress_contained
+- small_caps_confirm_risk_appetite
+- equity_trend_supportive
+
+### Focus Areas
+- US index trend confirmation before open
+- VIX risk regime before new exposure
+- Leader continuation potential
+- Opening gap and volatility risk
 
 ## Decision Engine
 
 - Market State: neutral
-- Portfolio Heat Limit: demo-only
-- Approved / Reduced Size: 0
+- Portfolio Heat Limit: 1.0
+- Approved / Reduced Size: 6
 - Blocked / No Trade: 0
 
-### Active Strategy Types
+> ℹ️ Data feeds partial (Free Polygon tier — VIX unavailable). Data confidence reduced; sizing conservative.
 
-- demo_pullback_continuation
-- demo_mean_reversion
+### Active Strategy Types
+- pullback_continuation
+- mean_reversion
 
 ### Decision Summary
-
-- This example demonstrates pre-market report structure only.
-- No real symbol ranking is included.
-- No live trading authorization is implied.
+- Decision context allows selective risk-taking in regime-aligned setups.
 
 ### Ranked Opportunities
 
-No real ranked opportunities are stored in the public repository. Generated live, raw, private or provider-backed opportunity reports must remain outside version control.
+#### MSFT
+- Decision: **approved** | Risk Tier: tier_2
+- Setup Type: pullback_continuation | Size: 0.5x
+- Setup Score: 82.0 | Regime Alignment: 0.82 | Asymmetry Score: 0.72 | Data Confidence: 0.65
+- Notes: thresholds_version=public-demo-2026.05.29-v1
+
+#### NVDA
+- Decision: **approved** | Risk Tier: tier_2
+- Setup Type: pullback_continuation | Size: 0.5x
+- Setup Score: 79.0 | Regime Alignment: 0.78 | Asymmetry Score: 0.69 | Data Confidence: 0.65
+- Notes: thresholds_version=public-demo-2026.05.29-v1
+
+#### META
+- Decision: **approved** | Risk Tier: tier_2
+- Setup Type: pullback_continuation | Size: 0.5x
+- Setup Score: 76.0 | Regime Alignment: 0.74 | Asymmetry Score: 0.66 | Data Confidence: 0.65
+- Notes: thresholds_version=public-demo-2026.05.29-v1
+
+#### AAPL
+- Decision: **approved** | Risk Tier: tier_2
+- Setup Type: pullback_continuation | Size: 0.5x
+- Setup Score: 73.0 | Regime Alignment: 0.7 | Asymmetry Score: 0.63 | Data Confidence: 0.65
+- Notes: thresholds_version=public-demo-2026.05.29-v1
+
+#### MU
+- Decision: **approved** | Risk Tier: tier_2
+- Setup Type: pullback_continuation | Size: 0.5x
+- Setup Score: 70.0 | Regime Alignment: 0.66 | Asymmetry Score: 0.6 | Data Confidence: 0.65
+- Notes: thresholds_version=public-demo-2026.05.29-v1
+
+#### QQQ
+- Decision: **approved** | Risk Tier: tier_2
+- Setup Type: pullback_continuation | Size: 0.5x
+- Setup Score: 67.0 | Regime Alignment: 0.62 | Asymmetry Score: 0.57 | Data Confidence: 0.65
+- Notes: thresholds_version=public-demo-2026.05.29-v1
+
+#### GLD
+- Decision: **watch** | Risk Tier: tier_3
+- Setup Type: pullback_continuation | Size: 0.25x
+- Setup Score: 64.0 | Regime Alignment: 0.58 | Asymmetry Score: 0.54 | Data Confidence: 0.65
+- Notes: thresholds_version=public-demo-2026.05.29-v1
+
+#### SLV
+- Decision: **watch** | Risk Tier: tier_3
+- Setup Type: pullback_continuation | Size: 0.25x
+- Setup Score: 61.0 | Regime Alignment: 0.54 | Asymmetry Score: 0.51 | Data Confidence: 0.65
+- Notes: thresholds_version=public-demo-2026.05.29-v1
 
 ## Pre-Market Watchlist
 
 ### Watchlist
-
-- DEMO_ASSET_A
-- DEMO_ASSET_B
-- DEMO_ASSET_C
+- MSFT
+- NVDA
+- META
+- AAPL
+- MU
+- QQQ
+- GLD
+- SLV
 
 ### Objectives
-
-- Demonstrate pre-market report formatting.
-- Keep public examples deterministic and synthetic.
-- Preserve private edge and live evidence outside the public repository.
+- Gap analysis
+- Opening range preparation
+- High relative strength leaders
 
 ### Warnings
+- Avoid oversized exposure before macro events.
+- Confirm liquidity before entering trades.
 
-- Treat all outputs as research and decision support only.
-- Do not commit generated live reports, provider data or private strategy artifacts.
+### Notes
+- Live data source: Polygon.io daily aggregates.
+- Breadth currently uses the configured leader universe, not the full S&P 500 universe.
+- VIX data unavailable; scoring used a neutral fallback VIX value of 20.0.
+- Some market data feeds failed; report is running in degraded mode.
