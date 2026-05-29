@@ -23,7 +23,7 @@ CL1: core decision logic remediation for asymmetry, portfolio-risk tier handling
 CL2: scoring-system audit registry and report-vs-decision separation implemented / CI-wired
 CL3: kill-switch drawdown-source validation implemented / CI-wired
 CL4: ATR calculation governance, Wilder ATR evaluation and threshold-version bump implemented / CI-wired
-CL5: regime_alignment review remains planned
+CL5: regime_alignment independent gate implemented / CI-wired
 TG1: Telegram research-only report dispatcher implemented
 BT2: Strategy Test Matrix model, demo matrix, CLI, docs and tests implemented
 BT3: Backtest reproducibility contract implemented
@@ -35,6 +35,36 @@ Broker execution: paper-only infrastructure; live execution is not implemented
 ```
 
 Code quality is not trading edge. The system is promising enough to test seriously, but real capital still requires long-running forward evidence, drift detection, regime-change monitoring, position-level risk attribution, execution-quality review, capacity/turnover realism and manual approval.
+
+## CL5 Regime Alignment Governance
+
+CL5 makes `regime_alignment` an explicit independent decision gate before risk-tier scoring can approve or watch a setup:
+
+```text
+src/decision_engine.py
+tests/test_decision_engine.py
+```
+
+Implemented safeguards:
+
+- `regime_alignment` is checked after hard risk overrides and setup-regime mapping, but before asymmetry, data-confidence and risk-tier scoring.
+- A candidate below the independent regime floor returns `NO_TRADE` with `poor_regime_alignment`.
+- The decision notes include `regime_alignment_independent_gate` for auditability.
+- The public-demo Tier 3 regime-alignment cutoff is reused as the fail-closed floor to avoid adding new proprietary public constants.
+- Custom threshold objects can tighten the regime-alignment floor without code changes.
+- Ranking regression coverage proves that a high setup score cannot outrank an approved candidate when regime alignment fails.
+
+CL5 test command:
+
+```bash
+pytest tests/test_decision_engine.py -q
+```
+
+Operational documentation:
+
+```text
+docs/operations/cl5_regime_alignment_governance.md
+```
 
 ## CL4 ATR Governance
 
@@ -221,8 +251,9 @@ pytest tests/test_outcome_tracking.py -q
 pytest tests/test_scoring_audit.py -q
 pytest tests/test_execution_kill_switch.py -q
 pytest tests/test_atr_governance.py -q
+pytest tests/test_decision_engine.py -q
 ```
 
 ## Hard Safety Rule
 
-This repository is a research and decision-support framework. No generated report, backtest, walk-forward result, evidence baseline comparison, capacity/turnover realism report, paper execution artifact, Telegram dispatch, external edge provider, core-logic remediation, scoring audit, kill-switch drawdown-source validation, ATR governance change, threshold-version bump or CI-green state authorizes live trading.
+This repository is a research and decision-support framework. No generated report, backtest, walk-forward result, evidence baseline comparison, capacity/turnover realism report, paper execution artifact, Telegram dispatch, external edge provider, core-logic remediation, scoring audit, kill-switch drawdown-source validation, ATR governance change, threshold-version bump, regime-alignment governance change or CI-green state authorizes live trading.
