@@ -94,9 +94,12 @@ def evaluate_portfolio_risk(
     risk_is_elevated = bool(concentration_warnings or correlation_warnings)
 
     for candidate in candidates:
-        if risk_is_elevated and candidate.risk_tier == "tier_1":
+        if candidate.risk_tier == "no_trade":
+            continue
+
+        if risk_is_elevated:
             reduced.append(candidate.symbol)
-        elif candidate.risk_tier != "no_trade":
+        else:
             approved.append(candidate.symbol)
 
     return PortfolioRiskResult(
