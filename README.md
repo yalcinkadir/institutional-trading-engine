@@ -19,6 +19,7 @@ Phase C paper execution infrastructure: implemented for planning, reconciliation
 Phase IP1/IP2: public/private edge boundary and public repository hygiene policy implemented
 IP3/IP4: public-demo defaults and optional external edge provider boundary implemented and CI-green
 IP5/IP6: artifact hygiene and .gitignore hardening implemented / CI-wired
+IP9/IP10: PR public-edge review governance, license and usage disclaimer implemented / CI-wired
 Report Output Boundary Guard: protected public report artifacts implemented and CI-green
 CL1: core decision logic remediation for asymmetry, portfolio-risk tier handling and breakeven expectancy implemented / CI-wired
 CL2: scoring-system audit registry and report-vs-decision separation implemented / CI-wired
@@ -36,6 +37,46 @@ Broker execution: paper-only infrastructure; live execution is not implemented
 ```
 
 Code quality is not trading edge. The system is promising enough to test seriously, but real capital still requires long-running forward evidence, drift detection, regime-change monitoring, position-level risk attribution, execution-quality review, capacity/turnover realism and manual approval.
+
+## IP9/IP10 Public Repository Governance
+
+IP9/IP10 closes the immediate public-repository governance gap before new strategy complexity is added.
+
+Implemented files:
+
+```text
+.github/pull_request_template.md
+.github/workflows/ip9_ip10.yml
+LICENSE
+DISCLAIMER.md
+docs/operations/ip9_ip10_public_repo_governance.md
+tests/test_ip9_ip10_public_repo_governance.py
+```
+
+Implemented safeguards:
+
+- Future PRs that touch strategy, scoring, thresholds, setup maps, exit profiles, ranking, reports, evidence, execution, sizing or CI gates must pass an explicit public-edge review checklist.
+- Strategy-like public values must remain clearly marked as public-demo defaults or synthetic fixtures.
+- Research/private configuration belongs behind an external/private boundary, not in the public repository.
+- Generated reports, raw evidence, provider extracts, ranked opportunity output and local artifacts must not be committed.
+- The public repository now includes a license and a separate research/usage disclaimer.
+- The disclaimer states that the project is research and decision-support only, does not provide financial advice, does not guarantee performance and does not grant live trading permission.
+- Dedicated IP9/IP10 governance workflow runs PR-template, license/disclaimer and public-boundary checks.
+
+IP9/IP10 test commands:
+
+```bash
+pytest tests/test_ip9_ip10_public_repo_governance.py -q
+python scripts/check_ip_boundary.py --root . --no-write
+pytest tests/test_ip_boundary.py -q
+python scripts/validate_public_repo_policy.py --no-write
+```
+
+Operational documentation:
+
+```text
+docs/operations/ip9_ip10_public_repo_governance.md
+```
 
 ## Report Output Boundary Guard
 
@@ -64,19 +105,6 @@ Implemented safeguards:
 - Allowed runtime outputs stay in non-committed locations such as `reports/generated/`, `reports/live/`, `reports/private/` and `outputs/`.
 - The main CI workflow runs the boundary tests before BT7 and the full regression suite.
 
-Report output boundary test commands:
-
-```bash
-pytest tests/test_report_output_boundary.py -q
-pytest tests/test_generate_report_output_boundary.py -q
-```
-
-Operational documentation:
-
-```text
-docs/operations/report_output_boundary_guard.md
-```
-
 ## CL5 Regime Alignment Governance
 
 CL5 makes `regime_alignment` an explicit independent decision gate before risk-tier scoring can approve or watch a setup:
@@ -84,6 +112,7 @@ CL5 makes `regime_alignment` an explicit independent decision gate before risk-t
 ```text
 src/decision_engine.py
 tests/test_decision_engine.py
+docs/operations/cl5_regime_alignment_governance.md
 ```
 
 Implemented safeguards:
@@ -95,18 +124,6 @@ Implemented safeguards:
 - Custom threshold objects can tighten the regime-alignment floor without code changes.
 - Ranking regression coverage proves that a high setup score cannot outrank an approved candidate when regime alignment fails.
 
-CL5 test command:
-
-```bash
-pytest tests/test_decision_engine.py -q
-```
-
-Operational documentation:
-
-```text
-docs/operations/cl5_regime_alignment_governance.md
-```
-
 ## CL4 ATR Governance
 
 CL4 makes ATR semantics explicit, versioned and regression-tested before ATR-dependent evidence can be trusted across reports, ranking, backtests, paper execution or validation gates:
@@ -115,6 +132,7 @@ CL4 makes ATR semantics explicit, versioned and regression-tested before ATR-dep
 src/validation/atr_governance.py
 tests/test_atr_governance.py
 src/config/thresholds.py
+docs/operations/cl4_atr_governance.md
 ```
 
 Implemented safeguards:
@@ -125,19 +143,6 @@ Implemented safeguards:
 - `ATR_CALCULATION_VERSION` records the public-demo ATR semantics.
 - `THRESHOLDS_VERSION` was bumped because ATR migration is evidence-affecting.
 - ATR method changes require evidence invalidation instead of silently reusing older ATR-dependent artifacts.
-- Insufficient ATR history blocks migration approval.
-
-CL4 test command:
-
-```bash
-pytest tests/test_atr_governance.py -q
-```
-
-Operational documentation:
-
-```text
-docs/operations/cl4_atr_governance.md
-```
 
 ## CL2/CL3 Scoring and Drawdown-Source Governance
 
@@ -147,13 +152,6 @@ CL2 makes scoring systems auditable instead of implicit:
 src/validation/scoring_audit.py
 tests/test_scoring_audit.py
 ```
-
-Implemented safeguards:
-
-- Report-only ranking scores are explicitly separated from decision-authoritative scores.
-- Decision Engine tier gating is documented as the authoritative downstream gate.
-- Non-authoritative scores are blocked from feeding paper/execution gates.
-- Score-system semantics are covered by regression tests and wired into CI.
 
 CL3 makes kill-switch drawdown governance fail closed until the drawdown source is valid:
 
@@ -165,25 +163,11 @@ scripts/evaluate_execution_kill_switch.py
 
 Implemented safeguards:
 
+- Report-only ranking scores are explicitly separated from decision-authoritative scores.
+- Decision Engine tier gating is documented as the authoritative downstream gate.
+- Non-authoritative scores are blocked from feeding paper/execution gates.
 - A validated drawdown source is required by default.
-- Backtest-only or unknown drawdown sources are rejected.
-- Unreconciled drawdown sources are rejected.
-- Current equity, peak equity and reported drawdown percentage must be internally consistent.
-- The CLI now accepts `drawdown_source_validation` input and passes it to the kill-switch engine.
-
-CL2/CL3 test commands:
-
-```bash
-pytest tests/test_scoring_audit.py -q
-pytest tests/test_execution_kill_switch.py -q
-```
-
-Operational documentation:
-
-```text
-docs/operations/cl2_scoring_system_audit.md
-docs/operations/execution_kill_switch.md
-```
+- Backtest-only, unknown, unreconciled or internally inconsistent drawdown sources are rejected.
 
 ## CL1 Core Decision Logic Remediation
 
@@ -201,30 +185,14 @@ Implemented safeguards:
 - Portfolio risk elevation now reduces all tradable tiers instead of only Tier 1 candidates.
 - Breakeven outcomes are treated as neutral in basic expectancy instead of being classified as losses.
 
-Deferred follow-up:
-
-- Short-history direct-call behavior for setup-scoring helper functions remains unchanged for compatibility and is tracked separately as CL/P3 work.
-
-CL1 test commands:
-
-```bash
-pytest tests/test_setup_scoring.py -q
-pytest tests/test_portfolio_risk.py -q
-pytest tests/test_outcome_tracking.py -q
-```
-
 ## IP3/IP4 Public Demo Defaults and Private Edge Boundary
 
-Public thresholds are now explicitly marked as demo defaults only:
+Public thresholds are explicitly marked as demo defaults only:
 
 ```text
 src/config/thresholds.py
-```
-
-The optional external edge provider boundary lives in:
-
-```text
 src/config/external_edge_provider.py
+docs/operations/ip3_ip4_public_demo_and_private_edge_boundary.md
 ```
 
 Without configuration, the public repository uses public-demo defaults and CI stays self-contained. A local/private module can be supplied outside the public repository with:
@@ -240,31 +208,13 @@ def get_decision_thresholds() -> DecisionThresholds:
     ...
 ```
 
-IP3/IP4 test command:
-
-```bash
-pytest tests/test_external_edge_provider.py -q
-```
-
-Operational documentation:
-
-```text
-docs/operations/ip3_ip4_public_demo_and_private_edge_boundary.md
-```
-
 ## BT7 Capacity / Turnover / Realism Gate
 
 BT7 adds a deterministic capacity, turnover and transaction-cost realism gate before any private production sizing work. It blocks historically attractive validation evidence from being treated as credible when proposed scale, liquidity usage, turnover, cost drag or slippage coverage are not realistic.
 
-BT7 test command:
-
-```bash
-pytest tests/test_bt7_capacity_turnover_realism_gate.py -q
-```
-
-Operational documentation:
-
 ```text
+src/validation/capacity_turnover_realism_gate.py
+tests/test_bt7_capacity_turnover_realism_gate.py
 docs/operations/bt7_capacity_turnover_realism_gate.md
 ```
 
@@ -286,6 +236,7 @@ pytest tests/test_bt6_evidence_baseline_regression_gate.py -q
 pytest tests/test_bt7_capacity_turnover_realism_gate.py -q
 pytest tests/test_external_edge_provider.py -q
 pytest tests/test_artifact_hygiene.py -q
+pytest tests/test_ip9_ip10_public_repo_governance.py -q
 pytest tests/test_report_output_boundary.py -q
 pytest tests/test_generate_report_output_boundary.py -q
 pytest tests/test_setup_scoring.py -q
@@ -299,4 +250,4 @@ pytest tests/test_decision_engine.py -q
 
 ## Hard Safety Rule
 
-This repository is a research and decision-support framework. No generated report, protected public report example, backtest, walk-forward result, evidence baseline comparison, capacity/turnover realism report, paper execution artifact, Telegram dispatch, external edge provider, core-logic remediation, scoring audit, kill-switch drawdown-source validation, ATR governance change, threshold-version bump, regime-alignment governance change, report output boundary guard or CI-green state authorizes live trading.
+This repository is a research and decision-support framework. No generated report, protected public report example, backtest, walk-forward result, evidence baseline comparison, capacity/turnover realism report, paper execution artifact, Telegram dispatch, external edge provider, core-logic remediation, scoring audit, kill-switch drawdown-source validation, ATR governance change, threshold-version bump, regime-alignment governance change, report output boundary guard, IP9/IP10 governance check or CI-green state authorizes live trading.
