@@ -60,6 +60,12 @@ jobs:
         run: |
           pytest tests/test_b11_evidence_operation_discipline.py -q
 
+      - name: Phase B1.1 paper observation notification tests
+        env:
+          POLYGON_API_KEY: test-key
+        run: |
+          pytest tests/test_paper_observation_notification.py -q
+
       - name: Phase B2 performance drift tests
         env:
           POLYGON_API_KEY: test-key
