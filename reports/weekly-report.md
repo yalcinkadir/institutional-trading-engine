@@ -1,6 +1,6 @@
 # Institutional Trading Engine — WEEKLY REPORT
 
-Generated: 2026-05-29 07:31 UTC
+Generated: 2026-05-29 07:32 UTC
 
 ## Weekly Summary
 
