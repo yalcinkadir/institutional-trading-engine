@@ -1,7 +1,7 @@
 # Institutional Trading Engine Roadmap
 
 Status date: 2026-05-29  
-Current state: BT7 Capacity / Turnover / Realism Gate is implemented and CI-green. BT6 Evidence Baseline Regression Gate is implemented and CI-green. BT5 Walk-Forward / Out-of-Sample Robustness Gate is implemented and CI-green. TG1 Telegram research-only report dispatcher is implemented. IP1 public/private edge boundary guardrail is implemented. IP2 public repository hygiene and private-edge handling policy is implemented. Phase C paper-execution audit infrastructure is implemented for planning, reconciliation, fill-quality and kill-switch governance. Phase B1.1 remains the active 3-6 month observation-only evidence collection period. Real-money execution is not authorized by code.
+Current state: IP3 public-demo threshold defaults are implemented. IP4 optional external edge provider boundary is implemented and CI-wired. BT7 Capacity / Turnover / Realism Gate is implemented and CI-green. BT6 Evidence Baseline Regression Gate is implemented and CI-green. BT5 Walk-Forward / Out-of-Sample Robustness Gate is implemented and CI-green. Phase B1.1 remains the active 3-6 month observation-only evidence collection period. Real-money execution is not authorized by code.
 
 ## Strategic direction
 
@@ -22,10 +22,25 @@ Hard rule: no real-money execution before real forward evidence, drift detection
 
 Hard IP rule: the public repository may demonstrate architecture, evidence discipline and deterministic framework behavior, but proprietary edge configuration must not be developed further in public by default.
 
-## Phase BT — Backtest Evidence Hardening
+## Phase IP — Public Framework / Private Edge Separation
 
 Target window: immediate  
-Goal: make historical validation evidence deterministic, reproducible and harder to overfit.
+Goal: keep the repository useful as a public framework while protecting proprietary strategy edge.
+
+| ID | Task | Priority | Impact | Status |
+|---|---|---:|---:|---|
+| IP1 | Define the public/private boundary for framework code, strategy configuration, thresholds, setup mappings, exit profiles, scoring weights and evidence artifacts | P0 | Critical | Done |
+| IP2 | Add an operational policy document for public repository hygiene and private edge handling | P0 | Critical | Done |
+| IP3 | Replace public production-like thresholds and strategy constants with clearly marked demo defaults or external configurable interfaces | P0 | Critical | Done / CI-pending |
+| IP4 | Add a private-edge adapter/import boundary so local/private modules can provide real thresholds, regime maps, scoring weights and exit profiles without being committed to the public repo | P0 | Critical | Done / CI-pending |
+| IP5 | Move real reports, ranked opportunities, raw evidence outputs and non-synthetic artifacts out of public version control or replace them with synthetic examples | P0 | Critical | Planned |
+| IP6 | Expand `.gitignore` for private configs, generated reports, databases, caches, logs, coverage output and local artifacts | P0 | High | Planned |
+| IP7 | Update README to state that the public repo contains framework/demo defaults only, not proprietary production edge configuration | P1 | High | Done |
+| IP8 | Add tests proving the public fallback path works without private modules and that private modules are optional imports only | P1 | High | Done / CI-pending |
+| IP9 | Review open PRs for newly introduced edge constants before merge, especially setup-specific target profiles and scoring changes | P0 | Critical | Planned |
+| IP10 | Add license and usage disclaimer appropriate for a public decision-support research framework | P1 | Medium | Planned |
+
+## Phase BT — Backtest Evidence Hardening
 
 | ID | Task | Priority | Impact | Status |
 |---|---|---:|---:|---|
@@ -36,24 +51,6 @@ Goal: make historical validation evidence deterministic, reproducible and harder
 | BT7 | Add capacity and turnover realism gates before any private production sizing work | P1 | High | Done / CI-green |
 
 BT5 is a robustness gate only. BT6 is a baseline-regression gate only. BT7 is a capacity/turnover realism gate only. None of them prove production edge and none authorize live trading.
-
-## Phase IP — Public Framework / Private Edge Separation
-
-Target window: immediate  
-Goal: keep the repository useful as a public framework while protecting proprietary strategy edge.
-
-| ID | Task | Priority | Impact | Status |
-|---|---|---:|---:|---|
-| IP1 | Define the public/private boundary for framework code, strategy configuration, thresholds, setup mappings, exit profiles, scoring weights and evidence artifacts | P0 | Critical | Done |
-| IP2 | Add an operational policy document for public repository hygiene and private edge handling | P0 | Critical | Done |
-| IP3 | Replace public production-like thresholds and strategy constants with clearly marked demo defaults or external configurable interfaces | P0 | Critical | Planned |
-| IP4 | Add a private-edge adapter/import boundary so local/private modules can provide real thresholds, regime maps, scoring weights and exit profiles without being committed to the public repo | P0 | Critical | Planned |
-| IP5 | Move real reports, ranked opportunities, raw evidence outputs and non-synthetic artifacts out of public version control or replace them with synthetic examples | P0 | Critical | Planned |
-| IP6 | Expand `.gitignore` for private configs, generated reports, databases, caches, logs, coverage output and local artifacts | P0 | High | Planned |
-| IP7 | Update README to state that the public repo contains framework/demo defaults only, not proprietary production edge configuration | P1 | High | Done |
-| IP8 | Add tests proving the public fallback path works without private modules and that private modules are optional imports only | P1 | High | Planned |
-| IP9 | Review open PRs for newly introduced edge constants before merge, especially setup-specific target profiles and scoring changes | P0 | Critical | Planned |
-| IP10 | Add license and usage disclaimer appropriate for a public decision-support research framework | P1 | Medium | Planned |
 
 ## Phase TG — Report Delivery
 
@@ -134,6 +131,9 @@ Start only after Phase B and C produce credible evidence and after the private-e
 
 ## Recently completed evidence-visibility work
 
+- IP3 public-demo threshold defaults: done and CI-wired.
+- IP4 optional external edge provider boundary: done and CI-wired.
+- IP8 fallback/private-edge absence tests: done and CI-wired.
 - BT7 Capacity / Turnover / Realism Gate: done and CI-green.
 - BT6 Evidence Baseline Regression Gate: done and CI-green.
 - BT5 Walk-Forward / Out-of-Sample Robustness Gate: done and CI-green.
@@ -146,11 +146,11 @@ Start only after Phase B and C produce credible evidence and after the private-e
 
 ## Current execution focus
 
-B1.1 remains the long-running evidence collection period. Phase C is active for paper execution only. Telegram delivery is allowed for research/paper-observation reports only. BT7 is complete and CI-green. Immediate focus remains controlled evidence collection, safe reporting, public/private edge separation and the next high-value governance step.
+B1.1 remains the long-running evidence collection period. Phase C is active for paper execution only. Telegram delivery is allowed for research/paper-observation reports only. IP3/IP4 is implemented and CI-wired. Immediate focus: CI run, fixes if needed, then mark IP3/IP4 as CI-green.
 
 ## Recommended next block
 
-The next rational block is **IP3/IP4**: replace any remaining public production-like constants with demo defaults and introduce a private-edge adapter/import boundary. This protects the real edge before more proprietary strategy work is added.
+After IP3/IP4 is green, the next rational block is **IP5/IP6**: move non-synthetic artifacts out of public version control and harden `.gitignore` for private configs, reports, caches, logs and local artifacts.
 
 ## Do not do yet
 
