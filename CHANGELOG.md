@@ -1,5 +1,31 @@
 # CHANGELOG
 
+## GOV7-GOV10 Pre-Live Hygiene — 2026-05-29
+
+### Added
+- GOV7 exact public/demo adaptive-weight normalization in `src/validation/gov7_gov10_pre_live_hygiene.py`.
+- GOV8 explicit VIX term-structure inversion semantics with `DIRECT`, `PARTIAL`, `NONE` and `UNKNOWN` modes.
+- GOV9 duplicate/overlapping module marker validation for ownership, deprecation and replacement tracking.
+- GOV10 cumulative Paper Observation drift gate to detect small persistent drift that may evade max-daily-drift checks.
+- Regression coverage in `tests/test_gov7_gov10_pre_live_hygiene.py`.
+- Dedicated main CI step for GOV7-GOV10 pre-live hygiene tests.
+
+### Improved
+- Public/demo rounded weights can now be normalized so their published rounded sum is exactly `1.0`.
+- VIX term-structure `PARTIAL` compression is no longer semantically equivalent to a `DIRECT` inversion.
+- Duplicate module remediation can be tracked with explicit owner/replacement/rationale markers.
+- Paper Observation drift checks can now capture cumulative small drift over multiple observations.
+
+### Stabilization Result
+- GOV7 implementation status: done.
+- GOV8 implementation status: done.
+- GOV9 implementation status: done.
+- GOV10 implementation status: done.
+- CI status: wired; final workflow-green status must be confirmed in GitHub Actions.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## GOV4-GOV6 Runtime Stability Hardening — 2026-05-29
 
 ### Fixed
