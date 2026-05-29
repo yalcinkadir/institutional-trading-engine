@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## EV Evidence Consolidation + Full-Suite Stability Review — 2026-05-29
+
+### Added
+- Consolidated EV1-EV12 evidence matrix in `docs/operations/ev_evidence_consolidation_full_suite_review.md`.
+- Guard regression tests in `tests/test_ev_evidence_consolidation.py` to protect EV status coverage, primary regression file links, targeted EV CI steps, and the full regression suite guard.
+- Dedicated main CI step for EV evidence consolidation guard tests.
+
+### Stabilization Result
+- EV1-EV12 evidence consolidation status: done.
+- CI status: green.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## EV12 Drawdown Magnitude Governance — 2026-05-29
 
 ### Fixed
