@@ -1,0 +1,33 @@
+{
+  "snapshot": {
+    "run_id": "bt7-demo-2026-05-29",
+    "strategy_id": "demo-momentum-sleeve",
+    "dataset_id": "synthetic-public-demo-capacity-v1",
+    "parameter_version": "demo-params-v1",
+    "evidence_type": "capacity_turnover_realism",
+    "proposed_capital_usd": 100000.0,
+    "symbol_count": 25,
+    "metrics": {
+      "median_adv_usd": 75000000.0,
+      "max_position_adv_pct": 1.25,
+      "portfolio_adv_pct": 8.5,
+      "average_daily_turnover_pct": 12.0,
+      "annual_turnover_pct": 620.0,
+      "round_trip_cost_bps": 7.5,
+      "gross_expectancy_bps": 28.0,
+      "net_expectancy_bps": 20.5,
+      "average_holding_days": 4.2,
+      "trade_count": 120,
+      "slippage_model_coverage_pct": 100.0
+    },
+    "artifact_hashes": {
+      "capacity_input": "sha256:demo-capacity-input",
+      "turnover_report": "sha256:demo-turnover-report"
+    },
+    "tags": [
+      "demo",
+      "public_safe"
+    ],
+    "footer": "Research / Paper Observation Only. Execution is not authorized by this report."
+  }
+}
