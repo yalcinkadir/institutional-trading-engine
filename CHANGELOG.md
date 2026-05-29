@@ -21,7 +21,7 @@
 - GOV8 implementation status: done.
 - GOV9 implementation status: done.
 - GOV10 implementation status: done.
-- CI status: wired; final workflow-green status must be confirmed in GitHub Actions.
+- CI status: green.
 - Live trading authorization: unchanged; not granted by code.
 
 ---
