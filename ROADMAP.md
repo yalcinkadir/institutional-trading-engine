@@ -1,7 +1,7 @@
 # Institutional Trading Engine Roadmap
 
 Status date: 2026-05-29  
-Current state: IP9/IP10 public-repository governance is implemented and CI-wired. IP9 adds mandatory PR review for newly introduced public edge constants and public strategy-like changes. IP10 adds a public license and usage disclaimer appropriate for a research decision-support framework. Phase B1.1 remains the active 3-6 month observation-only evidence collection period. Real-money execution is not authorized by code.
+Current state: B1.1 evidence operation discipline plus TG2/TG3 reporting integration is implemented and CI-wired. Phase B1.1 remains active as the 3-6 month observation-only evidence collection period. Real-money execution is not authorized by code.
 
 ## Strategic direction
 
@@ -87,8 +87,8 @@ BT5 is a robustness gate only. BT6 is a baseline-regression gate only. BT7 is a 
 | ID | Task | Priority | Impact | Status |
 |---|---|---:|---:|---|
 | TG1 | Add Telegram report dispatcher with research-only guardrails, dry-run mode and injectable transport | P1 | High | Done |
-| TG2 | Integrate Telegram summaries into daily evidence/report workflows after CI workflow permissions are confirmed | P2 | Medium | Planned |
-| TG3 | Add report templates for Daily Evidence, Fill Quality, Kill Switch and Backtest Summary | P2 | Medium | Planned |
+| TG2 | Integrate Telegram summaries into daily evidence/report workflows after CI workflow permissions are confirmed | P2 | Medium | Done / CI-wired |
+| TG3 | Add report templates for Daily Evidence, Fill Quality, Kill Switch and Backtest Summary | P2 | Medium | Done / CI-wired |
 
 ## Phase A — Foundation Repair and Evidence Hygiene
 
@@ -106,7 +106,7 @@ Goal: prove whether the rule-based system has live-observable edge before adding
 | ID | Task | Priority | Impact | Status |
 |---|---|---:|---:|---|
 | B1 | Prepare paper observation daily reconciliation gate and report model | P0 | Critical | Done |
-| B1.1 | Run 3-6 months of observation-only paper evidence with daily reconciliation | P0 | Critical | In Progress |
+| B1.1 | Run 3-6 months of observation-only paper evidence with daily reconciliation | P0 | Critical | In Progress / operation gate CI-wired |
 | B2-B17 | Drift detection, sequential edge decay, regime-change detection, risk attribution, Monte Carlo robustness and daily evidence pipeline | P0/P1 | Critical/High | Done |
 
 ## Phase C — Execution Reality
@@ -143,6 +143,7 @@ Start only after Phase B and C produce credible evidence and after the private-e
 
 ## Recently completed evidence-visibility, IP and logic-safety work
 
+- B1.1 evidence operation discipline plus TG2/TG3 reporting integration: implemented and CI-wired.
 - IP9/IP10 public repository governance: done and CI-wired.
 - Report Output Boundary Guard: done and CI-green.
 - CL5 regime-alignment independent gate: done and CI-wired.
@@ -164,11 +165,11 @@ Start only after Phase B and C produce credible evidence and after the private-e
 
 ## Current execution focus
 
-B1.1 remains the long-running evidence collection period. Phase C is active for paper execution only. Telegram delivery is allowed for research/paper-observation reports only. IP9/IP10 governance is now complete and CI-wired. Immediate focus: run observation discipline and avoid adding new strategy complexity before evidence matures.
+B1.1 remains the long-running evidence collection period. The B1.1 operation gate and TG2/TG3 reporting integration are now implemented and CI-wired. Phase C is active for paper execution only. Telegram delivery is allowed for research/paper-observation reports only. Immediate focus: run observation discipline and avoid adding new strategy complexity before evidence matures.
 
 ## Recommended next block
 
-The next rational block is **B1.1 evidence operation discipline** plus **TG2/TG3 reporting integration** if GitHub Actions permissions are confirmed.
+Run the B1.1 observation cadence, monitor the evidence-operation gate, inspect daily reconciliation cleanliness and keep the strategy surface frozen until enough forward paper evidence exists.
 
 ## Do not do yet
 
