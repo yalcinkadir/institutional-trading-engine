@@ -47,7 +47,10 @@ Implemented safeguards:
 - Asymmetry downside risk now uses absolute distance to the SMA50 invalidation reference, preventing below-SMA50 assets from receiving inflated reward/risk scores.
 - Portfolio risk elevation now reduces all tradable tiers instead of only Tier 1 candidates.
 - Breakeven outcomes are treated as neutral in basic expectancy instead of being classified as losses.
-- Setup-scoring helper functions now return defensive zero scores for insufficient direct-call history instead of leaking avoidable indicator exceptions.
+
+Deferred follow-up:
+
+- Short-history direct-call behavior for setup-scoring helper functions remains unchanged for compatibility and is tracked separately as CL/P3 work.
 
 CL1 test commands:
 
