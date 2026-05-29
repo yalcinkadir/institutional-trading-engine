@@ -1,0 +1,44 @@
+{
+  "baseline": {
+    "run_id": "bt5-baseline-demo-001",
+    "strategy_id": "demo-momentum-sleeve",
+    "dataset_id": "synthetic-public-oos-v1",
+    "parameter_version": "demo-params-v1",
+    "evidence_type": "walk_forward_oos",
+    "metrics": {
+      "expectancy_r": 0.42,
+      "sharpe": 1.35,
+      "max_drawdown_pct": 9.5,
+      "oos_pass_rate_pct": 75.0,
+      "trade_count": 84
+    },
+    "artifact_hashes": {
+      "bt5_report": "sha256:baseline-demo"
+    },
+    "tags": [
+      "demo",
+      "public_safe"
+    ]
+  },
+  "current": {
+    "run_id": "bt5-current-demo-002",
+    "strategy_id": "demo-momentum-sleeve",
+    "dataset_id": "synthetic-public-oos-v1",
+    "parameter_version": "demo-params-v2",
+    "evidence_type": "walk_forward_oos",
+    "metrics": {
+      "expectancy_r": 0.38,
+      "sharpe": 1.18,
+      "max_drawdown_pct": 11.0,
+      "oos_pass_rate_pct": 70.0,
+      "trade_count": 78
+    },
+    "artifact_hashes": {
+      "bt5_report": "sha256:current-demo"
+    },
+    "tags": [
+      "demo",
+      "public_safe"
+    ]
+  }
+}
