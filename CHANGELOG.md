@@ -1,5 +1,29 @@
 # CHANGELOG
 
+## IP9/IP10 Public Repository Governance — 2026-05-29
+
+### Added
+- PR public-edge review checklist in `.github/pull_request_template.md`.
+- MIT license in `LICENSE`.
+- Research and usage disclaimer in `DISCLAIMER.md`.
+- Operational documentation in `docs/operations/ip9_ip10_public_repo_governance.md`.
+- Regression coverage in `tests/test_ip9_ip10_public_repo_governance.py`.
+- Dedicated governance workflow in `.github/workflows/ip9_ip10.yml`.
+
+### Improved
+- Future PRs that touch strategy, scoring, thresholds, setup maps, exit profiles, ranking, reports, evidence, execution or sizing now have an explicit public-edge review checklist before merge.
+- Public repository usage terms are clearer: research and decision-support only, no financial advice, no performance guarantee and no live trading permission.
+- Boundary scanner policy now ignores its own scanner implementation and scanner self-tests so CI can run public-boundary checks without false positives from intentionally unsafe fixture text.
+- README and ROADMAP now mark IP9/IP10 as implemented and CI-wired.
+
+### Stabilization Result
+- IP9 implementation status: done.
+- IP10 implementation status: done.
+- CI status: dedicated workflow wired; final workflow-green status must be confirmed in GitHub Actions.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## Report Output Boundary Guard — 2026-05-29
 
 ### Added
