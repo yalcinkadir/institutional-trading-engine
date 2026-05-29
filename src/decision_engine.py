@@ -173,6 +173,17 @@ def detect_hard_overrides(context: MarketContext) -> tuple[str, ...]:
     return tuple(reasons)
 
 
+def _minimum_regime_alignment(thresholds: DecisionThresholds = DEFAULT_THRESHOLDS) -> float:
+    """Return the independent minimum regime-alignment floor.
+
+    CL5 intentionally reuses the public-demo Tier 3 regime-alignment cutoff as
+    the fail-closed floor instead of introducing a new proprietary parameter.
+    A candidate below this floor cannot be rescued by setup score, asymmetry or
+    data confidence.
+    """
+    return thresholds.tier3_regime_alignment
+
+
 def _base_risk_tier(
     candidate: SetupCandidate,
     thresholds: DecisionThresholds = DEFAULT_THRESHOLDS,
@@ -243,6 +254,19 @@ def evaluate_candidate(
             allowed_setups=allowed_setups,
             blocked_reasons=("setup_not_allowed_in_current_regime",),
             notes=(f"thresholds_version={thresholds.version}",),
+        )
+
+    if candidate.regime_alignment < _minimum_regime_alignment(thresholds):
+        return DecisionResult(
+            decision=Decision.NO_TRADE,
+            risk_tier="no_trade",
+            position_size_multiplier=thresholds.no_trade_size,
+            allowed_setups=allowed_setups,
+            blocked_reasons=("poor_regime_alignment",),
+            notes=(
+                "regime_alignment_independent_gate",
+                f"thresholds_version={thresholds.version}",
+            ),
         )
 
     if candidate.asymmetry_score < thresholds.min_asymmetry:
