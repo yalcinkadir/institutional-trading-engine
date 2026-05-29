@@ -14,6 +14,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
+from src.report_output_boundary import write_report_text_guarded
 from src.reporting.cross_asset_report import build_cross_asset_report
 from src.reporting.decision_report import build_decision_report
 from src.reporting.market_regime import build_market_regime_summary
@@ -232,9 +233,7 @@ def main() -> int:
     args = parse_args()
     report, decision_payload = build_report(args.type)
     if args.output:
-        output_path = Path(args.output)
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(report, encoding="utf-8")
+        output_path = write_report_text_guarded(args.output, report, repo_root=ROOT_DIR)
         print(f"Report written to {output_path}")
     else:
         print(report)
