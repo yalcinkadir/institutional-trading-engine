@@ -24,6 +24,8 @@ ignored_paths:
   - artifacts/
   - data/private/
   - private/
+  - src/validation/ip_boundary.py
+  - tests/test_ip_boundary.py
 
 forbidden_terms:
   - alpha_weight
