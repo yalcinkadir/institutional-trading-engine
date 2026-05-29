@@ -34,6 +34,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: GOV1-GOV3 runtime governance hardening tests
+        env:
+          POLYGON_API_KEY: test-key
+        run: |
+          pytest tests/test_live_runtime_cycle.py -q
+          pytest tests/test_portfolio_state.py -q
+          pytest tests/test_entry_quality.py -q
+          pytest tests/test_stop_loss_quality.py -q
+
       - name: Phase A stabilization tests
         env:
           POLYGON_API_KEY: test-key
