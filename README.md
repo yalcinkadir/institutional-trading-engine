@@ -19,6 +19,7 @@ Phase C paper execution infrastructure: implemented for planning, reconciliation
 Phase IP1/IP2: public/private edge boundary and public repository hygiene policy implemented
 IP3/IP4: public-demo defaults and optional external edge provider boundary implemented and CI-green
 IP5/IP6: artifact hygiene and .gitignore hardening implemented / CI-wired
+Report Output Boundary Guard: protected public report artifacts implemented and CI-green
 CL1: core decision logic remediation for asymmetry, portfolio-risk tier handling and breakeven expectancy implemented / CI-wired
 CL2: scoring-system audit registry and report-vs-decision separation implemented / CI-wired
 CL3: kill-switch drawdown-source validation implemented / CI-wired
@@ -35,6 +36,46 @@ Broker execution: paper-only infrastructure; live execution is not implemented
 ```
 
 Code quality is not trading edge. The system is promising enough to test seriously, but real capital still requires long-running forward evidence, drift detection, regime-change monitoring, position-level risk attribution, execution-quality review, capacity/turnover realism and manual approval.
+
+## Report Output Boundary Guard
+
+The Report Output Boundary Guard prevents generated runtime reports from overwriting committed public report examples:
+
+```text
+src/report_output_boundary.py
+scripts/generate_report.py
+tests/test_report_output_boundary.py
+tests/test_generate_report_output_boundary.py
+docs/operations/report_output_boundary_guard.md
+```
+
+Protected public artifacts:
+
+```text
+reports/premarket-report.md
+reports/postmarket-report.md
+reports/weekly-report.md
+```
+
+Implemented safeguards:
+
+- Generated report writes to protected public report paths fail closed with `ReportOutputBoundaryError`.
+- Relative traversal attempts such as `reports/generated/../premarket-report.md` are normalized and blocked.
+- Allowed runtime outputs stay in non-committed locations such as `reports/generated/`, `reports/live/`, `reports/private/` and `outputs/`.
+- The main CI workflow runs the boundary tests before BT7 and the full regression suite.
+
+Report output boundary test commands:
+
+```bash
+pytest tests/test_report_output_boundary.py -q
+pytest tests/test_generate_report_output_boundary.py -q
+```
+
+Operational documentation:
+
+```text
+docs/operations/report_output_boundary_guard.md
+```
 
 ## CL5 Regime Alignment Governance
 
@@ -235,7 +276,7 @@ Full suite:
 pytest -q
 ```
 
-Backtest, IP and core-logic validation gates:
+Backtest, IP, report-boundary and core-logic validation gates:
 
 ```bash
 pytest tests/test_strategy_test_matrix.py -q
@@ -245,6 +286,8 @@ pytest tests/test_bt6_evidence_baseline_regression_gate.py -q
 pytest tests/test_bt7_capacity_turnover_realism_gate.py -q
 pytest tests/test_external_edge_provider.py -q
 pytest tests/test_artifact_hygiene.py -q
+pytest tests/test_report_output_boundary.py -q
+pytest tests/test_generate_report_output_boundary.py -q
 pytest tests/test_setup_scoring.py -q
 pytest tests/test_portfolio_risk.py -q
 pytest tests/test_outcome_tracking.py -q
@@ -256,4 +299,4 @@ pytest tests/test_decision_engine.py -q
 
 ## Hard Safety Rule
 
-This repository is a research and decision-support framework. No generated report, backtest, walk-forward result, evidence baseline comparison, capacity/turnover realism report, paper execution artifact, Telegram dispatch, external edge provider, core-logic remediation, scoring audit, kill-switch drawdown-source validation, ATR governance change, threshold-version bump, regime-alignment governance change or CI-green state authorizes live trading.
+This repository is a research and decision-support framework. No generated report, protected public report example, backtest, walk-forward result, evidence baseline comparison, capacity/turnover realism report, paper execution artifact, Telegram dispatch, external edge provider, core-logic remediation, scoring audit, kill-switch drawdown-source validation, ATR governance change, threshold-version bump, regime-alignment governance change, report output boundary guard or CI-green state authorizes live trading.

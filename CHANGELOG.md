@@ -1,5 +1,30 @@
 # CHANGELOG
 
+## Report Output Boundary Guard — 2026-05-29
+
+### Added
+- Fail-closed report output boundary module in `src/report_output_boundary.py`.
+- Guarded report writer integration in `scripts/generate_report.py`.
+- Regression coverage in `tests/test_report_output_boundary.py` and `tests/test_generate_report_output_boundary.py`.
+- Operational documentation in `docs/operations/report_output_boundary_guard.md`.
+- Main CI step for report output boundary guard tests.
+
+### Improved
+- Generated runtime reports can no longer overwrite committed public report examples:
+  - `reports/premarket-report.md`
+  - `reports/postmarket-report.md`
+  - `reports/weekly-report.md`
+- Relative traversal attempts such as `reports/generated/../premarket-report.md` are normalized and blocked.
+- Allowed runtime report output paths remain explicit: `reports/generated/`, `reports/live/`, `reports/private/` and `outputs/`.
+- README and ROADMAP now mark the Report Output Boundary Guard as implemented and CI-green.
+
+### Stabilization Result
+- Report Output Boundary Guard implementation status: done.
+- CI status: green.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## CL5 Regime Alignment Governance — 2026-05-29
 
 ### Added
