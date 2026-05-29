@@ -1,7 +1,7 @@
 # Institutional Trading Engine Roadmap
 
 Status date: 2026-05-29  
-Current state: BT6 Evidence Baseline Regression Gate is implemented and CI-green. BT5 Walk-Forward / Out-of-Sample Robustness Gate is implemented and CI-green. TG1 Telegram research-only report dispatcher is implemented. IP1 public/private edge boundary guardrail is implemented. IP2 public repository hygiene and private-edge handling policy is implemented. Phase C7 execution kill-switch governance is implemented as paper/live observation audit infrastructure. Phase C6 fill-quality reporting is implemented as paper/live observation audit infrastructure. Phase C5 daily expected-vs-observed execution reconciliation is implemented as paper/live observation infrastructure. Phase C4 order reconciliation is implemented as paper-only infrastructure. Phase C3 VWAP/TWAP paper order slicing is implemented and CI-green. Phase C2 Alpaca paper adapter is implemented and CI-green. Phase C1 paper broker adapter interface is implemented and CI-green. Phase B17 daily real paper observation runbook discipline is implemented and CI-green. Phase B16 real paper observation raw data contract is implemented and CI-green. Phase B15 observation cadence review is implemented and CI-green. Phase B14 Daily Evidence workflow dispatch integration is implemented, CI-green and workflow-green with uploaded artifact. Phase B13 real daily paper observation source builder is implemented and CI-green. Phase B12 persisted daily observation source feed and observation-only component mode are implemented. Phase A Evidence Hygiene implemented and CI-green. P36-P47 validation stack implemented. Real-money execution is not authorized by code. Current P0 governance focus: continue public framework / private edge separation before further proprietary strategy development.
+Current state: BT7 Capacity / Turnover / Realism Gate is implemented with tests, CLI, documentation, demo fixture, dedicated workflow and main CI coverage. BT6 Evidence Baseline Regression Gate is implemented and CI-green. BT5 Walk-Forward / Out-of-Sample Robustness Gate is implemented and CI-green. TG1 Telegram research-only report dispatcher is implemented. IP1 public/private edge boundary guardrail is implemented. IP2 public repository hygiene and private-edge handling policy is implemented. Phase C7 execution kill-switch governance is implemented as paper/live observation audit infrastructure. Phase C6 fill-quality reporting is implemented as paper/live observation audit infrastructure. Phase C5 daily expected-vs-observed execution reconciliation is implemented as paper/live observation infrastructure. Phase C4 order reconciliation is implemented as paper-only infrastructure. Phase C3 VWAP/TWAP paper order slicing is implemented and CI-green. Phase C2 Alpaca paper adapter is implemented and CI-green. Phase C1 paper broker adapter interface is implemented and CI-green. Phase B17 daily real paper observation runbook discipline is implemented and CI-green. Phase B16 real paper observation raw data contract is implemented and CI-green. Phase B15 observation cadence review is implemented and CI-green. Phase B14 Daily Evidence workflow dispatch integration is implemented, CI-green and workflow-green with uploaded artifact. Phase B13 real daily paper observation source builder is implemented and CI-green. Phase B12 persisted daily observation source feed and observation-only component mode are implemented. Phase A Evidence Hygiene implemented and CI-green. P36-P47 validation stack implemented. Real-money execution is not authorized by code. Current P0 governance focus: continue public framework / private edge separation before further proprietary strategy development.
 
 ## Strategic direction
 
@@ -61,9 +61,9 @@ Goal: make historical validation evidence deterministic, reproducible and harder
 | BT3 | Add reproducible backtest run contract with pinned inputs, dataset fingerprints, metrics and artifact hashes | P1 | High | Done |
 | BT5 | Add Walk-Forward / Out-of-Sample Robustness Gate with OOS pass rate, degradation, drawdown, trade-count and chronology checks | P0 | Critical | Done / CI-green |
 | BT6 | Add previous-run evidence baseline comparison for regression gates | P1 | High | Done / CI-green |
-| BT7 | Add capacity and turnover realism gates before any private production sizing work | P1 | High | Planned |
+| BT7 | Add capacity and turnover realism gates before any private production sizing work | P1 | High | Done / CI-pending |
 
-BT5 is a robustness gate only. BT6 is a baseline-regression gate only. Neither proves production edge and neither authorizes live trading.
+BT5 is a robustness gate only. BT6 is a baseline-regression gate only. BT7 is a capacity/turnover realism gate only. None of them prove production edge and none authorize live trading.
 
 ## Phase IP Implementation Order
 
@@ -214,6 +214,7 @@ Start only after Phase B and C produce credible evidence and after the private-e
 
 ## Recently completed evidence-visibility work
 
+- BT7 Capacity / Turnover / Realism Gate: done, locally tested and CI-wired.
 - BT6 Evidence Baseline Regression Gate: done and CI-green.
 - BT5 Walk-Forward / Out-of-Sample Robustness Gate: done and CI-green.
 - BT5 dedicated workflow: done and CI-green.
@@ -261,7 +262,7 @@ Start only after Phase B and C produce credible evidence and after the private-e
 
 ## Current execution focus
 
-B1.1 remains the long-running evidence collection period. Phase C is active for paper execution only. Telegram delivery is allowed for research/paper-observation reports only. BT6 is complete and CI-green. Immediate focus remains controlled evidence collection, safe reporting, public/private edge separation and the next backtest evidence-hardening gate.
+B1.1 remains the long-running evidence collection period. Phase C is active for paper execution only. Telegram delivery is allowed for research/paper-observation reports only. BT7 is implemented and CI-wired. Immediate focus remains controlled evidence collection, safe reporting, public/private edge separation and CI stabilization until all BT7 workflows are green.
 
 ## Do not do yet
 
