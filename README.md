@@ -26,6 +26,8 @@ CL2: scoring-system audit registry and report-vs-decision separation implemented
 CL3: kill-switch drawdown-source validation implemented / CI-wired
 CL4: ATR calculation governance, Wilder ATR evaluation and threshold-version bump implemented / CI-wired
 CL5: regime_alignment independent gate implemented / CI-wired
+GOV1-GOV3: critical runtime governance hardening implemented and CI-green
+GOV4-GOV6: runtime stability hardening implemented / CI-wired
 TG1: Telegram research-only report dispatcher implemented
 TG2/TG3: research-only Telegram summary integration and report templates implemented / CI-wired
 BT2: Strategy Test Matrix model, demo matrix, CLI, docs and tests implemented
@@ -38,6 +40,36 @@ Broker execution: paper-only infrastructure; live execution is not implemented
 ```
 
 Code quality is not trading edge. The system is promising enough to test seriously, but real capital still requires long-running forward evidence, drift detection, regime-change monitoring, position-level risk attribution, execution-quality review, capacity/turnover realism and manual approval.
+
+## GOV4-GOV6 Runtime Stability Hardening
+
+GOV4-GOV6 closes the next runtime-stability gaps found during Paper Observation:
+
+```text
+src/core/negative_override.py
+src/runtime/runtime_state.py
+src/runtime/runtime_loop.py
+tests/test_negative_override.py
+tests/test_runtime_state.py
+tests/test_runtime_loop.py
+```
+
+Implemented safeguards:
+
+- VIX `None` or invalid VIX values are no longer silently treated as `0` market stress.
+- A visible `vix_unavailable` minor override is emitted when a VIX key is present but unavailable or invalid.
+- `RuntimeState.history` is bounded by a ring buffer instead of growing without limit during multi-day observation.
+- `RuntimeLoop` catches transient provider exceptions, logs them and continues until a max-consecutive-error limit is reached.
+- Persistent provider failures raise `RuntimeLoopError` instead of killing the loop silently.
+- No broker execution, no live trading authorization and no private edge parameters are introduced.
+
+GOV4-GOV6 test commands:
+
+```bash
+pytest tests/test_negative_override.py -q
+pytest tests/test_runtime_state.py -q
+pytest tests/test_runtime_loop.py -q
+```
 
 ## B1.1 Evidence Operation Discipline + TG2/TG3 Reporting Integration
 
@@ -256,10 +288,13 @@ Full suite:
 pytest -q
 ```
 
-Backtest, IP, report-boundary, evidence-operation and core-logic validation gates:
+Backtest, IP, report-boundary, evidence-operation, runtime-governance and core-logic validation gates:
 
 ```bash
 pytest tests/test_b11_evidence_operation_discipline.py -q
+pytest tests/test_negative_override.py -q
+pytest tests/test_runtime_state.py -q
+pytest tests/test_runtime_loop.py -q
 pytest tests/test_strategy_test_matrix.py -q
 pytest tests/test_bt3_backtest_run_contract.py -q
 pytest tests/test_bt5_walk_forward_robustness_gate.py -q
@@ -281,4 +316,4 @@ pytest tests/test_decision_engine.py -q
 
 ## Hard Safety Rule
 
-This repository is a research and decision-support framework. No B1.1 evidence operation record, TG2/TG3 report template, generated report, protected public report example, backtest, walk-forward result, evidence baseline comparison, capacity/turnover realism report, paper execution artifact, Telegram dispatch, external edge provider, core-logic remediation, scoring audit, kill-switch drawdown-source validation, ATR governance change, threshold-version bump, regime-alignment governance change, report output boundary guard, IP9/IP10 governance check or CI-green state authorizes live trading.
+This repository is a research and decision-support framework. No B1.1 evidence operation record, GOV4-GOV6 stability hardening, TG2/TG3 report template, generated report, protected public report example, backtest, walk-forward result, evidence baseline comparison, capacity/turnover realism report, paper execution artifact, Telegram dispatch, external edge provider, core-logic remediation, scoring audit, kill-switch drawdown-source validation, ATR governance change, threshold-version bump, regime-alignment governance change, report output boundary guard, IP9/IP10 governance check or CI-green state authorizes live trading.
