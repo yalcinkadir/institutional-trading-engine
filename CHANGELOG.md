@@ -1,5 +1,32 @@
 # CHANGELOG
 
+## BT5 Walk-Forward / Out-of-Sample Robustness Gate — 2026-05-29
+
+### Added
+- BT5 walk-forward / out-of-sample robustness gate model in `src/validation/walk_forward_robustness_gate.py`.
+- Public-safe synthetic demo fold fixture in `data/demo_bt5_walk_forward_folds.json`.
+- CLI report generator in `scripts/generate_bt5_walk_forward_report.py`.
+- Operational documentation in `docs/operations/bt5_walk_forward_robustness_gate.md`.
+- Dedicated BT5 GitHub Actions workflow in `.github/workflows/bt5.yml`.
+
+### Tests Added / Updated
+- `tests/test_bt5_walk_forward_robustness_gate.py`.
+- BT5 tests cover happy path, missing required fields, too few folds, invalid chronology, overlapping OOS windows, missing/non-numeric metrics, low OOS trade count, excessive OOS drawdown, weak OOS pass rate, excessive train-to-OOS degradation, missing public-safe tags and missing research-only footer.
+
+### Improved
+- Walk-forward validation now has a deterministic report-level robustness gate.
+- OOS evidence is checked against pass rate, positive primary metric rate, drawdown, trade count and train-to-OOS degradation constraints.
+- Generated BT5 reports remain research-only and do not authorize execution.
+
+### Stabilization Result
+- BT5 implementation status: done.
+- BT5 CI status: green.
+- Public demo folds remain synthetic/demo-only.
+- Broker execution remains intentionally not implemented.
+- Live trading remains intentionally not authorized by code.
+
+---
+
 ## BT3 Reproducibility Contract Gate — 2026-05-28
 
 ### Added
