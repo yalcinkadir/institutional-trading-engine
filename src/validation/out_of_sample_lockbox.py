@@ -21,7 +21,7 @@ MAX_CORE_METRIC_DEGRADATION = 0.20
 VALIDATION_METHOD = "fixed_date_holdout_degradation_check"
 VALIDATION_SCOPE_NOTE = (
     "Fixed-date holdout degradation check only. This is not walk-forward optimization, "
-    "k-fold cross-validation, or proof against overfitting."
+    "not k-fold cross-validation, and not proof against overfitting."
 )
 THRESHOLD_VERSION_FIELDS = (
     "thresholds_version",
