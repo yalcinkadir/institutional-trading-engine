@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 from pathlib import Path
@@ -11,11 +12,17 @@ from src.config.thresholds import DEFAULT_THRESHOLDS
 from src.validation.historical_edge_validation import (
     HistoricalEdgeValidationConfig,
     HistoricalEdgeValidationReport,
+    calculate_profit_factor_degradation,
     validate_historical_edge,
 )
 
 DEFAULT_OOS_SPLIT_DATE = date(2024, 1, 1)
 MAX_CORE_METRIC_DEGRADATION = 0.20
+VALIDATION_METHOD = "fixed_date_holdout_degradation_check"
+VALIDATION_SCOPE_NOTE = (
+    "Fixed-date holdout degradation check only. This is not walk-forward optimization, "
+    "k-fold cross-validation, or proof against overfitting."
+)
 THRESHOLD_VERSION_FIELDS = (
     "thresholds_version",
     "threshold_version",
@@ -43,7 +50,7 @@ class MetricDegradation:
     higher_is_better: bool
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        return _json_safe(asdict(self))
 
 
 @dataclass(frozen=True)
@@ -57,12 +64,16 @@ class OutOfSampleLockboxReport:
     unassigned_records: int
     in_sample_report: HistoricalEdgeValidationReport
     out_of_sample_report: HistoricalEdgeValidationReport
+    validation_method: str = VALIDATION_METHOD
+    validation_scope_note: str = VALIDATION_SCOPE_NOTE
     degradation_checks: list[MetricDegradation] = field(default_factory=list)
     invalidation_reasons: tuple[str, ...] = field(default_factory=tuple)
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "passed": self.passed,
+            "validation_method": self.validation_method,
+            "validation_scope_note": self.validation_scope_note,
             "split_date": self.split_date,
             "threshold_version": self.threshold_version,
             "evidence_contract_hash": self.evidence_contract_hash,
@@ -157,8 +168,7 @@ def build_degradation_checks(
             oos_metrics.expectancy_r,
             max_allowed_degradation,
         ),
-        _higher_is_better_check(
-            "profit_factor",
+        _profit_factor_check(
             in_metrics.profit_factor,
             oos_metrics.profit_factor,
             max_allowed_degradation,
@@ -216,6 +226,8 @@ def build_evidence_contract_hash(config: OutOfSampleLockboxConfig) -> str:
         "edge_config": asdict(config.edge_config),
         "threshold_version": config.threshold_version,
         "require_matching_record_threshold_version": config.require_matching_record_threshold_version,
+        "validation_method": VALIDATION_METHOD,
+        "validation_scope_note": VALIDATION_SCOPE_NOTE,
     }
     canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
@@ -223,14 +235,16 @@ def build_evidence_contract_hash(config: OutOfSampleLockboxConfig) -> str:
 
 def render_out_of_sample_lockbox_markdown(report: OutOfSampleLockboxReport) -> str:
     lines = [
-        "# Out-of-Sample Validation Lockbox",
+        "# Fixed-Date Holdout Validation Lockbox",
         "",
         f"Status: **{'PASS' if report.passed else 'FAIL'}**",
+        f"Validation method: `{report.validation_method}`",
+        f"Validation scope: {report.validation_scope_note}",
         f"Split date: `{report.split_date}`",
         f"Threshold version: `{report.threshold_version}`",
         f"Evidence contract hash: `{report.evidence_contract_hash}`",
         f"In-sample records: **{report.in_sample_count}**",
-        f"Out-of-sample records: **{report.out_of_sample_count}**",
+        f"Holdout records: **{report.out_of_sample_count}**",
         f"Unassigned records: **{report.unassigned_records}**",
         "",
     ]
@@ -250,11 +264,11 @@ def render_out_of_sample_lockbox_markdown(report: OutOfSampleLockboxReport) -> s
             "| Segment | Trades | Expectancy R | Profit Factor | Max DD R | Sharpe |",
             "|---|---:|---:|---:|---:|---:|",
             _metrics_row("in_sample", report.in_sample_report),
-            _metrics_row("out_of_sample", report.out_of_sample_report),
+            _metrics_row("fixed_date_holdout", report.out_of_sample_report),
             "",
             "## Degradation Checks",
             "",
-            "| Metric | Status | In-Sample | OOS | Degradation | Max Allowed |",
+            "| Metric | Status | In-Sample | Holdout | Degradation | Max Allowed |",
             "|---|---:|---:|---:|---:|---:|",
         ]
     )
@@ -275,7 +289,7 @@ def write_out_of_sample_lockbox_report(
 ) -> None:
     json_path.parent.mkdir(parents=True, exist_ok=True)
     markdown_path.parent.mkdir(parents=True, exist_ok=True)
-    json_path.write_text(json.dumps(report.to_dict(), indent=2), encoding="utf-8")
+    json_path.write_text(json.dumps(report.to_dict(), indent=2, allow_nan=False), encoding="utf-8")
     markdown_path.write_text(render_out_of_sample_lockbox_markdown(report), encoding="utf-8")
 
 
@@ -292,6 +306,23 @@ def _higher_is_better_check(
         in_sample_value=round(float(in_sample_value), 6),
         out_of_sample_value=round(float(out_of_sample_value), 6),
         degradation=round(degradation, 6),
+        max_allowed_degradation=max_allowed_degradation,
+        passed=degradation <= max_allowed_degradation,
+        higher_is_better=True,
+    )
+
+
+def _profit_factor_check(
+    in_sample_value: float,
+    out_of_sample_value: float,
+    max_allowed_degradation: float,
+) -> MetricDegradation:
+    degradation = calculate_profit_factor_degradation(out_of_sample_value, in_sample_value)
+    return MetricDegradation(
+        metric="profit_factor",
+        in_sample_value=round(float(in_sample_value), 6),
+        out_of_sample_value=round(float(out_of_sample_value), 6),
+        degradation=degradation,
         max_allowed_degradation=max_allowed_degradation,
         passed=degradation <= max_allowed_degradation,
         higher_is_better=True,
@@ -374,8 +405,23 @@ def _collect_record_threshold_versions(records: Iterable[dict[str, Any]]) -> set
 
 
 def _format_number(value: float | int) -> str:
-    if isinstance(value, float) and value == float("inf"):
-        return "inf"
+    if isinstance(value, float) and math.isinf(value):
+        return "inf" if value > 0 else "-inf"
     if isinstance(value, int):
         return str(value)
     return f"{float(value):.4f}"
+
+
+def _json_safe(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {key: _json_safe(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_json_safe(item) for item in value]
+    if isinstance(value, tuple):
+        return [_json_safe(item) for item in value]
+    if isinstance(value, float):
+        if math.isinf(value):
+            return "inf" if value > 0 else "-inf"
+        if math.isnan(value):
+            return "nan"
+    return value
