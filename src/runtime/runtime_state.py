@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+from collections import deque
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Deque
+
+
+DEFAULT_RUNTIME_HISTORY_MAXLEN = 1000
 
 
 @dataclass
@@ -10,7 +14,11 @@ class RuntimeState:
     latest_decision: dict[str, Any] | None = None
     cycle_count: int = 0
     updated_at: str | None = None
-    history: list[dict[str, Any]] = field(default_factory=list)
+    history_maxlen: int = DEFAULT_RUNTIME_HISTORY_MAXLEN
+    history: Deque[dict[str, Any]] = field(init=False)
+
+    def __post_init__(self) -> None:
+        self.history = deque(maxlen=max(1, int(self.history_maxlen)))
 
     def update(self, decision: dict[str, Any]) -> None:
         self.latest_decision = decision
@@ -30,6 +38,7 @@ class RuntimeState:
             "updated_at": self.updated_at,
             "latest_decision": self.latest_decision,
             "history_size": len(self.history),
+            "history_maxlen": self.history.maxlen,
         }
 
 
