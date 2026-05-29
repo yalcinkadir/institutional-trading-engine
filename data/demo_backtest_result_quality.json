@@ -1,0 +1,46 @@
+{
+  "version": "BT4-demo-v1",
+  "cases": [
+    {
+      "run_id": "bt4-demo-trend-quality-001",
+      "strategy_id": "trend_demo",
+      "contract_version": "BT3-demo-v1",
+      "trade_count": 64,
+      "max_drawdown_pct": -8.2,
+      "expectancy_r": 0.18,
+      "profit_factor": 1.42,
+      "sharpe": 1.12,
+      "win_rate_pct": 53.5,
+      "loss_rate_pct": 46.5,
+      "total_return_pct": 14.7,
+      "regime_slices": [
+        {"regime": "risk_on", "trade_count": 28, "expectancy_r": 0.22, "max_drawdown_pct": -4.1, "profit_factor": 1.55},
+        {"regime": "neutral", "trade_count": 24, "expectancy_r": 0.15, "max_drawdown_pct": -5.4, "profit_factor": 1.32},
+        {"regime": "risk_off", "trade_count": 12, "expectancy_r": 0.08, "max_drawdown_pct": -8.2, "profit_factor": 1.18}
+      ],
+      "tags": ["demo", "public_safe", "research_only"],
+      "notes": "Demo quality case for continued research observation.",
+      "footer": "Research / Paper Observation Only. Result quality is not execution approval."
+    },
+    {
+      "run_id": "bt4-demo-reversion-quality-001",
+      "strategy_id": "mean_reversion_demo",
+      "contract_version": "BT3-demo-v1",
+      "trade_count": 42,
+      "max_drawdown_pct": -6.5,
+      "expectancy_r": 0.11,
+      "profit_factor": 1.23,
+      "sharpe": 0.88,
+      "win_rate_pct": 51.2,
+      "loss_rate_pct": 48.8,
+      "total_return_pct": 7.9,
+      "regime_slices": [
+        {"regime": "neutral", "trade_count": 22, "expectancy_r": 0.13, "max_drawdown_pct": -3.9, "profit_factor": 1.28},
+        {"regime": "risk_off", "trade_count": 20, "expectancy_r": 0.09, "max_drawdown_pct": -6.5, "profit_factor": 1.18}
+      ],
+      "tags": ["demo", "public_safe", "research_only"],
+      "notes": "Demo quality case for paper-observation continuation.",
+      "footer": "Research / Paper Observation Only. Result quality is not execution approval."
+    }
+  ]
+}
