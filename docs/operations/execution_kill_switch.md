@@ -1,8 +1,8 @@
 # C7 Execution Kill Switch
 
-Status date: 2026-05-28
+Status date: 2026-05-29
 
-C7 adds a fail-closed execution governance layer on top of C5 daily execution reconciliation and C6 fill-quality reporting.
+C7 adds a fail-closed execution governance layer on top of C5 daily execution reconciliation, C6 fill-quality reporting and CL3 drawdown-source validation.
 
 ## Purpose
 
@@ -13,17 +13,7 @@ It produces one of three states:
 ```text
 ALLOW  -> all required evidence is clean
 WATCH  -> degraded but not blocked
-BLOCK  -> execution must stop fail-closed
-```
-
-It does not:
-
-```text
-place live trades
-connect to a broker
-cancel broker orders
-approve live trading
-override human risk review
+BLOCK  -> workflow must stop fail-closed
 ```
 
 It does:
@@ -31,9 +21,11 @@ It does:
 ```text
 consume C5 daily execution reconciliation reports
 consume C6 fill-quality reports
+consume CL3 drawdown-source validation
 consume manual risk flags
 fail closed when required evidence is missing
 block on failed reconciliation/fill-quality reports
+block when drawdown source is missing, backtest-only, unknown or unreconciled
 watch or block on drift/slippage/fill-rate thresholds
 write JSON and Markdown decisions
 ```
@@ -83,6 +75,16 @@ Input format:
     },
     "issues": []
   },
+  "drawdown_source_validation": {
+    "source_name": "paper_account_equity",
+    "source_type": "reconciled_paper_equity",
+    "account_equity": 95000.0,
+    "peak_equity": 100000.0,
+    "drawdown_pct": 5.0,
+    "is_reconciled": true,
+    "evidence_artifact": "reports/paper_equity/reconciled_equity.json",
+    "validated_at": "2026-05-29T10:00:00Z"
+  },
   "manual_risk_flags": []
 }
 ```
@@ -101,6 +103,27 @@ watch_avg_abs_slippage_bps = 15.0
 watch_fill_rate = 0.98
 require_daily_reconciliation_report = true
 require_fill_quality_report = true
+require_drawdown_source_validation = true
+drawdown_calculation_tolerance_pct = 0.05
+```
+
+## Accepted Drawdown Sources
+
+```text
+broker_equity
+reconciled_paper_equity
+```
+
+Rejected drawdown sources:
+
+```text
+backtest_only
+unknown
+unreconciled source
+missing evidence artifact
+invalid current/peak equity
+current equity above peak equity
+reported drawdown percentage inconsistent with current and peak equity
 ```
 
 ## BLOCK Conditions
@@ -108,8 +131,12 @@ require_fill_quality_report = true
 ```text
 missing required daily reconciliation report
 missing required fill-quality report
+missing required drawdown-source validation
 failed daily reconciliation report
 failed fill-quality report
+invalid drawdown-source type
+unreconciled drawdown source
+drawdown calculation mismatch
 total R drift above block threshold
 average absolute slippage above block threshold
 fill-quality error count above maximum
@@ -129,16 +156,18 @@ manual risk flag with WARNING severity
 
 ## Safety Model
 
-C7 is intentionally conservative:
+C7/CL3 is intentionally conservative:
 
 ```text
 missing required evidence => BLOCK
 failed required evidence => BLOCK
+missing drawdown source => BLOCK
+unreconciled drawdown source => BLOCK
 warning evidence => WATCH
 clean required evidence => ALLOW
 ```
 
-The module is a governance/audit layer only. It does not call a broker adapter and does not authorize real-money execution.
+The module is a governance/audit layer only.
 
 ## Test Coverage
 
@@ -149,7 +178,7 @@ tests/test_execution_kill_switch.py
 Covered scenarios:
 
 ```text
-clean reports allow execution workflow continuation
+clean reports and validated drawdown source allow workflow continuation
 missing required reports block fail-closed
 failed C5 daily reconciliation blocks
 failed C6 fill-quality blocks
@@ -158,5 +187,9 @@ average absolute slippage block and watch thresholds
 fill-rate watch threshold
 manual error and warning risk flags
 optional-report mode
+backtest-only drawdown source blocks
+unreconciled drawdown source blocks
+drawdown calculation mismatch blocks
+dataclass drawdown-source validation is accepted
 JSON input and report output
 ```
