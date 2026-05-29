@@ -27,7 +27,8 @@ CL3: kill-switch drawdown-source validation implemented / CI-wired
 CL4: ATR calculation governance, Wilder ATR evaluation and threshold-version bump implemented / CI-wired
 CL5: regime_alignment independent gate implemented / CI-wired
 GOV1-GOV3: critical runtime governance hardening implemented and CI-green
-GOV4-GOV6: runtime stability hardening implemented / CI-wired
+GOV4-GOV6: runtime stability hardening implemented and CI-green
+GOV7-GOV10: pre-live hygiene validators implemented / CI-wired
 TG1: Telegram research-only report dispatcher implemented
 TG2/TG3: research-only Telegram summary integration and report templates implemented / CI-wired
 BT2: Strategy Test Matrix model, demo matrix, CLI, docs and tests implemented
@@ -40,6 +41,29 @@ Broker execution: paper-only infrastructure; live execution is not implemented
 ```
 
 Code quality is not trading edge. The system is promising enough to test seriously, but real capital still requires long-running forward evidence, drift detection, regime-change monitoring, position-level risk attribution, execution-quality review, capacity/turnover realism and manual approval.
+
+## GOV7-GOV10 Pre-Live Hygiene
+
+GOV7-GOV10 closes the next pre-live hygiene layer before any new strategy complexity is added:
+
+```text
+src/validation/gov7_gov10_pre_live_hygiene.py
+tests/test_gov7_gov10_pre_live_hygiene.py
+```
+
+Implemented safeguards:
+
+- GOV7: public/demo adaptive weights can be rounded while still summing exactly to `1.0`.
+- GOV8: VIX term-structure inversion has explicit `DIRECT`, `PARTIAL`, `NONE` and `UNKNOWN` modes.
+- GOV9: duplicate/overlapping module remediation can be tracked with owner, replacement and rationale markers.
+- GOV10: cumulative Paper Observation drift can detect small persistent drift that may evade daily max-drift gates.
+- No broker execution, no live trading authorization and no private edge parameters are introduced.
+
+GOV7-GOV10 test command:
+
+```bash
+pytest tests/test_gov7_gov10_pre_live_hygiene.py -q
+```
 
 ## GOV4-GOV6 Runtime Stability Hardening
 
@@ -292,6 +316,7 @@ Backtest, IP, report-boundary, evidence-operation, runtime-governance and core-l
 
 ```bash
 pytest tests/test_b11_evidence_operation_discipline.py -q
+pytest tests/test_gov7_gov10_pre_live_hygiene.py -q
 pytest tests/test_negative_override.py -q
 pytest tests/test_runtime_state.py -q
 pytest tests/test_runtime_loop.py -q
@@ -316,4 +341,4 @@ pytest tests/test_decision_engine.py -q
 
 ## Hard Safety Rule
 
-This repository is a research and decision-support framework. No B1.1 evidence operation record, GOV4-GOV6 stability hardening, TG2/TG3 report template, generated report, protected public report example, backtest, walk-forward result, evidence baseline comparison, capacity/turnover realism report, paper execution artifact, Telegram dispatch, external edge provider, core-logic remediation, scoring audit, kill-switch drawdown-source validation, ATR governance change, threshold-version bump, regime-alignment governance change, report output boundary guard, IP9/IP10 governance check or CI-green state authorizes live trading.
+This repository is a research and decision-support framework. No B1.1 evidence operation record, GOV7-GOV10 pre-live hygiene validator, GOV4-GOV6 stability hardening, TG2/TG3 report template, generated report, protected public report example, backtest, walk-forward result, evidence baseline comparison, capacity/turnover realism report, paper execution artifact, Telegram dispatch, external edge provider, core-logic remediation, scoring audit, kill-switch drawdown-source validation, ATR governance change, threshold-version bump, regime-alignment governance change, report output boundary guard, IP9/IP10 governance check or CI-green state authorizes live trading.
