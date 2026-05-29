@@ -1,5 +1,30 @@
 # CHANGELOG
 
+## B1.1 Evidence Operation Discipline + TG2/TG3 Reporting Integration — 2026-05-29
+
+### Added
+- B1.1 evidence operation discipline gate in `src/operations/evidence_operation_discipline.py`.
+- TG2/TG3 research-only report templates in `src/reporting/tg2_tg3_report_templates.py`.
+- Regression coverage in `tests/test_b11_evidence_operation_discipline.py`.
+- Operational documentation in `docs/operations/b11_evidence_operation_discipline.md`.
+- Main CI step for B1.1 evidence operation discipline tests.
+
+### Improved
+- B1.1 now has an explicit fail-closed operation record for observation-only mode, daily evidence presence, daily evidence pass status, reconciliation cleanliness, TG3 template rendering and safe TG2 Telegram dispatch records.
+- TG3 now renders Daily Evidence, Fill Quality, Kill Switch and Backtest Summary report templates with research-only operation boundaries.
+- TG2 now reuses the TG1 research-only Telegram boundary for report delivery integration.
+- README and ROADMAP now mark TG2/TG3 as implemented / CI-wired and B1.1 as operation-gated while long-running observation remains active.
+
+### Stabilization Result
+- B1.1 operation gate implementation status: done.
+- TG2 implementation status: done / CI-wired.
+- TG3 implementation status: done / CI-wired.
+- Local targeted test status: `pytest tests/test_b11_evidence_operation_discipline.py -q` passed.
+- CI status: wired; final workflow-green status must be confirmed in GitHub Actions.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## IP9/IP10 Public Repository Governance — 2026-05-29
 
 ### Added
