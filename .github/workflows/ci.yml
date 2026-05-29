@@ -185,6 +185,12 @@ jobs:
           pytest tests/test_scoring_audit.py -q
           pytest tests/test_execution_kill_switch.py -q
 
+      - name: CL4 ATR governance tests
+        env:
+          POLYGON_API_KEY: test-key
+        run: |
+          pytest tests/test_atr_governance.py -q
+
       - name: BT7 capacity turnover realism tests
         env:
           POLYGON_API_KEY: test-key
