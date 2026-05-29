@@ -1,7 +1,7 @@
 # Institutional Trading Engine Roadmap
 
 Status date: 2026-05-29  
-Current state: B1.1 evidence operation discipline plus TG2/TG3 reporting integration is implemented and CI-wired. Phase B1.1 remains active as the 3-6 month observation-only evidence collection period. Real-money execution is not authorized by code.
+Current state: B1.1 evidence operation discipline plus TG2/TG3 reporting integration is implemented and CI-wired. Phase B1.1 remains active as the 3-6 month observation-only evidence collection period. The next implementation opportunity is GOV1-GOV6 runtime governance hardening from the 2026-05-29 trading-engine analysis. Real-money execution is not authorized by code.
 
 ## Strategic direction
 
@@ -17,16 +17,39 @@ The project now prioritizes:
 6. capacity / turnover realism
 7. portfolio-level risk attribution
 8. core decision-logic regression gates
-9. public repository governance before new strategy complexity
-10. multi-strategy expansion only after the base edge is proven
+9. runtime governance hardening before any live consideration
+10. public repository governance before new strategy complexity
+11. multi-strategy expansion only after the base edge is proven
 
-Hard rule: no real-money execution before real forward evidence, drift detection, regime-change monitoring, position-level risk attribution, capacity/turnover realism and manual approval are in place.
+Hard rule: no real-money execution before real forward evidence, drift detection, regime-change monitoring, position-level risk attribution, capacity/turnover realism, runtime governance hardening and manual approval are in place.
 
 Hard IP rule: the public repository may demonstrate architecture, evidence discipline and deterministic framework behavior, but proprietary edge configuration must not be developed further in public by default.
 
 Hard logic rule: decision-critical math must be regression-tested before it is trusted by reports, ranking or paper execution workflows.
 
+Hard runtime-governance rule: missing state, missing anomaly data, non-positive computed price levels and runtime-loop exceptions must fail closed or be explicitly surfaced before any result can be trusted.
+
 Hard report-artifact rule: committed public report examples must remain synthetic/public-safe and generated runtime reports must be written only to non-committed output locations.
+
+## Phase GOV — Runtime Governance Hardening
+
+Target window: next implementation opportunity  
+Goal: close runtime-governance gaps found during Paper Observation before adding strategy complexity or moving closer to live consideration.
+
+| ID | Task | Priority | Impact | Status |
+|---|---|---:|---:|---|
+| GOV1 | Feed `severe_anomaly_count` from the anomaly module or runtime state into `evaluate_kill_switch` instead of passing a hardcoded `0` | P0 | Critical | Planned / Next |
+| GOV2 | Make missing portfolio state fail closed: `conservative_default` must not silently return `drawdown_percent=0.0` and `daily_loss_percent=0.0` as if governance state were valid | P0 | Critical | Planned / Next |
+| GOV3 | Reject all computed non-positive entries and stops after calculation, not only explicitly supplied entry values | P0 | Critical | Planned / Next |
+| GOV4 | Treat `VIX=None` consistently in `negative_override` instead of silently defaulting missing VIX to `0` | P1 | High | Planned |
+| GOV5 | Bound `RuntimeState.history` with a ring buffer or documented max length to avoid unbounded memory growth during multi-day observation | P1 | Medium | Planned |
+| GOV6 | Add runtime-loop exception handling with logging and a max-consecutive-error limit so one provider/network exception cannot kill the loop silently | P1 | Medium | Planned |
+| GOV7 | Fix adaptive-weighting rounding so normalized public weights sum to exactly `1.0` after rounding | P2 | Medium | Planned |
+| GOV8 | Document or encode VIX term-structure inversion mode so PARTIAL and DIRECT modes are not treated as the same boolean semantics | P2 | Medium | Planned |
+| GOV9 | Add deprecation markers or consolidation plan for duplicate modules with overlapping responsibilities | P2 | Medium | Planned |
+| GOV10 | Add cumulative drift gate for Paper Observation so small persistent daily drift cannot avoid detection by only checking max absolute daily drift | P2 | Medium | Planned |
+
+GOV1-GOV3 are the immediate hardening block. They must be implemented with regression tests and CI before any new strategy expansion. GOV4-GOV6 are the next short-term stability block. GOV7-GOV10 are pre-live hygiene and consolidation items.
 
 ## Phase IP — Public Framework / Private Edge Separation
 
@@ -107,6 +130,7 @@ Goal: prove whether the rule-based system has live-observable edge before adding
 |---|---|---:|---:|---|
 | B1 | Prepare paper observation daily reconciliation gate and report model | P0 | Critical | Done |
 | B1.1 | Run 3-6 months of observation-only paper evidence with daily reconciliation | P0 | Critical | In Progress / operation gate CI-wired |
+| B1.2 | Keep visible asset-treatment timeline artifacts for each Paper Observation run | P1 | Medium | Done / CI-wired |
 | B2-B17 | Drift detection, sequential edge decay, regime-change detection, risk attribution, Monte Carlo robustness and daily evidence pipeline | P0/P1 | Critical/High | Done |
 
 ## Phase C — Execution Reality
@@ -117,17 +141,17 @@ Goal: prove whether the rule-based system has live-observable edge before adding
 
 ## Phase D — Strategy Expansion
 
-Start only after Phase B and C produce credible evidence and after the private-edge boundary exists.
+Start only after Phase B and C produce credible evidence, after the private-edge boundary exists and after GOV1-GOV6 runtime hardening is implemented and CI-green.
 
 | ID | Task | Priority | Impact | Status |
 |---|---|---:|---:|---|
-| D1 | Add mean-reversion strategy sleeve with separate validation behind the private-edge boundary or with demo-only public constants | P1 | High | Planned |
-| D2 | Add multi-strategy risk-parity allocator | P1 | High | Planned |
-| D3 | Add factor, sector and style exposure caps | P1 | High | Planned |
-| D4 | Add correlation-aware position sizing | P1 | High | Planned |
-| D5 | Pilot options-flow features such as GEX, skew and put/call signals | P2 | Medium | Planned |
-| D6 | Pilot LLM-based news sentiment pipeline | P2 | Medium | Planned |
-| D7 | Evaluate event-driven earnings module with separate edge validation | P2 | Medium | Planned |
+| D1 | Add mean-reversion strategy sleeve with separate validation behind the private-edge boundary or with demo-only public constants | P1 | High | Planned / Blocked by B1.1 + GOV |
+| D2 | Add multi-strategy risk-parity allocator | P1 | High | Planned / Blocked by B1.1 + GOV |
+| D3 | Add factor, sector and style exposure caps | P1 | High | Planned / Blocked by B1.1 + GOV |
+| D4 | Add correlation-aware position sizing | P1 | High | Planned / Blocked by B1.1 + GOV |
+| D5 | Pilot options-flow features such as GEX, skew and put/call signals | P2 | Medium | Planned / Blocked by B1.1 + GOV |
+| D6 | Pilot LLM-based news sentiment pipeline | P2 | Medium | Planned / Blocked by B1.1 + GOV |
+| D7 | Evaluate event-driven earnings module with separate edge validation | P2 | Medium | Planned / Blocked by B1.1 + GOV |
 
 ## Phase E — Continuous Institutionalization
 
@@ -144,6 +168,8 @@ Start only after Phase B and C produce credible evidence and after the private-e
 ## Recently completed evidence-visibility, IP and logic-safety work
 
 - B1.1 evidence operation discipline plus TG2/TG3 reporting integration: implemented and CI-wired.
+- B1.2 visible Paper Observation asset-treatment timeline artifacts: implemented and CI-wired.
+- Paper Observation Telegram notification workflow: implemented and active when repository secrets are configured.
 - IP9/IP10 public repository governance: done and CI-wired.
 - Report Output Boundary Guard: done and CI-green.
 - CL5 regime-alignment independent gate: done and CI-wired.
@@ -165,17 +191,29 @@ Start only after Phase B and C produce credible evidence and after the private-e
 
 ## Current execution focus
 
-B1.1 remains the long-running evidence collection period. The B1.1 operation gate and TG2/TG3 reporting integration are now implemented and CI-wired. Phase C is active for paper execution only. Telegram delivery is allowed for research/paper-observation reports only. Immediate focus: run observation discipline and avoid adding new strategy complexity before evidence matures.
+B1.1 remains the long-running evidence collection period. The immediate implementation focus is GOV1-GOV3 runtime governance hardening: anomaly-count wiring, missing portfolio-state fail-closed behavior and non-positive computed entry/stop rejection. The B1.1 operation gate and TG2/TG3 reporting integration are implemented and CI-wired. Phase C is active for paper execution only. Telegram delivery is allowed for research/paper-observation reports only. Immediate focus: fix runtime-governance gaps, then continue observation discipline without adding new strategy complexity.
 
 ## Recommended next block
 
-Run the B1.1 observation cadence, monitor the evidence-operation gate, inspect daily reconciliation cleanliness and keep the strategy surface frozen until enough forward paper evidence exists.
+Implement GOV1-GOV3 with regression tests and CI:
+
+```text
+GOV1 severe_anomaly_count runtime wiring
+GOV2 missing portfolio state must fail closed
+GOV3 computed entry/stop price positivity guards
+```
+
+After GOV1-GOV3 are green, continue B1.1 observation cadence, monitor the evidence-operation gate, inspect daily reconciliation cleanliness and keep the strategy surface frozen until enough forward paper evidence exists.
 
 ## Do not do yet
 
 - Do not enable real-money execution.
 - Do not add new asset classes.
 - Do not add ML before rule-based edge is statistically significant.
+- Do not add Phase D strategy expansion before B1.1 observation evidence and GOV1-GOV6 runtime hardening are complete.
+- Do not ignore missing portfolio state or treat it as a healthy zero-drawdown state.
+- Do not allow computed non-positive entries or stops to pass validation.
+- Do not treat hardcoded `severe_anomaly_count=0` as acceptable runtime governance.
 - Do not open or reuse lockbox evidence casually.
 - Do not skip forward paper observation.
 - Do not add new proprietary thresholds, setup maps, scoring weights or exit profiles directly to the public repo unless they are explicitly demo-only.
