@@ -28,7 +28,7 @@ CL4: ATR calculation governance, Wilder ATR evaluation and threshold-version bum
 CL5: regime_alignment independent gate implemented / CI-wired
 GOV1-GOV3: critical runtime governance hardening implemented and CI-green
 GOV4-GOV6: runtime stability hardening implemented and CI-green
-GOV7-GOV10: pre-live hygiene validators implemented / CI-wired
+GOV7-GOV10: pre-live hygiene validators implemented and CI-green
 TG1: Telegram research-only report dispatcher implemented
 TG2/TG3: research-only Telegram summary integration and report templates implemented / CI-wired
 BT2: Strategy Test Matrix model, demo matrix, CLI, docs and tests implemented
