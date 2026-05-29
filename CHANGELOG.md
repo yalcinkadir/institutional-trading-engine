@@ -1,5 +1,32 @@
 # CHANGELOG
 
+## Report Output Boundary Guard — 2026-05-29
+
+### Added
+- Central report-output boundary guard in `src/report_output_boundary.py`.
+- Generator wiring in `scripts/generate_report.py` so runtime report output is validated before writing.
+- Unit coverage in `tests/test_report_output_boundary.py`.
+- Generator wiring coverage in `tests/test_generate_report_output_boundary.py`.
+- Operational documentation in `docs/operations/report_output_boundary_guard.md`.
+- CI step for report output boundary guard tests.
+
+### Protected Public Artifacts
+- `reports/premarket-report.md`
+- `reports/postmarket-report.md`
+- `reports/weekly-report.md`
+
+### Improved
+- Runtime generators now fail closed before writing to committed public report examples.
+- Public synthetic report files remain protected from accidental live/provider-backed/private content overwrite.
+- Generated report output is directed toward non-committed locations such as `reports/generated/`, `reports/live/`, `reports/private/` or `outputs/`.
+
+### Stabilization Result
+- Report Output Boundary Guard implementation status: done.
+- CI status: wired; final workflow-green status must be confirmed in GitHub Actions.
+- Live trading remains intentionally not authorized by code.
+
+---
+
 ## IP3/IP4 Public Demo Defaults and Private Edge Boundary — 2026-05-29
 
 ### Added
