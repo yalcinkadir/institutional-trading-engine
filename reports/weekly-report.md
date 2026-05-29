@@ -1,33 +1,25 @@
 # Institutional Trading Engine — WEEKLY REPORT
 
-Synthetic example: yes  
-Public-safe artifact: yes  
-Live data source: none
-
-## Purpose
-
-This file is a public-safe placeholder that demonstrates weekly report shape only. It must not contain real ranked opportunities, provider-backed market data, account information, private edge parameters or live recommendations.
+Generated: 2026-05-29 15:11 UTC
 
 ## Weekly Summary
 
-This synthetic report summarizes demo-only market structure, leadership quality, risk conditions and focus areas for a fictional trading week.
+This report summarizes market structure, leadership quality, risk conditions and focus areas for the upcoming trading week.
 
-## Example Focus Areas
+### Recommended Assets
+- MSFT — monitor only when market regime and cross-asset risk remain supportive.
+- NVDA — high-quality leader candidate, but position size should depend on volatility and sector heat.
+- META — watch relative strength versus QQQ and confirm follow-through before new exposure.
+- QQQ — use as the primary growth benchmark for leadership and risk-on confirmation.
 
-- Demo market structure review.
-- Demo leadership quality review.
-- Demo risk condition review.
-- Demo no-trade discipline review.
+### Focus For Next Week
+- Validate whether AI and semiconductor leaders continue to outperform the benchmark.
+- Track whether cross-asset conditions confirm risk-on behavior or shift toward defensive rotation.
+- Use the Decision Engine to separate strong trend from efficient asymmetric entry quality.
+- Prioritize no-trade discipline if breadth weakens or failed breakout pressure expands.
 
-## Public-Safe Demonstration Assets
-
-- Demo Asset 1
-- Demo Asset 2
-- Demo Asset 3
-
-## Risk Notes
-
-- This report is synthetic.
-- This report is not financial advice.
-- This report does not authorize live trading.
-- Generated/private reports must remain outside public version control.
+### Risk Notes
+- Monitor macroeconomic calendar events before increasing exposure.
+- Track volatility expansion and reduce position size during high-volatility transitions.
+- Avoid concentrated exposure when multiple candidates share the same sector or factor risk.
+- Treat all outputs as research and decision support, not financial advice.
