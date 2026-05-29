@@ -48,15 +48,23 @@ REQUIRED_GITIGNORE_PATTERNS = [
 PROHIBITED_PUBLIC_REPORT_TERMS = [
     "Generated: 2026-",
     "Live data source: Polygon",
+    "Polygon.io",
+    "Data Status: LIVE",
+    "Data Status: PARTIAL",
+    "### Recommended Assets",
     "Ranked Opportunities\n\n####",
-    "MSFT",
-    "NVDA",
-    "META",
-    "AAPL",
-    "MU",
-    "QQQ",
-    "GLD",
-    "SLV",
+    "thresholds_version=public-demo-",
+]
+
+PROHIBITED_RANKED_SYMBOL_HEADINGS = [
+    "#### MSFT",
+    "#### NVDA",
+    "#### META",
+    "#### AAPL",
+    "#### MU",
+    "#### QQQ",
+    "#### GLD",
+    "#### SLV",
 ]
 
 
@@ -78,4 +86,7 @@ def test_public_reports_are_synthetic_examples_only() -> None:
         assert "must not contain real ranked opportunities" in content
 
         leaked_terms = [term for term in PROHIBITED_PUBLIC_REPORT_TERMS if term in content]
+        leaked_symbol_headings = [term for term in PROHIBITED_RANKED_SYMBOL_HEADINGS if term in content]
+
         assert leaked_terms == []
+        assert leaked_symbol_headings == []
