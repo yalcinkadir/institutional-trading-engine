@@ -6,6 +6,8 @@ from src.config.thresholds import DEFAULT_THRESHOLDS
 from src.validation.historical_edge_validation import HistoricalEdgeValidationConfig
 from src.validation.out_of_sample_lockbox import (
     DEFAULT_OOS_SPLIT_DATE,
+    VALIDATION_METHOD,
+    VALIDATION_SCOPE_NOTE,
     OutOfSampleLockboxConfig,
     build_evidence_contract_hash,
     build_out_of_sample_lockbox,
@@ -58,6 +60,8 @@ def test_lockbox_splits_records_by_fixed_oos_date() -> None:
     report = build_out_of_sample_lockbox(records, config=_config())
 
     assert report.split_date == "2024-01-01"
+    assert report.validation_method == VALIDATION_METHOD
+    assert report.validation_scope_note == VALIDATION_SCOPE_NOTE
     assert report.threshold_version == DEFAULT_THRESHOLDS.version
     assert report.evidence_contract_hash == build_evidence_contract_hash(_config())
     assert report.in_sample_count == 2
@@ -194,6 +198,42 @@ def test_drawdown_check_is_lower_is_better() -> None:
     assert drawdown.higher_is_better is False
 
 
+def test_ev8_report_declares_fixed_date_holdout_not_walk_forward_claim() -> None:
+    report = build_out_of_sample_lockbox(
+        _records("2023-06-01", 1.0, 2) + _records("2024-06-01", 1.0, 2),
+        config=_config(),
+    )
+
+    markdown = render_out_of_sample_lockbox_markdown(report)
+    report_dict = report.to_dict()
+
+    assert report.validation_method == "fixed_date_holdout_degradation_check"
+    assert "not walk-forward optimization" in report.validation_scope_note
+    assert "not proof against overfitting" in report.validation_scope_note
+    assert report_dict["validation_method"] == "fixed_date_holdout_degradation_check"
+    assert "Fixed-Date Holdout Validation Lockbox" in markdown
+    assert "Validation method: `fixed_date_holdout_degradation_check`" in markdown
+    assert "not walk-forward optimization" in markdown
+    assert "not proof against overfitting" in markdown
+    assert "# Out-of-Sample Validation Lockbox" not in markdown
+
+
+def test_ev8_json_report_contains_validation_scope_note(tmp_path) -> None:
+    report = build_out_of_sample_lockbox(
+        _records("2023-06-01", 1.0, 2) + _records("2024-06-01", 1.0, 2),
+        config=_config(),
+    )
+    json_path = tmp_path / "oos-lockbox.json"
+    markdown_path = tmp_path / "oos-lockbox.md"
+
+    write_out_of_sample_lockbox_report(report, json_path=json_path, markdown_path=markdown_path)
+
+    data = json.loads(json_path.read_text(encoding="utf-8"))
+    assert data["validation_method"] == "fixed_date_holdout_degradation_check"
+    assert "not walk-forward optimization" in data["validation_scope_note"]
+    assert "not proof against overfitting" in data["validation_scope_note"]
+
+
 def test_render_markdown_contains_sections() -> None:
     report = build_out_of_sample_lockbox(
         _records("2023-06-01", 1.0, 2) + _records("2024-06-01", 1.0, 2),
@@ -202,7 +242,7 @@ def test_render_markdown_contains_sections() -> None:
 
     markdown = render_out_of_sample_lockbox_markdown(report)
 
-    assert "# Out-of-Sample Validation Lockbox" in markdown
+    assert "# Fixed-Date Holdout Validation Lockbox" in markdown
     assert "Threshold version" in markdown
     assert "Evidence contract hash" in markdown
     assert "Core Metrics" in markdown
@@ -236,7 +276,8 @@ def test_write_out_of_sample_lockbox_report(tmp_path) -> None:
 
     data = json.loads(json_path.read_text(encoding="utf-8"))
     assert data["split_date"] == "2024-01-01"
+    assert data["validation_method"] == VALIDATION_METHOD
     assert data["threshold_version"] == DEFAULT_THRESHOLDS.version
     assert data["evidence_contract_hash"] == build_evidence_contract_hash(_config())
     assert data["invalidation_reasons"] == []
-    assert markdown_path.read_text(encoding="utf-8").startswith("# Out-of-Sample Validation Lockbox")
+    assert markdown_path.read_text(encoding="utf-8").startswith("# Fixed-Date Holdout Validation Lockbox")
