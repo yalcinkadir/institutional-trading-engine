@@ -3,10 +3,9 @@
 ## CL1 Core Decision Logic Remediation — 2026-05-29
 
 ### Fixed
-- Corrected downside asymmetry calculation in `src/setup_scoring.py` so assets below SMA50 no longer receive inflated reward/risk scores from a negative `close - sma50` distance.
+- Corrected downside asymmetry calculation in `src/setup_scoring.py` so below-SMA50 assets no longer receive inflated reward/risk scores from negative `close - sma50` distance.
 - Updated `src/portfolio_risk.py` so elevated portfolio risk reduces all tradable tiers, not only Tier 1 candidates.
 - Updated `src/outcome_tracking.py` so breakeven outcomes are neutral in basic expectancy instead of being counted as losses.
-- Added defensive short-history guards for direct calls to setup-scoring helper functions.
 
 ### Added
 - Regression coverage for downside asymmetry inflation in `tests/test_setup_scoring.py`.
@@ -14,10 +13,12 @@
 - Regression coverage for breakeven expectancy handling in `tests/test_outcome_tracking.py`.
 - CI step for CL1 core logic remediation tests.
 
+### Deferred
+- Short-history direct-call behavior for setup-scoring helper functions remains unchanged for compatibility and is tracked separately as lower-priority interface-hardening work.
+
 ### Stabilization Result
 - CL1 implementation status: done.
 - CI status: wired; final workflow-green status must be confirmed in GitHub Actions.
-- Live trading remains intentionally not authorized by code.
 
 ---
 
@@ -37,7 +38,6 @@
 - IP5 implementation status: done.
 - IP6 implementation status: done.
 - CI status: wired; final workflow-green status must be confirmed in GitHub Actions.
-- Live trading remains intentionally not authorized by code.
 
 ---
 
@@ -62,7 +62,6 @@
 - IP8 fallback/private-edge absence test coverage: done.
 - CI status: green.
 - Full regression status: green.
-- Live trading remains intentionally not authorized by code.
 
 ---
 
@@ -80,4 +79,3 @@
 - BT7 implementation status: done.
 - BT7 CI status: green.
 - Full regression status: green.
-- Live trading remains intentionally not authorized by code.
