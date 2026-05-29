@@ -1,7 +1,7 @@
 # Institutional Trading Engine Roadmap
 
 Status date: 2026-05-29  
-Current state: B1.1 evidence operation discipline plus TG2/TG3 reporting integration is implemented and CI-wired. Phase B1.1 remains active as the 3-6 month observation-only evidence collection period. GOV1-GOV10 runtime/pre-live governance hardening is implemented and CI-green. EV1-EV2 Sharpe/Deflated-Sharpe evidence-unit correction is implemented and CI-wired. Real-money execution is not authorized by code.
+Current state: EV1-EV12 evidence-integrity and execution-governance remediation is implemented, centrally documented and CI-green. B1.1 evidence operation discipline plus TG2/TG3 reporting integration is implemented and CI-wired. Phase B1.1 remains active as the 3-6 month observation-only evidence collection period. GOV1-GOV10 runtime/pre-live governance hardening is implemented and CI-green. Real-money execution is not authorized by code.
 
 ## Strategic direction
 
@@ -35,25 +35,25 @@ Hard evidence-integrity rule: Sharpe-like metrics must use explicit units. Per-t
 
 ## Phase EV — Evidence Integrity Fixes
 
-Target window: active  
+Target window: completed / CI-green  
 Goal: repair evidence-math and backtest-fidelity issues found by static code review before building new strategy complexity.
 
 | ID | Task | Priority | Impact | Status |
 |---|---|---:|---:|---|
-| EV1 | Fix `calculate_sharpe_ratio` so it returns per-trade Sharpe instead of a sample-size-scaled t-statistic | P0 | Critical | Done / CI-wired |
-| EV2 | Ensure Deflated Sharpe receives per-trade Sharpe and not the t-statistic | P0 | Critical | Done / CI-wired |
-| EV3 | Make historical backtest actually simulate declared `stop_model` / `exit_model` or fail closed | P0 | Critical | Planned / Next |
-| EV4 | Prevent full `-1R` booking after Target 1 when the declared stop model implies breakeven or partial management | P0 | High | Planned / Next |
-| EV5 | Model gap-through-stop fills pessimistically instead of always filling exactly at stop | P0 | High | Planned / Next |
-| EV6 | Fix Target-1-only `exit_date` so OOS / walk-forward segmentation uses the actual hit date | P1 | High | Planned / Next |
-| EV7 | Prevent `tier_3` + size reduction from ranking above clean `tier_3` WATCH candidates | P1 | Medium | Planned |
-| EV8 | Clarify walk-forward naming or train/test semantics so the report does not overstate overfitting protection | P2 | Medium | Planned |
-| EV9 | Report effective drawdown threshold instead of raw multiplier | P1 | Medium | Done / CI-wired |
-| EV10 | Handle `profit_factor=inf` degradation without `nan` audit output | P1 | Medium | Planned |
-| EV11 | Make setup scoring fallbacks conservative for missing RSI / ATR / RVOL instead of ideal-zone defaults | P1 | Medium | Planned |
-| EV12 | Add drawdown magnitude thresholds to kill-switch governance or document where magnitude is blocked | P1 | Medium | Planned |
+| EV1 | Fix `calculate_sharpe_ratio` so it returns per-trade Sharpe instead of a sample-size-scaled t-statistic | P0 | Critical | Done / CI-green |
+| EV2 | Ensure Deflated Sharpe receives per-trade Sharpe and not the t-statistic | P0 | Critical | Done / CI-green |
+| EV3 | Make historical backtest actually simulate declared `stop_model` / `exit_model` or fail closed | P0 | Critical | Done / CI-green |
+| EV4 | Prevent full `-1R` booking after Target 1 when the declared stop model implies breakeven or partial management | P0 | High | Done / CI-green |
+| EV5 | Model gap-through-stop fills pessimistically instead of always filling exactly at stop | P0 | High | Done / CI-green |
+| EV6 | Fix Target-1-only `exit_date` so fixed-date holdout segmentation uses the actual hit date | P1 | High | Done / CI-green |
+| EV7 | Prevent `tier_3` + size reduction from ranking above clean `tier_3` WATCH candidates | P1 | Medium | Done / CI-green |
+| EV8 | Clarify fixed-date holdout semantics so the report does not overstate overfitting protection | P2 | Medium | Done / CI-green |
+| EV9 | Report effective drawdown threshold instead of raw multiplier | P1 | Medium | Done / CI-green |
+| EV10 | Handle `profit_factor=inf` degradation without `nan` audit output | P1 | Medium | Done / CI-green |
+| EV11 | Make setup scoring fallbacks conservative for missing RSI / ATR / RVOL instead of ideal-zone defaults | P1 | Medium | Done / CI-green |
+| EV12 | Add drawdown magnitude thresholds to kill-switch governance | P1 | Medium | Done / CI-green |
 
-EV1-EV2 and EV9 are implemented and CI-wired. EV3-EV6 are the next critical backtest-fidelity block.
+EV1-EV12 are implemented, CI-green and consolidated in `docs/operations/ev_evidence_consolidation_full_suite_review.md`.
 
 ## Phase GOV — Runtime Governance Hardening
 
@@ -165,17 +165,17 @@ Goal: prove whether the rule-based system has live-observable edge before adding
 
 ## Phase D — Strategy Expansion
 
-Start only after Phase B and C produce credible evidence, after the private-edge boundary exists, after GOV1-GOV10 runtime/pre-live hygiene is CI-green, and after EV critical evidence-integrity items are complete.
+Start only after Phase B and C produce credible evidence, after the private-edge boundary exists, after GOV1-GOV10 runtime/pre-live hygiene is CI-green, and after EV1-EV12 evidence-integrity items are complete and CI-green.
 
 | ID | Task | Priority | Impact | Status |
 |---|---|---:|---:|---|
-| D1 | Add mean-reversion strategy sleeve with separate validation behind the private-edge boundary or with demo-only public constants | P1 | High | Planned / Blocked by B1.1 + EV |
-| D2 | Add multi-strategy risk-parity allocator | P1 | High | Planned / Blocked by B1.1 + EV |
-| D3 | Add factor, sector and style exposure caps | P1 | High | Planned / Blocked by B1.1 + EV |
-| D4 | Add correlation-aware position sizing | P1 | High | Planned / Blocked by B1.1 + EV |
-| D5 | Pilot options-flow features such as GEX, skew and put/call signals | P2 | Medium | Planned / Blocked by B1.1 + EV |
-| D6 | Pilot LLM-based news sentiment pipeline | P2 | Medium | Planned / Blocked by B1.1 + EV |
-| D7 | Evaluate event-driven earnings module with separate edge validation | P2 | Medium | Planned / Blocked by B1.1 + EV |
+| D1 | Add mean-reversion strategy sleeve with separate validation behind the private-edge boundary or with demo-only public constants | P1 | High | Planned / Blocked by B1.1 evidence period |
+| D2 | Add multi-strategy risk-parity allocator | P1 | High | Planned / Blocked by B1.1 evidence period |
+| D3 | Add factor, sector and style exposure caps | P1 | High | Planned / Blocked by B1.1 evidence period |
+| D4 | Add correlation-aware position sizing | P1 | High | Planned / Blocked by B1.1 evidence period |
+| D5 | Pilot options-flow features such as GEX, skew and put/call signals | P2 | Medium | Planned / Blocked by B1.1 evidence period |
+| D6 | Pilot LLM-based news sentiment pipeline | P2 | Medium | Planned / Blocked by B1.1 evidence period |
+| D7 | Evaluate event-driven earnings module with separate edge validation | P2 | Medium | Planned / Blocked by B1.1 evidence period |
 
 ## Phase E — Continuous Institutionalization
 
@@ -191,7 +191,7 @@ Start only after Phase B and C produce credible evidence, after the private-edge
 
 ## Recently completed evidence-visibility, IP and logic-safety work
 
-- EV1-EV2 Sharpe / Deflated-Sharpe evidence-unit correction: implemented and CI-wired.
+- EV1-EV12 evidence-integrity remediation and consolidated evidence matrix: done and CI-green.
 - GOV1-GOV10 runtime/pre-live governance hardening: implemented and CI-green.
 - B1.1 evidence operation discipline plus TG2/TG3 reporting integration: implemented and CI-wired.
 - B1.2 visible Paper Observation asset-treatment timeline artifacts: implemented and CI-wired.
@@ -217,18 +217,21 @@ Start only after Phase B and C produce credible evidence, after the private-edge
 
 ## Current execution focus
 
-B1.1 remains the long-running evidence collection period. GOV1-GOV10 are implemented and CI-green. EV1-EV2 are implemented and CI-wired. Phase C is active for paper execution only. Immediate focus: get EV1-EV2 CI-green, then implement EV3-EV6 backtest-fidelity fixes before any strategy expansion.
+B1.1 remains the long-running evidence collection period. EV1-EV12 and GOV1-GOV10 are implemented and CI-green. Phase C remains paper-execution infrastructure only. Immediate focus: roadmap cleanup, CI runtime simplification, full-suite flake review and evidence artifact index consistency.
 
 ## Recommended next block
 
-After EV1-EV2 are green in GitHub Actions, implement EV3-EV6 as one backtest-fidelity block: declared stop/exit model simulation, breakeven-after-T1 handling, gap-through-stop modeling and correct Target-1-only exit dates.
+1. Reduce CI runtime duplication while preserving targeted EV/GOV/CL/BT gates.
+2. Add a full-suite flake review document with clear retry/escalation criteria.
+3. Consolidate evidence artifact index expectations so generated evidence remains traceable.
+4. Keep B1.1 observation evidence running until the required observation window is complete.
 
 ## Do not do yet
 
 - Do not enable real-money execution.
 - Do not add new asset classes.
 - Do not add ML before rule-based edge is statistically significant.
-- Do not add Phase D strategy expansion before B1.1 observation evidence, GOV1-GOV10 runtime/pre-live hygiene and critical EV evidence-integrity items are complete and CI-green.
+- Do not add Phase D strategy expansion before B1.1 observation evidence, GOV1-GOV10 runtime/pre-live hygiene and EV1-EV12 evidence-integrity items are complete and CI-green.
 - Do not compare old public-demo evidence artifacts across the EV1-EV2 Sharpe definition version boundary.
 - Do not feed sample-size-scaled t-statistics into Deflated Sharpe.
 - Do not treat Sharpe, t-statistic and Deflated Sharpe as interchangeable units.
