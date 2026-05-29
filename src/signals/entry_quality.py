@@ -42,6 +42,17 @@ def _reject(reason: str, *, entry_type: str = "n/a") -> EntryQualityResult:
     )
 
 
+def _accept_computed_entry(entry: float, *, entry_type: str, entry_reason: str) -> EntryQualityResult:
+    if entry <= 0:
+        return _reject("computed_entry_non_positive", entry_type=entry_type)
+    return EntryQualityResult(
+        is_valid=True,
+        entry_trigger=_round_price(entry),
+        entry_type=entry_type,
+        entry_reason=entry_reason,
+    )
+
+
 def _validate_breakout_context(
     *,
     close: float,
@@ -82,6 +93,8 @@ def derive_entry_quality(
 
     if close is None:
         return _reject("missing_close")
+    if close <= 0:
+        return _reject("missing_or_invalid_close")
     if atr is None or atr <= 0:
         return _reject("missing_or_invalid_atr")
 
@@ -142,44 +155,39 @@ def derive_entry_quality(
         high = _safe_float(scanner.get("high"))
         if high is not None and high > 0:
             entry = high * 1.001
-            return EntryQualityResult(
-                is_valid=True,
-                entry_trigger=_round_price(entry),
+            return _accept_computed_entry(
+                entry,
                 entry_type="breakout",
                 entry_reason="breakout above scanner high with 0.1 percent buffer",
             )
 
         entry = close + 0.5 * atr
-        return EntryQualityResult(
-            is_valid=True,
-            entry_trigger=_round_price(entry),
+        return _accept_computed_entry(
+            entry,
             entry_type="breakout",
             entry_reason="breakout entry above current close using 0.5 ATR buffer",
         )
 
     if normalized_setup == "pullback_continuation":
         entry = close - 1.0 * atr
-        return EntryQualityResult(
-            is_valid=True,
-            entry_trigger=_round_price(entry),
+        return _accept_computed_entry(
+            entry,
             entry_type="pullback",
             entry_reason="pullback entry near 1 ATR below current close",
         )
 
     if normalized_setup == "retest_continuation":
         entry = close - 0.5 * atr
-        return EntryQualityResult(
-            is_valid=True,
-            entry_trigger=_round_price(entry),
+        return _accept_computed_entry(
+            entry,
             entry_type="retest",
             entry_reason="retest entry near 0.5 ATR below current close",
         )
 
     if normalized_setup == "gap_fill":
         entry = close - 0.75 * atr
-        return EntryQualityResult(
-            is_valid=True,
-            entry_trigger=_round_price(entry),
+        return _accept_computed_entry(
+            entry,
             entry_type="gap_fill",
             entry_reason="gap-fill entry near 0.75 ATR below current close",
         )
@@ -187,17 +195,15 @@ def derive_entry_quality(
     if normalized_setup in {"defensive_rotation", "mean_reversion"}:
         if not allow_at_market:
             return _reject("at_market_entry_not_allowed", entry_type="at_market")
-        return EntryQualityResult(
-            is_valid=True,
-            entry_trigger=_round_price(close),
+        return _accept_computed_entry(
+            close,
             entry_type="at_market",
             entry_reason="at-market entry explicitly allowed for defensive/mean-reversion setup",
         )
 
     entry = close + 0.3 * atr
-    return EntryQualityResult(
-        is_valid=True,
-        entry_trigger=_round_price(entry),
+    return _accept_computed_entry(
+        entry,
         entry_type="breakout",
         entry_reason="default breakout entry using 0.3 ATR buffer",
     )
