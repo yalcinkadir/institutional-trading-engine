@@ -46,6 +46,17 @@ def _reject(reason: str, *, stop_model: str = "n/a", stop_loss: float | None = N
     )
 
 
+def _accept_computed_stop(stop: float, *, stop_model: str, stop_reason: str) -> StopLossQualityResult:
+    if stop <= 0:
+        return _reject("computed_stop_non_positive", stop_model=stop_model)
+    return StopLossQualityResult(
+        is_valid=True,
+        stop_loss=_round_price(stop),
+        stop_model=stop_model,
+        stop_reason=stop_reason,
+    )
+
+
 def _structure_stop_from_swing_low(
     *,
     swing_low: float | None,
@@ -62,9 +73,8 @@ def _structure_stop_from_swing_low(
     if atr_distance > MAX_STRUCTURE_STOP_ATR_DISTANCE:
         return None
 
-    return StopLossQualityResult(
-        is_valid=True,
-        stop_loss=_round_price(stop),
+    return _accept_computed_stop(
+        stop,
         stop_model="swing_low_structure_stop",
         stop_reason="swing-low structure stop with 0.2 percent buffer",
     )
@@ -92,8 +102,12 @@ def derive_stop_loss_quality(
 
     if entry_trigger is None:
         return _reject("missing_entry_trigger")
+    if entry_trigger <= 0:
+        return _reject("invalid_entry_trigger")
     if close is None:
         return _reject("missing_close")
+    if close <= 0:
+        return _reject("missing_or_invalid_close")
     if atr is None or atr <= 0:
         return _reject("missing_or_invalid_atr")
 
@@ -128,44 +142,39 @@ def derive_stop_loss_quality(
 
     if normalized_entry_type == "pullback" or normalized_setup == "pullback_continuation":
         stop = entry_trigger - 1.5 * atr
-        return StopLossQualityResult(
-            is_valid=True,
-            stop_loss=_round_price(stop),
+        return _accept_computed_stop(
+            stop,
             stop_model="pullback_structure_stop",
             stop_reason="pullback structure stop 1.5 ATR below entry",
         )
 
     if normalized_entry_type == "retest" or normalized_setup == "retest_continuation":
         stop = entry_trigger - 1.25 * atr
-        return StopLossQualityResult(
-            is_valid=True,
-            stop_loss=_round_price(stop),
+        return _accept_computed_stop(
+            stop,
             stop_model="retest_structure_stop",
             stop_reason="retest structure stop 1.25 ATR below entry",
         )
 
     if normalized_entry_type == "gap_fill" or normalized_setup == "gap_fill":
         stop = entry_trigger - 1.5 * atr
-        return StopLossQualityResult(
-            is_valid=True,
-            stop_loss=_round_price(stop),
+        return _accept_computed_stop(
+            stop,
             stop_model="gap_fill_stop",
             stop_reason="gap-fill stop 1.5 ATR below entry",
         )
 
     if normalized_entry_type == "at_market":
         stop = entry_trigger - 2.0 * atr
-        return StopLossQualityResult(
-            is_valid=True,
-            stop_loss=_round_price(stop),
+        return _accept_computed_stop(
+            stop,
             stop_model="atr_stop",
             stop_reason="at-market volatility stop 2 ATR below entry",
         )
 
     stop = entry_trigger - 2.0 * atr
-    return StopLossQualityResult(
-        is_valid=True,
-        stop_loss=_round_price(stop),
+    return _accept_computed_stop(
+        stop,
         stop_model="atr_stop",
         stop_reason="ATR stop 2 ATR below entry",
     )
