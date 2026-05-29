@@ -1,0 +1,43 @@
+{
+  "folds": [
+    {
+      "fold_id": "bt5-demo-fold-001",
+      "strategy_id": "demo_trend_following",
+      "parameter_version": "demo-params-v1",
+      "dataset_id": "synthetic-wf-demo-v1",
+      "train_start": "2024-01-01",
+      "train_end": "2024-03-31",
+      "oos_start": "2024-04-01",
+      "oos_end": "2024-04-30",
+      "train_metrics": {"expectancy_r": 0.42, "sharpe": 1.35, "max_drawdown_pct": 8.4, "trade_count": 42},
+      "oos_metrics": {"expectancy_r": 0.26, "sharpe": 1.02, "max_drawdown_pct": 9.8, "trade_count": 11},
+      "tags": ["demo", "public_safe"]
+    },
+    {
+      "fold_id": "bt5-demo-fold-002",
+      "strategy_id": "demo_trend_following",
+      "parameter_version": "demo-params-v1",
+      "dataset_id": "synthetic-wf-demo-v1",
+      "train_start": "2024-02-01",
+      "train_end": "2024-04-30",
+      "oos_start": "2024-05-01",
+      "oos_end": "2024-05-31",
+      "train_metrics": {"expectancy_r": 0.38, "sharpe": 1.22, "max_drawdown_pct": 7.9, "trade_count": 39},
+      "oos_metrics": {"expectancy_r": 0.21, "sharpe": 0.88, "max_drawdown_pct": 10.2, "trade_count": 9},
+      "tags": ["demo", "public_safe"]
+    },
+    {
+      "fold_id": "bt5-demo-fold-003",
+      "strategy_id": "demo_mean_reversion_placeholder",
+      "parameter_version": "demo-params-v1",
+      "dataset_id": "synthetic-wf-demo-v1",
+      "train_start": "2024-03-01",
+      "train_end": "2024-05-31",
+      "oos_start": "2024-06-01",
+      "oos_end": "2024-06-30",
+      "train_metrics": {"expectancy_r": 0.31, "sharpe": 1.05, "max_drawdown_pct": 9.1, "trade_count": 37},
+      "oos_metrics": {"expectancy_r": 0.17, "sharpe": 0.76, "max_drawdown_pct": 11.7, "trade_count": 8},
+      "tags": ["demo", "public_safe"]
+    }
+  ]
+}
