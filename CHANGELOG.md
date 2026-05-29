@@ -10,8 +10,8 @@
 
 ### Added
 - `BacktestExecutionConfig` for explicit same-bar and stop-gap execution assumptions.
-- Supported stop model contract: `None`, `fixed`, `breakeven_after_t1`.
-- Supported exit model contract: `None`, `t1_t2`, `t1_only`.
+- Supported stop model contract: `None`, `fixed`, `percentage_stop`, `breakeven_after_t1`.
+- Supported exit model contract: `None`, `t1_t2`, `r_multiple_targets`, `t1_only`.
 - Regression coverage in `tests/test_backtest_fidelity_ev3_ev6.py`.
 - Dedicated main CI step for EV3-EV6 backtest fidelity tests.
 
@@ -20,7 +20,7 @@
 - EV4 implementation status: done.
 - EV5 implementation status: done.
 - EV6 implementation status: done.
-- CI status: wired; final workflow-green status must be confirmed in GitHub Actions.
+- CI status: green.
 - Live trading authorization: unchanged; not granted by code.
 
 ---
