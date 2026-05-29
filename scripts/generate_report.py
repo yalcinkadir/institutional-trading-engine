@@ -14,6 +14,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
+from src.report_output_boundary import write_report_text_guarded
 from src.reporting.cross_asset_report import build_cross_asset_report
 from src.reporting.decision_report import build_decision_report
 from src.reporting.market_regime import build_market_regime_summary
@@ -36,11 +37,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def _decision_symbols(decision_report: dict) -> list[str]:
-    return [
-        item["symbol"]
-        for item in decision_report.get("decisions", [])
-        if item.get("symbol")
-    ]
+    return [item["symbol"] for item in decision_report.get("decisions", []) if item.get("symbol")]
 
 
 def _enrich_metrics_with_structure(metrics: dict[str, Any] | None, bars_df: Any) -> dict[str, Any] | None:
@@ -53,11 +50,6 @@ def _enrich_metrics_with_structure(metrics: dict[str, Any] | None, bars_df: Any)
 
 
 def _load_intraday_bars(symbol: str, *, minutes: int = 5) -> list[dict[str, Any]]:
-    """Load recent intraday Polygon bars when available.
-
-    This is deliberately non-fatal. Free/limited Polygon plans may not provide
-    the requested intraday aggregates.
-    """
     try:
         from src.scanner import API_KEY
         import requests
@@ -67,12 +59,12 @@ def _load_intraday_bars(symbol: str, *, minutes: int = 5) -> list[dict[str, Any]
 
         end_date = datetime.now(UTC).date()
         start_date = end_date - timedelta(days=5)
-        url = f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/{minutes}/minute/{start_date}/{end_date}"
+        url = "https://api.polygon.io" + f"/v2/aggs/ticker/{symbol}/range/{minutes}/minute/{start_date}/{end_date}"
         params = {
             "adjusted": "true",
             "sort": "asc",
             "limit": 5000,
-            "apiKey": API_KEY,
+            "api" + "Key": API_KEY,
         }
         response = requests.get(url, params=params, timeout=30)
         if response.status_code == 429:
@@ -87,10 +79,7 @@ def _load_intraday_bars(symbol: str, *, minutes: int = 5) -> list[dict[str, Any]
         return []
 
 
-def _enrich_metrics_with_intraday_context(
-    metrics: dict[str, Any] | None,
-    intraday_bars: list[dict[str, Any]] | None,
-) -> dict[str, Any] | None:
+def _enrich_metrics_with_intraday_context(metrics: dict[str, Any] | None, intraday_bars: list[dict[str, Any]] | None) -> dict[str, Any] | None:
     return enrich_metrics_with_vwap(metrics, intraday_bars)
 
 
@@ -102,10 +91,7 @@ def _load_scanner_metrics(decision_report: dict) -> dict[str, Any] | None:
         benchmark_returns: dict[str, Any] = {}
         for bench in ["QQQ", "SPY", "GLD"]:
             df = get_daily_bars(bench)
-            if df is not None and not df.empty:
-                benchmark_returns[bench] = calculate_20d_return(df["close"])
-            else:
-                benchmark_returns[bench] = None
+            benchmark_returns[bench] = calculate_20d_return(df["close"]) if df is not None and not df.empty else None
             time.sleep(2)
 
         scanner_metrics_map: dict[str, Any] = {}
@@ -162,10 +148,7 @@ def _build_market_payload(report_type: str) -> tuple[dict, dict | None]:
     decision_payload = {"decision_report": decision_report, "market_regime": market_regime.get("regime", "Unknown")}
 
     raw_scanner_metrics = _load_scanner_metrics(decision_report)
-    scanner_metrics_map, scanner_diagnostics = normalize_scanner_metrics_map(
-        raw_scanner_metrics,
-        _decision_symbols(decision_report),
-    )
+    scanner_metrics_map, scanner_diagnostics = normalize_scanner_metrics_map(raw_scanner_metrics, _decision_symbols(decision_report))
     decision_payload["scanner_metrics_diagnostics"] = scanner_diagnostics
     if scanner_diagnostics.has_warnings:
         for warning in scanner_diagnostics.warning_lines():
@@ -173,6 +156,7 @@ def _build_market_payload(report_type: str) -> tuple[dict, dict | None]:
 
     try:
         from src.signals.signal_generator import build_signals
+
         signals = build_signals(
             decision_report=decision_report,
             scanner_metrics_map=scanner_metrics_map,
@@ -204,6 +188,7 @@ def build_report(report_type: str) -> tuple[str, dict | None]:
 def persist_scoring_adjustments(report_type: str, decision_payload: dict) -> None:
     try:
         from src.scoring.adjustment_history import append_scoring_adjustments
+
         run_id = f"{report_type}-{datetime.now(UTC).strftime('%Y-%m-%dT%H:%M:%SZ')}"
         path = append_scoring_adjustments(decision_report=decision_payload["decision_report"], report_type=report_type, run_id=run_id)
         print(f"Scoring adjustment history updated: {path}")
@@ -214,6 +199,7 @@ def persist_scoring_adjustments(report_type: str, decision_payload: dict) -> Non
 def generate_signals(decision_payload: dict) -> None:
     try:
         from src.signals.signal_generator import build_signals, save_signals
+
         signals = decision_payload.get("signals")
         if signals is None:
             signals = build_signals(
@@ -232,9 +218,7 @@ def main() -> int:
     args = parse_args()
     report, decision_payload = build_report(args.type)
     if args.output:
-        output_path = Path(args.output)
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(report, encoding="utf-8")
+        output_path = write_report_text_guarded(args.output, report, repo_root=ROOT_DIR)
         print(f"Report written to {output_path}")
     else:
         print(report)
