@@ -51,7 +51,6 @@ class DecisionThresholds:
 
     version: str = THRESHOLDS_VERSION
     public_demo_defaults: bool = PUBLIC_DEMO_DEFAULTS
-    atr_calculation_version: str = ATR_CALCULATION_VERSION
 
 
 DEFAULT_THRESHOLDS = DecisionThresholds()
