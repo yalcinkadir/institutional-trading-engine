@@ -1,7 +1,7 @@
 # Institutional Trading Engine Roadmap
 
 Status date: 2026-05-29  
-Current state: B1.1 evidence operation discipline plus TG2/TG3 reporting integration is implemented and CI-wired. Phase B1.1 remains active as the 3-6 month observation-only evidence collection period. GOV1-GOV6 runtime governance/stability hardening is implemented and CI-green. GOV7-GOV10 pre-live hygiene is implemented and CI-wired. Real-money execution is not authorized by code.
+Current state: B1.1 evidence operation discipline plus TG2/TG3 reporting integration is implemented and CI-wired. Phase B1.1 remains active as the 3-6 month observation-only evidence collection period. GOV1-GOV10 runtime/pre-live governance hardening is implemented and CI-green. Real-money execution is not authorized by code.
 
 ## Strategic direction
 
@@ -44,12 +44,12 @@ Goal: close runtime-governance gaps found during Paper Observation before adding
 | GOV4 | Treat `VIX=None` consistently in `negative_override` instead of silently defaulting missing VIX to `0` | P1 | High | Done / CI-green |
 | GOV5 | Bound `RuntimeState.history` with a ring buffer or documented max length to avoid unbounded memory growth during multi-day observation | P1 | Medium | Done / CI-green |
 | GOV6 | Add runtime-loop exception handling with logging and a max-consecutive-error limit so one provider/network exception cannot kill the loop silently | P1 | Medium | Done / CI-green |
-| GOV7 | Fix adaptive-weighting rounding so normalized public weights sum to exactly `1.0` after rounding | P2 | Medium | Done / CI-wired |
-| GOV8 | Document or encode VIX term-structure inversion mode so PARTIAL and DIRECT modes are not treated as the same boolean semantics | P2 | Medium | Done / CI-wired |
-| GOV9 | Add deprecation markers or consolidation plan for duplicate modules with overlapping responsibilities | P2 | Medium | Done / CI-wired |
-| GOV10 | Add cumulative drift gate for Paper Observation so small persistent daily drift cannot avoid detection by only checking max absolute daily drift | P2 | Medium | Done / CI-wired |
+| GOV7 | Fix adaptive-weighting rounding so normalized public weights sum to exactly `1.0` after rounding | P2 | Medium | Done / CI-green |
+| GOV8 | Document or encode VIX term-structure inversion mode so PARTIAL and DIRECT modes are not treated as the same boolean semantics | P2 | Medium | Done / CI-green |
+| GOV9 | Add deprecation markers or consolidation plan for duplicate modules with overlapping responsibilities | P2 | Medium | Done / CI-green |
+| GOV10 | Add cumulative drift gate for Paper Observation so small persistent daily drift cannot avoid detection by only checking max absolute daily drift | P2 | Medium | Done / CI-green |
 
-GOV1-GOV6 are implemented and CI-green. GOV7-GOV10 are implemented and CI-wired. They add pre-live hygiene for rounded public weights, VIX term-structure semantics, duplicate-module remediation markers and cumulative Paper Observation drift detection.
+GOV1-GOV10 are implemented and CI-green. They add runtime governance, runtime stability and pre-live hygiene for anomaly handling, missing portfolio state, non-positive prices, VIX handling, runtime-loop resilience, rounded public weights, VIX term-structure semantics, duplicate-module remediation markers and cumulative Paper Observation drift detection.
 
 ## Phase IP — Public Framework / Private Edge Separation
 
@@ -167,9 +167,7 @@ Start only after Phase B and C produce credible evidence, after the private-edge
 
 ## Recently completed evidence-visibility, IP and logic-safety work
 
-- GOV7-GOV10 pre-live hygiene: implemented and CI-wired.
-- GOV4-GOV6 runtime stability hardening: implemented and CI-green.
-- GOV1-GOV3 runtime governance hardening: implemented and CI-green.
+- GOV1-GOV10 runtime/pre-live governance hardening: implemented and CI-green.
 - B1.1 evidence operation discipline plus TG2/TG3 reporting integration: implemented and CI-wired.
 - B1.2 visible Paper Observation asset-treatment timeline artifacts: implemented and CI-wired.
 - Paper Observation Telegram notification workflow: implemented and active when repository secrets are configured.
@@ -194,11 +192,11 @@ Start only after Phase B and C produce credible evidence, after the private-edge
 
 ## Current execution focus
 
-B1.1 remains the long-running evidence collection period. GOV1-GOV6 are implemented and CI-green. GOV7-GOV10 are implemented and CI-wired. Phase C is active for paper execution only. Telegram delivery is allowed for research/paper-observation reports only. Immediate focus: get GOV7-GOV10 CI-green, keep observation discipline running and avoid new strategy complexity.
+B1.1 remains the long-running evidence collection period. GOV1-GOV10 are implemented and CI-green. Phase C is active for paper execution only. Telegram delivery is allowed for research/paper-observation reports only. Immediate focus: keep observation discipline running, inspect daily reconciliation cleanliness and avoid new strategy complexity until enough forward evidence exists.
 
 ## Recommended next block
 
-After GOV7-GOV10 are green in GitHub Actions, continue B1.1 Paper Observation discipline and only then consider lower-priority pre-live work or additional evidence/audit dashboard items. Do not add strategy complexity until enough forward paper evidence exists.
+Continue B1.1 Paper Observation discipline. Only consider lower-priority pre-live work or additional evidence/audit dashboard items after the observation cadence remains clean. Do not add strategy complexity until enough forward paper evidence exists.
 
 ## Do not do yet
 
