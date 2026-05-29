@@ -63,6 +63,12 @@ jobs:
         run: |
           pytest tests/test_sharpe_definition_regression.py -q
 
+      - name: EV3-EV6 backtest fidelity tests
+        env:
+          POLYGON_API_KEY: test-key
+        run: |
+          pytest tests/test_backtest_fidelity_ev3_ev6.py -q
+
       - name: Phase A stabilization tests
         env:
           POLYGON_API_KEY: test-key
