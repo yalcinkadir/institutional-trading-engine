@@ -1,5 +1,31 @@
 # CHANGELOG
 
+## GOV4-GOV6 Runtime Stability Hardening — 2026-05-29
+
+### Fixed
+- GOV4: `evaluate_negative_overrides` no longer treats `vix=None` or invalid VIX as `0` market stress.
+- GOV5: `RuntimeState.history` no longer grows without bound during long-running observation.
+- GOV6: `RuntimeLoop` no longer dies silently on a single `cycle_provider` exception.
+
+### Added
+- Explicit `vix_unavailable` minor override when a VIX key is present but unavailable or invalid.
+- Bounded `RuntimeState.history` ring buffer with default max length of `1000`.
+- `RuntimeLoopError` and max-consecutive-error handling in `RuntimeLoop.start`.
+- Regression coverage in:
+  - `tests/test_negative_override.py`
+  - `tests/test_runtime_state.py`
+  - `tests/test_runtime_loop.py`
+- Dedicated main CI step for GOV4-GOV6 runtime stability hardening tests.
+
+### Stabilization Result
+- GOV4 implementation status: done.
+- GOV5 implementation status: done.
+- GOV6 implementation status: done.
+- CI status: wired; final workflow-green status must be confirmed in GitHub Actions.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## B1.1 Evidence Operation Discipline + TG2/TG3 Reporting Integration — 2026-05-29
 
 ### Added
