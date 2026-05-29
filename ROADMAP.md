@@ -1,7 +1,7 @@
 # Institutional Trading Engine Roadmap
 
 Status date: 2026-05-29  
-Current state: B1.1 evidence operation discipline plus TG2/TG3 reporting integration is implemented and CI-wired. Phase B1.1 remains active as the 3-6 month observation-only evidence collection period. GOV1-GOV3 runtime governance hardening is implemented and CI-wired. Real-money execution is not authorized by code.
+Current state: B1.1 evidence operation discipline plus TG2/TG3 reporting integration is implemented and CI-wired. Phase B1.1 remains active as the 3-6 month observation-only evidence collection period. GOV1-GOV3 runtime governance hardening is implemented and CI-green. GOV4-GOV6 runtime stability hardening is implemented and CI-wired. Real-money execution is not authorized by code.
 
 ## Strategic direction
 
@@ -38,18 +38,18 @@ Goal: close runtime-governance gaps found during Paper Observation before adding
 
 | ID | Task | Priority | Impact | Status |
 |---|---|---:|---:|---|
-| GOV1 | Feed `severe_anomaly_count` from runtime state into `evaluate_kill_switch` instead of passing a hardcoded `0` | P0 | Critical | Done / CI-wired |
-| GOV2 | Make missing portfolio state fail closed: `conservative_default` must not silently return `drawdown_percent=0.0` and `daily_loss_percent=0.0` as if governance state were valid | P0 | Critical | Done / CI-wired |
-| GOV3 | Reject all computed non-positive entries and stops after calculation, not only explicitly supplied entry values | P0 | Critical | Done / CI-wired |
-| GOV4 | Treat `VIX=None` consistently in `negative_override` instead of silently defaulting missing VIX to `0` | P1 | High | Planned / Next |
-| GOV5 | Bound `RuntimeState.history` with a ring buffer or documented max length to avoid unbounded memory growth during multi-day observation | P1 | Medium | Planned / Next |
-| GOV6 | Add runtime-loop exception handling with logging and a max-consecutive-error limit so one provider/network exception cannot kill the loop silently | P1 | Medium | Planned / Next |
-| GOV7 | Fix adaptive-weighting rounding so normalized public weights sum to exactly `1.0` after rounding | P2 | Medium | Planned |
-| GOV8 | Document or encode VIX term-structure inversion mode so PARTIAL and DIRECT modes are not treated as the same boolean semantics | P2 | Medium | Planned |
+| GOV1 | Feed `severe_anomaly_count` from runtime state into `evaluate_kill_switch` instead of passing a hardcoded `0` | P0 | Critical | Done / CI-green |
+| GOV2 | Make missing portfolio state fail closed: `conservative_default` must not silently return `drawdown_percent=0.0` and `daily_loss_percent=0.0` as if governance state were valid | P0 | Critical | Done / CI-green |
+| GOV3 | Reject all computed non-positive entries and stops after calculation, not only explicitly supplied entry values | P0 | Critical | Done / CI-green |
+| GOV4 | Treat `VIX=None` consistently in `negative_override` instead of silently defaulting missing VIX to `0` | P1 | High | Done / CI-wired |
+| GOV5 | Bound `RuntimeState.history` with a ring buffer or documented max length to avoid unbounded memory growth during multi-day observation | P1 | Medium | Done / CI-wired |
+| GOV6 | Add runtime-loop exception handling with logging and a max-consecutive-error limit so one provider/network exception cannot kill the loop silently | P1 | Medium | Done / CI-wired |
+| GOV7 | Fix adaptive-weighting rounding so normalized public weights sum to exactly `1.0` after rounding | P2 | Medium | Planned / Next |
+| GOV8 | Document or encode VIX term-structure inversion mode so PARTIAL and DIRECT modes are not treated as the same boolean semantics | P2 | Medium | Planned / Next |
 | GOV9 | Add deprecation markers or consolidation plan for duplicate modules with overlapping responsibilities | P2 | Medium | Planned |
 | GOV10 | Add cumulative drift gate for Paper Observation so small persistent daily drift cannot avoid detection by only checking max absolute daily drift | P2 | Medium | Planned |
 
-GOV1-GOV3 are implemented and CI-wired. They harden the immediate critical runtime-governance gaps. GOV4-GOV6 are the next short-term stability block. GOV7-GOV10 are pre-live hygiene and consolidation items.
+GOV1-GOV3 are implemented and CI-green. GOV4-GOV6 are implemented and CI-wired. They harden the immediate runtime-governance and runtime-stability gaps. GOV7-GOV10 are the next pre-live hygiene and consolidation items.
 
 ## Phase IP — Public Framework / Private Edge Separation
 
@@ -167,7 +167,8 @@ Start only after Phase B and C produce credible evidence, after the private-edge
 
 ## Recently completed evidence-visibility, IP and logic-safety work
 
-- GOV1-GOV3 runtime governance hardening: implemented and CI-wired.
+- GOV4-GOV6 runtime stability hardening: implemented and CI-wired.
+- GOV1-GOV3 runtime governance hardening: implemented and CI-green.
 - B1.1 evidence operation discipline plus TG2/TG3 reporting integration: implemented and CI-wired.
 - B1.2 visible Paper Observation asset-treatment timeline artifacts: implemented and CI-wired.
 - Paper Observation Telegram notification workflow: implemented and active when repository secrets are configured.
@@ -192,16 +193,17 @@ Start only after Phase B and C produce credible evidence, after the private-edge
 
 ## Current execution focus
 
-B1.1 remains the long-running evidence collection period. GOV1-GOV3 are implemented and CI-wired. The next implementation focus is GOV4-GOV6 runtime stability hardening: VIX-None override consistency, bounded runtime history and runtime-loop exception handling. Phase C is active for paper execution only. Telegram delivery is allowed for research/paper-observation reports only. Immediate focus: keep observation discipline running and avoid new strategy complexity.
+B1.1 remains the long-running evidence collection period. GOV1-GOV3 are implemented and CI-green. GOV4-GOV6 are implemented and CI-wired. The next implementation focus is GOV7-GOV10 pre-live hygiene: adaptive-weighting rounding, VIX term-structure inversion semantics, duplicate-module deprecation markers and cumulative drift gate. Phase C is active for paper execution only. Telegram delivery is allowed for research/paper-observation reports only. Immediate focus: keep observation discipline running and avoid new strategy complexity.
 
 ## Recommended next block
 
-After GOV1-GOV3 are green in GitHub Actions, implement GOV4-GOV6 with regression tests and CI:
+After GOV4-GOV6 are green in GitHub Actions, implement GOV7-GOV10 with regression tests and CI:
 
 ```text
-GOV4 VIX=None negative override consistency
-GOV5 bounded RuntimeState.history
-GOV6 RuntimeLoop exception handling
+GOV7 adaptive-weighting rounding exactness
+GOV8 VIX term-structure inversion mode semantics
+GOV9 duplicate-module deprecation markers
+GOV10 cumulative Paper Observation drift gate
 ```
 
 Continue B1.1 observation cadence, monitor the evidence-operation gate, inspect daily reconciliation cleanliness and keep the strategy surface frozen until enough forward paper evidence exists.
@@ -215,6 +217,9 @@ Continue B1.1 observation cadence, monitor the evidence-operation gate, inspect 
 - Do not ignore missing portfolio state or treat it as a healthy zero-drawdown state.
 - Do not allow computed non-positive entries or stops to pass validation.
 - Do not treat hardcoded `severe_anomaly_count=0` as acceptable runtime governance.
+- Do not treat missing or invalid VIX as zero market stress.
+- Do not let runtime history grow without bounds during multi-day observation.
+- Do not let a single runtime provider exception silently kill the loop.
 - Do not open or reuse lockbox evidence casually.
 - Do not skip forward paper observation.
 - Do not add new proprietary thresholds, setup maps, scoring weights or exit profiles directly to the public repo unless they are explicitly demo-only.
