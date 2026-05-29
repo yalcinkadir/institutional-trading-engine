@@ -17,7 +17,7 @@ Phase B evidence pipeline: implemented, CI-green and workflow-green
 Phase B1.1: active 3-6 month observation-only evidence collection
 Phase C paper execution infrastructure: implemented for planning, reconciliation, drift, fill-quality and kill-switch governance
 Phase IP1/IP2: public/private edge boundary and public repository hygiene policy implemented
-IP3/IP4: public-demo defaults and optional external edge provider boundary implemented and CI-wired
+IP3/IP4: public-demo defaults and optional external edge provider boundary implemented and CI-green
 TG1: Telegram research-only report dispatcher implemented
 BT2: Strategy Test Matrix model, demo matrix, CLI, docs and tests implemented
 BT3: Backtest reproducibility contract implemented
