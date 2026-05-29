@@ -1,5 +1,28 @@
 # CHANGELOG
 
+## CL5 Regime Alignment Governance — 2026-05-29
+
+### Added
+- CL5 independent `regime_alignment` gate in `src/decision_engine.py`.
+- CL5 regression coverage in `tests/test_decision_engine.py`.
+- Operational documentation in `docs/operations/cl5_regime_alignment_governance.md`.
+- CI step for CL5 regime-alignment governance tests.
+
+### Improved
+- Poor regime alignment now returns `NO_TRADE` with `poor_regime_alignment` instead of being hidden behind a generic insufficient-quality result.
+- Decision notes now include `regime_alignment_independent_gate` when the CL5 gate rejects a candidate.
+- High setup score, asymmetry score and data confidence can no longer rescue a candidate below the independent regime-alignment floor.
+- The public-demo Tier 3 regime-alignment cutoff is reused as the fail-closed floor, avoiding new proprietary public constants.
+- Ranking regression coverage proves that a high-score poor-regime candidate is ranked below an approved candidate.
+- README and ROADMAP now mark CL5 as implemented and CI-wired.
+
+### Stabilization Result
+- CL5 implementation status: done.
+- CI status: wired; final workflow-green status must be confirmed in GitHub Actions.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## CL4 ATR Governance — 2026-05-29
 
 ### Added
