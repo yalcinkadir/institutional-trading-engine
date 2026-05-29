@@ -16,11 +16,13 @@
 ### Changed
 - `MIN_SHARPE_RATIO` was recalibrated from `0.8` to `0.10` because the gate now uses per-trade Sharpe, not the previous sample-size-scaled t-statistic.
 - `THRESHOLDS_VERSION` was bumped to `public-demo-2026.05.29-v4-ev1-ev2-sharpe-definition-fix` to invalidate older public-demo evidence artifacts that used the old Sharpe semantics.
+- `calculate_sharpe_ratio` uses population variance for the evaluated artifact distribution so duplicating the same R distribution does not change the Sharpe value.
 
 ### Stabilization Result
 - EV1 implementation status: done.
 - EV2 implementation status: done.
-- CI status: wired; final workflow-green status must be confirmed in GitHub Actions.
+- EV9 audit fix implementation status: done.
+- CI status: green.
 - Live trading authorization: unchanged; not granted by code.
 
 ---
