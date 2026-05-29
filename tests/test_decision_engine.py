@@ -254,6 +254,65 @@ def test_ranking_puts_poor_regime_alignment_below_approved_candidate():
     assert "poor_regime_alignment" in ranked[1][1].blocked_reasons
 
 
+def test_ev7_tier3_reduced_size_does_not_outrank_clean_tier3_watch():
+    context = MarketContext(market_state=MarketState.LOW_VOL_BULL)
+    clean_watch = SetupCandidate(
+        symbol="CLEAN",
+        setup_type=SetupType.PULLBACK_CONTINUATION,
+        setup_score=60,
+        regime_alignment=0.55,
+        asymmetry_score=0.52,
+        data_confidence=0.60,
+    )
+    reduced_tier3 = SetupCandidate(
+        symbol="REDUCED",
+        setup_type=SetupType.PULLBACK_CONTINUATION,
+        setup_score=62,
+        regime_alignment=0.57,
+        asymmetry_score=0.54,
+        data_confidence=0.62,
+        event_risk=True,
+    )
+
+    ranked = rank_candidates(context, [reduced_tier3, clean_watch])
+
+    assert ranked[0][0].symbol == "CLEAN"
+    assert ranked[0][1].risk_tier == "tier_3"
+    assert ranked[0][1].decision == Decision.WATCH
+    assert ranked[1][0].symbol == "REDUCED"
+    assert ranked[1][1].risk_tier == "tier_3"
+    assert ranked[1][1].decision == Decision.REDUCED_SIZE
+
+
+def test_ev7_reduced_tier2_can_still_rank_above_tier3_watch():
+    context = MarketContext(market_state=MarketState.LOW_VOL_BULL)
+    tier3_watch = SetupCandidate(
+        symbol="WATCH",
+        setup_type=SetupType.PULLBACK_CONTINUATION,
+        setup_score=60,
+        regime_alignment=0.55,
+        asymmetry_score=0.52,
+        data_confidence=0.60,
+    )
+    reduced_tier2 = SetupCandidate(
+        symbol="REDUCED_T2",
+        setup_type=SetupType.PULLBACK_CONTINUATION,
+        setup_score=72,
+        regime_alignment=0.70,
+        asymmetry_score=0.66,
+        data_confidence=0.74,
+        event_risk=True,
+    )
+
+    ranked = rank_candidates(context, [tier3_watch, reduced_tier2])
+
+    assert ranked[0][0].symbol == "REDUCED_T2"
+    assert ranked[0][1].risk_tier == "tier_2"
+    assert ranked[0][1].decision == Decision.REDUCED_SIZE
+    assert ranked[1][0].symbol == "WATCH"
+    assert ranked[1][1].decision == Decision.WATCH
+
+
 def test_ranking_uses_custom_thresholds():
     context = MarketContext(market_state=MarketState.LOW_VOL_BULL)
     candidate = SetupCandidate(
