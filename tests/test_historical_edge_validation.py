@@ -7,6 +7,7 @@ from src.validation.historical_edge_validation import (
     calculate_max_consecutive_losses,
     calculate_max_drawdown,
     calculate_profit_factor,
+    calculate_profit_factor_degradation,
     calculate_recovery_time_trades,
     calculate_sharpe_ratio,
     render_historical_edge_markdown,
@@ -116,6 +117,40 @@ def test_bootstrap_expectancy_lower_bound_gate_can_be_required() -> None:
 def test_profit_factor_handles_no_losses() -> None:
     assert calculate_profit_factor([1.0, 2.0, 0.5]) == float("inf")
     assert calculate_profit_factor([-1.0, -0.5]) == 0.0
+
+
+def test_ev10_profit_factor_degradation_handles_infinity_without_nan() -> None:
+    assert calculate_profit_factor_degradation(float("inf"), float("inf")) == 0.0
+    assert calculate_profit_factor_degradation(2.0, float("inf")) == 1.0
+    assert calculate_profit_factor_degradation(float("inf"), 2.0) == 0.0
+    assert calculate_profit_factor_degradation(1.5, 3.0) == pytest.approx(0.5)
+    assert calculate_profit_factor_degradation(4.0, 3.0) == 0.0
+
+
+def test_ev10_profit_factor_json_report_is_standard_json(tmp_path) -> None:
+    report = validate_historical_edge(
+        [{"result_r": 1.0}, {"result_r": 2.0}],
+        config=HistoricalEdgeValidationConfig(
+            min_total_trades=2,
+            min_expectancy_r=0.0,
+            min_profit_factor=1.0,
+            max_drawdown_limit=1.0,
+            min_sharpe_ratio=-10,
+            min_deflated_sharpe_probability=0.0,
+        ),
+    )
+    json_path = tmp_path / "edge.json"
+    markdown_path = tmp_path / "edge.md"
+
+    write_historical_edge_report(report, json_path=json_path, markdown_path=markdown_path)
+
+    raw_json = json_path.read_text(encoding="utf-8")
+    assert "Infinity" not in raw_json
+    assert "NaN" not in raw_json
+    data = json.loads(raw_json)
+    assert data["metrics"]["profit_factor"] == "inf"
+    assert data["gates"][2]["value"] == "inf"
+    assert "Profit factor: inf" in markdown_path.read_text(encoding="utf-8")
 
 
 def test_drawdown_and_recovery_metrics() -> None:
