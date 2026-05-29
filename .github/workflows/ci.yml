@@ -75,6 +75,12 @@ jobs:
         run: |
           pytest tests/test_decision_engine.py -q
 
+      - name: EV8 fixed-date holdout semantics regression tests
+        env:
+          POLYGON_API_KEY: test-key
+        run: |
+          pytest tests/test_out_of_sample_lockbox.py -q
+
       - name: EV10 profit-factor infinity regression tests
         env:
           POLYGON_API_KEY: test-key
