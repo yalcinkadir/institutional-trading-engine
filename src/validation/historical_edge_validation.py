@@ -53,7 +53,7 @@ class HistoricalEdgeMetrics:
     cumulative_r: float
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        return _json_safe(asdict(self))
 
 
 @dataclass(frozen=True)
@@ -65,7 +65,7 @@ class HistoricalEdgeGate:
     message: str
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        return _json_safe(asdict(self))
 
 
 @dataclass(frozen=True)
@@ -176,6 +176,39 @@ def calculate_profit_factor(r_values: Iterable[float]) -> float:
     return gross_profit / gross_loss
 
 
+def calculate_profit_factor_degradation(current: float, baseline: float) -> float:
+    """Return deterministic profit-factor degradation in [0, 1].
+
+    Profit factor can legitimately be infinite when an evaluated sample has wins
+    and no losses. Naive arithmetic such as ``inf / inf`` or ``inf - inf`` can
+    produce ``nan`` in audit outputs. This helper makes the boundary explicit:
+
+    - baseline inf and current inf -> no degradation
+    - baseline inf and current finite -> maximum degradation
+    - current inf and finite baseline -> no degradation
+    - finite values -> positive relative drop, clipped to [0, 1]
+    """
+
+    current_value = float(current)
+    baseline_value = float(baseline)
+    current_is_inf = math.isinf(current_value)
+    baseline_is_inf = math.isinf(baseline_value)
+
+    if current_is_inf and baseline_is_inf:
+        return 0.0
+    if baseline_is_inf:
+        return 1.0 if math.isfinite(current_value) else 0.0
+    if current_is_inf:
+        return 0.0
+    if not math.isfinite(current_value) or not math.isfinite(baseline_value):
+        return 1.0
+    if baseline_value <= 0:
+        return 0.0 if current_value >= baseline_value else 1.0
+
+    degradation = (baseline_value - current_value) / baseline_value
+    return round(min(1.0, max(0.0, degradation)), 6)
+
+
 def calculate_max_drawdown(r_values: Iterable[float]) -> float:
     cumulative = 0.0
     peak = 0.0
@@ -189,13 +222,7 @@ def calculate_max_drawdown(r_values: Iterable[float]) -> float:
 
 
 def calculate_sharpe_ratio(r_values: Iterable[float]) -> float:
-    """Per-trade Sharpe = mean(R) / population std(R).
-
-    Population variance is intentional here: the evidence gate treats the supplied
-    R series as the evaluated distribution for that artifact. This keeps the
-    definition invariant when the same distribution is duplicated, while the
-    t-statistic is exposed separately through `calculate_sharpe_tstat`.
-    """
+    """Per-trade Sharpe = mean(R) / population std(R)."""
 
     values = [float(value) for value in r_values]
     if len(values) < 2:
@@ -389,7 +416,10 @@ def write_historical_edge_report(
 ) -> None:
     json_path.parent.mkdir(parents=True, exist_ok=True)
     markdown_path.parent.mkdir(parents=True, exist_ok=True)
-    json_path.write_text(json.dumps(report.to_dict(), indent=2, sort_keys=True), encoding="utf-8")
+    json_path.write_text(
+        json.dumps(report.to_dict(), indent=2, sort_keys=True, allow_nan=False),
+        encoding="utf-8",
+    )
     markdown_path.write_text(render_historical_edge_markdown(report), encoding="utf-8")
 
 
@@ -409,3 +439,18 @@ def _format_number(value: float | int) -> str:
             return "inf"
         return f"{value:.6g}"
     return str(value)
+
+
+def _json_safe(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {key: _json_safe(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_json_safe(item) for item in value]
+    if isinstance(value, tuple):
+        return [_json_safe(item) for item in value]
+    if isinstance(value, float):
+        if math.isinf(value):
+            return "inf" if value > 0 else "-inf"
+        if math.isnan(value):
+            return "nan"
+    return value
