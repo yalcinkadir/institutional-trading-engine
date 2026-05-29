@@ -21,7 +21,7 @@ TG1: Telegram research-only report dispatcher implemented
 BT2: Strategy Test Matrix model, demo matrix, CLI, docs and tests implemented
 BT3: Backtest reproducibility contract implemented
 BT5: Walk-Forward / Out-of-Sample Robustness Gate implemented and CI-green
-BT6: Evidence Baseline Regression Gate implemented; CI workflow added
+BT6: Evidence Baseline Regression Gate implemented and CI-green
 Live trading authorization: not granted by code
 Broker execution: paper-only infrastructure; live execution is not implemented
 ```
