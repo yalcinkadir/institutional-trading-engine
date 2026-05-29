@@ -120,12 +120,12 @@ def load_evidence_baseline_regression_json(path: str | Path) -> tuple[EvidenceSn
     return EvidenceSnapshot.from_mapping(payload.get("baseline", {})), EvidenceSnapshot.from_mapping(payload.get("current", {}))
 
 
-def demo_evidence_baseline_pair() -> tuple[EvidenceSnapshot, EvidenceSnapshot]:
-    return load_evidence_baseline_regression_payload(_demo_payload())
-
-
 def load_evidence_baseline_regression_payload(payload: Mapping[str, Any]) -> tuple[EvidenceSnapshot, EvidenceSnapshot]:
     return EvidenceSnapshot.from_mapping(payload.get("baseline", {})), EvidenceSnapshot.from_mapping(payload.get("current", {}))
+
+
+def demo_evidence_baseline_pair() -> tuple[EvidenceSnapshot, EvidenceSnapshot]:
+    return load_evidence_baseline_regression_payload(_demo_payload())
 
 
 def render_evidence_baseline_regression_markdown(report: EvidenceBaselineRegressionReport) -> str:
@@ -156,8 +156,8 @@ def write_evidence_baseline_regression_report(report: EvidenceBaselineRegression
 def _build_deltas(base: EvidenceSnapshot, cur: EvidenceSnapshot, policy: EvidenceBaselineRegressionConfig) -> tuple[EvidenceBaselineDelta, ...]:
     deltas = []
     for metric in policy.required_metrics:
-        b = _metric(base.metrics, metric)
-        c = _metric(cur.metrics, metric)
+        b = _metric_or_default(base.metrics, metric)
+        c = _metric_or_default(cur.metrics, metric)
         deltas.append(EvidenceBaselineDelta(metric, b, c, c - b, _degradation_pct(metric, b, c)))
     return tuple(deltas)
 
@@ -261,6 +261,13 @@ def _metric(metrics: Mapping[str, float | int], name: str) -> float:
     if not math.isfinite(value):
         raise ValueError(f"metric {name} is not finite")
     return value
+
+
+def _metric_or_default(metrics: Mapping[str, float | int], name: str) -> float:
+    try:
+        return _metric(metrics, name)
+    except ValueError:
+        return 0.0
 
 
 def _degradation_pct(metric: str, baseline: float, current: float) -> float:
