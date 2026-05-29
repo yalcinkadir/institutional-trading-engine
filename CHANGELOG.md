@@ -1,5 +1,25 @@
 # CHANGELOG
 
+## EV10 Profit-Factor Infinity Handling — 2026-05-29
+
+### Fixed
+- EV10: profit-factor degradation now handles `inf` boundaries deterministically without producing `nan`.
+- Historical edge JSON reports now serialize infinite profit factor as the string `"inf"` instead of non-standard JSON `Infinity`.
+
+### Added
+- `calculate_profit_factor_degradation` for explicit profit-factor degradation semantics.
+- JSON-safe serialization for historical edge metrics and gates.
+- Regression coverage for `inf -> inf`, `inf -> finite`, `finite -> inf`, and finite-to-finite degradation cases.
+- Regression coverage proving historical edge JSON output contains no `Infinity` or `NaN` tokens.
+- Dedicated main CI step for EV10 profit-factor infinity regression tests.
+
+### Stabilization Result
+- EV10 implementation status: done.
+- CI status: green.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## EV7 Decision Ranking Fix — 2026-05-29
 
 ### Fixed
