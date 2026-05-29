@@ -18,6 +18,8 @@ Phase B1.1: active 3-6 month observation-only evidence collection
 Phase C paper execution infrastructure: implemented for planning, reconciliation, drift, fill-quality and kill-switch governance
 Phase IP1/IP2: public/private edge boundary and public repository hygiene policy implemented
 IP3/IP4: public-demo defaults and optional external edge provider boundary implemented and CI-green
+IP5/IP6: artifact hygiene and .gitignore hardening implemented / CI-wired
+CL1: core decision logic remediation for asymmetry, portfolio-risk tier handling and breakeven expectancy implemented / CI-wired
 TG1: Telegram research-only report dispatcher implemented
 BT2: Strategy Test Matrix model, demo matrix, CLI, docs and tests implemented
 BT3: Backtest reproducibility contract implemented
@@ -29,6 +31,31 @@ Broker execution: paper-only infrastructure; live execution is not implemented
 ```
 
 Code quality is not trading edge. The system is promising enough to test seriously, but real capital still requires long-running forward evidence, drift detection, regime-change monitoring, position-level risk attribution, execution-quality review, capacity/turnover realism and manual approval.
+
+## CL1 Core Decision Logic Remediation
+
+CL1 fixes and regression-tests three decision-critical logic issues:
+
+```text
+src/setup_scoring.py
+src/portfolio_risk.py
+src/outcome_tracking.py
+```
+
+Implemented safeguards:
+
+- Asymmetry downside risk now uses absolute distance to the SMA50 invalidation reference, preventing below-SMA50 assets from receiving inflated reward/risk scores.
+- Portfolio risk elevation now reduces all tradable tiers instead of only Tier 1 candidates.
+- Breakeven outcomes are treated as neutral in basic expectancy instead of being classified as losses.
+- Setup-scoring helper functions now return defensive zero scores for insufficient direct-call history instead of leaking avoidable indicator exceptions.
+
+CL1 test commands:
+
+```bash
+pytest tests/test_setup_scoring.py -q
+pytest tests/test_portfolio_risk.py -q
+pytest tests/test_outcome_tracking.py -q
+```
 
 ## IP3/IP4 Public Demo Defaults and Private Edge Boundary
 
@@ -93,7 +120,7 @@ Full suite:
 pytest -q
 ```
 
-Backtest and IP validation gates:
+Backtest, IP and core-logic validation gates:
 
 ```bash
 pytest tests/test_strategy_test_matrix.py -q
@@ -102,8 +129,12 @@ pytest tests/test_bt5_walk_forward_robustness_gate.py -q
 pytest tests/test_bt6_evidence_baseline_regression_gate.py -q
 pytest tests/test_bt7_capacity_turnover_realism_gate.py -q
 pytest tests/test_external_edge_provider.py -q
+pytest tests/test_artifact_hygiene.py -q
+pytest tests/test_setup_scoring.py -q
+pytest tests/test_portfolio_risk.py -q
+pytest tests/test_outcome_tracking.py -q
 ```
 
 ## Hard Safety Rule
 
-This repository is a research and decision-support framework. No generated report, backtest, walk-forward result, evidence baseline comparison, capacity/turnover realism report, paper execution artifact, Telegram dispatch, external edge provider or CI-green state authorizes live trading.
+This repository is a research and decision-support framework. No generated report, backtest, walk-forward result, evidence baseline comparison, capacity/turnover realism report, paper execution artifact, Telegram dispatch, external edge provider, core-logic remediation or CI-green state authorizes live trading.
