@@ -1,5 +1,27 @@
 # CHANGELOG
 
+## EV11 Conservative Setup Scoring Fallbacks — 2026-05-29
+
+### Fixed
+- EV11: missing long-horizon setup indicators no longer receive optimistic fallback scores.
+- Setup scoring now treats insufficient long-horizon trend/asymmetry history conservatively with `0.0` component scores.
+- Invalid close values no longer create optimistic trend or asymmetry scores.
+
+### Added
+- Conservative missing-indicator constants for trend and asymmetry scoring.
+- Audit notes for missing long-horizon trend and asymmetry inputs.
+- Audit note for missing or invalid close data.
+- Regression coverage proving partial-history setups do not receive optimistic defaults.
+- Regression coverage proving invalid close values do not create optimistic setup scores.
+- Dedicated main CI step for EV11 conservative setup scoring regression tests.
+
+### Stabilization Result
+- EV11 implementation status: done.
+- CI status: green.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## EV10 Profit-Factor Infinity Handling — 2026-05-29
 
 ### Fixed
