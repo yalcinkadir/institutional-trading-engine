@@ -18,7 +18,12 @@ from src.validation.execution_kill_switch import (  # noqa: E402
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Evaluate C7 execution kill-switch governance gates.")
-    parser.add_argument("--input-file", type=Path, required=True, help="JSON file with daily_reconciliation_report, fill_quality_report and optional manual_risk_flags.")
+    parser.add_argument(
+        "--input-file",
+        type=Path,
+        required=True,
+        help="JSON file with daily_reconciliation_report, fill_quality_report, drawdown_source_validation and optional manual_risk_flags.",
+    )
     parser.add_argument("--output-dir", type=Path, required=True, help="Directory for JSON and Markdown decision output.")
     return parser.parse_args()
 
@@ -29,6 +34,7 @@ def main() -> int:
     decision = evaluate_execution_kill_switch(
         daily_reconciliation_report=payload.get("daily_reconciliation_report"),
         fill_quality_report=payload.get("fill_quality_report"),
+        drawdown_source_validation=payload.get("drawdown_source_validation"),
         manual_risk_flags=payload.get("manual_risk_flags", []),
     )
     write_execution_kill_switch_decision(
