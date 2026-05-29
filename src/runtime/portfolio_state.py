@@ -60,6 +60,7 @@ class PortfolioState:
     updated_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     source: str = "portfolio_state_json"
     warnings: list[str] = field(default_factory=list)
+    governance_valid: bool = True
 
     @classmethod
     def from_mapping(cls, payload: dict[str, Any]) -> "PortfolioState":
@@ -80,11 +81,12 @@ class PortfolioState:
             updated_at=str(payload.get("updated_at") or datetime.now(UTC).isoformat()),
             source=str(payload.get("source") or "portfolio_state_json"),
             warnings=[str(item) for item in payload.get("warnings", []) if item],
+            governance_valid=bool(payload.get("governance_valid", True)),
         )
 
     @classmethod
     def conservative_default(cls, warning: str) -> "PortfolioState":
-        """Return a non-crashing fallback that is visibly degraded."""
+        """Return a non-crashing fallback that is visibly degraded and fail-closed."""
 
         return cls(
             equity_start=0.0,
@@ -93,8 +95,12 @@ class PortfolioState:
             daily_loss_percent=0.0,
             open_positions=[],
             updated_at=datetime.now(UTC).isoformat(),
-            source="conservative_missing_portfolio_state_fallback",
-            warnings=[warning],
+            source="missing_portfolio_state_fail_closed",
+            warnings=[
+                warning,
+                "Portfolio state is missing or unavailable. Runtime governance must fail closed until real state is provided.",
+            ],
+            governance_valid=False,
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -110,7 +116,7 @@ class PortfolioStateStore:
     def load(self) -> PortfolioState:
         if not self.path.exists():
             return PortfolioState.conservative_default(
-                f"Portfolio state file missing: {self.path}. Governance uses zero drawdown/daily loss fallback."
+                f"Portfolio state file missing: {self.path}. Governance is invalid until real portfolio state exists."
             )
 
         try:
