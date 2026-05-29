@@ -2,8 +2,9 @@
 
 IP3 rule: values in this public repository are demo defaults only. They are
 part of the public framework contract, not proprietary production edge.
-Changing one of these values changes the public demo strategy definition and
-must invalidate prior public-demo backtest, walk-forward and lockbox evidence.
+Changing one of these values or decision-gate semantics changes the public demo
+strategy definition and must invalidate prior public-demo backtest,
+walk-forward and lockbox evidence.
 
 Real/private thresholds must be supplied outside the public repository through
 the optional external edge provider boundary.
@@ -14,7 +15,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 
-THRESHOLDS_VERSION = "public-demo-2026.05.29-v2-cl4-atr-governance"
+THRESHOLDS_VERSION = "public-demo-2026.05.29-v3-cl5-regime-alignment-gate"
 PUBLIC_DEMO_DEFAULTS = True
 ATR_CALCULATION_VERSION = "public-demo-atr-wilder-2026.05.29-v1"
 
