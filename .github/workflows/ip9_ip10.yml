@@ -1,0 +1,47 @@
+name: IP9 IP10 Public Repository Governance
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  governance:
+    name: IP9/IP10 governance checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: IP9/IP10 governance tests
+        env:
+          POLYGON_API_KEY: test-key
+        run: |
+          pytest tests/test_ip9_ip10_public_repo_governance.py -q
+
+      - name: Public/private boundary checks
+        env:
+          POLYGON_API_KEY: test-key
+        run: |
+          python scripts/check_ip_boundary.py --root . --no-write
+          pytest tests/test_ip_boundary.py -q
+          python scripts/validate_public_repo_policy.py --no-write
