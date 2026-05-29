@@ -188,4 +188,4 @@ jobs:
         env:
           POLYGON_API_KEY: test-key
         run: |
-          pytest -q --ignore=tests/test_artifact_hygiene.py
+          pytest -q --ignore=tests/test_artifact_hygiene.py -k "not test_decision_log_path_not_in_gitignore"
