@@ -93,6 +93,12 @@ jobs:
         run: |
           pytest tests/test_setup_scoring.py -q
 
+      - name: EV12 drawdown magnitude regression tests
+        env:
+          POLYGON_API_KEY: test-key
+        run: |
+          pytest tests/test_ev12_drawdown_magnitude.py -q
+
       - name: Phase A stabilization tests
         env:
           POLYGON_API_KEY: test-key
