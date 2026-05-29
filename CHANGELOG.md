@@ -1,5 +1,30 @@
 # CHANGELOG
 
+## CL2/CL3 Scoring Audit and Drawdown-Source Governance — 2026-05-29
+
+### Added
+- CL2 scoring-system audit registry in `src/validation/scoring_audit.py`.
+- CL2 regression coverage in `tests/test_scoring_audit.py`.
+- CL3 drawdown-source validation in `src/validation/execution_kill_switch.py`.
+- CL3 regression coverage in `tests/test_execution_kill_switch.py`.
+- CLI wiring for `drawdown_source_validation` in `scripts/evaluate_execution_kill_switch.py`.
+- Operational documentation in `docs/operations/cl2_scoring_system_audit.md` and `docs/operations/execution_kill_switch.md`.
+- CI step for CL2/CL3 scoring and drawdown-source governance tests.
+
+### Improved
+- Report-only ranking scores are explicitly separated from decision-authoritative gates.
+- Decision Engine tier gating is documented as the authoritative downstream decision gate.
+- Kill-switch drawdown governance now fails closed when the drawdown source is missing, backtest-only, unknown, unreconciled or internally inconsistent.
+- README and ROADMAP now mark CL2/CL3 as implemented and set CL4/CL5 as the next focus.
+
+### Stabilization Result
+- CL2 implementation status: done.
+- CL3 implementation status: done.
+- CI status: wired; final workflow-green status must be confirmed in GitHub Actions.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## CL1 Core Decision Logic Remediation — 2026-05-29
 
 ### Fixed
