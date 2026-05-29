@@ -22,6 +22,7 @@ BT2: Strategy Test Matrix model, demo matrix, CLI, docs and tests implemented
 BT3: Backtest reproducibility contract implemented
 BT5: Walk-Forward / Out-of-Sample Robustness Gate implemented and CI-green
 BT6: Evidence Baseline Regression Gate implemented and CI-green
+BT7: Capacity / Turnover / Realism Gate implemented with tests, CLI, docs and dedicated workflow
 Live trading authorization: not granted by code
 Broker execution: paper-only infrastructure; live execution is not implemented
 ```
@@ -186,6 +187,63 @@ Every generated BT6 report remains compatible with:
 Research / Paper Observation Only. Execution is not authorized by this report.
 ```
 
+## BT7 Capacity / Turnover / Realism Gate
+
+BT7 adds a deterministic capacity, turnover and transaction-cost realism gate before any private production sizing work. It blocks historically attractive validation evidence from being treated as credible when proposed scale, liquidity usage, turnover, cost drag or slippage coverage are not realistic.
+
+BT7 validates:
+
+```text
+complete run identity
+required numeric capacity and turnover metrics
+positive proposed capital and symbol count
+single-position ADV usage
+portfolio ADV usage
+average daily turnover
+annual turnover
+transaction-cost drag versus gross expectancy
+net expectancy after costs
+average holding-period realism
+minimum trade count
+slippage-model coverage
+artifact hash references
+public-safe demo tags
+research-only footer
+```
+
+Demo command:
+
+```bash
+python scripts/generate_bt7_capacity_turnover_report.py --demo
+```
+
+File-based command:
+
+```bash
+python scripts/generate_bt7_capacity_turnover_report.py \
+  --input-json data/demo_bt7_capacity_turnover.json \
+  --output-json reports/bt7_capacity_turnover/report.json \
+  --output-md reports/bt7_capacity_turnover/report.md
+```
+
+BT7 test command:
+
+```bash
+pytest tests/test_bt7_capacity_turnover_realism_gate.py -q
+```
+
+Operational documentation:
+
+```text
+docs/operations/bt7_capacity_turnover_realism_gate.md
+```
+
+Every generated BT7 report remains compatible with:
+
+```text
+Research / Paper Observation Only. Execution is not authorized by this report.
+```
+
 ## Telegram Research-Only Reports
 
 TG1 can dispatch Telegram reports in research-only mode. It blocks live-trading language, order-action phrases and private-edge terms before sending.
@@ -285,6 +343,7 @@ README finalized: done
 - walk-forward validation
 - BT5 walk-forward / out-of-sample robustness gate
 - BT6 evidence baseline regression gate
+- BT7 capacity / turnover / realism gate
 - execution realism adjustment with square-root regime-aware slippage
 - out-of-sample validation lockbox with threshold-aware evidence invalidation
 - paper trading journal / live observation v2
@@ -333,6 +392,7 @@ Market analysis
 → Walk-forward validation
 → BT5 walk-forward / out-of-sample robustness gate
 → BT6 evidence baseline regression gate
+→ BT7 capacity / turnover / realism gate
 → Execution realism adjustment
 → Out-of-sample validation lockbox
 → Edge-evidence diagnostics
@@ -406,8 +466,9 @@ pytest tests/test_strategy_test_matrix.py -q
 pytest tests/test_bt3_backtest_run_contract.py -q
 pytest tests/test_bt5_walk_forward_robustness_gate.py -q
 pytest tests/test_bt6_evidence_baseline_regression_gate.py -q
+pytest tests/test_bt7_capacity_turnover_realism_gate.py -q
 ```
 
 ## Hard Safety Rule
 
-This repository is a research and decision-support framework. No generated report, backtest, walk-forward result, evidence baseline comparison, paper execution artifact, Telegram dispatch or CI-green state authorizes live trading.
+This repository is a research and decision-support framework. No generated report, backtest, walk-forward result, evidence baseline comparison, capacity/turnover realism report, paper execution artifact, Telegram dispatch or CI-green state authorizes live trading.
