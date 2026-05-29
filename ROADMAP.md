@@ -1,7 +1,7 @@
 # Institutional Trading Engine Roadmap
 
 Status date: 2026-05-29  
-Current state: IP3 public-demo threshold defaults are implemented and CI-green. IP4 optional external edge provider boundary is implemented and CI-green. IP5/IP6 artifact hygiene and `.gitignore` hardening are implemented and CI-wired. IP8 fallback/private-edge absence test coverage is implemented and CI-green. CL1 core decision logic remediation for asymmetry, portfolio-risk tier handling and breakeven expectancy is implemented and CI-wired. CL2 scoring-system audit and report-vs-decision separation are implemented and CI-wired. CL3 kill-switch drawdown-source validation is implemented and CI-wired. CL4 ATR calculation governance, Wilder ATR evaluation and threshold-version bump are implemented and CI-wired. CL5 regime-alignment independent gate is implemented and CI-wired. BT7 Capacity / Turnover / Realism Gate is implemented and CI-green. BT6 Evidence Baseline Regression Gate is implemented and CI-green. BT5 Walk-Forward / Out-of-Sample Robustness Gate is implemented and CI-green. Phase B1.1 remains the active 3-6 month observation-only evidence collection period. Real-money execution is not authorized by code.
+Current state: IP3 public-demo threshold defaults are implemented and CI-green. IP4 optional external edge provider boundary is implemented and CI-green. IP5/IP6 artifact hygiene and `.gitignore` hardening are implemented and CI-wired. Report Output Boundary Guard is implemented and CI-green. IP8 fallback/private-edge absence test coverage is implemented and CI-green. CL1 core decision logic remediation for asymmetry, portfolio-risk tier handling and breakeven expectancy is implemented and CI-wired. CL2 scoring-system audit and report-vs-decision separation is implemented and CI-wired. CL3 kill-switch drawdown-source validation is implemented and CI-wired. CL4 ATR calculation governance, Wilder ATR evaluation and threshold-version bump are implemented and CI-wired. CL5 regime-alignment independent gate is implemented and CI-wired. BT7 Capacity / Turnover / Realism Gate is implemented and CI-green. BT6 Evidence Baseline Regression Gate is implemented and CI-green. BT5 Walk-Forward / Out-of-Sample Robustness Gate is implemented and CI-green. Phase B1.1 remains the active 3-6 month observation-only evidence collection period. Real-money execution is not authorized by code.
 
 ## Strategic direction
 
@@ -25,6 +25,8 @@ Hard IP rule: the public repository may demonstrate architecture, evidence disci
 
 Hard logic rule: decision-critical math must be regression-tested before it is trusted by reports, ranking or paper execution workflows.
 
+Hard report-artifact rule: committed public report examples must remain synthetic/public-safe and generated runtime reports must be written only to non-committed output locations.
+
 ## Phase IP — Public Framework / Private Edge Separation
 
 Target window: immediate  
@@ -42,6 +44,7 @@ Goal: keep the repository useful as a public framework while protecting propriet
 | IP8 | Add tests proving the public fallback path works without private modules and that private modules are optional imports only | P1 | High | Done / CI-green |
 | IP9 | Review open PRs for newly introduced edge constants before merge, especially setup-specific target profiles and scoring changes | P0 | Critical | Planned |
 | IP10 | Add license and usage disclaimer appropriate for a public decision-support research framework | P1 | Medium | Planned |
+| IP11 | Add fail-closed Report Output Boundary Guard so generated runtime reports cannot overwrite committed public report examples | P0 | Critical | Done / CI-green |
 
 ## Phase CL — Core Logic Remediation
 
@@ -146,6 +149,7 @@ Start only after Phase B and C produce credible evidence and after the private-e
 
 ## Recently completed evidence-visibility and logic-safety work
 
+- Report Output Boundary Guard: done and CI-green.
 - CL5 regime-alignment independent gate: done and CI-wired.
 - CL4 ATR calculation governance and threshold-version bump: done and CI-wired.
 - CL3 kill-switch drawdown-source validation: done and CI-wired.
@@ -167,7 +171,7 @@ Start only after Phase B and C produce credible evidence and after the private-e
 
 ## Current execution focus
 
-B1.1 remains the long-running evidence collection period. Phase C is active for paper execution only. Telegram delivery is allowed for research/paper-observation reports only. IP3/IP4 is complete and CI-green. IP5/IP6 and CL1-CL5 are implemented and CI-wired. Immediate focus: confirm CI green, then execute IP9/IP10 public-repository governance before adding new strategy complexity.
+B1.1 remains the long-running evidence collection period. Phase C is active for paper execution only. Telegram delivery is allowed for research/paper-observation reports only. IP3/IP4 is complete and CI-green. IP5/IP6, Report Output Boundary Guard and CL1-CL5 are implemented and CI-wired. Immediate focus: execute IP9/IP10 public-repository governance before adding new strategy complexity.
 
 ## Recommended next block
 
@@ -182,6 +186,7 @@ The next rational block is **IP9/IP10**: review future PRs for newly introduced 
 - Do not skip forward paper observation.
 - Do not add new proprietary thresholds, setup maps, scoring weights or exit profiles directly to the public repo unless they are explicitly demo-only.
 - Do not commit real ranked opportunity reports, raw evidence outputs, provider credentials or private strategy experiments to the public repo.
+- Do not overwrite committed public report examples with generated runtime reports.
 - Do not treat report-only scores as decision-authoritative despite the CL2 audit boundary.
 - Do not treat drawdown kill-switch governance as active unless CL3 drawdown-source validation is present and clean.
 - Do not change ATR semantics or compare ATR-dependent artifacts across threshold versions without explicit CL4 evidence-invalidation handling.
