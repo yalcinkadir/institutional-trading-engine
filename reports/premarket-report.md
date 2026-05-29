@@ -1,6 +1,6 @@
 # Institutional Trading Engine — PREMARKET REPORT
 
-Generated: 2026-05-28 20:34 UTC
+Generated: 2026-05-29 05:38 UTC
 
 ## Market Regime
 
@@ -11,16 +11,16 @@ Generated: 2026-05-28 20:34 UTC
 ### Core Market Metrics
 
 #### SPY
-- Close: 689.51
-- SMA50: 679.87 ✅
-- SMA200: 629.96 ✅
-- ATR14: 4.72
+- Close: 694.07
+- SMA50: 680.01 ✅
+- SMA200: 630.55 ✅
+- ATR14: 4.49
 
 #### QQQ
-- Close: 620.47
-- SMA50: 616.9 ✅
-- SMA200: 561.26 ✅
-- ATR14: 6.23
+- Close: 626.65
+- SMA50: 616.77 ✅
+- SMA200: 561.93 ✅
+- ATR14: 5.97
 
 #### VIX
 - Close: DATA_UNAVAILABLE
