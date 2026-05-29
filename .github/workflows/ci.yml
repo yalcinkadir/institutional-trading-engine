@@ -170,6 +170,14 @@ jobs:
         run: |
           pytest tests/test_artifact_hygiene.py -q
 
+      - name: CL1 core logic remediation tests
+        env:
+          POLYGON_API_KEY: test-key
+        run: |
+          pytest tests/test_setup_scoring.py -q
+          pytest tests/test_portfolio_risk.py -q
+          pytest tests/test_outcome_tracking.py -q
+
       - name: BT7 capacity turnover realism tests
         env:
           POLYGON_API_KEY: test-key
