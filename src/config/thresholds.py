@@ -15,9 +15,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 
-THRESHOLDS_VERSION = "public-demo-2026.05.29-v3-cl5-regime-alignment-gate"
+THRESHOLDS_VERSION = "public-demo-2026.05.29-v4-ev1-ev2-sharpe-definition-fix"
 PUBLIC_DEMO_DEFAULTS = True
 ATR_CALCULATION_VERSION = "public-demo-atr-wilder-2026.05.29-v1"
+SHARPE_DEFINITION_VERSION = "per-trade-sharpe-2026.05.29-v1"
 
 
 @dataclass(frozen=True)
