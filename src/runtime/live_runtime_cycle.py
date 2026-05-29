@@ -133,8 +133,19 @@ class LiveRuntimeCycle:
             daily_loss_percent=daily_loss_percent,
         )
 
+        if not portfolio_state.governance_valid:
+            self._log_governance_block(
+                reason="portfolio_state_invalid",
+                details=["portfolio_state_invalid_or_missing"],
+                vix_level=None,
+                portfolio_state=portfolio_state,
+                cycle_id=preliminary_cycle_id,
+            )
+            raise GovernanceBlockedError(["portfolio_state_invalid_or_missing"])
+
         portfolio_drawdown_for_governance = portfolio_state.drawdown_percent
         daily_loss_for_governance = portfolio_state.daily_loss_percent
+        severe_anomaly_count = self._resolve_severe_anomaly_count()
 
         # ── Step 1: Governance pre-check ───────────────────────────────────
         # Governance runs BEFORE any analysis. If the kill switch fires,
@@ -152,7 +163,7 @@ class LiveRuntimeCycle:
         kill_result = evaluate_kill_switch(
             vix=vix_level,
             drawdown_percent=portfolio_drawdown_for_governance,
-            severe_anomaly_count=0,
+            severe_anomaly_count=severe_anomaly_count,
         )
 
         if kill_result["kill_switch"]:
@@ -191,6 +202,7 @@ class LiveRuntimeCycle:
                 "vix_level": vix_level,
                 "portfolio_drawdown_percent": portfolio_state.drawdown_percent,
                 "daily_loss_percent": portfolio_state.daily_loss_percent,
+                "severe_anomaly_count": severe_anomaly_count,
             },
         )
 
@@ -217,6 +229,7 @@ class LiveRuntimeCycle:
         # ── Step 5: Persist decision ───────────────────────────────────────
         payload = snapshot.to_persistence_payload()
         payload["portfolio_state"] = portfolio_state.to_dict()
+        payload["severe_anomaly_count"] = severe_anomaly_count
         decision_log_store.append(
             decision_id=snapshot.snapshot_id,
             payload=payload,
@@ -233,6 +246,7 @@ class LiveRuntimeCycle:
             "final_exposure_percent": orchestrator_result.final_exposure_percent,
             "data_quality_warnings": bridge.data_quality_warnings,
             "portfolio_state_warnings": portfolio_state.warnings,
+            "severe_anomaly_count": severe_anomaly_count,
             "cycle_duration_ms": snapshot.cycle_duration_ms,
         }
         runtime_state.update(state_update)
@@ -244,6 +258,7 @@ class LiveRuntimeCycle:
         in_memory_state_cache.set("latest_cycle_at", snapshot.captured_at)
         in_memory_state_cache.set("latest_portfolio_drawdown_percent", portfolio_state.drawdown_percent)
         in_memory_state_cache.set("latest_daily_loss_percent", portfolio_state.daily_loss_percent)
+        in_memory_state_cache.set("latest_severe_anomaly_count", severe_anomaly_count)
 
         if bridge.data_quality_warnings:
             for warning in bridge.data_quality_warnings:
@@ -272,6 +287,7 @@ class LiveRuntimeCycle:
             f"{snapshot.regime_summary} | "
             f"portfolio_drawdown={portfolio_state.drawdown_percent:.2f}% | "
             f"daily_loss={portfolio_state.daily_loss_percent:.2f}% | "
+            f"severe_anomalies={severe_anomaly_count} | "
             f"duration={snapshot.cycle_duration_ms:.1f}ms"
         )
         self._log(
@@ -307,9 +323,25 @@ class LiveRuntimeCycle:
                 warnings=[
                     "Portfolio state was supplied via runtime arguments. Prefer data/portfolio_state.json for live governance."
                 ],
+                governance_valid=True,
             )
 
         return self.portfolio_state_store.load()
+
+    def _resolve_severe_anomaly_count(self) -> int:
+        """Read severe anomaly count from runtime cache instead of hardcoding zero."""
+
+        raw_value = in_memory_state_cache.get("severe_anomaly_count")
+        if raw_value is None:
+            raw_value = in_memory_state_cache.get("latest_severe_anomaly_count")
+        if raw_value is None:
+            return 0
+        if not isinstance(raw_value, (int, float, str)):
+            return 0
+        try:
+            return max(0, int(float(raw_value)))
+        except (TypeError, ValueError):
+            return 0
 
     def _log_governance_block(
         self,
@@ -345,6 +377,7 @@ class LiveRuntimeCycle:
                 "portfolio_source": portfolio_state.source,
                 "portfolio_drawdown_percent": portfolio_state.drawdown_percent,
                 "daily_loss_percent": portfolio_state.daily_loss_percent,
+                "portfolio_governance_valid": portfolio_state.governance_valid,
             },
         )
         print(f"[LiveRuntimeCycle] GOVERNANCE BLOCK: {reason} — {details}")
