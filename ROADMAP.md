@@ -1,7 +1,7 @@
 # Institutional Trading Engine Roadmap
 
 Status date: 2026-05-29  
-Current state: IP3 public-demo threshold defaults are implemented and CI-green. IP4 optional external edge provider boundary is implemented and CI-green. IP5/IP6 artifact hygiene and `.gitignore` hardening are implemented and CI-wired. IP8 fallback/private-edge absence test coverage is implemented and CI-green. CL1 core decision logic remediation for asymmetry, portfolio-risk tier handling and breakeven expectancy is implemented and CI-wired. BT7 Capacity / Turnover / Realism Gate is implemented and CI-green. BT6 Evidence Baseline Regression Gate is implemented and CI-green. BT5 Walk-Forward / Out-of-Sample Robustness Gate is implemented and CI-green. Phase B1.1 remains the active 3-6 month observation-only evidence collection period. Real-money execution is not authorized by code.
+Current state: IP3 public-demo threshold defaults are implemented and CI-green. IP4 optional external edge provider boundary is implemented and CI-green. IP5/IP6 artifact hygiene and `.gitignore` hardening are implemented and CI-wired. IP8 fallback/private-edge absence test coverage is implemented and CI-green. CL1 core decision logic remediation for asymmetry, portfolio-risk tier handling and breakeven expectancy is implemented and CI-wired. CL2 scoring-system audit and report-vs-decision separation are implemented and CI-wired. CL3 kill-switch drawdown-source validation is implemented and CI-wired. BT7 Capacity / Turnover / Realism Gate is implemented and CI-green. BT6 Evidence Baseline Regression Gate is implemented and CI-green. BT5 Walk-Forward / Out-of-Sample Robustness Gate is implemented and CI-green. Phase B1.1 remains the active 3-6 month observation-only evidence collection period. Real-money execution is not authorized by code.
 
 ## Strategic direction
 
@@ -48,12 +48,12 @@ Goal: keep the repository useful as a public framework while protecting propriet
 | ID | Task | Priority | Impact | Status |
 |---|---|---:|---:|---|
 | CL1 | Fix inflated downside asymmetry below SMA50, all-tier portfolio-risk reduction and breakeven expectancy classification | P0/P1 | Critical/High | Done / CI-wired |
-| CL2 | Document and reconcile dual setup-scoring systems so report scores and decision scores are clearly separated or unified | P1 | High | Planned |
-| CL3 | Add explicit drawdown-source validation before kill-switch drawdown governance can be considered active | P1 | High | Planned |
+| CL2 | Document and reconcile dual setup-scoring systems so report scores and decision scores are clearly separated or unified | P1 | High | Done / CI-wired |
+| CL3 | Add explicit drawdown-source validation before kill-switch drawdown governance can be considered active | P1 | High | Done / CI-wired |
 | CL4 | Evaluate Wilder-style ATR migration behind regression tests and threshold-version bump | P2 | Medium | Planned |
 | CL5 | Review whether `regime_alignment` should remain a derived score or become an independent regime signal | P2 | Medium | Planned |
 
-CL1 is a remediation gate only. It fixes decision-critical math and measurement issues. It does not prove edge and does not authorize live trading.
+CL1-CL3 are remediation and audit gates only. CL1 fixes decision-critical math and measurement issues. CL2 separates report-only scores from decision-authoritative gates. CL3 prevents drawdown kill-switch governance from being considered active unless the drawdown source is real, reconciled and internally consistent. None of these prove edge and none authorize live trading.
 
 ## Phase BT — Backtest Evidence Hardening
 
@@ -146,6 +146,8 @@ Start only after Phase B and C produce credible evidence and after the private-e
 
 ## Recently completed evidence-visibility and logic-safety work
 
+- CL3 kill-switch drawdown-source validation: done and CI-wired.
+- CL2 scoring-system audit and report-vs-decision separation: done and CI-wired.
 - CL1 core decision logic remediation: done and CI-wired.
 - IP5/IP6 artifact hygiene and `.gitignore` hardening: done and CI-wired.
 - IP3 public-demo threshold defaults: done and CI-green.
@@ -163,11 +165,11 @@ Start only after Phase B and C produce credible evidence and after the private-e
 
 ## Current execution focus
 
-B1.1 remains the long-running evidence collection period. Phase C is active for paper execution only. Telegram delivery is allowed for research/paper-observation reports only. IP3/IP4 is complete and CI-green. IP5/IP6 and CL1 are implemented and CI-wired. Immediate focus: confirm CI green, then execute CL2/CL3 before adding new strategy complexity.
+B1.1 remains the long-running evidence collection period. Phase C is active for paper execution only. Telegram delivery is allowed for research/paper-observation reports only. IP3/IP4 is complete and CI-green. IP5/IP6 and CL1-CL3 are implemented and CI-wired. Immediate focus: confirm CI green, then execute CL4/CL5 before adding new strategy complexity.
 
 ## Recommended next block
 
-The next rational block is **CL2/CL3**: make the dual scoring systems auditable and prevent drawdown kill-switch governance from being treated as active until the drawdown source is real and tested.
+The next rational block is **CL4/CL5**: evaluate ATR calculation semantics and decide whether `regime_alignment` remains a derived score or becomes an independent regime signal.
 
 ## Do not do yet
 
@@ -178,6 +180,6 @@ The next rational block is **CL2/CL3**: make the dual scoring systems auditable 
 - Do not skip forward paper observation.
 - Do not add new proprietary thresholds, setup maps, scoring weights or exit profiles directly to the public repo unless they are explicitly demo-only.
 - Do not commit real ranked opportunity reports, raw evidence outputs, provider credentials or private strategy experiments to the public repo.
-- Do not treat report-only scores and decision-engine scores as equivalent until CL2 is complete.
-- Do not treat drawdown kill-switch governance as complete until CL3 validates the live drawdown source.
+- Do not treat report-only scores as decision-authoritative despite the CL2 audit boundary.
+- Do not treat drawdown kill-switch governance as active unless CL3 drawdown-source validation is present and clean.
 - Do not send Telegram messages that imply live trading authorization or contain private edge parameters.
