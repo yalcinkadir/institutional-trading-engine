@@ -158,6 +158,12 @@ jobs:
         run: |
           pytest tests/test_bt3_backtest_run_contract.py -q
 
+      - name: BT7 capacity turnover realism tests
+        env:
+          POLYGON_API_KEY: test-key
+        run: |
+          pytest tests/test_bt7_capacity_turnover_realism_gate.py -q
+
       - name: Full regression suite
         env:
           POLYGON_API_KEY: test-key
