@@ -59,6 +59,21 @@ def test_expectancy_calculation_uses_positive_and_negative_results():
     assert stats["expectancy"] > 0
 
 
+def test_expectancy_treats_breakeven_as_neutral_not_loss():
+    records = [
+        {"result_5d": 4.0},
+        {"result_5d": 0.0},
+        {"result_5d": -2.0},
+    ]
+
+    stats = calculate_basic_expectancy(records)
+
+    assert stats["count"] == 3
+    assert stats["win_rate"] == 0.3333
+    assert stats["average_result"] == 0.6667
+    assert stats["expectancy"] == 0.6667
+
+
 def test_expectancy_returns_zero_stats_without_results():
     stats = calculate_basic_expectancy([])
 
