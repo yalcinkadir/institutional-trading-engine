@@ -267,6 +267,7 @@ def evaluate_candidate(
 
     risk_tier = _base_risk_tier(candidate, thresholds)
     size = _size_for_tier(risk_tier, thresholds)
+    base_size = size
 
     if candidate.event_risk:
         size *= 0.5
@@ -292,7 +293,7 @@ def evaluate_candidate(
             notes=tuple(notes),
         )
 
-    if context.market_state == MarketState.HIGH_VOL_TRANSITION or size < _size_for_tier(risk_tier, thresholds):
+    if size < base_size:
         decision = Decision.REDUCED_SIZE
     elif risk_tier == "tier_3":
         decision = Decision.WATCH
