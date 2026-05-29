@@ -11,6 +11,8 @@ Covers:
 - Blocked cycles are persisted as audit entries
 - Snapshot returned on success
 - Cycle duration is tracked
+- GOV1 severe anomaly count comes from runtime state cache
+- GOV2 missing portfolio state fails closed
 """
 
 from __future__ import annotations
@@ -20,10 +22,11 @@ from unittest.mock import patch
 
 import pytest
 
+from src.runtime.in_memory_state_cache import InMemoryStateCache
 from src.runtime.live_runtime_cycle import GovernanceBlockedError, LiveRuntimeCycle
+from src.runtime.portfolio_state import PortfolioStateStore
 from src.runtime.runtime_market_snapshot import RuntimeMarketSnapshot
 from src.runtime.runtime_state import RuntimeState
-from src.runtime.in_memory_state_cache import InMemoryStateCache
 from src.storage.decision_log_store import DecisionLogStore
 
 
@@ -51,18 +54,12 @@ def _make_vix_data(close: float = 16.5) -> dict:
     return {"close": close, "direction": "Falling"}
 
 
-def _make_isolated_cycle(tmp_path: Path):
-    """
-    Return a LiveRuntimeCycle wired to isolated state objects,
-    so tests don't bleed into each other via module-level singletons.
-    """
-    store = DecisionLogStore(path=tmp_path / "test_decision_log.jsonl")
-    state = RuntimeState()
-    cache = InMemoryStateCache()
-
-    cycle = LiveRuntimeCycle()
-
-    return cycle, store, state, cache
+def _run_with_valid_portfolio(cycle: LiveRuntimeCycle, **kwargs):
+    return cycle.run(
+        portfolio_drawdown_percent=kwargs.pop("portfolio_drawdown_percent", 0.0),
+        daily_loss_percent=kwargs.pop("daily_loss_percent", 0.0),
+        **kwargs,
+    )
 
 
 # ── Success path ──────────────────────────────────────────────────────────────
@@ -74,7 +71,8 @@ class TestLiveRuntimeCycleSuccess:
             mock_store.append.return_value = None
             with patch("src.runtime.live_runtime_cycle.runtime_state"):
                 with patch("src.runtime.live_runtime_cycle.in_memory_state_cache"):
-                    snapshot = cycle.run(
+                    snapshot = _run_with_valid_portfolio(
+                        cycle,
                         metrics_map=_make_metrics_map(),
                         vix_data=_make_vix_data(),
                     )
@@ -86,7 +84,8 @@ class TestLiveRuntimeCycleSuccess:
              patch("src.runtime.live_runtime_cycle.runtime_state"), \
              patch("src.runtime.live_runtime_cycle.in_memory_state_cache"):
             mock_store.append.return_value = None
-            snapshot = cycle.run(
+            snapshot = _run_with_valid_portfolio(
+                cycle,
                 metrics_map=_make_metrics_map(),
                 vix_data=_make_vix_data(),
             )
@@ -100,7 +99,8 @@ class TestLiveRuntimeCycleSuccess:
         with patch("src.runtime.live_runtime_cycle.decision_log_store", store), \
              patch("src.runtime.live_runtime_cycle.runtime_state"), \
              patch("src.runtime.live_runtime_cycle.in_memory_state_cache"):
-            cycle.run(
+            _run_with_valid_portfolio(
+                cycle,
                 metrics_map=_make_metrics_map(),
                 vix_data=_make_vix_data(),
             )
@@ -108,6 +108,7 @@ class TestLiveRuntimeCycleSuccess:
         entries = store.load_all()
         assert len(entries) == 1
         assert "macro_regime" in entries[0].payload
+        assert entries[0].payload["severe_anomaly_count"] == 0
 
     def test_runtime_state_updated(self, tmp_path):
         state = RuntimeState()
@@ -117,7 +118,8 @@ class TestLiveRuntimeCycleSuccess:
              patch("src.runtime.live_runtime_cycle.runtime_state", state), \
              patch("src.runtime.live_runtime_cycle.in_memory_state_cache"):
             mock_store.append.return_value = None
-            cycle.run(
+            _run_with_valid_portfolio(
+                cycle,
                 metrics_map=_make_metrics_map(),
                 vix_data=_make_vix_data(),
             )
@@ -125,6 +127,7 @@ class TestLiveRuntimeCycleSuccess:
         assert state.cycle_count == 1
         assert state.latest_decision is not None
         assert "macro_regime" in state.latest_decision
+        assert state.latest_decision["severe_anomaly_count"] == 0
 
     def test_in_memory_cache_updated(self, tmp_path):
         cache = InMemoryStateCache()
@@ -134,7 +137,8 @@ class TestLiveRuntimeCycleSuccess:
              patch("src.runtime.live_runtime_cycle.runtime_state"), \
              patch("src.runtime.live_runtime_cycle.in_memory_state_cache", cache):
             mock_store.append.return_value = None
-            cycle.run(
+            _run_with_valid_portfolio(
+                cycle,
                 metrics_map=_make_metrics_map(),
                 vix_data=_make_vix_data(),
             )
@@ -143,6 +147,7 @@ class TestLiveRuntimeCycleSuccess:
         assert cache.get("latest_exposure") is not None
         assert cache.get("latest_snapshot_id") is not None
         assert cache.get("latest_cycle_at") is not None
+        assert cache.get("latest_severe_anomaly_count") == 0
 
     def test_snapshot_cycle_duration_is_tracked(self, tmp_path):
         cycle = LiveRuntimeCycle()
@@ -150,7 +155,8 @@ class TestLiveRuntimeCycleSuccess:
              patch("src.runtime.live_runtime_cycle.runtime_state"), \
              patch("src.runtime.live_runtime_cycle.in_memory_state_cache"):
             mock_store.append.return_value = None
-            snapshot = cycle.run(
+            snapshot = _run_with_valid_portfolio(
+                cycle,
                 metrics_map=_make_metrics_map(),
                 vix_data=_make_vix_data(),
             )
@@ -165,7 +171,8 @@ class TestLiveRuntimeCycleSuccess:
              patch("src.runtime.live_runtime_cycle.runtime_state", state), \
              patch("src.runtime.live_runtime_cycle.in_memory_state_cache"):
             for _ in range(3):
-                cycle.run(
+                _run_with_valid_portfolio(
+                    cycle,
                     metrics_map=_make_metrics_map(),
                     vix_data=_make_vix_data(),
                 )
@@ -186,7 +193,8 @@ class TestLiveRuntimeCycleGovernance:
              patch("src.runtime.live_runtime_cycle.runtime_state"), \
              patch("src.runtime.live_runtime_cycle.in_memory_state_cache"):
             with pytest.raises(GovernanceBlockedError) as exc_info:
-                cycle.run(
+                _run_with_valid_portfolio(
+                    cycle,
                     metrics_map=_make_metrics_map(),
                     vix_data=_make_vix_data(close=45.0),  # >= 40 triggers kill
                 )
@@ -201,7 +209,8 @@ class TestLiveRuntimeCycleGovernance:
              patch("src.runtime.live_runtime_cycle.runtime_state"), \
              patch("src.runtime.live_runtime_cycle.in_memory_state_cache"):
             with pytest.raises(GovernanceBlockedError):
-                cycle.run(
+                _run_with_valid_portfolio(
+                    cycle,
                     metrics_map=_make_metrics_map(),
                     vix_data=_make_vix_data(close=45.0),
                 )
@@ -223,9 +232,49 @@ class TestLiveRuntimeCycleGovernance:
                     metrics_map=_make_metrics_map(),
                     vix_data=_make_vix_data(close=18.0),
                     portfolio_drawdown_percent=20.0,  # >= 20 → kill switch fires
+                    daily_loss_percent=0.0,
                 )
 
         assert "portfolio_drawdown_limit" in exc_info.value.reasons
+
+    def test_severe_anomaly_count_from_cache_triggers_market_instability(self, tmp_path):
+        store = DecisionLogStore(path=tmp_path / "log.jsonl")
+        cache = InMemoryStateCache()
+        cache.set("severe_anomaly_count", 5)
+        cycle = LiveRuntimeCycle()
+
+        with patch("src.runtime.live_runtime_cycle.decision_log_store", store), \
+             patch("src.runtime.live_runtime_cycle.runtime_state"), \
+             patch("src.runtime.live_runtime_cycle.in_memory_state_cache", cache):
+            with pytest.raises(GovernanceBlockedError) as exc_info:
+                _run_with_valid_portfolio(
+                    cycle,
+                    metrics_map=_make_metrics_map(),
+                    vix_data=_make_vix_data(close=18.0),
+                )
+
+        assert "market_instability" in exc_info.value.reasons
+        entries = store.load_all()
+        assert entries[0].payload["reason"] == "kill_switch"
+
+    def test_missing_portfolio_state_fails_closed(self, tmp_path):
+        store = DecisionLogStore(path=tmp_path / "log.jsonl")
+        missing_portfolio_store = PortfolioStateStore(tmp_path / "missing_portfolio_state.json")
+        cycle = LiveRuntimeCycle(portfolio_state_store=missing_portfolio_store)
+
+        with patch("src.runtime.live_runtime_cycle.decision_log_store", store), \
+             patch("src.runtime.live_runtime_cycle.runtime_state"), \
+             patch("src.runtime.live_runtime_cycle.in_memory_state_cache"):
+            with pytest.raises(GovernanceBlockedError) as exc_info:
+                cycle.run(
+                    metrics_map=_make_metrics_map(),
+                    vix_data=_make_vix_data(close=18.0),
+                )
+
+        assert exc_info.value.reasons == ["portfolio_state_invalid_or_missing"]
+        entries = store.load_all()
+        assert entries[0].payload["reason"] == "portfolio_state_invalid"
+        assert entries[0].payload["portfolio_state"]["governance_valid"] is False
 
     def test_normal_conditions_do_not_raise(self, tmp_path):
         cycle = LiveRuntimeCycle()
