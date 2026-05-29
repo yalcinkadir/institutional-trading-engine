@@ -120,6 +120,49 @@ def test_risk_off_blocks_speculative_growth_even_with_good_score():
     assert SetupType.SPECULATIVE_GROWTH not in get_allowed_setups(MarketState.RISK_OFF)
 
 
+def test_poor_regime_alignment_returns_no_trade_before_tier_scoring():
+    context = MarketContext(market_state=MarketState.LOW_VOL_BULL)
+    candidate = SetupCandidate(
+        symbol="NVDA",
+        setup_type=SetupType.MOMENTUM_BREAKOUT,
+        setup_score=99,
+        regime_alignment=0.20,
+        asymmetry_score=0.95,
+        data_confidence=0.95,
+    )
+
+    result = evaluate_candidate(context, candidate)
+
+    assert result.decision == Decision.NO_TRADE
+    assert result.risk_tier == "no_trade"
+    assert result.position_size_multiplier == 0.0
+    assert "poor_regime_alignment" in result.blocked_reasons
+    assert "regime_alignment_independent_gate" in result.notes
+
+
+def test_custom_regime_alignment_floor_can_reject_candidate():
+    context = MarketContext(market_state=MarketState.LOW_VOL_BULL)
+    candidate = SetupCandidate(
+        symbol="MSFT",
+        setup_type=SetupType.PULLBACK_CONTINUATION,
+        setup_score=90,
+        regime_alignment=0.52,
+        asymmetry_score=0.82,
+        data_confidence=0.91,
+    )
+    strict_thresholds = DecisionThresholds(
+        tier3_regime_alignment=0.60,
+        version="test-regime-floor-v1",
+    )
+
+    result = evaluate_candidate(context, candidate, strict_thresholds)
+
+    assert result.decision == Decision.NO_TRADE
+    assert result.risk_tier == "no_trade"
+    assert "poor_regime_alignment" in result.blocked_reasons
+    assert "thresholds_version=test-regime-floor-v1" in result.notes
+
+
 def test_high_vol_transition_reduces_position_size():
     context = MarketContext(market_state=MarketState.HIGH_VOL_TRANSITION)
     candidate = SetupCandidate(
@@ -181,6 +224,34 @@ def test_ranking_prefers_approved_asymmetric_candidate_over_blocked_high_score()
     assert ranked[0][0].symbol == "MSFT"
     assert ranked[0][1].decision == Decision.APPROVED
     assert ranked[1][1].decision == Decision.BLOCKED
+
+
+def test_ranking_puts_poor_regime_alignment_below_approved_candidate():
+    context = MarketContext(market_state=MarketState.LOW_VOL_BULL)
+    approved = SetupCandidate(
+        symbol="MSFT",
+        setup_type=SetupType.PULLBACK_CONTINUATION,
+        setup_score=82,
+        regime_alignment=0.80,
+        asymmetry_score=0.82,
+        data_confidence=0.85,
+    )
+    poor_regime = SetupCandidate(
+        symbol="NVDA",
+        setup_type=SetupType.MOMENTUM_BREAKOUT,
+        setup_score=99,
+        regime_alignment=0.20,
+        asymmetry_score=0.95,
+        data_confidence=0.95,
+    )
+
+    ranked = rank_candidates(context, [poor_regime, approved])
+
+    assert ranked[0][0].symbol == "MSFT"
+    assert ranked[0][1].decision == Decision.APPROVED
+    assert ranked[1][0].symbol == "NVDA"
+    assert ranked[1][1].decision == Decision.NO_TRADE
+    assert "poor_regime_alignment" in ranked[1][1].blocked_reasons
 
 
 def test_ranking_uses_custom_thresholds():
