@@ -41,6 +41,8 @@ class ExecutionKillSwitchConfig:
     require_fill_quality_report: bool = True
     require_drawdown_source_validation: bool = True
     drawdown_calculation_tolerance_pct: float = 0.05
+    watch_drawdown_pct: float = 7.5
+    max_drawdown_pct: float = 10.0
 
 
 @dataclass(frozen=True)
@@ -148,6 +150,8 @@ def evaluate_execution_kill_switch(
     ]
     if drawdown_validation is not None and not any(reason.source == "drawdown_source" and reason.severity == ExecutionKillSwitchSeverity.ERROR for reason in reasons):
         notes.append("drawdown_source_validated")
+    if drawdown_validation is not None and not any(reason.source == "drawdown_source" and reason.code == "drawdown_block_threshold_exceeded" for reason in reasons):
+        notes.append("drawdown_magnitude_checked")
 
     return ExecutionKillSwitchDecision(
         status=status,
@@ -258,6 +262,12 @@ def _evaluate_drawdown_source(validation: DrawdownSourceValidation, reasons: lis
     calculated_drawdown_pct = round(((validation.peak_equity - validation.account_equity) / validation.peak_equity) * 100, 6)
     if abs(calculated_drawdown_pct - validation.drawdown_pct) > config.drawdown_calculation_tolerance_pct:
         reasons.append(_error("drawdown_calculation_mismatch", "reported drawdown percentage does not match current and peak equity", source))
+        return
+
+    if validation.drawdown_pct > config.max_drawdown_pct:
+        reasons.append(_error("drawdown_block_threshold_exceeded", "validated drawdown percentage exceeds block threshold", source))
+    elif validation.drawdown_pct > config.watch_drawdown_pct:
+        reasons.append(_warning("drawdown_watch_threshold_exceeded", "validated drawdown percentage exceeds watch threshold", source))
 
 
 def _to_payload(report: dict[str, Any] | Any | None) -> dict[str, Any] | None:
