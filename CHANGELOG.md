@@ -1,5 +1,26 @@
 # CHANGELOG
 
+## EV12 Drawdown Magnitude Governance — 2026-05-29
+
+### Fixed
+- EV12: execution kill-switch drawdown governance now validates the actual drawdown magnitude, not only the drawdown source type and reconciliation state.
+- Drawdown magnitude checks run only after equity values and reported drawdown percentage are internally consistent.
+
+### Added
+- `watch_drawdown_pct` and `max_drawdown_pct` thresholds in `ExecutionKillSwitchConfig`.
+- `drawdown_watch_threshold_exceeded` warning reason for validated drawdown above the watch threshold.
+- `drawdown_block_threshold_exceeded` blocking reason for validated drawdown above the block threshold.
+- `drawdown_magnitude_checked` decision note for successfully evaluated drawdown magnitude.
+- Dedicated EV12 regression coverage in `tests/test_ev12_drawdown_magnitude.py`.
+- Dedicated main CI step for EV12 drawdown magnitude regression tests.
+
+### Stabilization Result
+- EV12 implementation status: done.
+- CI status: green.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## EV8 Fixed-Date Holdout Semantics — 2026-05-29
 
 ### Fixed
