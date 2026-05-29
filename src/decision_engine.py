@@ -333,6 +333,25 @@ def evaluate_candidate(
     )
 
 
+def _ranking_decision_priority(result: DecisionResult) -> float:
+    """Return tier-aware decision priority for candidate ordering.
+
+    A reduced Tier 1/2 candidate can still rank above a Tier 3 watch candidate,
+    but a reduced Tier 3 candidate must not outrank a clean Tier 3 WATCH simply
+    because `REDUCED_SIZE` has a globally higher enum priority.
+    """
+
+    if result.decision == Decision.APPROVED:
+        return 4.0
+    if result.decision == Decision.REDUCED_SIZE:
+        return 1.5 if result.risk_tier == "tier_3" else 3.0
+    if result.decision == Decision.WATCH:
+        return 2.0
+    if result.decision == Decision.NO_TRADE:
+        return 1.0
+    return 0.0
+
+
 def rank_candidates(
     context: MarketContext,
     candidates: Iterable[SetupCandidate],
@@ -340,18 +359,10 @@ def rank_candidates(
 ) -> list[tuple[SetupCandidate, DecisionResult]]:
     evaluated = [(candidate, evaluate_candidate(context, candidate, thresholds)) for candidate in candidates]
 
-    decision_priority = {
-        Decision.APPROVED: 4,
-        Decision.REDUCED_SIZE: 3,
-        Decision.WATCH: 2,
-        Decision.NO_TRADE: 1,
-        Decision.BLOCKED: 0,
-    }
-
     return sorted(
         evaluated,
         key=lambda item: (
-            decision_priority[item[1].decision],
+            _ranking_decision_priority(item[1]),
             item[1].position_size_multiplier,
             item[0].asymmetry_score,
             item[0].regime_alignment,
