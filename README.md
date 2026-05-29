@@ -12,44 +12,32 @@ The system is designed for research and decision support. It does not place live
 
 ```text
 P36-P47 validation roadmap: implemented
-Phase A Evidence Hygiene A3-A10: implemented
-Phase A CI stabilization: green
-Full regression suite: green
-Phase B1-B14 evidence pipeline: implemented, CI-green and workflow-green
-Phase B15 observation cadence review: implemented and CI-green
+Phase A Evidence Hygiene A3-A10: implemented and CI-green
+Phase B evidence pipeline: implemented, CI-green and workflow-green
 Phase B1.1: active 3-6 month observation-only evidence collection
-Phase C3/C4/C5/C6/C7: paper-only execution planning, reconciliation, drift, fill-quality and kill-switch governance infrastructure
-Phase IP1: public/private edge boundary guardrail implemented
-Phase IP2: public repository hygiene policy implemented
+Phase C paper execution infrastructure: implemented for planning, reconciliation, drift, fill-quality and kill-switch governance
+Phase IP1/IP2: public/private edge boundary and public repository hygiene policy implemented
 TG1: Telegram research-only report dispatcher implemented
-BT2: Strategy Test Matrix model, demo matrix, CLI, docs and tests added
+BT2: Strategy Test Matrix model, demo matrix, CLI, docs and tests implemented
+BT3: Backtest reproducibility contract implemented
+BT5: Walk-Forward / Out-of-Sample Robustness Gate implemented and CI-green
 Live trading authorization: not granted by code
 Broker execution: paper-only infrastructure; live execution is not implemented
 ```
 
-Code quality is not trading edge. The system is promising enough to test seriously, but real capital still requires forward evidence, drift detection, regime-change monitoring, position-level risk attribution and manual review.
+Code quality is not trading edge. The system is promising enough to test seriously, but real capital still requires long-running forward evidence, drift detection, regime-change monitoring, position-level risk attribution, execution-quality review and manual approval.
 
 ## Public / Private Edge Boundary
 
-The public repository is intended to expose the framework, validation discipline, paper-execution controls, auditability, tests and documentation. It is not intended to expose proprietary production edge configuration.
+The public repository exposes framework discipline, validation machinery, paper-execution controls, auditability, tests and documentation. It is not intended to expose proprietary production edge configuration.
 
-IP1 adds a conservative repository hygiene scanner:
+Public-safe content may include architecture, interfaces, demo defaults, synthetic examples, tests, documentation and paper-observation infrastructure. Private edge must stay outside the public repository, including real thresholds, real scoring weights, proprietary setup rankings, non-public entry/exit profiles and private evidence artifacts.
+
+Core checks:
 
 ```bash
 python scripts/check_ip_boundary.py --root . --no-write
-```
-
-IP2 adds the operational public repository hygiene policy:
-
-```bash
 python scripts/validate_public_repo_policy.py --no-write
-```
-
-Policy files:
-
-```text
-.ip-boundary.yml
-docs/operations/public_repo_hygiene_policy.md
 ```
 
 Operational documentation:
@@ -59,32 +47,12 @@ docs/operations/ip_boundary.md
 docs/operations/public_repo_hygiene_policy.md
 ```
 
-Public-safe content may include architecture, interfaces, demo defaults, synthetic examples, tests, documentation and paper-observation infrastructure. Private edge should stay outside the public repository, including real thresholds, real scoring weights, proprietary setup rankings, non-public entry/exit profiles and private evidence artifacts.
-
 ## BT2 Strategy Test Matrix
 
 BT2 adds a public-safe strategy coverage matrix for validating whether strategy sleeves are covered across regimes, setup families, validation stages and data modes.
 
-The public matrix is intentionally demo-only. It must not contain proprietary thresholds, production scoring weights, private setup rankings, real-money instructions or broker execution authorization.
-
-Demo command:
-
 ```bash
 python scripts/generate_strategy_test_matrix.py --demo
-```
-
-File-based command:
-
-```bash
-python scripts/generate_strategy_test_matrix.py \
-  --input-json data/demo_strategy_test_matrix.json \
-  --output-json reports/strategy_test_matrix/strategy_test_matrix.json \
-  --output-md reports/strategy_test_matrix/strategy_test_matrix.md
-```
-
-BT2 test command:
-
-```bash
 pytest tests/test_strategy_test_matrix.py -q
 ```
 
@@ -94,10 +62,73 @@ Operational documentation:
 docs/operations/strategy_test_matrix.md
 ```
 
-Every generated BT2 report remains compatible with:
+## BT3 Backtest Reproducibility Contract
+
+BT3 validates whether historical validation results are tied to pinned run identity, code commit, strategy version, parameter version, dataset fingerprint, symbol set, date window, deterministic seed, metrics and artifact hashes.
+
+```bash
+python scripts/generate_bt3_contract_report.py --demo
+pytest tests/test_bt3_backtest_run_contract.py -q
+```
+
+Operational documentation:
 
 ```text
-Research / Paper Observation Only. No live trading authorization.
+docs/operations/bt3_reproducibility_contract.md
+```
+
+## BT5 Walk-Forward / Out-of-Sample Robustness Gate
+
+BT5 adds a deterministic gate for walk-forward and out-of-sample robustness evidence. It blocks weak historical evidence from passing simply because in-sample results look good.
+
+BT5 validates:
+
+```text
+minimum fold count
+complete fold identity and dataset metadata
+chronological train and OOS windows
+non-overlapping OOS folds
+required train and OOS metrics
+minimum OOS trade count
+maximum OOS drawdown
+minimum OOS pass rate
+positive primary OOS metric rate
+train-to-OOS degradation limit
+public-safe demo tags
+research-only footer
+```
+
+Demo command:
+
+```bash
+python scripts/generate_bt5_walk_forward_report.py --demo
+```
+
+File-based command:
+
+```bash
+python scripts/generate_bt5_walk_forward_report.py \
+  --input-json data/demo_bt5_walk_forward_folds.json \
+  --output-json reports/bt5_walk_forward/robustness_report.json \
+  --output-md reports/bt5_walk_forward/robustness_report.md
+```
+
+BT5 test command:
+
+```bash
+pytest tests/test_bt5_walk_forward_robustness_gate.py -q
+```
+
+Operational documentation:
+
+```text
+docs/operations/bt5_walk_forward_robustness_gate.md
+```
+
+Every generated BT5 report remains compatible with:
+
+```text
+Research / Paper Observation Only. Execution is not authorized by this report.
 ```
 
 ## Telegram Research-Only Reports
@@ -113,22 +144,7 @@ python scripts/send_telegram_report.py \
   --dry-run
 ```
 
-Actual Telegram delivery requires explicit `--send` plus secrets in the environment:
-
-```bash
-TELEGRAM_BOT_TOKEN=...
-TELEGRAM_CHAT_ID=...
-python scripts/send_telegram_report.py \
-  --report-file reports/daily_evidence/latest.md \
-  --title "Daily Evidence" \
-  --send
-```
-
-Every Telegram report must remain compatible with:
-
-```text
-Research / Paper Observation Only. No live trading authorization.
-```
+Actual Telegram delivery requires explicit `--send` plus secrets in the environment.
 
 Operational documentation:
 
@@ -138,7 +154,7 @@ docs/operations/telegram_report_dispatcher.md
 
 ## Phase B Daily Evidence Pipeline
 
-The Daily Evidence workflow now runs as an auditable evidence chain. It no longer builds green reports from placeholder component JSONs.
+The Daily Evidence workflow runs as an auditable evidence chain:
 
 ```text
 Observation source selection
@@ -151,23 +167,6 @@ Observation source selection
 → daily evidence report generation
 → optional real paper observation cadence review
 → artifact upload
-```
-
-Manual bootstrap workflow path:
-
-```text
-Actions → Daily Evidence Report → Run workflow
-bootstrap_observation_only_sources=true
-use_real_paper_observation_source=false
-```
-
-Manual real paper observation workflow path:
-
-```text
-Actions → Daily Evidence Report → Run workflow
-bootstrap_observation_only_sources=false
-use_real_paper_observation_source=true
-real_paper_observation_source_dir=reports/daily_paper_observation_raw
 ```
 
 The bootstrap mode is only a Day-0 observation-only seed. Records are marked as `observation_only_bootstrap` and are not statistically meaningful 3-6 month forward evidence.
@@ -188,84 +187,6 @@ docs/operations/order_reconciliation.md
 docs/operations/daily_execution_reconciliation.md
 docs/operations/fill_quality_report.md
 docs/operations/execution_kill_switch.md
-docs/operations/ip_boundary.md
-docs/operations/public_repo_hygiene_policy.md
-docs/operations/telegram_report_dispatcher.md
-docs/operations/strategy_test_matrix.md
-```
-
-Core CLI commands:
-
-```bash
-python scripts/bootstrap_daily_evidence_sources.py \
-  --output-dir reports/daily_observation_incoming \
-  --report-dir reports/daily_evidence_source_bootstrap \
-  --report-date 2026-05-26
-
-python scripts/build_daily_paper_observation_sources.py \
-  --source-dir reports/daily_paper_observation_raw \
-  --output-dir reports/daily_observation_incoming \
-  --report-dir reports/daily_paper_observation_source
-
-python scripts/persist_daily_observation_sources.py \
-  --incoming-dir reports/daily_observation_incoming \
-  --feed-dir reports/daily_observation_feed \
-  --report-dir reports/daily_observation_source_feed \
-  --report-date 2026-05-26
-
-python scripts/build_daily_evidence_inputs.py \
-  --source-dir reports/daily_observation_feed \
-  --output-dir reports/daily_evidence_inputs \
-  --report-dir reports/daily_evidence_input_build
-
-python scripts/validate_daily_evidence_inputs.py \
-  --input-dir reports/daily_evidence_inputs \
-  --output-dir reports/daily_evidence_input_validation
-
-python scripts/generate_daily_evidence_components.py \
-  --input-dir reports/daily_evidence_inputs \
-  --output-dir reports/daily_evidence_components \
-  --report-date 2026-05-26 \
-  --observation-only
-
-python scripts/run_daily_evidence_report.py \
-  --input-dir reports/daily_evidence_components \
-  --output-dir reports/daily_evidence \
-  --report-date 2026-05-26 \
-  --max-failed-components 3
-
-python scripts/review_daily_observation_cadence.py \
-  --report-date 2026-05-26 \
-  --raw-source-dir reports/daily_paper_observation_raw \
-  --artifact-root reports \
-  --output-dir reports/daily_observation_cadence
-
-python scripts/reconcile_daily_execution.py \
-  --expected-file reports/daily_expected_execution/expected.json \
-  --observed-file reports/daily_observed_execution/observed.json \
-  --output-dir reports/daily_execution_reconciliation
-
-python scripts/generate_fill_quality_report.py \
-  --input-file reports/fill_quality_input/fills.json \
-  --output-dir reports/fill_quality
-
-python scripts/evaluate_execution_kill_switch.py \
-  --input-file reports/execution_kill_switch_input/input.json \
-  --output-dir reports/execution_kill_switch
-
-python scripts/check_ip_boundary.py \
-  --root . \
-  --no-write
-
-python scripts/validate_public_repo_policy.py \
-  --no-write
-
-python scripts/send_telegram_report.py \
-  --report-file reports/daily_evidence/latest.md \
-  --title "Daily Evidence" \
-  --dry-run
-
-python scripts/generate_strategy_test_matrix.py --demo
 ```
 
 ## Phase A Evidence Hygiene
@@ -295,18 +216,6 @@ Full regression suite green: done
 README finalized: done
 ```
 
-Operational documentation:
-
-```text
-docs/operations/threshold_evidence_contract.md
-docs/operations/slippage_model.md
-docs/operations/statistical_robustness.md
-docs/operations/polygon_structured_logging.md
-docs/operations/polygon_cache_locking.md
-docs/operations/secrets_rotation_policy.md
-docs/operations/phase_a_ci_stabilization.md
-```
-
 ## Core Capabilities
 
 - market regime analysis
@@ -319,6 +228,7 @@ docs/operations/phase_a_ci_stabilization.md
 - Deflated Sharpe probability and bootstrap confidence intervals
 - regime-phase backtest matrix
 - walk-forward validation
+- BT5 walk-forward / out-of-sample robustness gate
 - execution realism adjustment with square-root regime-aware slippage
 - out-of-sample validation lockbox with threshold-aware evidence invalidation
 - paper trading journal / live observation v2
@@ -326,29 +236,6 @@ docs/operations/phase_a_ci_stabilization.md
 - real paper observation source builder
 - daily observation cadence review
 - Phase B daily evidence input pipeline and report artifacts
-- final live readiness gate
-- cross-asset market-data coverage
-- Polygon active universe runtime builder
-- Polygon all-assets data workflow
-- Polygon structured JSON logging
-- Polygon cache locking and atomic writes
-- Polygon daily OHLCV bars downloader
-- Polygon artifact consolidation workflow
-- historical trade plan generation from Polygon bars
-- configurable survivorship audit mode for runtime Polygon artifacts
-- edge-evidence diagnostics for failed validation gates
-- edge-evidence diagnostics snapshot in workflow logs
-- edge-evidence execution from combined Polygon artifacts
-- event-risk placeholder metadata
-- optional SQLite runtime persistence
-- static dashboard HTML reporting
-- signal generation with entry, stop and target planning
-- watcher-based lifecycle tracking
-- manual portfolio synchronization
-- historical Polygon data ingestion
-- historical Entry / Stop / Exit backtesting
-- out-of-sample validation
-- paper-live observation
 - paper broker adapter interface
 - VWAP/TWAP paper order slicing
 - paper order reconciliation and portfolio-state derivation
@@ -359,6 +246,8 @@ docs/operations/phase_a_ci_stabilization.md
 - public repository hygiene policy validation
 - Telegram research-only report dispatching
 - BT2 Strategy Test Matrix coverage validation
+- BT3 backtest reproducibility contract
+- final live readiness gate
 - operational readiness review
 - scheduled decision-support dry runs
 - persistent report archive
@@ -386,6 +275,7 @@ Market analysis
 → Statistical robustness checks
 → Regime-phase backtest matrix
 → Walk-forward validation
+→ BT5 walk-forward / out-of-sample robustness gate
 → Execution realism adjustment
 → Out-of-sample validation lockbox
 → Edge-evidence diagnostics
@@ -403,7 +293,6 @@ Market analysis
 → Public/private edge boundary scan
 → Public repository policy validation
 → Telegram report dispatch guardrails
-→ BT2 Strategy Test Matrix validation
 → Final live readiness gate
 → Human review
 ```
@@ -453,8 +342,14 @@ Telegram report tests:
 pytest tests/test_telegram_report_dispatcher.py -q
 ```
 
-BT2 Strategy Test Matrix tests:
+Backtest validation gates:
 
 ```bash
 pytest tests/test_strategy_test_matrix.py -q
+pytest tests/test_bt3_backtest_run_contract.py -q
+pytest tests/test_bt5_walk_forward_robustness_gate.py -q
 ```
+
+## Hard Safety Rule
+
+This repository is a research and decision-support framework. No generated report, backtest, walk-forward result, paper execution artifact, Telegram dispatch or CI-green state authorizes live trading.
