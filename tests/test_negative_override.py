@@ -28,6 +28,29 @@ def test_earnings_override_reduces_conviction():
     assert final["final_recommendation"] == "WATCH"
 
 
+def test_vix_none_is_visible_and_not_treated_as_zero():
+    overrides = evaluate_negative_overrides({"vix": None})
+
+    assert overrides["has_overrides"] is True
+    assert overrides["minor_count"] == 1
+    assert overrides["max_recommendation"] == "BUY"
+    assert [item["reason"] for item in overrides["overrides"]] == ["vix_unavailable"]
+
+
+def test_missing_vix_key_remains_neutral_for_backwards_compatibility():
+    overrides = evaluate_negative_overrides({})
+
+    assert overrides["has_overrides"] is False
+    assert overrides["max_recommendation"] == "STRONG BUY"
+
+
+def test_invalid_vix_is_visible_and_not_treated_as_zero():
+    overrides = evaluate_negative_overrides({"vix": "not-a-number"})
+
+    assert overrides["minor_count"] == 1
+    assert overrides["overrides"][0]["reason"] == "vix_unavailable"
+
+
 def test_multiple_major_risks_force_avoid():
     overrides = evaluate_negative_overrides(
         {
