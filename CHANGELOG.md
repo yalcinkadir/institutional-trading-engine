@@ -1,5 +1,29 @@
 # CHANGELOG
 
+## BT3 Reproducibility Contract Gate — 2026-05-28
+
+### Added
+- BT3 reproducibility contract report model in `src/validation/backtest_run_contract.py`.
+- Public-safe demo contracts in `data/demo_backtest_run_contracts.json`.
+- CLI report generator in `scripts/generate_bt3_contract_report.py`.
+- Operational documentation in `docs/operations/bt3_reproducibility_contract.md`.
+
+### Tests Added / Updated
+- `tests/test_bt3_backtest_run_contract.py`.
+- CI workflow includes an explicit BT3 reproducibility contract test step before the full regression suite.
+
+### Improved
+- Historical validation evidence can now be checked for pinned run identity, strategy version, parameter version, dataset fingerprint, symbol set, date window, deterministic seed, result metrics and artifact hashes.
+- BT3 complements the older deterministic backtest contract with a report-level evidence gate.
+- Generated BT3 reports remain research-only and do not authorize execution.
+
+### Stabilization Result
+- BT3 implementation status: PR-open / CI pending.
+- Public demo contracts remain synthetic or paper-observation only.
+- Broker execution remains intentionally not implemented.
+
+---
+
 ## BT2 Strategy Test Matrix — 2026-05-28
 
 ### Added
