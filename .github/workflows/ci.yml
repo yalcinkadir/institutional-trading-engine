@@ -105,6 +105,12 @@ jobs:
         run: |
           pytest tests/test_ev_evidence_consolidation.py -q
 
+      - name: Roadmap EV completion guard tests
+        env:
+          POLYGON_API_KEY: test-key
+        run: |
+          pytest tests/test_roadmap_ev_completion_guard.py -q
+
       - name: Phase A stabilization tests
         env:
           POLYGON_API_KEY: test-key
