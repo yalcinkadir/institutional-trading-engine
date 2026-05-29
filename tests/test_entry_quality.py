@@ -107,6 +107,19 @@ def test_pullback_entry_for_pullback_continuation() -> None:
     assert "1 ATR below" in result.entry_reason
 
 
+def test_pullback_entry_rejects_non_positive_computed_entry() -> None:
+    result = derive_entry_quality(
+        setup_type="pullback_continuation",
+        close=2.5,
+        atr=3.0,
+    )
+
+    assert not result.is_valid
+    assert result.entry_trigger is None
+    assert result.entry_type == "pullback"
+    assert result.reasons == ["computed_entry_non_positive"]
+
+
 def test_retest_entry_for_retest_continuation() -> None:
     result = derive_entry_quality(
         setup_type="retest_continuation",
@@ -209,6 +222,17 @@ def test_missing_close_rejected() -> None:
 
     assert not result.is_valid
     assert result.reasons == ["missing_close"]
+
+
+def test_non_positive_close_rejected() -> None:
+    result = derive_entry_quality(
+        setup_type="momentum_breakout",
+        close=0.0,
+        atr=4.0,
+    )
+
+    assert not result.is_valid
+    assert result.reasons == ["missing_or_invalid_close"]
 
 
 def test_missing_atr_rejected() -> None:
