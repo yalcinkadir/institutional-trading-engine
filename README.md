@@ -14,7 +14,7 @@ The system is designed for research and decision support. It does not place live
 P36-P47 validation roadmap: implemented
 Phase A Evidence Hygiene A3-A10: implemented and CI-green
 Phase B evidence pipeline: implemented, CI-green and workflow-green
-Phase B1.1: active 3-6 month observation-only evidence collection
+Phase B1.1: evidence operation discipline implemented / CI-wired; 3-6 month observation-only evidence collection remains active
 Phase C paper execution infrastructure: implemented for planning, reconciliation, drift, fill-quality and kill-switch governance
 Phase IP1/IP2: public/private edge boundary and public repository hygiene policy implemented
 IP3/IP4: public-demo defaults and optional external edge provider boundary implemented and CI-green
@@ -27,6 +27,7 @@ CL3: kill-switch drawdown-source validation implemented / CI-wired
 CL4: ATR calculation governance, Wilder ATR evaluation and threshold-version bump implemented / CI-wired
 CL5: regime_alignment independent gate implemented / CI-wired
 TG1: Telegram research-only report dispatcher implemented
+TG2/TG3: research-only Telegram summary integration and report templates implemented / CI-wired
 BT2: Strategy Test Matrix model, demo matrix, CLI, docs and tests implemented
 BT3: Backtest reproducibility contract implemented
 BT5: Walk-Forward / Out-of-Sample Robustness Gate implemented and CI-green
@@ -37,6 +38,41 @@ Broker execution: paper-only infrastructure; live execution is not implemented
 ```
 
 Code quality is not trading edge. The system is promising enough to test seriously, but real capital still requires long-running forward evidence, drift detection, regime-change monitoring, position-level risk attribution, execution-quality review, capacity/turnover realism and manual approval.
+
+## B1.1 Evidence Operation Discipline + TG2/TG3 Reporting Integration
+
+B1.1 converts the active 3-6 month observation period into an explicit operating gate. It does not add strategy complexity, broker execution or live-trading authorization.
+
+Implemented files:
+
+```text
+src/operations/evidence_operation_discipline.py
+src/reporting/tg2_tg3_report_templates.py
+docs/operations/b11_evidence_operation_discipline.md
+tests/test_b11_evidence_operation_discipline.py
+```
+
+Implemented safeguards:
+
+- Observation mode must remain research-only, observation-only or paper-only.
+- Daily evidence report must exist and pass.
+- Daily reconciliation component must pass before the observation day is considered clean.
+- TG3 renders public-safe Daily Evidence, Fill Quality, Kill Switch and Backtest Summary templates.
+- TG2 Telegram dispatch records must remain inside the existing TG1 research-only boundary.
+- Telegram messages must include the research-only/no-live-trading footer.
+- No broker execution, no live trading authorization and no private edge parameters are introduced.
+
+B1.1 test command:
+
+```bash
+pytest tests/test_b11_evidence_operation_discipline.py -q
+```
+
+Operational documentation:
+
+```text
+docs/operations/b11_evidence_operation_discipline.md
+```
 
 ## IP9/IP10 Public Repository Governance
 
@@ -70,12 +106,6 @@ pytest tests/test_ip9_ip10_public_repo_governance.py -q
 python scripts/check_ip_boundary.py --root . --no-write
 pytest tests/test_ip_boundary.py -q
 python scripts/validate_public_repo_policy.py --no-write
-```
-
-Operational documentation:
-
-```text
-docs/operations/ip9_ip10_public_repo_governance.md
 ```
 
 ## Report Output Boundary Guard
@@ -226,9 +256,10 @@ Full suite:
 pytest -q
 ```
 
-Backtest, IP, report-boundary and core-logic validation gates:
+Backtest, IP, report-boundary, evidence-operation and core-logic validation gates:
 
 ```bash
+pytest tests/test_b11_evidence_operation_discipline.py -q
 pytest tests/test_strategy_test_matrix.py -q
 pytest tests/test_bt3_backtest_run_contract.py -q
 pytest tests/test_bt5_walk_forward_robustness_gate.py -q
@@ -250,4 +281,4 @@ pytest tests/test_decision_engine.py -q
 
 ## Hard Safety Rule
 
-This repository is a research and decision-support framework. No generated report, protected public report example, backtest, walk-forward result, evidence baseline comparison, capacity/turnover realism report, paper execution artifact, Telegram dispatch, external edge provider, core-logic remediation, scoring audit, kill-switch drawdown-source validation, ATR governance change, threshold-version bump, regime-alignment governance change, report output boundary guard, IP9/IP10 governance check or CI-green state authorizes live trading.
+This repository is a research and decision-support framework. No B1.1 evidence operation record, TG2/TG3 report template, generated report, protected public report example, backtest, walk-forward result, evidence baseline comparison, capacity/turnover realism report, paper execution artifact, Telegram dispatch, external edge provider, core-logic remediation, scoring audit, kill-switch drawdown-source validation, ATR governance change, threshold-version bump, regime-alignment governance change, report output boundary guard, IP9/IP10 governance check or CI-green state authorizes live trading.
