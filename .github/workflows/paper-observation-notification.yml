@@ -39,6 +39,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Generate visible asset treatment timeline
+        run: |
+          python scripts/generate_paper_observation_asset_timeline.py \
+            --report-date "$(date -u +%F)" \
+            --output-dir reports/paper_observation
+
+      - name: Show asset treatment timeline
+        run: |
+          cat reports/paper_observation/paper_observation_asset_timeline.md
+
       - name: Send B1.1 paper observation Telegram notification
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -49,3 +59,12 @@ jobs:
             --report-date "$(date -u +%F)" \
             --status "${NOTIFICATION_STATUS}" \
             --send
+
+      - name: Upload paper observation asset timeline artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: paper-observation-asset-timeline
+          path: |
+            reports/paper_observation/paper_observation_asset_timeline.json
+            reports/paper_observation/paper_observation_asset_timeline.md
+          if-no-files-found: error
