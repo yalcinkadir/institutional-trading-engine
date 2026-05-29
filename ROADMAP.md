@@ -1,7 +1,7 @@
 # Institutional Trading Engine Roadmap
 
 Status date: 2026-05-29  
-Current state: IP3 public-demo threshold defaults are implemented and CI-green. IP4 optional external edge provider boundary is implemented and CI-green. IP5/IP6 artifact hygiene and `.gitignore` hardening are implemented and CI-wired. Report Output Boundary Guard is implemented and CI-green. IP8 fallback/private-edge absence test coverage is implemented and CI-green. CL1 core decision logic remediation for asymmetry, portfolio-risk tier handling and breakeven expectancy is implemented and CI-wired. CL2 scoring-system audit and report-vs-decision separation is implemented and CI-wired. CL3 kill-switch drawdown-source validation is implemented and CI-wired. CL4 ATR calculation governance, Wilder ATR evaluation and threshold-version bump are implemented and CI-wired. CL5 regime-alignment independent gate is implemented and CI-wired. BT7 Capacity / Turnover / Realism Gate is implemented and CI-green. BT6 Evidence Baseline Regression Gate is implemented and CI-green. BT5 Walk-Forward / Out-of-Sample Robustness Gate is implemented and CI-green. Phase B1.1 remains the active 3-6 month observation-only evidence collection period. Real-money execution is not authorized by code.
+Current state: IP9/IP10 public-repository governance is implemented and CI-wired. IP9 adds mandatory PR review for newly introduced public edge constants and public strategy-like changes. IP10 adds a public license and usage disclaimer appropriate for a research decision-support framework. Phase B1.1 remains the active 3-6 month observation-only evidence collection period. Real-money execution is not authorized by code.
 
 ## Strategic direction
 
@@ -17,7 +17,8 @@ The project now prioritizes:
 6. capacity / turnover realism
 7. portfolio-level risk attribution
 8. core decision-logic regression gates
-9. multi-strategy expansion only after the base edge is proven
+9. public repository governance before new strategy complexity
+10. multi-strategy expansion only after the base edge is proven
 
 Hard rule: no real-money execution before real forward evidence, drift detection, regime-change monitoring, position-level risk attribution, capacity/turnover realism and manual approval are in place.
 
@@ -42,9 +43,20 @@ Goal: keep the repository useful as a public framework while protecting propriet
 | IP6 | Expand `.gitignore` for private configs, generated reports, databases, caches, logs, coverage output and local artifacts | P0 | High | Done / CI-wired |
 | IP7 | Update README to state that the public repo contains framework/demo defaults only, not proprietary production edge configuration | P1 | High | Done |
 | IP8 | Add tests proving the public fallback path works without private modules and that private modules are optional imports only | P1 | High | Done / CI-green |
-| IP9 | Review open PRs for newly introduced edge constants before merge, especially setup-specific target profiles and scoring changes | P0 | Critical | Planned |
-| IP10 | Add license and usage disclaimer appropriate for a public decision-support research framework | P1 | Medium | Planned |
+| IP9 | Review open PRs for newly introduced edge constants before merge, especially setup-specific target profiles and scoring changes | P0 | Critical | Done / CI-wired |
+| IP10 | Add license and usage disclaimer appropriate for a public decision-support research framework | P1 | Medium | Done / CI-wired |
 | IP11 | Add fail-closed Report Output Boundary Guard so generated runtime reports cannot overwrite committed public report examples | P0 | Critical | Done / CI-green |
+
+IP9/IP10 implemented artifacts:
+
+```text
+.github/pull_request_template.md
+.github/workflows/ip9_ip10.yml
+LICENSE
+DISCLAIMER.md
+docs/operations/ip9_ip10_public_repo_governance.md
+tests/test_ip9_ip10_public_repo_governance.py
+```
 
 ## Phase CL — Core Logic Remediation
 
@@ -56,7 +68,7 @@ Goal: keep the repository useful as a public framework while protecting propriet
 | CL4 | Evaluate Wilder-style ATR migration behind regression tests and threshold-version bump | P2 | Medium | Done / CI-wired |
 | CL5 | Make `regime_alignment` an independent fail-closed gate before risk-tier scoring can approve or watch a setup | P2 | Medium | Done / CI-wired |
 
-CL1-CL5 are remediation and audit gates only. CL1 fixes decision-critical math and measurement issues. CL2 separates report-only scores from decision-authoritative gates. CL3 prevents drawdown kill-switch governance from being considered active unless the drawdown source is real, reconciled and internally consistent. CL4 prevents ATR semantics from changing silently by making ATR method, version and evidence invalidation explicit. CL5 prevents a high setup score, asymmetry score or data-confidence score from rescuing poor regime alignment. None of these prove edge and none authorize live trading.
+CL1-CL5 are remediation and audit gates only. None of these prove edge and none authorize live trading.
 
 ## Phase BT — Backtest Evidence Hardening
 
@@ -84,14 +96,7 @@ BT5 is a robustness gate only. BT6 is a baseline-regression gate only. BT7 is a 
 |---|---|---:|---:|---|
 | A1 | Add a survivorship-safe data source, for example Norgate, Sharadar or equivalent point-in-time universe coverage | P0 | Critical | Planned |
 | A2 | Add a second data provider abstraction for cross-validation against Polygon | P0 | Critical | Planned |
-| A3 | Centralize decision thresholds in `src/config/thresholds.py` with explicit versioning | P1 | High | Done |
-| A4 | Invalidate backtest/lockbox evidence when threshold versions change | P1 | High | Done |
-| A5 | Replace linear slippage heuristic with square-root impact plus regime multipliers | P1 | High | Done |
-| A6 | Add Deflated Sharpe Ratio and bootstrap confidence intervals to edge validation | P1 | High | Done |
-| A7 | Convert Polygon client retry/rate-limit output to structured logging | P2 | Medium | Done |
-| A8 | Add cache locking for `.cache/polygon` writes | P2 | Medium | Done |
-| A9 | Update `CHANGELOG.md` and `SETUP_NOTES.md` for P47 readiness state | P2 | Medium | Done |
-| A10 | Document quarterly secrets rotation policy | P2 | Medium | Done |
+| A3-A10 | Threshold versioning, evidence invalidation, slippage realism, statistical robustness, structured logging, cache locking, documentation and secrets rotation policy | P1/P2 | High/Medium | Done / CI-green |
 
 ## Phase B — Real Forward Evidence
 
@@ -102,24 +107,13 @@ Goal: prove whether the rule-based system has live-observable edge before adding
 |---|---|---:|---:|---|
 | B1 | Prepare paper observation daily reconciliation gate and report model | P0 | Critical | Done |
 | B1.1 | Run 3-6 months of observation-only paper evidence with daily reconciliation | P0 | Critical | In Progress |
-| B2 | Add paper vs. backtest performance drift detection | P0 | High | Done |
-| B3 | Add SPRT-style sequential test for edge decay | P1 | High | Done |
-| B4 | Add deterministic regime-change detection gate | P1 | High | Done |
-| B5 | Add position-level risk attribution by beta, sector, factor and single-name contribution | P1 | High | Done |
-| B6 | Add Monte Carlo robustness suite with bootstrap and permutation tests | P1 | Medium | Done |
-| B7-B17 | Daily evidence pipeline, persisted observation feed, raw contract and real paper observation runbook discipline | P0/P1 | Critical/High | Done |
+| B2-B17 | Drift detection, sequential edge decay, regime-change detection, risk attribution, Monte Carlo robustness and daily evidence pipeline | P0/P1 | Critical/High | Done |
 
 ## Phase C — Execution Reality
 
 | ID | Task | Priority | Impact | Status |
 |---|---|---:|---:|---|
-| C1 | Define broker adapter interface for paper execution first | P0 | High | Done |
-| C2 | Add Alpaca paper adapter as first broker implementation | P1 | High | Done |
-| C3 | Add VWAP/TWAP order slicing using public demo profiles only until private-edge boundary exists | P1 | High | Done |
-| C4 | Add order reconciliation engine for signal, order, fill and portfolio state | P1 | High | Done |
-| C5 | Add live vs. backtest daily reconciliation workflow | P1 | High | Done |
-| C6 | Add fill-quality report for slippage, spread, delay and partial fills | P2 | Medium | Done |
-| C7 | Add execution kill switch when execution drift exceeds limits | P1 | High | Done |
+| C1-C7 | Paper broker adapter, Alpaca paper adapter, order slicing, reconciliation, live-vs-backtest reconciliation, fill quality and execution kill switch | P0/P2 | High/Medium | Done |
 
 ## Phase D — Strategy Expansion
 
@@ -147,8 +141,9 @@ Start only after Phase B and C produce credible evidence and after the private-e
 | E6 | Add hierarchical risk parity allocation | P2 | Medium | Planned |
 | E7 | Build an audit dashboard for evidence, drift, risk and execution quality | P2 | Medium | Planned |
 
-## Recently completed evidence-visibility and logic-safety work
+## Recently completed evidence-visibility, IP and logic-safety work
 
+- IP9/IP10 public repository governance: done and CI-wired.
 - Report Output Boundary Guard: done and CI-green.
 - CL5 regime-alignment independent gate: done and CI-wired.
 - CL4 ATR calculation governance and threshold-version bump: done and CI-wired.
@@ -163,19 +158,17 @@ Start only after Phase B and C produce credible evidence and after the private-e
 - BT6 Evidence Baseline Regression Gate: done and CI-green.
 - BT5 Walk-Forward / Out-of-Sample Robustness Gate: done and CI-green.
 - TG1 Telegram research-only report dispatcher: done.
-- IP1 public/private edge boundary guardrail: done.
-- IP2 public repository hygiene and private-edge handling policy: done.
 - Phase C paper execution and audit infrastructure: done.
 - Phase B daily evidence pipeline and paper observation discipline: done.
 - Phase A evidence hygiene: done and CI-green.
 
 ## Current execution focus
 
-B1.1 remains the long-running evidence collection period. Phase C is active for paper execution only. Telegram delivery is allowed for research/paper-observation reports only. IP3/IP4 is complete and CI-green. IP5/IP6, Report Output Boundary Guard and CL1-CL5 are implemented and CI-wired. Immediate focus: execute IP9/IP10 public-repository governance before adding new strategy complexity.
+B1.1 remains the long-running evidence collection period. Phase C is active for paper execution only. Telegram delivery is allowed for research/paper-observation reports only. IP9/IP10 governance is now complete and CI-wired. Immediate focus: run observation discipline and avoid adding new strategy complexity before evidence matures.
 
 ## Recommended next block
 
-The next rational block is **IP9/IP10**: review future PRs for newly introduced public edge constants and add a license/usage disclaimer appropriate for a public decision-support research framework.
+The next rational block is **B1.1 evidence operation discipline** plus **TG2/TG3 reporting integration** if GitHub Actions permissions are confirmed.
 
 ## Do not do yet
 
