@@ -1,5 +1,34 @@
 # CHANGELOG
 
+## BT7 Capacity / Turnover / Realism Gate — 2026-05-29
+
+### Added
+- BT7 capacity, turnover and transaction-cost realism gate model in `src/validation/capacity_turnover_realism_gate.py`.
+- Public-safe synthetic capacity/turnover fixture in `data/demo_bt7_capacity_turnover.json`.
+- CLI report generator in `scripts/generate_bt7_capacity_turnover_report.py`.
+- Operational documentation in `docs/operations/bt7_capacity_turnover_realism_gate.md`.
+- Dedicated BT7 GitHub Actions workflow in `.github/workflows/bt7.yml`.
+- Main CI step for `tests/test_bt7_capacity_turnover_realism_gate.py`.
+
+### Tests Added / Updated
+- `tests/test_bt7_capacity_turnover_realism_gate.py`.
+- BT7 tests cover happy path, missing identity fields, missing and non-numeric metrics, non-positive scale, position ADV limits, portfolio ADV limits, daily turnover limits, annual turnover limits, transaction-cost drag, net expectancy floor, holding-period floor, trade-count floor, slippage-model coverage, missing artifact hashes, missing public-safe tags, missing research-only footer, JSON loading, report writing and Markdown rendering.
+
+### Improved
+- Historical evidence now has a deterministic capacity and turnover realism gate before any private production sizing work.
+- BT7 blocks results that look attractive but require unrealistic liquidity usage, excessive turnover, excessive transaction-cost drag or incomplete slippage coverage.
+- Generated BT7 reports remain research-only and do not authorize execution.
+
+### Stabilization Result
+- BT7 implementation status: done.
+- BT7 local test status: 19 tests passing.
+- BT7 CI status: wired / pending remote workflow confirmation.
+- Public demo capacity and turnover data remains synthetic/demo-only.
+- Broker execution remains intentionally paper-only infrastructure.
+- Live trading remains intentionally not authorized by code.
+
+---
+
 ## BT6 Evidence Baseline Regression Gate — 2026-05-29
 
 ### Added
@@ -158,131 +187,3 @@
   - `docs/operations/sequential_edge_decay.md`
 
 ### Tests Added / Updated
-- `tests/test_paper_observation_reconciliation.py`
-- `tests/test_performance_drift_detection.py`
-- `tests/test_sequential_edge_decay.py`
-- CI workflow now includes explicit Phase B1, B2 and B3 test steps before the full regression suite.
-
-### Improved
-- Phase B now has observation-only reconciliation infrastructure.
-- Forward paper results can be compared against expected/backtest actions and R values.
-- Paper-vs-backtest drift can be monitored through expectancy drift, win-rate drift, cumulative drift and z-score gates.
-- Sequential edge-decay testing can distinguish baseline-compatible, degraded, inconclusive and continue-observation states.
-
-### Stabilization Result
-- B1 paper observation reconciliation: implemented and CI-green.
-- B2 performance drift detection: implemented and CI-green.
-- B3 sequential edge-decay testing: implemented and CI-green.
-- B1.1 remains a long-running 3-6 month observation-only evidence period.
-- Broker execution remains intentionally not implemented.
-- Live trading remains intentionally not authorized by code.
-
----
-
-## Phase A Evidence Hygiene — 2026-05-25
-
-### Added
-- `ROADMAP.md` with Phase A-E institutional validation roadmap.
-- Versioned decision threshold contract in `src/config/thresholds.py`.
-- Threshold-aware decision engine integration.
-- Threshold-aware out-of-sample lockbox invalidation.
-- Evidence contract hash for lockbox reports.
-- Lockbox invalidation reasons:
-  - `stale_threshold_version`
-  - `missing_record_threshold_versions`
-  - `record_threshold_version_mismatch`
-- Square-root regime-aware slippage model in `src/execution/slippage_model.py`.
-- Execution realism metadata:
-  - `slippage_model_version`
-  - `slippage_quality`
-  - `market_impact_pct`
-  - `spread_cost_pct`
-  - `slippage_pct`
-  - `execution_cost_r`
-- Statistical robustness utilities in `src/validation/statistical_robustness.py`.
-- Deflated Sharpe probability gate in historical edge validation.
-- Bootstrap confidence intervals for expectancy and win rate.
-- Polygon structured JSON logging for universe and daily bars scripts.
-- Polygon cache locking infrastructure with atomic writes:
-  - lock-file acquisition
-  - stale lock cleanup
-  - timeout handling
-  - temp-file write plus `os.replace`
-- Operational documentation:
-  - `docs/operations/threshold_evidence_contract.md`
-  - `docs/operations/slippage_model.md`
-  - `docs/operations/statistical_robustness.md`
-  - `docs/operations/polygon_structured_logging.md`
-  - `docs/operations/polygon_cache_locking.md`
-  - `docs/operations/secrets_rotation_policy.md`
-  - `docs/operations/phase_a_ci_stabilization.md`
-
-### Tests Added / Updated
-- `tests/test_decision_engine.py`
-- `tests/test_out_of_sample_lockbox.py`
-- `tests/test_slippage_model.py`
-- `tests/test_execution_realism.py`
-- `tests/test_statistical_robustness.py`
-- `tests/test_historical_edge_validation.py`
-- `tests/test_polygon_structured_logging.py`
-- `tests/test_polygon_data_pipeline.py`
-- `tests/test_polygon_cache.py`
-- Regression test expectations updated after stricter A5/A6 evidence gates.
-
-### Improved
-- Backtest and lockbox evidence now fails closed when the threshold contract is stale.
-- Execution realism now separates spread cost from market impact.
-- Slippage now scales non-linearly with order size relative to ADV.
-- Panic/risk-off regimes now increase execution-cost assumptions.
-- Historical edge validation now penalizes multiple testing through Deflated Sharpe probability.
-- Historical edge validation can require a positive bootstrap lower bound for expectancy.
-- Polygon data workflows now emit machine-readable logs for rate limits, HTTP errors, skipped symbols, failed symbols and run summaries.
-- Polygon cache writes now have a safe write primitive for future large data runs.
-- Phase A stabilization tests were added to CI before Phase B.
-- Full regression suite was executed and fixed until CI green.
-
-### Stabilization Result
-- Phase A implementation status: complete.
-- Phase A CI stabilization status: green.
-- Full regression suite status: green.
-- Broker execution remains intentionally not implemented.
-- Live trading remains intentionally not authorized by code.
-- Phase B may start as observation-only paper evidence collection.
-
----
-
-## v0.1.1-cloud-scanner
-### Added
-- Cloudbasierter Market Scanner über GitHub Actions
-- Polygon API Integration über GitHub Secrets
-- Automatische Markdown-Reports im `reports/`-Ordner
-- Zeitstempel im Report-Dateinamen
-- RSI(14), ATR(14), ATR%, SMA20, SMA50, SMA200
-- RVOL und 20D Return
-- Relative Strength Spread vs Benchmark
-- Market Regime Summary
-- Watchlist Candidates
-- Leaders / Aggressive Leaders
-- Weak Names
-- Setup Readiness
-- Data / Risk Warnings
-- Telegram Summary nach Workflow-Run
-- Telegram Watchlist-Tradeplan mit:
-  - Trigger
-  - Entry Zone
-  - Stop
-  - Exit 1
-  - Exit 2
-
-### Improved
-- Benchmark-Zuordnung nach Asset-Typ verbessert
-- GLD/SLV nicht mehr gegen QQQ verglichen
-- Telegram-Ausgabe kompakter und mobilfreundlicher gemacht
-- Leaders-Sektion in Clean / Aggressive getrennt
-- Setup-Labels verfeinert
-- Konfiguration in `config.py` strukturiert
-
-### Notes
-- VIX ist aktuell noch nicht sauber integriert
-- Scanner ist aktuell Analyse-/Screening-System, kein vollständiges Trading-System
-- Exit-Logik in Telegram ist aktuell indikativ und regelbasiert
