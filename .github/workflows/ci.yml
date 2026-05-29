@@ -164,6 +164,13 @@ jobs:
         run: |
           pytest tests/test_external_edge_provider.py -q
 
+      - name: Report output boundary guard tests
+        env:
+          POLYGON_API_KEY: test-key
+        run: |
+          pytest tests/test_report_output_boundary.py -q
+          pytest tests/test_generate_report_output_boundary.py -q
+
       - name: BT7 capacity turnover realism tests
         env:
           POLYGON_API_KEY: test-key
