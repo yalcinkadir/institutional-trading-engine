@@ -1,5 +1,30 @@
 # CHANGELOG
 
+## EV3-EV6 Backtest Fidelity Fix — 2026-05-29
+
+### Fixed
+- EV3: historical backtests now fail closed for unsupported `stop_model` and `exit_model` values instead of silently applying an implicit default.
+- EV4: `breakeven_after_t1` can now stop at entry after Target 1 instead of booking a false full `-1R` loss.
+- EV5: gap-through-stop bars can now fill at the bar open when the open is worse than the configured stop-loss.
+- EV6: Target-1-only exits now use the actual Target 1 hit date instead of the last bar in the evaluation window.
+
+### Added
+- `BacktestExecutionConfig` for explicit same-bar and stop-gap execution assumptions.
+- Supported stop model contract: `None`, `fixed`, `breakeven_after_t1`.
+- Supported exit model contract: `None`, `t1_t2`, `t1_only`.
+- Regression coverage in `tests/test_backtest_fidelity_ev3_ev6.py`.
+- Dedicated main CI step for EV3-EV6 backtest fidelity tests.
+
+### Stabilization Result
+- EV3 implementation status: done.
+- EV4 implementation status: done.
+- EV5 implementation status: done.
+- EV6 implementation status: done.
+- CI status: wired; final workflow-green status must be confirmed in GitHub Actions.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## EV1-EV2 Sharpe Definition Fix — 2026-05-29
 
 ### Fixed
