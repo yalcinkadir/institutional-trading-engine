@@ -1,0 +1,51 @@
+name: Paper Observation Notification
+
+on:
+  workflow_dispatch:
+    inputs:
+      status:
+        description: "Paper observation notification status"
+        required: true
+        default: "STARTED"
+        type: choice
+        options:
+          - STARTED
+          - COMPLETED
+          - FAILED
+  schedule:
+    # Runs on weekdays after the regular US market close window.
+    - cron: "15 22 * * 1-5"
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    name: Send paper observation notification
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Send B1.1 paper observation Telegram notification
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          NOTIFICATION_STATUS: ${{ github.event.inputs.status || 'STARTED' }}
+        run: |
+          python scripts/send_paper_observation_notification.py \
+            --report-date "$(date -u +%F)" \
+            --status "${NOTIFICATION_STATUS}" \
+            --send
