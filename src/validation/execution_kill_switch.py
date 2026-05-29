@@ -19,6 +19,13 @@ class ExecutionKillSwitchSeverity(str, Enum):
     ERROR = "error"
 
 
+class DrawdownSourceType(str, Enum):
+    BROKER_EQUITY = "broker_equity"
+    RECONCILED_PAPER_EQUITY = "reconciled_paper_equity"
+    BACKTEST_ONLY = "backtest_only"
+    UNKNOWN = "unknown"
+
+
 @dataclass(frozen=True)
 class ExecutionKillSwitchConfig:
     block_on_failed_daily_reconciliation: bool = True
@@ -32,6 +39,27 @@ class ExecutionKillSwitchConfig:
     watch_fill_rate: float = 0.98
     require_daily_reconciliation_report: bool = True
     require_fill_quality_report: bool = True
+    require_drawdown_source_validation: bool = True
+    drawdown_calculation_tolerance_pct: float = 0.05
+
+
+@dataclass(frozen=True)
+class DrawdownSourceValidation:
+    source_name: str
+    source_type: DrawdownSourceType
+    account_equity: float
+    peak_equity: float
+    drawdown_pct: float
+    is_reconciled: bool
+    evidence_artifact: str
+    validated_at: str = ""
+    notes: tuple[str, ...] = ()
+
+    def to_dict(self) -> dict[str, Any]:
+        payload = asdict(self)
+        payload["source_type"] = self.source_type.value
+        payload["notes"] = list(self.notes)
+        return payload
 
 
 @dataclass(frozen=True)
@@ -79,6 +107,7 @@ def evaluate_execution_kill_switch(
     *,
     daily_reconciliation_report: dict[str, Any] | Any | None = None,
     fill_quality_report: dict[str, Any] | Any | None = None,
+    drawdown_source_validation: dict[str, Any] | DrawdownSourceValidation | None = None,
     manual_risk_flags: Iterable[ManualRiskFlag | dict[str, Any]] | None = None,
     config: ExecutionKillSwitchConfig = ExecutionKillSwitchConfig(),
 ) -> ExecutionKillSwitchDecision:
@@ -87,16 +116,21 @@ def evaluate_execution_kill_switch(
 
     daily_payload = _to_payload(daily_reconciliation_report)
     fill_payload = _to_payload(fill_quality_report)
+    drawdown_validation = _drawdown_validation_from(drawdown_source_validation)
 
     if daily_payload is None and config.require_daily_reconciliation_report:
         reasons.append(_error("missing_daily_reconciliation_report", "daily execution reconciliation report is required", "daily_reconciliation"))
     if fill_payload is None and config.require_fill_quality_report:
         reasons.append(_error("missing_fill_quality_report", "fill-quality report is required", "fill_quality"))
+    if drawdown_validation is None and config.require_drawdown_source_validation:
+        reasons.append(_error("missing_drawdown_source_validation", "validated drawdown source is required before kill-switch drawdown governance can be considered active", "drawdown_source"))
 
     if daily_payload is not None:
         _evaluate_daily_reconciliation(daily_payload, reasons, config)
     if fill_payload is not None:
         _evaluate_fill_quality(fill_payload, reasons, config)
+    if drawdown_validation is not None:
+        _evaluate_drawdown_source(drawdown_validation, reasons, config)
 
     for flag in manual_flags:
         severity = flag.severity
@@ -106,16 +140,20 @@ def evaluate_execution_kill_switch(
     has_warning = any(reason.severity == ExecutionKillSwitchSeverity.WARNING for reason in reasons)
     status = ExecutionKillSwitchStatus.BLOCK if has_blocker else ExecutionKillSwitchStatus.WATCH if has_warning else ExecutionKillSwitchStatus.ALLOW
 
+    notes = [
+        "execution_kill_switch_governance_only",
+        "fail_closed_when_required_evidence_is_missing_or_failed",
+        "does_not_submit_orders",
+        "does_not_authorize_live_trading",
+    ]
+    if drawdown_validation is not None and not any(reason.source == "drawdown_source" and reason.severity == ExecutionKillSwitchSeverity.ERROR for reason in reasons):
+        notes.append("drawdown_source_validated")
+
     return ExecutionKillSwitchDecision(
         status=status,
         blocked=status == ExecutionKillSwitchStatus.BLOCK,
         reasons=reasons,
-        notes=[
-            "execution_kill_switch_governance_only",
-            "fail_closed_when_required_evidence_is_missing_or_failed",
-            "does_not_submit_orders",
-            "does_not_authorize_live_trading",
-        ],
+        notes=notes,
     )
 
 
@@ -197,6 +235,31 @@ def _evaluate_fill_quality(payload: dict[str, Any], reasons: list[ExecutionKillS
         reasons.append(_error("fill_quality_error_count_exceeded", "fill-quality error issue count exceeds configured maximum", "fill_quality"))
 
 
+def _evaluate_drawdown_source(validation: DrawdownSourceValidation, reasons: list[ExecutionKillSwitchReason], config: ExecutionKillSwitchConfig) -> None:
+    source = "drawdown_source"
+
+    if validation.source_type in {DrawdownSourceType.BACKTEST_ONLY, DrawdownSourceType.UNKNOWN}:
+        reasons.append(_error("invalid_drawdown_source_type", "drawdown source must be broker equity or reconciled paper equity, not backtest-only or unknown", source))
+
+    if not validation.is_reconciled:
+        reasons.append(_error("unreconciled_drawdown_source", "drawdown source must be reconciled before kill-switch drawdown governance is active", source))
+
+    if validation.account_equity <= 0 or validation.peak_equity <= 0:
+        reasons.append(_error("invalid_drawdown_equity_values", "drawdown source equity and peak equity must be positive", source))
+        return
+
+    if validation.account_equity > validation.peak_equity:
+        reasons.append(_error("current_equity_above_peak_equity", "drawdown source current equity cannot exceed peak equity", source))
+        return
+
+    if not validation.evidence_artifact.strip():
+        reasons.append(_error("missing_drawdown_evidence_artifact", "drawdown source validation must reference an evidence artifact", source))
+
+    calculated_drawdown_pct = round(((validation.peak_equity - validation.account_equity) / validation.peak_equity) * 100, 6)
+    if abs(calculated_drawdown_pct - validation.drawdown_pct) > config.drawdown_calculation_tolerance_pct:
+        reasons.append(_error("drawdown_calculation_mismatch", "reported drawdown percentage does not match current and peak equity", source))
+
+
 def _to_payload(report: dict[str, Any] | Any | None) -> dict[str, Any] | None:
     if report is None:
         return None
@@ -207,6 +270,27 @@ def _to_payload(report: dict[str, Any] | Any | None) -> dict[str, Any] | None:
         if isinstance(payload, dict):
             return payload
     raise TypeError("report must be a dict, object with to_dict(), or None")
+
+
+def _drawdown_validation_from(validation: dict[str, Any] | DrawdownSourceValidation | None) -> DrawdownSourceValidation | None:
+    if validation is None:
+        return None
+    if isinstance(validation, DrawdownSourceValidation):
+        return validation
+    if not isinstance(validation, dict):
+        raise TypeError("drawdown_source_validation must be a dict, DrawdownSourceValidation, or None")
+
+    return DrawdownSourceValidation(
+        source_name=str(validation.get("source_name", "")).strip(),
+        source_type=DrawdownSourceType(str(validation.get("source_type", DrawdownSourceType.UNKNOWN.value)).lower()),
+        account_equity=float(validation.get("account_equity", 0.0)),
+        peak_equity=float(validation.get("peak_equity", 0.0)),
+        drawdown_pct=float(validation.get("drawdown_pct", 0.0)),
+        is_reconciled=bool(validation.get("is_reconciled", False)),
+        evidence_artifact=str(validation.get("evidence_artifact", "")).strip(),
+        validated_at=str(validation.get("validated_at", "")).strip(),
+        notes=tuple(str(note) for note in validation.get("notes", ()) if str(note).strip()),
+    )
 
 
 def _manual_flag_from(flag: ManualRiskFlag | dict[str, Any]) -> ManualRiskFlag:
