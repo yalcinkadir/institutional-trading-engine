@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## EV7 Decision Ranking Fix — 2026-05-29
+
+### Fixed
+- EV7: `rank_candidates` no longer lets a `tier_3` candidate with `REDUCED_SIZE` outrank a clean `tier_3` `WATCH` candidate.
+
+### Added
+- Tier-aware ranking priority through `_ranking_decision_priority`.
+- Regression coverage proving clean Tier-3 WATCH ranks above Tier-3 REDUCED_SIZE.
+- Regression coverage proving reduced Tier-2 can still rank above Tier-3 WATCH.
+- Dedicated main CI step for EV7 decision ranking regression tests.
+
+### Stabilization Result
+- EV7 implementation status: done.
+- CI status: green.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## EV3-EV6 Backtest Fidelity Fix — 2026-05-29
 
 ### Fixed
