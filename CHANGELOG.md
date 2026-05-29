@@ -1,5 +1,28 @@
 # CHANGELOG
 
+## CL4 ATR Governance — 2026-05-29
+
+### Added
+- CL4 ATR calculation governance module in `src/validation/atr_governance.py`.
+- CL4 regression coverage in `tests/test_atr_governance.py`.
+- Operational documentation in `docs/operations/cl4_atr_governance.md`.
+- CI step for CL4 ATR governance tests.
+
+### Improved
+- ATR semantics are now explicit and versioned instead of being treated as an invisible indicator detail.
+- True range calculation explicitly includes previous-close gap risk.
+- Wilder ATR is available as a deterministic public-demo calculation method seeded by the first simple average.
+- `ATR_CALCULATION_VERSION` was added to `src/config/thresholds.py`.
+- `THRESHOLDS_VERSION` was bumped to `public-demo-2026.05.29-v2-cl4-atr-governance` because ATR migration is evidence-affecting.
+- ATR method changes now require explicit evidence invalidation instead of silently reusing older ATR-dependent artifacts.
+
+### Stabilization Result
+- CL4 implementation status: done.
+- CI status: wired; final workflow-green status must be confirmed in GitHub Actions.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## CL2/CL3 Scoring Audit and Drawdown-Source Governance — 2026-05-29
 
 ### Added
