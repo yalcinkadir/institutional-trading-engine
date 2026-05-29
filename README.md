@@ -20,6 +20,9 @@ Phase IP1/IP2: public/private edge boundary and public repository hygiene policy
 IP3/IP4: public-demo defaults and optional external edge provider boundary implemented and CI-green
 IP5/IP6: artifact hygiene and .gitignore hardening implemented / CI-wired
 CL1: core decision logic remediation for asymmetry, portfolio-risk tier handling and breakeven expectancy implemented / CI-wired
+CL2: scoring-system audit registry and report-vs-decision separation implemented / CI-wired
+CL3: kill-switch drawdown-source validation implemented / CI-wired
+CL4/CL5: ATR migration and regime_alignment review remain planned
 TG1: Telegram research-only report dispatcher implemented
 BT2: Strategy Test Matrix model, demo matrix, CLI, docs and tests implemented
 BT3: Backtest reproducibility contract implemented
@@ -31,6 +34,52 @@ Broker execution: paper-only infrastructure; live execution is not implemented
 ```
 
 Code quality is not trading edge. The system is promising enough to test seriously, but real capital still requires long-running forward evidence, drift detection, regime-change monitoring, position-level risk attribution, execution-quality review, capacity/turnover realism and manual approval.
+
+## CL2/CL3 Scoring and Drawdown-Source Governance
+
+CL2 makes scoring systems auditable instead of implicit:
+
+```text
+src/validation/scoring_audit.py
+tests/test_scoring_audit.py
+```
+
+Implemented safeguards:
+
+- Report-only ranking scores are explicitly separated from decision-authoritative scores.
+- Decision Engine tier gating is documented as the authoritative downstream gate.
+- Non-authoritative scores are blocked from feeding paper/execution gates.
+- Score-system semantics are covered by regression tests and wired into CI.
+
+CL3 makes kill-switch drawdown governance fail closed until the drawdown source is valid:
+
+```text
+src/validation/execution_kill_switch.py
+tests/test_execution_kill_switch.py
+scripts/evaluate_execution_kill_switch.py
+```
+
+Implemented safeguards:
+
+- A validated drawdown source is required by default.
+- Backtest-only or unknown drawdown sources are rejected.
+- Unreconciled drawdown sources are rejected.
+- Current equity, peak equity and reported drawdown percentage must be internally consistent.
+- The CLI now accepts `drawdown_source_validation` input and passes it to the kill-switch engine.
+
+CL2/CL3 test commands:
+
+```bash
+pytest tests/test_scoring_audit.py -q
+pytest tests/test_execution_kill_switch.py -q
+```
+
+Operational documentation:
+
+```text
+docs/operations/cl2_scoring_system_audit.md
+docs/operations/execution_kill_switch.md
+```
 
 ## CL1 Core Decision Logic Remediation
 
@@ -136,8 +185,10 @@ pytest tests/test_artifact_hygiene.py -q
 pytest tests/test_setup_scoring.py -q
 pytest tests/test_portfolio_risk.py -q
 pytest tests/test_outcome_tracking.py -q
+pytest tests/test_scoring_audit.py -q
+pytest tests/test_execution_kill_switch.py -q
 ```
 
 ## Hard Safety Rule
 
-This repository is a research and decision-support framework. No generated report, backtest, walk-forward result, evidence baseline comparison, capacity/turnover realism report, paper execution artifact, Telegram dispatch, external edge provider, core-logic remediation or CI-green state authorizes live trading.
+This repository is a research and decision-support framework. No generated report, backtest, walk-forward result, evidence baseline comparison, capacity/turnover realism report, paper execution artifact, Telegram dispatch, external edge provider, core-logic remediation, scoring audit, kill-switch drawdown-source validation or CI-green state authorizes live trading.
