@@ -299,8 +299,64 @@ jobs:
         run: |
           pytest tests/test_bt7_capacity_turnover_realism_gate.py -q
 
-      - name: Full regression suite
+      - name: Full regression suite residual tests
         env:
           POLYGON_API_KEY: test-key
         run: |
-          pytest -q --ignore=tests/test_artifact_hygiene.py -k "not test_decision_log_path_not_in_gitignore"
+          pytest -q \
+            --ignore=tests/test_artifact_hygiene.py \
+            --ignore=tests/test_live_runtime_cycle.py \
+            --ignore=tests/test_portfolio_state.py \
+            --ignore=tests/test_entry_quality.py \
+            --ignore=tests/test_stop_loss_quality.py \
+            --ignore=tests/test_negative_override.py \
+            --ignore=tests/test_runtime_state.py \
+            --ignore=tests/test_runtime_loop.py \
+            --ignore=tests/test_gov7_gov10_pre_live_hygiene.py \
+            --ignore=tests/test_sharpe_definition_regression.py \
+            --ignore=tests/test_backtest_fidelity_ev3_ev6.py \
+            --ignore=tests/test_decision_engine.py \
+            --ignore=tests/test_out_of_sample_lockbox.py \
+            --ignore=tests/test_historical_edge_validation.py \
+            --ignore=tests/test_setup_scoring.py \
+            --ignore=tests/test_ev12_drawdown_magnitude.py \
+            --ignore=tests/test_ev_evidence_consolidation.py \
+            --ignore=tests/test_roadmap_ev_completion_guard.py \
+            --ignore=tests/test_slippage_model.py \
+            --ignore=tests/test_execution_realism.py \
+            --ignore=tests/test_statistical_robustness.py \
+            --ignore=tests/test_polygon_structured_logging.py \
+            --ignore=tests/test_polygon_data_pipeline.py \
+            --ignore=tests/test_polygon_cache.py \
+            --ignore=tests/test_paper_observation_reconciliation.py \
+            --ignore=tests/test_b11_evidence_operation_discipline.py \
+            --ignore=tests/test_paper_observation_notification.py \
+            --ignore=tests/test_performance_drift_detection.py \
+            --ignore=tests/test_sequential_edge_decay.py \
+            --ignore=tests/test_regime_change_detection.py \
+            --ignore=tests/test_position_risk_attribution.py \
+            --ignore=tests/test_monte_carlo_robustness.py \
+            --ignore=tests/test_daily_evidence_report.py \
+            --ignore=tests/test_run_daily_evidence_report_cli.py \
+            --ignore=tests/test_daily_evidence_input_validation.py \
+            --ignore=tests/test_daily_evidence_input_builder.py \
+            --ignore=tests/test_daily_evidence_source_bootstrap.py \
+            --ignore=tests/test_daily_observation_source_feed.py \
+            --ignore=tests/test_daily_paper_observation_source.py \
+            --ignore=tests/test_daily_observation_cadence.py \
+            --ignore=tests/test_paper_observation_raw_contract.py \
+            --ignore=tests/test_daily_observation_runbook.py \
+            --ignore=tests/test_broker_adapter.py \
+            --ignore=tests/test_alpaca_paper_adapter.py \
+            --ignore=tests/test_strategy_test_matrix.py \
+            --ignore=tests/test_bt3_backtest_run_contract.py \
+            --ignore=tests/test_external_edge_provider.py \
+            --ignore=tests/test_portfolio_risk.py \
+            --ignore=tests/test_outcome_tracking.py \
+            --ignore=tests/test_scoring_audit.py \
+            --ignore=tests/test_execution_kill_switch.py \
+            --ignore=tests/test_atr_governance.py \
+            --ignore=tests/test_report_output_boundary.py \
+            --ignore=tests/test_generate_report_output_boundary.py \
+            --ignore=tests/test_bt7_capacity_turnover_realism_gate.py \
+            -k "not test_decision_log_path_not_in_gitignore"
