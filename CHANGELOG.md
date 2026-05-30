@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## Full-Suite Flake Review — 2026-05-29
+
+### Added
+- Full-suite flake review policy in `docs/operations/full_suite_flake_review.md`.
+- Guard regression coverage in `tests/test_full_suite_flake_review_policy.py`.
+- Dedicated main CI step for full-suite flake review policy guard tests.
+
+### Stabilization Result
+- Full-suite flake review status: done.
+- CI status: green.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## CI Runtime Simplification — 2026-05-29
 
 ### Changed
