@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## Evidence Artifact Index Consistency — 2026-05-29
+
+### Added
+- Central evidence artifact index in `docs/operations/evidence_artifact_index.md`.
+- Guard regression coverage in `tests/test_evidence_artifact_index.py`.
+- Dedicated main CI step for evidence artifact index guard tests.
+
+### Stabilization Result
+- Evidence artifact index consistency status: done.
+- CI status: green.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## Full-Suite Flake Review — 2026-05-29
 
 ### Added
