@@ -9,7 +9,6 @@ GITIGNORE = REPO_ROOT / ".gitignore"
 PUBLIC_REPORTS = [
     REPORTS_DIR / "premarket-report.md",
     REPORTS_DIR / "postmarket-report.md",
-    REPORTS_DIR / "weekly-report.md",
 ]
 
 REQUIRED_GITIGNORE_PATTERNS = [
@@ -39,6 +38,7 @@ REQUIRED_GITIGNORE_PATTERNS = [
     "reports/*-private.md",
     "reports/*-raw.md",
     "reports/*-generated.md",
+    "reports/weekly-report.md",
     "*.db",
     "*.sqlite",
     "*.duckdb",
