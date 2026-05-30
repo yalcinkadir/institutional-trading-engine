@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## Roadmap EV Completion Cleanup — 2026-05-29
+
+### Changed
+- Roadmap now marks EV1-EV12 consistently as `Done / CI-green`.
+- Removed stale roadmap focus text that still pointed to EV1-EV2 or EV3-EV6 as the next active remediation block.
+- Updated current execution focus toward CI runtime simplification, full-suite flake review and evidence artifact index consistency.
+
+### Added
+- `tests/test_roadmap_ev_completion_guard.py` to prevent EV roadmap status from becoming stale again.
+- Dedicated main CI step for roadmap EV completion guard tests.
+
+### Stabilization Result
+- Roadmap EV cleanup status: done.
+- CI status: green.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## EV Evidence Consolidation + Full-Suite Stability Review — 2026-05-29
 
 ### Added
