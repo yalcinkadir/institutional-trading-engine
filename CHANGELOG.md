@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## B1.1 Daily Evidence Operating Procedure — 2026-05-29
+
+### Added
+- Daily evidence operating procedure in `docs/operations/b11_daily_evidence_operating_procedure.md`.
+- Guard regression coverage in `tests/test_b11_daily_evidence_operating_procedure.py`.
+- Dedicated main CI step for B1.1 daily evidence operating procedure guard tests.
+
+### Stabilization Result
+- B1.1 daily evidence operating procedure status: done.
+- CI status: green.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## Evidence Artifact Index Consistency — 2026-05-29
 
 ### Added
