@@ -123,6 +123,12 @@ jobs:
         run: |
           pytest tests/test_evidence_artifact_index.py -q
 
+      - name: B1.1 daily evidence operating procedure guard tests
+        env:
+          POLYGON_API_KEY: test-key
+        run: |
+          pytest tests/test_b11_daily_evidence_operating_procedure.py -q
+
       - name: Phase A stabilization tests
         env:
           POLYGON_API_KEY: test-key
@@ -336,6 +342,7 @@ jobs:
             --ignore=tests/test_roadmap_ev_completion_guard.py \
             --ignore=tests/test_full_suite_flake_review_policy.py \
             --ignore=tests/test_evidence_artifact_index.py \
+            --ignore=tests/test_b11_daily_evidence_operating_procedure.py \
             --ignore=tests/test_slippage_model.py \
             --ignore=tests/test_execution_realism.py \
             --ignore=tests/test_statistical_robustness.py \
