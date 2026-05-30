@@ -54,6 +54,7 @@ reports/generated/
 reports/private/
 reports/live/
 reports/raw/
+reports/weekly-report.md
 reports/*.html
 reports/*.csv
 reports/*.json
