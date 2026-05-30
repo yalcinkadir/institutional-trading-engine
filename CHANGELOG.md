@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## CI Runtime Simplification — 2026-05-29
+
+### Changed
+- Renamed the final full-suite step to `Full regression suite residual tests`.
+- Reduced duplicate CI work by excluding test files already executed in dedicated targeted gates from the residual full-suite step.
+- Preserved the targeted EV, GOV, CL, BT, IP, report-boundary and evidence-guard CI steps.
+
+### Stabilization Result
+- CI runtime simplification status: done.
+- CI status: green.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## Roadmap EV Completion Cleanup — 2026-05-29
 
 ### Changed
