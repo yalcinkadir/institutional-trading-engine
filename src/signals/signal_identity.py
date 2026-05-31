@@ -14,7 +14,6 @@ _SIGNAL_ID_FIELDS = (
     "symbol",
     "action",
     "signal_date",
-    "generated_at",
     "entry_trigger",
     "stop_loss",
     "target_1",
