@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## RGP3 Stale Portfolio State Governance — 2026-05-31
+
+### Added
+- RGP3: added stale `PortfolioState.updated_at` blocking in the runtime governance approval gate.
+- Added `is_portfolio_state_stale()` with deterministic `now` injection for CI-stable regression tests.
+- Added `STALE_PORTFOLIO_STATE_REASON` so stale governance evidence is explicit in approval-block reasons.
+- Added regression coverage for stale portfolio state, recent portfolio state and invalid portfolio-state timestamps.
+
+### Changed
+- `evaluate_runtime_governance_approval()` now blocks approval when portfolio state is older than the configured maximum age.
+- Invalid or future portfolio-state timestamps are treated as stale instead of silently trusted.
+- Runtime governance approval now fails closed for missing, invalid or stale portfolio-state evidence before further expansion work is trusted.
+
+### Stabilization Result
+- RGP3 implementation status: implemented / awaiting CI.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## PSR4 Drift and Regime Evidence — 2026-05-31
 
 ### Added
@@ -123,7 +142,7 @@
 ### Changed
 - `evaluate_kill_switch()` now reads VIX, drawdown and anomaly kill thresholds from a shared `GovernanceThresholds` object instead of local magic numbers.
 - `LiveRuntimeCycle` now accepts `governance_thresholds` and persists threshold configuration in decision payloads and governance-block payloads.
-- Runtime risk-limit checks now use the same injected threshold source for max drawdown and daily loss limits.
+- Runtime risk-limit checks now use the same injected threshold source for max drawdown and max daily loss limits.
 
 ### Stabilization Result
 - SR6 implementation status: done.
@@ -158,47 +177,4 @@
 - Project status files now consistently document IP9/IP10 as completed and CI-wired.
 
 ### Stabilization Result
-- IP9/IP10 implementation status: done.
-- CI status: wired.
-- Live trading authorization: unchanged; not granted by code.
-
----
-
-## SR4 Trusted Portfolio Governance Source — 2026-05-31
-
-### Fixed
-- SR4: runtime portfolio override arguments no longer mark portfolio governance as valid.
-- `portfolio_drawdown_percent` and `daily_loss_percent` supplied directly to `LiveRuntimeCycle.run()` are treated as untrusted runtime arguments and fail closed.
-- Governance now requires a trusted portfolio-state source such as `PortfolioStateStore` / `data/portfolio_state.json` before runtime checks can pass.
-
-### Added
-- Regression coverage proving runtime portfolio argument overrides are rejected with `runtime_argument_override_rejected`.
-- Regression coverage proving valid runtime-cycle tests use an injected trusted portfolio-state store instead of runtime governance overrides.
-
-### Stabilization Result
-- SR4 implementation status: done.
-- CI status: green.
-- Live trading authorization: unchanged; not granted by code.
-
----
-
-## B1.1 Daily Evidence Operating Procedure — 2026-05-29
-
-### Added
-- Daily evidence operating procedure in `docs/operations/b11_daily_evidence_operating_procedure.md`.
-- Guard regression coverage in `tests/test_b11_daily_evidence_operating_procedure.py`.
-- Dedicated main CI step for B1.1 daily evidence operating procedure guard tests.
-
-### Stabilization Result
-- B1.1 daily evidence operating procedure status: done.
-- CI status: green.
-- Live trading authorization: unchanged; not granted by code.
-
----
-
-## Evidence Artifact Index Consistency — 2026-05-29
-
-### Added
-- Central evidence artifact index in `docs/operations/evidence_artifact_index.md`.
-- Guard regression coverage in `tests/test_evidence_artifact_index.py`.
-- Dedicated main CI step for evidence artifact index guard tests.
+- IP9/IP10 implementation status: done / CI-wired.
