@@ -39,11 +39,41 @@ BT6: Evidence Baseline Regression Gate implemented and CI-green
 BT7: Capacity / Turnover / Realism Gate implemented and CI-green
 SR1-SR3: signal identity, ATR persistence and repo-write serialization implemented and CI-green
 SR4: trusted portfolio-governance source enforcement implemented and CI-green
+SR5: persistent anomaly-state governance implemented and CI-green
 Live trading authorization: not granted by code
 Broker execution: paper-only infrastructure; live execution is not implemented
 ```
 
 Code quality is not trading edge. The system is promising enough to test seriously, but real capital still requires long-running forward evidence, drift detection, regime-change monitoring, position-level risk attribution, execution-quality review, capacity/turnover realism and manual approval.
+
+## SR5 Persistent Anomaly-State Governance
+
+SR5 closes a runtime governance persistence gap. The anomaly kill-switch no longer depends primarily on process-local in-memory cache during GitHub Actions runs.
+
+```text
+src/runtime/anomaly_state.py
+src/runtime/live_runtime_cycle.py
+tests/test_anomaly_state.py
+tests/test_live_runtime_cycle.py
+tests/test_live_runtime_cycle_portfolio_state.py
+```
+
+Implemented safeguards:
+
+- `AnomalyStateStore` loads severe anomaly evidence from persistent `data/anomaly_state.json`.
+- Missing or invalid anomaly state remains auditable through `anomaly_state_missing` / `anomaly_state_invalid` warnings.
+- `LiveRuntimeCycle` persists `anomaly_state` in the decision payload and runtime state update.
+- Process-local cache is retained only as a fallback when persistent anomaly state is unavailable.
+- Regression tests cover missing, invalid, negative, legacy alias and persistent severe anomaly counts.
+- No broker execution, no live trading authorization and no private edge parameters are introduced.
+
+SR5 test commands:
+
+```bash
+pytest tests/test_anomaly_state.py -q
+pytest tests/test_live_runtime_cycle.py -q
+pytest tests/test_live_runtime_cycle_portfolio_state.py -q
+```
 
 ## SR4 Trusted Portfolio Governance Source
 
@@ -259,29 +289,7 @@ docs/operations/cl5_regime_alignment_governance.md
 
 Implemented safeguards:
 
-- `regime_alignment` is checked after hard risk overrides and setup-regime mapping, but before asymmetry, data-confidence and risk-tier scoring.
-- A candidate below the independent regime floor returns `NO_TRADE` with `poor_regime_alignment`.
-- The decision notes include `regime_alignment_independent_gate` for auditability.
-- The public-demo Tier 3 regime-alignment cutoff is reused as the fail-closed floor to avoid adding new proprietary public constants.
-- Custom threshold objects can tighten the regime-alignment floor without code changes.
-- Ranking regression coverage proves that a high setup score cannot outrank an approved candidate when regime alignment fails.
-
-## CL4 ATR Governance
-
-CL4 makes ATR semantics explicit, versioned and regression-tested before ATR-dependent evidence can be trusted across reports, ranking, backtests, paper execution or validation gates:
-
-```text
-src/validation/atr_governance.py
-tests/test_atr_governance.py
-src/config/thresholds.py
-docs/operations/cl4_atr_governance.md
-```
-
-Implemented safeguards:
-
-- True range explicitly includes previous-close gap risk.
-- Supported ATR methods are explicit: simple rolling ATR and Wilder-smoothed ATR.
-- Wilder ATR is seeded by the first simple average and then recursively smoothed.
-- `ATR_CALCULATION_VERSION` records the public-demo ATR semantics.
-- `THRESHOLDS_VERSION` was bumped because ATR migration is evidence-affecting.
-- ATR method changes require evidence invalidation instead of silently reusing older ATR-dependent artifacts.
+- `regime_alignment` is now normalized before risk-tier scoring.
+- Missing or invalid alignment is treated conservatively.
+- Candidates with insufficient regime alignment cannot be promoted by score alone.
+- Regression tests prove the gate blocks weak alignment and allows valid alignment.
