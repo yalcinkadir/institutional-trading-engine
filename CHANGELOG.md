@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## SR6 Governance Thresholds Single Source of Truth — 2026-05-31
+
+### Added
+- SR6: centralized runtime governance thresholds in `src/governance/governance_thresholds.py`.
+- Added `GovernanceThresholds` and `DEFAULT_GOVERNANCE_THRESHOLDS` as the shared threshold source for kill-switch and runtime risk-limit checks.
+- Added regression coverage proving custom threshold injection changes kill-switch behavior and that runtime cycle threshold configuration is injectable.
+
+### Changed
+- `evaluate_kill_switch()` now reads VIX, drawdown and anomaly kill thresholds from a shared `GovernanceThresholds` object instead of local magic numbers.
+- `LiveRuntimeCycle` now accepts `governance_thresholds` and persists threshold configuration in decision payloads and governance-block payloads.
+- Runtime risk-limit checks now use the same injected threshold source for max drawdown and daily loss limits.
+
+### Stabilization Result
+- SR6 implementation status: done.
+- CI status: green.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## SR5 Persistent Anomaly-State Governance — 2026-05-31
 
 ### Added
