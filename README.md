@@ -42,11 +42,39 @@ SR4: trusted portfolio-governance source enforcement implemented and CI-green
 SR5: persistent anomaly-state governance implemented and CI-green
 SR6: governance thresholds single source of truth implemented and CI-green
 SR7: completed-bar watcher semantics implemented and CI-green
+SR8: dependency reproducibility contract implemented and CI-green
 Live trading authorization: not granted by code
 Broker execution: paper-only infrastructure; live execution is not implemented
 ```
 
 Code quality is not trading edge. The system is promising enough to test seriously, but real capital still requires long-running forward evidence, drift detection, regime-change monitoring, position-level risk attribution, execution-quality review, capacity/turnover realism and manual approval.
+
+## SR8 Dependency Reproducibility Contract
+
+SR8 closes a reproducibility gap. Runtime and test dependencies are now installed through a locked dependency contract instead of freely drifting package names.
+
+```text
+requirements.txt
+requirements.lock
+tests/test_sr8_dependency_reproducibility.py
+```
+
+Implemented safeguards:
+
+- `requirements.txt` delegates to `requirements.lock`.
+- `requirements.lock` pins the current top-level runtime/test dependencies exactly.
+- A regression guard verifies that the root requirements entry point delegates to the lockfile.
+- A regression guard verifies every meaningful lockfile dependency uses exact `==` pinning.
+- Workflow-local requirements files are prevented from becoming a second dependency source of truth.
+- No broker execution, no live trading authorization and no private edge parameters are introduced.
+
+SR8 test commands:
+
+```bash
+pytest tests/test_sr8_dependency_reproducibility.py -q
+pip install -r requirements.txt
+pytest -q
+```
 
 ## SR7 Completed-Bar Watcher Semantics
 
