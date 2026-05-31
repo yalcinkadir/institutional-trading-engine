@@ -2,13 +2,9 @@ name: Institutional Reports
 
 on:
   schedule:
-    # Premarket: Sunday–Friday, 12:30 UTC (before US open)
     - cron: "30 12 * * 0-5"
-    # Intraday: Monday–Friday, 15:00 UTC (~1h after US open)
     - cron: "0 15 * * 1-5"
-    # Postmarket: Monday–Friday, 21:00 UTC (after US close + buffer)
     - cron: "0 21 * * 1-5"
-    # Weekly: Saturday 08:00 UTC
     - cron: "0 8 * * 6"
 
   workflow_dispatch:
@@ -26,6 +22,10 @@ on:
 
 permissions:
   contents: write
+
+concurrency:
+  group: repo-write-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   report:
@@ -55,170 +55,3 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-
-      - name: Resolve report type
-        id: report_type
-        shell: bash
-        run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            REPORT_TYPE="${{ github.event.inputs.report_type }}"
-          elif [[ "${{ github.event.schedule }}" == "30 12 * * 0-5" ]]; then
-            REPORT_TYPE="premarket"
-          elif [[ "${{ github.event.schedule }}" == "0 15 * * 1-5" ]]; then
-            REPORT_TYPE="intraday"
-          elif [[ "${{ github.event.schedule }}" == "0 21 * * 1-5" ]]; then
-            REPORT_TYPE="postmarket"
-          else
-            REPORT_TYPE="weekly"
-          fi
-
-          RUN_DATE="$(date -u +'%Y-%m-%d')"
-          RUN_TIMESTAMP="$(date -u +'%Y-%m-%d_%H-%M-%S_UTC')"
-          ISO_WEEK="$(date -u +'%G-W%V')"
-
-          if [[ "$REPORT_TYPE" == "weekly" ]]; then
-            REPORT_DIR="reports/weekly"
-            REPORT_FILE="${REPORT_DIR}/${ISO_WEEK}-weekly.md"
-          else
-            REPORT_DIR="reports/${REPORT_TYPE}"
-            REPORT_FILE="${REPORT_DIR}/${RUN_DATE}-${REPORT_TYPE}.md"
-          fi
-
-          LATEST_FILE="reports/${REPORT_TYPE}-report.md"
-
-          echo "report_type=${REPORT_TYPE}" >> "$GITHUB_OUTPUT"
-          echo "report_file=${REPORT_FILE}" >> "$GITHUB_OUTPUT"
-          echo "latest_file=${LATEST_FILE}" >> "$GITHUB_OUTPUT"
-          echo "run_timestamp=${RUN_TIMESTAMP}" >> "$GITHUB_OUTPUT"
-
-          echo "REPORT_TYPE=${REPORT_TYPE}" >> "$GITHUB_ENV"
-          echo "REPORT_FILE=${REPORT_FILE}" >> "$GITHUB_ENV"
-          echo "LATEST_FILE=${LATEST_FILE}" >> "$GITHUB_ENV"
-          echo "RUN_TIMESTAMP=${RUN_TIMESTAMP}" >> "$GITHUB_ENV"
-
-      - name: Generate report (+ signals)
-        shell: bash
-        run: |
-          mkdir -p "$(dirname "$REPORT_FILE")"
-          mkdir -p reports/signals
-          mkdir -p data
-
-          # generate_report.py currently supports premarket/postmarket/weekly.
-          # Intraday uses the same report engine as premarket, but is stored separately
-          # to avoid overwriting postmarket reports.
-          GENERATOR_TYPE="$REPORT_TYPE"
-          if [[ "$REPORT_TYPE" == "intraday" ]]; then
-            GENERATOR_TYPE="premarket"
-          fi
-
-          python scripts/generate_report.py --type "$GENERATOR_TYPE" --output "$REPORT_FILE"
-          cp "$REPORT_FILE" "$LATEST_FILE"
-
-          echo "--- Generated files ---"
-          find reports -maxdepth 3 -type f \( -name "*.md" -o -name "*.json" \) | sort
-
-      - name: Validate report quality
-        shell: bash
-        run: |
-          VALIDATION_TYPE="$REPORT_TYPE"
-          if [[ "$VALIDATION_TYPE" == "intraday" ]]; then
-            VALIDATION_TYPE="premarket"
-          fi
-
-          python scripts/validate_report_quality.py \
-            --type "$VALIDATION_TYPE" \
-            --file "$REPORT_FILE" \
-            --min-score 75
-
-      - name: Commit all outputs to repository
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          # Commit reports AND data (decision log, signals, outcomes).
-          # data/ must be committed so decision history survives across runs.
-          git add reports/
-          git add data/ 2>/dev/null || true
-
-          if git diff --cached --quiet; then
-            echo "No changes to commit."
-          else
-            git commit -m "Archive ${REPORT_TYPE} report + signals ${RUN_TIMESTAMP}"
-            git pull --rebase origin "${GITHUB_REF_NAME}"
-            git push origin "HEAD:${GITHUB_REF_NAME}"
-          fi
-
-      - name: Upload dated report artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ steps.report_type.outputs.report_type }}-${{ steps.report_type.outputs.run_timestamp }}
-          path: ${{ steps.report_type.outputs.report_file }}
-          retention-days: 90
-
-      - name: Upload signals artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: signals-${{ steps.report_type.outputs.run_timestamp }}
-          path: reports/signals/
-          retention-days: 90
-
-      - name: Upload full reports archive artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: reports-archive-${{ steps.report_type.outputs.run_timestamp }}
-          path: reports/
-          retention-days: 90
-
-      - name: Build Telegram summary
-        if: env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_CHAT_ID != ''
-        shell: bash
-        run: |
-          REGIME=$(grep -m1 "^- Regime:" "$REPORT_FILE" | sed 's/- Regime: //' || true)
-          HEALTH=$(grep -m1 "^- Market Health Score:" "$REPORT_FILE" | sed 's/- Market Health Score: //' || true)
-          APPROVED=$(grep -m1 "^- Approved" "$REPORT_FILE" | sed 's/- Approved.*: //' || true)
-          SUMMARY_LINE=$(grep -m1 "^- Decision context\|^- No high-quality\|^- Hard risk" "$REPORT_FILE" | sed 's/^- //' || true)
-          SETUPS=$(grep "^#### " "$REPORT_FILE" | head -3 | sed 's/#### //' | tr '\n' ', ' | sed 's/, $//' || true)
-
-          {
-            echo "TELEGRAM_SUMMARY<<EOF"
-            echo "📊 ITE ${REPORT_TYPE^} Report — $(date -u +'%Y-%m-%d %H:%M UTC')"
-            echo ""
-            echo "📈 Regime: ${REGIME}"
-            echo "🏥 Health Score: ${HEALTH}"
-            echo "✅ Approved: ${APPROVED}"
-            if [[ -n "$SETUPS" ]]; then
-              echo "🎯 Setups: ${SETUPS}"
-            fi
-            if [[ -n "$SUMMARY_LINE" ]]; then
-              echo ""
-              echo "💬 ${SUMMARY_LINE}"
-            fi
-            echo "EOF"
-          } >> "$GITHUB_ENV"
-
-      - name: Send Telegram summary
-        if: env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_CHAT_ID != ''
-        shell: bash
-        run: |
-          curl -sS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-            -d chat_id="${TELEGRAM_CHAT_ID}" \
-            --data-urlencode text="$TELEGRAM_SUMMARY"
-
-      - name: Send report document to Telegram
-        if: env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_CHAT_ID != ''
-        shell: bash
-        run: |
-          TITLE="ITE ${REPORT_TYPE} report — ${RUN_TIMESTAMP}"
-          curl -sS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
-            -F chat_id="${TELEGRAM_CHAT_ID}" \
-            -F document="@${REPORT_FILE}" \
-            -F caption="${TITLE}"
-
-      - name: Send report to webhook if configured
-        if: env.REPORT_WEBHOOK_URL != ''
-        shell: bash
-        run: |
-          curl -sS -X POST "$REPORT_WEBHOOK_URL" \
-            -H "Content-Type: text/plain; charset=utf-8" \
-            --data-binary "@${REPORT_FILE}"
