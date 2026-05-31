@@ -47,11 +47,40 @@ PSR1: daily runtime evidence manifest implemented and CI-green
 PSR2: runtime evidence manifest guard implemented and CI-green
 PSR3: fill-quality evidence artifact implemented and CI-green
 PSR4: drift and regime evidence artifact implemented and CI-green
+RGP1: missing/invalid PortfolioState fail-closed proof implemented and CI-green
+RGP2: runtime governance approval gate implemented and CI-green
+RGP3: stale PortfolioState approval blocking implemented / awaiting CI
 Live trading authorization: not granted by code
 Broker execution: paper-only infrastructure; live execution is not implemented
 ```
 
 Code quality is not trading edge. The system is promising enough to test seriously, but real capital still requires long-running forward evidence, drift detection, regime-change monitoring, position-level risk attribution, execution-quality review, capacity/turnover realism and manual approval.
+
+## RGP Runtime Governance Proof Pack
+
+RGP proves that runtime governance fails closed when safety evidence is missing, invalid or stale. It is an audit/proof phase, not a strategy-expansion phase.
+
+```text
+src/governance/kill_switch.py
+src/runtime/governance_approval_gate.py
+src/runtime/portfolio_state.py
+tests/test_runtime_governance_proof_pack.py
+```
+
+Implemented safeguards:
+
+- RGP1: missing or invalid `PortfolioState` forces kill-switch activation and prevents harmless-looking `0.0` drawdown from being treated as valid governance.
+- RGP2: `evaluate_runtime_governance_approval()` blocks runtime approval when portfolio governance is invalid or the kill switch is active.
+- RGP3: stale, future-dated or invalid `portfolio_state.updated_at` blocks runtime approval with `stale_portfolio_state`.
+- Runtime approval is explicit: `approved=True` is only possible when governance is valid, portfolio state is recent and the kill switch is inactive.
+- Tests inject deterministic timestamps so CI remains reproducible.
+- No broker execution, no live trading authorization and no private edge parameters are introduced.
+
+RGP test command:
+
+```bash
+pytest tests/test_runtime_governance_proof_pack.py -q
+```
 
 ## PSR4 Drift and Regime Evidence
 
@@ -161,332 +190,3 @@ PSR1 test commands:
 pytest tests/test_psr1_runtime_evidence_manifest.py -q
 python scripts/generate_runtime_evidence_manifest.py --trading-date 2026-05-31 --required-input requirements.txt --required-output requirements.lock --required-governance-state requirements.lock
 ```
-
-## SR8 Dependency Reproducibility Contract
-
-SR8 closes a reproducibility gap. Runtime and test dependencies are now installed through a locked dependency contract instead of freely drifting package names.
-
-```text
-requirements.txt
-requirements.lock
-tests/test_sr8_dependency_reproducibility.py
-```
-
-Implemented safeguards:
-
-- `requirements.txt` delegates to `requirements.lock`.
-- `requirements.lock` pins the current top-level runtime/test dependencies exactly.
-- A regression guard verifies that the root requirements entry point delegates to the lockfile.
-- A regression guard verifies every meaningful lockfile dependency uses exact `==` pinning.
-- Workflow-local requirements files are prevented from becoming a second dependency source of truth.
-- No broker execution, no live trading authorization and no private edge parameters are introduced.
-
-SR8 test commands:
-
-```bash
-pytest tests/test_sr8_dependency_reproducibility.py -q
-pip install -r requirements.txt
-pytest -q
-```
-
-## SR7 Completed-Bar Watcher Semantics
-
-SR7 closes a watcher timing gap. Entry, stop and target lifecycle events are no longer emitted from explicitly incomplete bars.
-
-```text
-src/watchers/entry_exit_watcher.py
-tests/test_sr7_completed_bar_semantics.py
-```
-
-Implemented safeguards:
-
-- `PriceBar` now carries `is_complete`, `completed_at` and `completion_source` metadata.
-- `evaluate_signal_against_bar()` returns no lifecycle update when the supplied bar is incomplete.
-- Pending entries, stops and targets are all protected from intrabar high/low noise.
-- Polygon aggregate conversion respects explicit provider completion flags when available.
-- Daily aggregate bars without provider flags receive completion metadata from the bar timestamp.
-- Regression tests prove incomplete bars preserve signal state while completed bars preserve existing watcher behavior.
-- No broker execution, no live trading authorization and no private edge parameters are introduced.
-
-SR7 test commands:
-
-```bash
-pytest tests/test_entry_exit_watcher.py tests/test_sr7_completed_bar_semantics.py -q
-```
-
-## SR6 Governance Thresholds Single Source of Truth
-
-SR6 closes a governance configuration-drift gap. Runtime kill-switch and risk-limit thresholds are now centralized instead of being spread across runtime modules as local magic numbers.
-
-```text
-src/governance/governance_thresholds.py
-src/governance/kill_switch.py
-src/runtime/live_runtime_cycle.py
-tests/test_governance_thresholds.py
-```
-
-Implemented safeguards:
-
-- `GovernanceThresholds` centralizes VIX kill level, portfolio drawdown kill level, severe anomaly kill count, max drawdown and max daily loss thresholds.
-- `DEFAULT_GOVERNANCE_THRESHOLDS` preserves the existing public/demo defaults.
-- `evaluate_kill_switch()` receives thresholds explicitly instead of owning hardcoded governance constants.
-- `LiveRuntimeCycle` accepts injectable `governance_thresholds` and uses them for kill-switch and risk-limit checks.
-- Decision payloads and governance-block payloads include `governance_thresholds` for auditability.
-- Regression tests prove custom thresholds affect behavior and the runtime cycle no longer defines local governance threshold constants.
-- No broker execution, no live trading authorization and no private edge parameters are introduced.
-
-SR6 test commands:
-
-```bash
-pytest tests/test_governance_thresholds.py -q
-pytest tests/test_live_runtime_cycle.py -q
-pytest tests/test_portfolio_state.py -q
-```
-
-## SR5 Persistent Anomaly-State Governance
-
-SR5 closes a runtime governance persistence gap. The anomaly kill-switch no longer depends primarily on process-local in-memory cache during GitHub Actions runs.
-
-```text
-src/runtime/anomaly_state.py
-src/runtime/live_runtime_cycle.py
-tests/test_anomaly_state.py
-tests/test_live_runtime_cycle.py
-tests/test_live_runtime_cycle_portfolio_state.py
-```
-
-Implemented safeguards:
-
-- `AnomalyStateStore` loads severe anomaly evidence from persistent `data/anomaly_state.json`.
-- Missing or invalid anomaly state remains auditable through `anomaly_state_missing` / `anomaly_state_invalid` warnings.
-- `LiveRuntimeCycle` persists `anomaly_state` in the decision payload and runtime state update.
-- Process-local cache is retained only as a fallback when persistent anomaly state is unavailable.
-- Regression tests cover missing, invalid, negative, legacy alias and persistent severe anomaly counts.
-- No broker execution, no live trading authorization and no private edge parameters are introduced.
-
-SR5 test commands:
-
-```bash
-pytest tests/test_anomaly_state.py -q
-pytest tests/test_live_runtime_cycle.py -q
-pytest tests/test_live_runtime_cycle_portfolio_state.py -q
-```
-
-## SR4 Trusted Portfolio Governance Source
-
-SR4 closes a runtime governance source-integrity gap. Runtime portfolio override arguments are no longer accepted as trusted governance state.
-
-```text
-src/runtime/live_runtime_cycle.py
-tests/test_live_runtime_cycle.py
-tests/test_live_runtime_cycle_portfolio_state.py
-```
-
-Implemented safeguards:
-
-- `portfolio_drawdown_percent` and `daily_loss_percent` passed directly to `LiveRuntimeCycle.run()` now fail closed.
-- Runtime argument overrides are persisted as `runtime_argument_override_rejected` with `governance_valid=False`.
-- Successful runtime-cycle tests use an injected trusted `PortfolioStateStore` path instead of overriding governance by arguments.
-- Missing or untrusted portfolio state blocks the cycle before kill-switch and risk-limit evaluation.
-- No broker execution, no live trading authorization and no private edge parameters are introduced.
-
-SR4 test commands:
-
-```bash
-pytest tests/test_live_runtime_cycle.py -q
-pytest tests/test_live_runtime_cycle_portfolio_state.py -q
-pytest tests/test_portfolio_state.py -q
-```
-
-## EV1-EV2 Sharpe / Deflated-Sharpe Evidence Fix
-
-EV1-EV2 corrects the most important evidence-unit issue from the static code review:
-
-```text
-src/validation/historical_edge_validation.py
-src/config/thresholds.py
-tests/test_sharpe_definition_regression.py
-```
-
-Implemented safeguards:
-
-- `calculate_sharpe_ratio` now returns sample-size-independent per-trade Sharpe: `mean(R) / std(R)`.
-- `calculate_sharpe_tstat` exposes the sample-size-scaled significance proxy separately.
-- Deflated Sharpe now receives the per-trade Sharpe unit expected by the robustness formula.
-- Historical edge metrics now include `sharpe_tstat` and `sharpe_definition_version` for auditability.
-- `MIN_SHARPE_RATIO` was recalibrated from `0.8` to `0.10` for the corrected per-trade Sharpe semantics.
-- `THRESHOLDS_VERSION` was bumped to invalidate older public-demo evidence artifacts using the prior Sharpe definition.
-- The drawdown gate now reports the effective absolute R threshold instead of only the raw multiplier.
-- No broker execution, no live trading authorization and no private edge parameters are introduced.
-
-EV1-EV2 test command:
-
-```bash
-pytest tests/test_sharpe_definition_regression.py -q
-```
-
-## GOV7-GOV10 Pre-Live Hygiene
-
-GOV7-GOV10 closes the next pre-live hygiene layer before any new strategy complexity is added:
-
-```text
-src/validation/gov7_gov10_pre_live_hygiene.py
-tests/test_gov7_gov10_pre_live_hygiene.py
-```
-
-Implemented safeguards:
-
-- GOV7: public/demo adaptive weights can be rounded while still summing exactly to `1.0`.
-- GOV8: VIX term-structure inversion has explicit `DIRECT`, `PARTIAL`, `NONE` and `UNKNOWN` modes.
-- GOV9: duplicate/overlapping module remediation can be tracked with owner, replacement and rationale markers.
-- GOV10: cumulative Paper Observation drift can detect small persistent drift that may evade daily max-drift gates.
-- No broker execution, no live trading authorization and no private edge parameters are introduced.
-
-GOV7-GOV10 test command:
-
-```bash
-pytest tests/test_gov7_gov10_pre_live_hygiene.py -q
-```
-
-## GOV4-GOV6 Runtime Stability Hardening
-
-GOV4-GOV6 closes the next runtime-stability gaps found during Paper Observation:
-
-```text
-src/core/negative_override.py
-src/runtime/runtime_state.py
-src/runtime/runtime_loop.py
-tests/test_negative_override.py
-tests/test_runtime_state.py
-tests/test_runtime_loop.py
-```
-
-Implemented safeguards:
-
-- VIX `None` or invalid VIX values are no longer silently treated as `0` market stress.
-- A visible `vix_unavailable` minor override is emitted when a VIX key is present but unavailable or invalid.
-- `RuntimeState.history` is bounded by a ring buffer instead of growing without limit during multi-day observation.
-- `RuntimeLoop` catches transient provider exceptions, logs them and continues until a max-consecutive-error limit is reached.
-- Persistent provider failures raise `RuntimeLoopError` instead of killing the loop silently.
-- No broker execution, no live trading authorization and no private edge parameters are introduced.
-
-GOV4-GOV6 test commands:
-
-```bash
-pytest tests/test_negative_override.py -q
-pytest tests/test_runtime_state.py -q
-pytest tests/test_runtime_loop.py -q
-```
-
-## B1.1 Evidence Operation Discipline + TG2/TG3 Reporting Integration
-
-B1.1 converts the active 3-6 month observation period into an explicit operating gate. It does not add strategy complexity, broker execution or live-trading authorization.
-
-Implemented files:
-
-```text
-src/operations/evidence_operation_discipline.py
-src/reporting/tg2_tg3_report_templates.py
-docs/operations/b11_evidence_operation_discipline.md
-tests/test_b11_evidence_operation_discipline.py
-```
-
-Implemented safeguards:
-
-- Observation mode must remain research-only, observation-only or paper-only.
-- Daily evidence report must exist and pass.
-- Daily reconciliation component must pass before the observation day is considered clean.
-- TG3 renders public-safe Daily Evidence, Fill Quality, Kill Switch and Backtest Summary templates.
-- TG2 Telegram dispatch records must remain inside the existing TG1 research-only boundary.
-- Telegram messages must include the research-only/no-live-trading footer.
-- No broker execution, no live trading authorization and no private edge parameters are introduced.
-
-B1.1 test command:
-
-```bash
-pytest tests/test_b11_evidence_operation_discipline.py -q
-```
-
-Operational documentation:
-
-```text
-docs/operations/b11_evidence_operation_discipline.md
-```
-
-## IP9/IP10 Public Repository Governance
-
-IP9/IP10 closes the immediate public-repository governance gap before new strategy complexity is added.
-
-Implemented files:
-
-```text
-.github/pull_request_template.md
-.github/workflows/ip9_ip10.yml
-LICENSE
-DISCLAIMER.md
-docs/operations/ip9_ip10_public_repo_governance.md
-tests/test_ip9_ip10_public_repo_governance.py
-```
-
-Implemented safeguards:
-
-- Future PRs that touch strategy, scoring, thresholds, setup maps, exit profiles, ranking, reports, evidence, execution, sizing or CI gates must pass an explicit public-edge review checklist.
-- Strategy-like public values must remain clearly marked as public-demo defaults or synthetic fixtures.
-- Research/private configuration belongs behind an external/private boundary, not in the public repository.
-- Generated reports, raw evidence, provider extracts, ranked opportunity output and local artifacts must not be committed.
-- The public repository now includes a license and a separate research/usage disclaimer.
-- The disclaimer states that the project is research and decision-support only, does not provide financial advice, does not guarantee performance and does not grant live trading permission.
-- Dedicated IP9/IP10 governance workflow runs PR-template, license/disclaimer and public-boundary checks.
-
-IP9/IP10 test commands:
-
-```bash
-pytest tests/test_ip9_ip10_public_repo_governance.py -q
-python scripts/check_ip_boundary.py --root . --no-write
-pytest tests/test_ip_boundary.py -q
-python scripts/validate_public_repo_policy.py --no-write
-```
-
-## Report Output Boundary Guard
-
-The Report Output Boundary Guard prevents generated runtime reports from overwriting committed public report examples:
-
-```text
-src/report_output_boundary.py
-scripts/generate_report.py
-tests/test_report_output_boundary.py
-tests/test_generate_report_output_boundary.py
-docs/operations/report_output_boundary_guard.md
-```
-
-Protected public artifacts:
-
-```text
-reports/premarket-report.md
-reports/postmarket-report.md
-reports/weekly-report.md
-```
-
-Implemented safeguards:
-
-- Generated report writes to protected public report paths fail closed with `ReportOutputBoundaryError`.
-- Relative traversal attempts such as `reports/generated/../premarket-report.md` are normalized and blocked.
-- Allowed runtime outputs stay in non-committed locations such as `reports/generated/`, `reports/live/`, `reports/private/` and `outputs/`.
-- The main CI workflow runs the boundary tests before BT7 and the full regression suite.
-
-## CL5 Regime Alignment Governance
-
-CL5 makes `regime_alignment` an explicit independent decision gate before risk-tier scoring can approve or watch a setup:
-
-```text
-src/decision_engine.py
-tests/test_decision_engine.py
-docs/operations/cl5_regime_alignment_governance.md
-```
-
-Implemented safeguards:
-
-- `regime_alignment` is now normalized before risk-tier scoring.
-- Missing or invalid alignment is treated conservatively.
-- Candidates with insufficient regime alignment cannot be promoted by score alone.
-- Regression tests prove the gate blocks weak alignment and allows valid alignment.
