@@ -37,11 +37,39 @@ BT3: Backtest reproducibility contract implemented
 BT5: Walk-Forward / Out-of-Sample Robustness Gate implemented and CI-green
 BT6: Evidence Baseline Regression Gate implemented and CI-green
 BT7: Capacity / Turnover / Realism Gate implemented and CI-green
+SR1-SR3: signal identity, ATR persistence and repo-write serialization implemented and CI-green
+SR4: trusted portfolio-governance source enforcement implemented and CI-green
 Live trading authorization: not granted by code
 Broker execution: paper-only infrastructure; live execution is not implemented
 ```
 
 Code quality is not trading edge. The system is promising enough to test seriously, but real capital still requires long-running forward evidence, drift detection, regime-change monitoring, position-level risk attribution, execution-quality review, capacity/turnover realism and manual approval.
+
+## SR4 Trusted Portfolio Governance Source
+
+SR4 closes a runtime governance source-integrity gap. Runtime portfolio override arguments are no longer accepted as trusted governance state.
+
+```text
+src/runtime/live_runtime_cycle.py
+tests/test_live_runtime_cycle.py
+tests/test_live_runtime_cycle_portfolio_state.py
+```
+
+Implemented safeguards:
+
+- `portfolio_drawdown_percent` and `daily_loss_percent` passed directly to `LiveRuntimeCycle.run()` now fail closed.
+- Runtime argument overrides are persisted as `runtime_argument_override_rejected` with `governance_valid=False`.
+- Successful runtime-cycle tests use an injected trusted `PortfolioStateStore` path instead of overriding governance by arguments.
+- Missing or untrusted portfolio state blocks the cycle before kill-switch and risk-limit evaluation.
+- No broker execution, no live trading authorization and no private edge parameters are introduced.
+
+SR4 test commands:
+
+```bash
+pytest tests/test_live_runtime_cycle.py -q
+pytest tests/test_live_runtime_cycle_portfolio_state.py -q
+pytest tests/test_portfolio_state.py -q
+```
 
 ## EV1-EV2 Sharpe / Deflated-Sharpe Evidence Fix
 
@@ -257,117 +285,3 @@ Implemented safeguards:
 - `ATR_CALCULATION_VERSION` records the public-demo ATR semantics.
 - `THRESHOLDS_VERSION` was bumped because ATR migration is evidence-affecting.
 - ATR method changes require evidence invalidation instead of silently reusing older ATR-dependent artifacts.
-
-## CL2/CL3 Scoring and Drawdown-Source Governance
-
-CL2 makes scoring systems auditable instead of implicit:
-
-```text
-src/validation/scoring_audit.py
-tests/test_scoring_audit.py
-```
-
-CL3 makes kill-switch drawdown governance fail closed until the drawdown source is valid:
-
-```text
-src/validation/execution_kill_switch.py
-tests/test_execution_kill_switch.py
-scripts/evaluate_execution_kill_switch.py
-```
-
-Implemented safeguards:
-
-- Report-only ranking scores are explicitly separated from decision-authoritative scores.
-- Decision Engine tier gating is documented as the authoritative downstream gate.
-- Non-authoritative scores are blocked from feeding paper/execution gates.
-- A validated drawdown source is required by default.
-- Backtest-only, unknown, unreconciled or internally inconsistent drawdown sources are rejected.
-
-## CL1 Core Decision Logic Remediation
-
-CL1 fixes and regression-tests three decision-critical logic issues:
-
-```text
-src/setup_scoring.py
-src/portfolio_risk.py
-src/outcome_tracking.py
-```
-
-Implemented safeguards:
-
-- Asymmetry downside risk now uses absolute distance to the SMA50 invalidation reference, preventing below-SMA50 assets from receiving inflated reward/risk scores.
-- Portfolio risk elevation now reduces all tradable tiers instead of only Tier 1 candidates.
-- Breakeven outcomes are treated as neutral in basic expectancy instead of being classified as losses.
-
-## IP3/IP4 Public Demo Defaults and Private Edge Boundary
-
-Public thresholds are explicitly marked as demo defaults only:
-
-```text
-src/config/thresholds.py
-src/config/external_edge_provider.py
-docs/operations/ip3_ip4_public_demo_and_private_edge_boundary.md
-```
-
-Without configuration, the public repository uses public-demo defaults and CI stays self-contained. A local/private module can be supplied outside the public repository with:
-
-```bash
-export ITE_EXTERNAL_EDGE_PROVIDER="your_local_module.path"
-```
-
-The private module must expose:
-
-```python
-def get_decision_thresholds() -> DecisionThresholds:
-    ...
-```
-
-## BT7 Capacity / Turnover / Realism Gate
-
-BT7 adds a deterministic capacity, turnover and transaction-cost realism gate before any private production sizing work. It blocks historically attractive validation evidence from being treated as credible when proposed scale, liquidity usage, turnover, cost drag or slippage coverage are not realistic.
-
-```text
-src/validation/capacity_turnover_realism_gate.py
-tests/test_bt7_capacity_turnover_realism_gate.py
-docs/operations/bt7_capacity_turnover_realism_gate.md
-```
-
-## Main Test Commands
-
-Full suite:
-
-```bash
-pytest -q
-```
-
-Backtest, IP, report-boundary, evidence-operation, runtime-governance and core-logic validation gates:
-
-```bash
-pytest tests/test_sharpe_definition_regression.py -q
-pytest tests/test_b11_evidence_operation_discipline.py -q
-pytest tests/test_gov7_gov10_pre_live_hygiene.py -q
-pytest tests/test_negative_override.py -q
-pytest tests/test_runtime_state.py -q
-pytest tests/test_runtime_loop.py -q
-pytest tests/test_strategy_test_matrix.py -q
-pytest tests/test_bt3_backtest_run_contract.py -q
-pytest tests/test_bt5_walk_forward_robustness_gate.py -q
-pytest tests/test_bt6_evidence_baseline_regression_gate.py -q
-pytest tests/test_bt7_capacity_turnover_realism_gate.py -q
-pytest tests/test_external_edge_provider.py -q
-pytest tests/test_artifact_hygiene.py -q
-pytest tests/test_ip9_ip10_public_repo_governance.py -q
-pytest tests/test_report_output_boundary.py -q
-pytest tests/test_generate_report_output_boundary.py -q
-pytest tests/test_setup_scoring.py -q
-pytest tests/test_portfolio_risk.py -q
-pytest tests/test_outcome_tracking.py -q
-pytest tests/test_scoring_audit.py -q
-pytest tests/test_execution_kill_switch.py -q
-pytest tests/test_atr_governance.py -q
-pytest tests/test_decision_engine.py -q
-```
-
-## Hard Safety Rule
-
-This repository is a research and decision-support framework. No B1.1 evidence operation record, EV1-EV2 Sharpe definition fix, GOV7-GOV10 pre-live hygiene validator, GOV4-GOV6 stability hardening, TG2/TG3 report template, generated report, protected public report example, backtest, walk-forward result, evidence baseline comparison, capacity/turnover realism report, paper execution artifact, Telegram dispatch, external edge provider, core-logic remediation, scoring audit, kill-switch drawdown-source validation, ATR governance change, threshold-version bump, regime-alignment governance change, report output boundary guard, IP9/IP10 governance check or CI-green state authorizes live trading.
