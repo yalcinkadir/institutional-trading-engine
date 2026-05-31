@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## SR8 Dependency Reproducibility Contract — 2026-05-31
+
+### Added
+- SR8: dependency installation now delegates from `requirements.txt` to `requirements.lock`.
+- Added exact top-level runtime/test dependency pins for the current public research/test stack.
+- Added regression coverage proving requirements are locked and that workflow-local requirements files cannot become a second dependency source of truth.
+
+### Changed
+- `requirements.txt` now acts as a stable entry point for CI and local installs while `requirements.lock` carries the pinned dependency contract.
+- Runtime/test dependency drift is now guarded before further signal-runtime or governance work is trusted.
+
+### Stabilization Result
+- SR8 implementation status: done.
+- CI status: green.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## SR7 Completed-Bar Watcher Semantics — 2026-05-31
 
 ### Added
