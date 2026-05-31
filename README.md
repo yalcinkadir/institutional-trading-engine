@@ -45,11 +45,40 @@ SR7: completed-bar watcher semantics implemented and CI-green
 SR8: dependency reproducibility contract implemented and CI-green
 PSR1: daily runtime evidence manifest implemented and CI-green
 PSR2: runtime evidence manifest guard implemented and CI-green
+PSR3: fill-quality evidence artifact implemented and CI-green
 Live trading authorization: not granted by code
 Broker execution: paper-only infrastructure; live execution is not implemented
 ```
 
 Code quality is not trading edge. The system is promising enough to test seriously, but real capital still requires long-running forward evidence, drift detection, regime-change monitoring, position-level risk attribution, execution-quality review, capacity/turnover realism and manual approval.
+
+## PSR3 Fill-Quality Evidence
+
+PSR3 adds structured paper-execution quality evidence. Slippage, fill status and reconciliation state can now be persisted as a daily audit artifact and included in the runtime evidence manifest chain.
+
+```text
+src/operations/fill_quality_evidence.py
+scripts/generate_fill_quality_evidence.py
+tests/test_psr3_fill_quality_evidence.py
+```
+
+Implemented safeguards:
+
+- Fill-quality records normalize order ID, signal ID, symbol, side, quantity, expected price, actual price, fill status and reconciliation status.
+- Buy and sell slippage are calculated in absolute units and basis points.
+- Failed, rejected, cancelled, expired or unknown fills fail the record.
+- Unreconciled, missing or mismatched reconciliation status fails the record.
+- High but not catastrophic slippage produces `WARN`; severe slippage produces `FAIL`.
+- Daily evidence summarizes filled, partial-fill, failed and unreconciled counts.
+- Evidence validation rejects inconsistent counts, schema drift and `live_trading_authorized=True`.
+- No broker execution, no live trading authorization and no private edge parameters are introduced.
+
+PSR3 test commands:
+
+```bash
+pytest tests/test_psr3_fill_quality_evidence.py -q
+python scripts/generate_fill_quality_evidence.py --trading-date 2026-05-31 --input path/to/paper-fills.json
+```
 
 ## PSR2 Runtime Evidence Manifest Guard
 
