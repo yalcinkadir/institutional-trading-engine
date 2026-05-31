@@ -164,3 +164,56 @@ jobs:
           name: reports-archive-${{ steps.report_type.outputs.run_timestamp }}
           path: reports/
           retention-days: 90
+
+      - name: Build Telegram summary
+        if: env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_CHAT_ID != ''
+        shell: bash
+        run: |
+          REGIME=$(grep -m1 "^- Regime:" "$REPORT_FILE" | sed 's/- Regime: //' || true)
+          HEALTH=$(grep -m1 "^- Market Health Score:" "$REPORT_FILE" | sed 's/- Market Health Score: //' || true)
+          APPROVED=$(grep -m1 "^- Approved" "$REPORT_FILE" | sed 's/- Approved.*: //' || true)
+          SUMMARY_LINE=$(grep -m1 "^- Decision context\|^- No high-quality\|^- Hard risk" "$REPORT_FILE" | sed 's/^- //' || true)
+          SETUPS=$(grep "^#### " "$REPORT_FILE" | head -3 | sed 's/#### //' | tr '\n' ', ' | sed 's/, $//' || true)
+
+          {
+            echo "TELEGRAM_SUMMARY<<EOF"
+            echo "📊 ITE ${REPORT_TYPE^} Report — $(date -u +'%Y-%m-%d %H:%M UTC')"
+            echo ""
+            echo "📈 Regime: ${REGIME}"
+            echo "🏥 Health Score: ${HEALTH}"
+            echo "✅ Approved: ${APPROVED}"
+            if [[ -n "$SETUPS" ]]; then
+              echo "🎯 Setups: ${SETUPS}"
+            fi
+            if [[ -n "$SUMMARY_LINE" ]]; then
+              echo ""
+              echo "💬 ${SUMMARY_LINE}"
+            fi
+            echo "EOF"
+          } >> "$GITHUB_ENV"
+
+      - name: Send Telegram summary
+        if: env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_CHAT_ID != ''
+        shell: bash
+        run: |
+          curl -sS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d chat_id="${TELEGRAM_CHAT_ID}" \
+            --data-urlencode text="$TELEGRAM_SUMMARY"
+
+      - name: Send report document to Telegram
+        if: env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_CHAT_ID != ''
+        shell: bash
+        run: |
+          TITLE="ITE ${REPORT_TYPE} report — ${RUN_TIMESTAMP}"
+          curl -sS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
+            -F chat_id="${TELEGRAM_CHAT_ID}" \
+            -F document="@${REPORT_FILE}" \
+            -F caption="${TITLE}"
+
+      - name: Send report to webhook if configured
+        if: env.REPORT_WEBHOOK_URL != ''
+        shell: bash
+        run: |
+          curl -sS -X POST "$REPORT_WEBHOOK_URL" \
+            -H "Content-Type: text/plain; charset=utf-8" \
+            --data-binary "@${REPORT_FILE}"
