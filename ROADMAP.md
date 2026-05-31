@@ -1,7 +1,7 @@
 # Institutional Trading Engine Roadmap
 
 Status date: 2026-05-31  
-Current state: EV1-EV12 evidence-integrity remediation is implemented, centrally documented and CI-green. CI runtime simplification is implemented and CI-green. B1.1 evidence operation discipline plus TG2/TG3 reporting integration is implemented and CI-wired. Phase B1.1 remains active as the 3-6 month observation-only evidence collection period. GOV1-GOV10 runtime/pre-live governance hardening is implemented and CI-green. SR1 stable signal identity, SR2 ATR persistence, SR3 repo-write serialization, SR4 trusted portfolio-governance source enforcement, SR5 persistent anomaly-state governance, SR6 governance-threshold single source of truth, SR7 completed-bar watcher semantics and SR8 dependency reproducibility contract are implemented and CI-green. PSR1 daily runtime evidence manifest, PSR2 runtime evidence manifest guard and PSR3 fill-quality evidence integration are implemented and CI-green. Phase D expansion or any live-execution consideration remains blocked until forward evidence, drift monitoring, risk attribution, execution quality review, capacity/turnover realism and manual approval are in place. Real-money execution is not authorized by code.
+Current state: EV1-EV12 evidence-integrity remediation is implemented, centrally documented and CI-green. CI runtime simplification is implemented and CI-green. B1.1 evidence operation discipline plus TG2/TG3 reporting integration is implemented and CI-wired. Phase B1.1 remains active as the 3-6 month observation-only evidence collection period. GOV1-GOV10 runtime/pre-live governance hardening is implemented and CI-green. SR1 stable signal identity, SR2 ATR persistence, SR3 repo-write serialization, SR4 trusted portfolio-governance source enforcement, SR5 persistent anomaly-state governance, SR6 governance-threshold single source of truth, SR7 completed-bar watcher semantics and SR8 dependency reproducibility contract are implemented and CI-green. PSR1 daily runtime evidence manifest, PSR2 runtime evidence manifest guard, PSR3 fill-quality evidence integration and PSR4 drift/regime-change evidence linkage are implemented and CI-green. Phase D expansion or any live-execution consideration remains blocked until forward evidence, drift monitoring, risk attribution, execution quality review, capacity/turnover realism and manual approval are in place. Real-money execution is not authorized by code.
 
 ## Strategic direction
 
@@ -157,7 +157,7 @@ SR1-SR8 are complete and CI-green. The signal runtime audit stabilization block 
 
 ## Phase PSR — Post-SR Runtime Evidence Hardening
 
-Target window: active  
+Target window: completed / CI-green  
 Goal: harden paper/observation evidence quality before any Phase D expansion or live-execution consideration.
 
 | ID | Task | Priority | Impact | Status |
@@ -165,9 +165,9 @@ Goal: harden paper/observation evidence quality before any Phase D expansion or 
 | PSR1 | Add daily runtime evidence manifest with required input/output/governance artifact hashes and PASS/FAIL status | P0 | Critical | Done / CI-green |
 | PSR2 | Add daily manifest CI/report guard so missing evidence blocks observation-day acceptance | P0 | Critical | Done / CI-green |
 | PSR3 | Add fill-quality evidence manifest integration for paper execution outcomes | P1 | High | Done / CI-green |
-| PSR4 | Add drift and regime-change evidence linkage into the daily manifest | P1 | High | Planned |
+| PSR4 | Add drift and regime-change evidence linkage into the daily manifest | P1 | High | Done / CI-green |
 
-PSR1-PSR3 are implemented and CI-green. PSR4 is evidence hardening only. None of these authorize live trading.
+PSR1-PSR4 are implemented and CI-green. The Post-SR Runtime Evidence Hardening block is closed. None of these authorize live trading.
 
 ## Phase A — Foundation Repair and Evidence Hygiene
 
