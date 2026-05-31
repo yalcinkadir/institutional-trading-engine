@@ -14,7 +14,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: entry-exit-watcher-manual-${{ github.ref }}
+  group: repo-write-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
