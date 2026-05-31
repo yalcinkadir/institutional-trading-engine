@@ -2,7 +2,6 @@ name: Outcome Tracking
 
 on:
   schedule:
-    # Daily at 02:00 UTC — after previous day bars are available
     - cron: "0 2 * * *"
 
   workflow_dispatch:
@@ -14,6 +13,10 @@ on:
 
 permissions:
   contents: write
+
+concurrency:
+  group: repo-write-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   outcomes:
@@ -54,14 +57,12 @@ jobs:
       - name: Run expectancy learning pipeline
         shell: bash
         run: |
-          # Prefer CSV if available.
           if [[ -f data/decision_log.csv ]]; then
             echo "Using decision_log.csv"
             python scripts/update_outcomes.py \
               --decision-log data/decision_log.csv \
               --output reports/expectancy-report.md
 
-          # Fallback to JSONL if supported by update_outcomes.py.
           elif [[ -f data/decision_log.jsonl ]]; then
             echo "Using decision_log.jsonl"
             python scripts/update_outcomes.py \
