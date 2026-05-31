@@ -1,7 +1,7 @@
 # Institutional Trading Engine Roadmap
 
 Status date: 2026-05-31  
-Current state: EV1-EV12 evidence-integrity and execution-governance remediation is implemented, centrally documented and CI-green. B1.1 evidence operation discipline plus TG2/TG3 reporting integration is implemented and CI-wired. Phase B1.1 remains active as the 3-6 month observation-only evidence collection period. GOV1-GOV10 runtime/pre-live governance hardening is implemented and CI-green. SR1 stable signal identity, SR2 ATR persistence, SR3 repo-write serialization, SR4 trusted portfolio-governance source enforcement and SR5 persistent anomaly-state governance are implemented and CI-green. SR6-SR8 signal runtime audit stabilization remains the immediate priority before CI simplification, Phase D expansion or any live-execution consideration. Real-money execution is not authorized by code.
+Current state: EV1-EV12 evidence-integrity remediation is implemented, centrally documented and CI-green.
 
 ## Strategic direction
 
