@@ -15,7 +15,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: report-quality-${{ github.ref }}
+  group: repo-write-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
