@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## SR7 Completed-Bar Watcher Semantics — 2026-05-31
+
+### Added
+- SR7: watcher lifecycle evaluation now respects completed-bar semantics before emitting entry, stop or target lifecycle events.
+- Added `PriceBar.is_complete`, `completed_at` and `completion_source` metadata for watcher auditability.
+- Added regression coverage proving incomplete bars do not trigger entries, stops or targets.
+
+### Changed
+- `evaluate_signal_against_bar()` now preserves signal state when a price bar is explicitly incomplete.
+- Polygon aggregate conversion now derives completion metadata from provider flags or daily-bar timestamps.
+- Watcher evaluation remains deterministic and conservative while preventing intrabar high/low noise from being treated as final.
+
+### Stabilization Result
+- SR7 implementation status: done.
+- CI status: green.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## SR6 Governance Thresholds Single Source of Truth — 2026-05-31
 
 ### Added
