@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
+
 from src.governance.kill_switch import (
     INVALID_PORTFOLIO_GOVERNANCE_REASON,
     evaluate_kill_switch_for_portfolio_state,
@@ -7,9 +9,14 @@ from src.governance.kill_switch import (
 from src.runtime.governance_approval_gate import (
     INVALID_GOVERNANCE_APPROVAL_REASON,
     KILL_SWITCH_APPROVAL_REASON,
+    STALE_PORTFOLIO_STATE_REASON,
     evaluate_runtime_governance_approval,
+    is_portfolio_state_stale,
 )
 from src.runtime.portfolio_state import PortfolioState
+
+
+REFERENCE_TIME = datetime(2026, 5, 31, 12, 0, tzinfo=UTC)
 
 
 def test_missing_portfolio_state_conservative_default_forces_kill_switch() -> None:
@@ -36,6 +43,7 @@ def test_valid_portfolio_state_does_not_force_kill_switch_without_breach() -> No
         daily_loss_percent=0.2,
         governance_valid=True,
         source="trusted_test_snapshot",
+        updated_at=REFERENCE_TIME.isoformat(),
     )
 
     result = evaluate_kill_switch_for_portfolio_state(
@@ -57,6 +65,7 @@ def test_invalid_portfolio_state_preserves_existing_kill_switch_reasons() -> Non
         daily_loss_percent=0.0,
         governance_valid=False,
         source="invalid_test_snapshot",
+        updated_at=REFERENCE_TIME.isoformat(),
     )
 
     result = evaluate_kill_switch_for_portfolio_state(
@@ -77,6 +86,7 @@ def test_runtime_governance_approval_blocks_invalid_portfolio_state() -> None:
         portfolio_state=state,
         vix=None,
         severe_anomaly_count=0,
+        now=REFERENCE_TIME,
     )
 
     assert approval.approved is False
@@ -95,12 +105,14 @@ def test_runtime_governance_approval_allows_valid_state_without_breach() -> None
         daily_loss_percent=0.0,
         governance_valid=True,
         source="trusted_test_snapshot",
+        updated_at=REFERENCE_TIME.isoformat(),
     )
 
     approval = evaluate_runtime_governance_approval(
         portfolio_state=state,
         vix=None,
         severe_anomaly_count=0,
+        now=REFERENCE_TIME,
     )
 
     assert approval.approved is True
@@ -117,15 +129,78 @@ def test_runtime_governance_approval_blocks_valid_state_when_kill_switch_fires()
         daily_loss_percent=0.0,
         governance_valid=True,
         source="trusted_test_snapshot",
+        updated_at=REFERENCE_TIME.isoformat(),
     )
 
     approval = evaluate_runtime_governance_approval(
         portfolio_state=state,
         vix=None,
         severe_anomaly_count=0,
+        now=REFERENCE_TIME,
     )
 
     assert approval.approved is False
     assert approval.blocked is True
     assert KILL_SWITCH_APPROVAL_REASON in approval.reasons
     assert "portfolio_drawdown_limit" in approval.reasons
+
+
+def test_stale_portfolio_state_blocks_runtime_governance_approval() -> None:
+    state = PortfolioState(
+        equity_start=100_000.0,
+        equity_current=100_000.0,
+        drawdown_percent=0.0,
+        daily_loss_percent=0.0,
+        governance_valid=True,
+        source="trusted_but_stale_snapshot",
+        updated_at=(REFERENCE_TIME - timedelta(days=2)).isoformat(),
+    )
+
+    approval = evaluate_runtime_governance_approval(
+        portfolio_state=state,
+        vix=None,
+        severe_anomaly_count=0,
+        now=REFERENCE_TIME,
+    )
+
+    assert is_portfolio_state_stale(portfolio_state=state, now=REFERENCE_TIME) is True
+    assert approval.approved is False
+    assert approval.blocked is True
+    assert STALE_PORTFOLIO_STATE_REASON in approval.reasons
+
+
+def test_recent_portfolio_state_is_not_stale() -> None:
+    state = PortfolioState(
+        equity_start=100_000.0,
+        equity_current=100_000.0,
+        drawdown_percent=0.0,
+        daily_loss_percent=0.0,
+        governance_valid=True,
+        source="trusted_recent_snapshot",
+        updated_at=(REFERENCE_TIME - timedelta(hours=6)).isoformat(),
+    )
+
+    assert is_portfolio_state_stale(portfolio_state=state, now=REFERENCE_TIME) is False
+
+
+def test_invalid_portfolio_state_timestamp_is_stale() -> None:
+    state = PortfolioState(
+        equity_start=100_000.0,
+        equity_current=100_000.0,
+        drawdown_percent=0.0,
+        daily_loss_percent=0.0,
+        governance_valid=True,
+        source="trusted_snapshot_with_bad_timestamp",
+        updated_at="not-a-valid-iso-timestamp",
+    )
+
+    approval = evaluate_runtime_governance_approval(
+        portfolio_state=state,
+        vix=None,
+        severe_anomaly_count=0,
+        now=REFERENCE_TIME,
+    )
+
+    assert is_portfolio_state_stale(portfolio_state=state, now=REFERENCE_TIME) is True
+    assert approval.approved is False
+    assert STALE_PORTFOLIO_STATE_REASON in approval.reasons
