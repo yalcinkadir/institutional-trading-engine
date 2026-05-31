@@ -46,17 +46,6 @@ from src.runtime.runtime_state import runtime_state
 from src.storage.decision_log_store import decision_log_store
 from src.structured_logging import emit_structured_log
 
-
-# ── Governance thresholds ──────────────────────────────────────────────────
-# Conservative defaults. These should be moved to config when a proper
-# portfolio position tracker is live (Phase 4).
-_GOVERNANCE_VIX_KILL_THRESHOLD = 40.0
-_GOVERNANCE_DRAWDOWN_KILL_THRESHOLD = 20.0
-_GOVERNANCE_ANOMALY_KILL_THRESHOLD = 5
-_GOVERNANCE_MAX_DRAWDOWN_PCT = 15.0
-_GOVERNANCE_MAX_DAILY_LOSS_PCT = 5.0
-
-
 class GovernanceBlockedError(Exception):
     """Raised when governance prevents cycle execution."""
 
@@ -75,13 +64,15 @@ class LiveRuntimeCycle:
     """
 
     def __init__(
-        self,
-        portfolio_state_store: PortfolioStateStore | None = None,
-        anomaly_state_store: AnomalyStateStore | None = None,
-    ) -> None:
-        self.portfolio_state_store = portfolio_state_store or PortfolioStateStore()
-        self.anomaly_state_store = anomaly_state_store or AnomalyStateStore()
-
+    self,
+    portfolio_state_store: PortfolioStateStore | None = None,
+    anomaly_state_store: AnomalyStateStore | None = None,
+    governance_thresholds: GovernanceThresholds = DEFAULT_GOVERNANCE_THRESHOLDS,
+) -> None:
+    self.portfolio_state_store = portfolio_state_store or PortfolioStateStore()
+    self.anomaly_state_store = anomaly_state_store or AnomalyStateStore()
+    self.governance_thresholds = governance_thresholds
+    
     def _log(
         self,
         *,
@@ -172,10 +163,11 @@ class LiveRuntimeCycle:
         vix_for_bridge: float = vix_level if vix_level is not None else 25.0
 
         kill_result = evaluate_kill_switch(
-            vix=vix_level,
-            drawdown_percent=portfolio_drawdown_for_governance,
-            severe_anomaly_count=severe_anomaly_count,
-        )
+    vix=vix_level,
+    drawdown_percent=portfolio_drawdown_for_governance,
+    severe_anomaly_count=severe_anomaly_count,
+    thresholds=self.governance_thresholds,
+)
 
         if kill_result["kill_switch"]:
             self._log_governance_block(
@@ -188,11 +180,11 @@ class LiveRuntimeCycle:
             raise GovernanceBlockedError(kill_result["reasons"])
 
         risk_result = validate_risk_limits(
-            portfolio_drawdown_percent=portfolio_drawdown_for_governance,
-            max_drawdown_percent=_GOVERNANCE_MAX_DRAWDOWN_PCT,
-            daily_loss_percent=daily_loss_for_governance,
-            max_daily_loss_percent=_GOVERNANCE_MAX_DAILY_LOSS_PCT,
-        )
+    portfolio_drawdown_percent=portfolio_drawdown_for_governance,
+    max_drawdown_percent=self.governance_thresholds.max_drawdown_percent,
+    daily_loss_percent=daily_loss_for_governance,
+    max_daily_loss_percent=self.governance_thresholds.max_daily_loss_percent,
+)
 
         if risk_result["status"] == "BREACH":
             self._log_governance_block(
@@ -242,8 +234,9 @@ class LiveRuntimeCycle:
         # ── Step 5: Persist decision ───────────────────────────────────────
         payload = snapshot.to_persistence_payload()
         payload["portfolio_state"] = portfolio_state.to_dict()
-        payload["anomaly_state"] = anomaly_state.to_dict()
-        payload["severe_anomaly_count"] = severe_anomaly_count
+payload["anomaly_state"] = anomaly_state.to_dict()
+payload["governance_thresholds"] = self.governance_thresholds.to_dict()
+payload["severe_anomaly_count"] = severe_anomaly_count
         decision_log_store.append(
             decision_id=snapshot.snapshot_id,
             payload=payload,
