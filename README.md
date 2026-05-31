@@ -49,7 +49,7 @@ PSR3: fill-quality evidence artifact implemented and CI-green
 PSR4: drift and regime evidence artifact implemented and CI-green
 RGP1: missing/invalid PortfolioState fail-closed proof implemented and CI-green
 RGP2: runtime governance approval gate implemented and CI-green
-RGP3: stale PortfolioState approval blocking implemented / awaiting CI
+RGP3: stale PortfolioState approval blocking implemented and CI-green
 Live trading authorization: not granted by code
 Broker execution: paper-only infrastructure; live execution is not implemented
 ```
@@ -88,105 +88,4 @@ PSR4 adds structured drift and regime-change evidence. Observation days can now 
 
 ```text
 src/operations/drift_regime_evidence.py
-scripts/generate_drift_regime_evidence.py
-tests/test_psr4_drift_regime_evidence.py
-```
-
-Implemented safeguards:
-
-- Drift metrics compare observed and expected values and classify drift as `PASS`, `WARN` or `FAIL`.
-- Cumulative drift is tracked separately with warn/fail thresholds.
-- Regime transitions classify stable, minor, major and unknown transitions.
-- Daily evidence summarizes metric, cumulative and regime statuses into one final status.
-- Evidence JSON supports deterministic write/load round trips.
-- Evidence validation rejects inconsistent metric drift, status mismatches, schema drift and `live_trading_authorized=True`.
-- No broker execution, no live trading authorization and no private edge parameters are introduced.
-
-PSR4 test commands:
-
-```bash
-pytest tests/test_psr4_drift_regime_evidence.py -q
-python scripts/generate_drift_regime_evidence.py --trading-date 2026-05-31 --input path/to/drift-regime.json
-```
-
-## PSR3 Fill-Quality Evidence
-
-PSR3 adds structured paper-execution quality evidence. Slippage, fill status and reconciliation state can now be persisted as a daily audit artifact and included in the runtime evidence manifest chain.
-
-```text
-src/operations/fill_quality_evidence.py
-scripts/generate_fill_quality_evidence.py
-tests/test_psr3_fill_quality_evidence.py
-```
-
-Implemented safeguards:
-
-- Fill-quality records normalize order ID, signal ID, symbol, side, quantity, expected price, actual price, fill status and reconciliation status.
-- Buy and sell slippage are calculated in absolute units and basis points.
-- Failed, rejected, cancelled, expired or unknown fills fail the record.
-- Unreconciled, missing or mismatched reconciliation status fails the record.
-- High but not catastrophic slippage produces `WARN`; severe slippage produces `FAIL`.
-- Daily evidence summarizes filled, partial-fill, failed and unreconciled counts.
-- Evidence validation rejects inconsistent counts, schema drift and `live_trading_authorized=True`.
-- No broker execution, no live trading authorization and no private edge parameters are introduced.
-
-PSR3 test commands:
-
-```bash
-pytest tests/test_psr3_fill_quality_evidence.py -q
-python scripts/generate_fill_quality_evidence.py --trading-date 2026-05-31 --input path/to/paper-fills.json
-```
-
-## PSR2 Runtime Evidence Manifest Guard
-
-PSR2 turns the PSR1 manifest into an enforceable observation-day gate. A paper/observation day is not accepted when the manifest is missing, invalid or not `PASS`.
-
-```text
-src/operations/runtime_evidence_manifest_guard.py
-scripts/guard_runtime_evidence_manifest.py
-tests/test_psr2_runtime_evidence_manifest_guard.py
-```
-
-Implemented safeguards:
-
-- Missing daily manifests fail closed with `manifest_missing`.
-- Invalid manifest JSON or schema fails closed.
-- Manifest status other than `PASS` blocks observation-day acceptance.
-- Missing required artifacts are surfaced as guard errors.
-- `live_trading_authorized=True` is rejected by the guard.
-- A CLI script can evaluate a manifest by explicit path or trading date and optionally write a JSON guard report.
-- No broker execution, no live trading authorization and no private edge parameters are introduced.
-
-PSR2 test commands:
-
-```bash
-pytest tests/test_psr1_runtime_evidence_manifest.py tests/test_psr2_runtime_evidence_manifest_guard.py -q
-python scripts/guard_runtime_evidence_manifest.py --trading-date 2026-05-31
-```
-
-## PSR1 Daily Runtime Evidence Manifest
-
-PSR1 starts the post-SR runtime evidence hardening block. It adds a daily manifest for paper/observation evidence integrity.
-
-```text
-src/operations/runtime_evidence_manifest.py
-scripts/generate_runtime_evidence_manifest.py
-tests/test_psr1_runtime_evidence_manifest.py
-```
-
-Implemented safeguards:
-
-- Daily runtime evidence manifests include required input, output and governance-state artifact metadata.
-- Existing artifacts are recorded with SHA256 hashes and file sizes.
-- Missing required artifacts produce manifest status `FAIL`.
-- Missing optional artifacts do not fail the manifest.
-- Manifest validation enforces schema consistency and keeps `live_trading_authorized=False`.
-- A CLI script can generate daily manifests into `reports/evidence/manifests/`.
-- No broker execution, no live trading authorization and no private edge parameters are introduced.
-
-PSR1 test commands:
-
-```bash
-pytest tests/test_psr1_runtime_evidence_manifest.py -q
-python scripts/generate_runtime_evidence_manifest.py --trading-date 2026-05-31 --required-input requirements.txt --required-output requirements.lock --required-governance-state requirements.lock
 ```
