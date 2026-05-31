@@ -41,11 +41,37 @@ SR1-SR3: signal identity, ATR persistence and repo-write serialization implement
 SR4: trusted portfolio-governance source enforcement implemented and CI-green
 SR5: persistent anomaly-state governance implemented and CI-green
 SR6: governance thresholds single source of truth implemented and CI-green
+SR7: completed-bar watcher semantics implemented and CI-green
 Live trading authorization: not granted by code
 Broker execution: paper-only infrastructure; live execution is not implemented
 ```
 
 Code quality is not trading edge. The system is promising enough to test seriously, but real capital still requires long-running forward evidence, drift detection, regime-change monitoring, position-level risk attribution, execution-quality review, capacity/turnover realism and manual approval.
+
+## SR7 Completed-Bar Watcher Semantics
+
+SR7 closes a watcher timing gap. Entry, stop and target lifecycle events are no longer emitted from explicitly incomplete bars.
+
+```text
+src/watchers/entry_exit_watcher.py
+tests/test_sr7_completed_bar_semantics.py
+```
+
+Implemented safeguards:
+
+- `PriceBar` now carries `is_complete`, `completed_at` and `completion_source` metadata.
+- `evaluate_signal_against_bar()` returns no lifecycle update when the supplied bar is incomplete.
+- Pending entries, stops and targets are all protected from intrabar high/low noise.
+- Polygon aggregate conversion respects explicit provider completion flags when available.
+- Daily aggregate bars without provider flags receive completion metadata from the bar timestamp.
+- Regression tests prove incomplete bars preserve signal state while completed bars preserve existing watcher behavior.
+- No broker execution, no live trading authorization and no private edge parameters are introduced.
+
+SR7 test commands:
+
+```bash
+pytest tests/test_entry_exit_watcher.py tests/test_sr7_completed_bar_semantics.py -q
+```
 
 ## SR6 Governance Thresholds Single Source of Truth
 
