@@ -1,7 +1,7 @@
 # Institutional Trading Engine Roadmap
 
 Status date: 2026-05-31  
-Current state: EV1-EV12 evidence-integrity remediation is implemented, centrally documented and CI-green. CI runtime simplification is implemented and CI-green. B1.1 evidence operation discipline plus TG2/TG3 reporting integration is implemented and CI-wired. Phase B1.1 remains active as the 3-6 month observation-only evidence collection period. GOV1-GOV10 runtime/pre-live governance hardening is implemented and CI-green. SR1 stable signal identity, SR2 ATR persistence, SR3 repo-write serialization, SR4 trusted portfolio-governance source enforcement, SR5 persistent anomaly-state governance, SR6 governance-threshold single source of truth, SR7 completed-bar watcher semantics and SR8 dependency reproducibility contract are implemented and CI-green. PSR1 daily runtime evidence manifest, PSR2 runtime evidence manifest guard, PSR3 fill-quality evidence integration and PSR4 drift/regime-change evidence linkage are implemented and CI-green. Phase RGP Runtime Governance Proof Pack is active; RGP1 missing/invalid PortfolioState fail-closed proof is implemented and CI-green. Phase D expansion or any live-execution consideration remains blocked until forward evidence, drift monitoring, risk attribution, execution quality review, capacity/turnover realism and manual approval are in place. Real-money execution is not authorized by code.
+Current state: EV1-EV12 evidence-integrity remediation is implemented, centrally documented and CI-green. CI runtime simplification is implemented and CI-green. B1.1 evidence operation discipline plus TG2/TG3 reporting integration is implemented and CI-wired. Phase B1.1 remains active as the 3-6 month observation-only evidence collection period. GOV1-GOV10 runtime/pre-live governance hardening is implemented and CI-green. SR1 stable signal identity, SR2 ATR persistence, SR3 repo-write serialization, SR4 trusted portfolio-governance source enforcement, SR5 persistent anomaly-state governance, SR6 governance-threshold single source of truth, SR7 completed-bar watcher semantics and SR8 dependency reproducibility contract are implemented and CI-green. PSR1 daily runtime evidence manifest, PSR2 runtime evidence manifest guard, PSR3 fill-quality evidence integration and PSR4 drift/regime-change evidence linkage are implemented and CI-green. Phase RGP Runtime Governance Proof Pack is active; RGP1 missing/invalid PortfolioState fail-closed proof and RGP2 runtime governance approval gate are implemented and CI-green. Phase D expansion or any live-execution consideration remains blocked until forward evidence, drift monitoring, risk attribution, execution quality review, capacity/turnover realism and manual approval are in place. Real-money execution is not authorized by code.
 
 ## Strategic direction
 
@@ -42,7 +42,7 @@ Goal: prove that the runtime fails closed end-to-end when governance state, mark
 | ID | Task | Priority | Impact | Status |
 |---|---|---:|---:|---|
 | RGP1 | Prove missing or invalid `PortfolioState` forces kill-switch activation and prevents runtime approval paths from treating `0.0` drawdown as valid governance | P0 | Critical | Done / CI-green |
-| RGP2 | Prove `governance_valid=False` blocks decision approval in the runtime integration path, not only in the portfolio-state data model | P0 | Critical | Pending |
+| RGP2 | Prove `governance_valid=False` blocks decision approval in the runtime integration path, not only in the portfolio-state data model | P0 | Critical | Done / CI-green |
 | RGP3 | Treat stale `portfolio_state.updated_at` as governance-invalid or evidence-failing before observation-day acceptance | P0 | Critical | Pending |
 | RGP4 | Escalate Polygon/data-provider fetch failure for actionable signals into explicit degraded/fail evidence instead of silently skipping lifecycle evaluation | P0 | Critical | Pending |
 | RGP5 | Send or persist STOP/EXIT alerts before git commit/rebase/push so alert delivery cannot be blocked by repository persistence failures | P0 | Critical | Pending |
@@ -75,124 +75,3 @@ Goal: repair evidence-math and backtest-fidelity issues found by static code rev
 | EV10 | Handle `profit_factor=inf` degradation without `nan` audit output | P1 | Medium | Done / CI-green |
 | EV11 | Make setup scoring fallbacks conservative for missing RSI / ATR / RVOL instead of ideal-zone defaults | P1 | Medium | Done / CI-green |
 | EV12 | Add drawdown magnitude thresholds to kill-switch governance | P1 | Medium | Done / CI-green |
-
-EV1-EV12 are implemented, CI-green and consolidated in `docs/operations/ev_evidence_consolidation_full_suite_review.md`.
-
-## Phase GOV — Runtime Governance Hardening
-
-Target window: active  
-Goal: close runtime-governance gaps found during Paper Observation before adding strategy complexity or moving closer to live consideration.
-
-| ID | Task | Priority | Impact | Status |
-|---|---|---:|---:|---|
-| GOV1 | Feed `severe_anomaly_count` from runtime state into `evaluate_kill_switch` instead of passing a hardcoded `0` | P0 | Critical | Done / CI-green |
-| GOV2 | Make missing portfolio state fail closed: `conservative_default` must not silently return `drawdown_percent=0.0` and `daily_loss_percent=0.0` as if governance state were valid | P0 | Critical | Done / CI-green |
-| GOV3 | Reject all computed non-positive entries and stops after calculation, not only explicitly supplied entry values | P0 | Critical | Done / CI-green |
-| GOV4 | Treat `VIX=None` consistently in `negative_override` instead of silently defaulting missing VIX to `0` | P1 | High | Done / CI-green |
-| GOV5 | Bound `RuntimeState.history` with a ring buffer or documented max length to avoid unbounded memory growth during multi-day observation | P1 | Medium | Done / CI-green |
-| GOV6 | Add runtime-loop exception handling with logging and a max-consecutive-error limit so one provider/network exception cannot kill the loop silently | P1 | Medium | Done / CI-green |
-| GOV7 | Fix adaptive-weighting rounding so normalized public weights sum to exactly `1.0` after rounding | P2 | Medium | Done / CI-green |
-| GOV8 | Document or encode VIX term-structure inversion mode so PARTIAL and DIRECT modes are not treated as the same boolean semantics | P2 | Medium | Done / CI-green |
-| GOV9 | Add deprecation markers or consolidation plan for duplicate modules with overlapping responsibilities | P2 | Medium | Done / CI-green |
-| GOV10 | Add cumulative drift gate for Paper Observation so small persistent daily drift cannot avoid detection by only checking max absolute daily drift | P2 | Medium | Done / CI-green |
-
-GOV1-GOV10 are implemented and CI-green. They add runtime governance, runtime stability and pre-live hygiene for anomaly handling, missing portfolio state, non-positive prices, VIX handling, runtime-loop resilience, rounded public weights, VIX term-structure semantics, duplicate-module remediation markers and cumulative Paper Observation drift detection.
-
-## Phase IP — Public Framework / Private Edge Separation
-
-Target window: immediate  
-Goal: keep the repository useful as a public framework while protecting proprietary strategy edge.
-
-| ID | Task | Priority | Impact | Status |
-|---|---|---:|---:|---|
-| IP1 | Define the public/private boundary for framework code, strategy configuration, thresholds, setup mappings, exit profiles, scoring weights and evidence artifacts | P0 | Critical | Done |
-| IP2 | Add an operational policy document for public repository hygiene and private edge handling | P0 | Critical | Done |
-| IP3 | Replace public production-like thresholds and strategy constants with clearly marked demo defaults or external configurable interfaces | P0 | Critical | Done / CI-green |
-| IP4 | Add a private-edge adapter/import boundary so local/private modules can provide real thresholds, regime maps, scoring weights and exit profiles without being committed to the public repo | P0 | Critical | Done / CI-green |
-| IP5 | Move real reports, ranked opportunities, raw evidence outputs and non-synthetic artifacts out of public version control or replace them with synthetic examples | P0 | Critical | Done / CI-wired |
-| IP6 | Expand `.gitignore` for private configs, generated reports, databases, caches, logs, coverage output and local artifacts | P0 | High | Done / CI-wired |
-| IP7 | Update README to state that the public repo contains framework/demo defaults only, not proprietary production edge configuration | P1 | High | Done |
-| IP8 | Add tests proving the public fallback path works without private modules and that private modules are optional imports only | P1 | High | Done / CI-green |
-| IP9 | Review open PRs for newly introduced edge constants before merge, especially setup-specific target profiles and scoring changes | P0 | Critical | Done / CI-wired |
-| IP10 | Add license and usage disclaimer appropriate for a public decision-support research framework | P1 | Medium | Done / CI-wired |
-| IP11 | Add fail-closed Report Output Boundary Guard so generated runtime reports cannot overwrite committed public report examples | P0 | Critical | Done / CI-green |
-
-IP9/IP10 implemented artifacts:
-
-```text
-.github/pull_request_template.md
-.github/workflows/ip9_ip10.yml
-LICENSE
-DISCLAIMER.md
-docs/operations/ip9_ip10_public_repo_governance.md
-tests/test_ip9_ip10_public_repo_governance.py
-```
-
-## Phase CL — Core Logic Remediation
-
-| ID | Task | Priority | Impact | Status |
-|---|---|---:|---:|---|
-| CL1 | Fix inflated downside asymmetry below SMA50, all-tier portfolio-risk reduction and breakeven expectancy classification | P0/P1 | Critical/High | Done / CI-wired |
-| CL2 | Document and reconcile dual setup-scoring systems so report scores and decision scores are clearly separated or unified | P1 | High | Done / CI-wired |
-| CL3 | Add explicit drawdown-source validation before kill-switch drawdown governance can be considered active | P1 | High | Done / CI-wired |
-| CL4 | Evaluate Wilder-style ATR migration behind regression tests and threshold-version bump | P2 | Medium | Done / CI-wired |
-| CL5 | Make `regime_alignment` an independent fail-closed gate before risk-tier scoring can approve or watch a setup | P2 | Medium | Done / CI-wired |
-
-CL1-CL5 are remediation and audit gates only. None of these prove edge and none authorize live trading.
-
-## Phase BT — Backtest Evidence Hardening
-
-| ID | Task | Priority | Impact | Status |
-|---|---|---:|---:|---|
-| BT2 | Add public-safe Strategy Test Matrix coverage validation | P1 | High | Done |
-| BT3 | Add reproducible backtest run contract with pinned inputs, dataset fingerprints, metrics and artifact hashes | P1 | High | Done |
-| BT5 | Add Walk-Forward / Out-of-Sample Robustness Gate with OOS pass rate, degradation, drawdown, trade-count and chronology checks | P0 | Critical | Done / CI-green |
-| BT6 | Add previous-run evidence baseline comparison for regression gates | P1 | High | Done / CI-green |
-| BT7 | Add capacity and turnover realism gates before any private production sizing work | P1 | High | Done / CI-green |
-
-BT5 is a robustness gate only. BT6 is a baseline-regression gate only. BT7 is a capacity/turnover realism gate only. None of them prove production edge and none authorize live trading.
-
-## Phase TG — Report Delivery
-
-| ID | Task | Priority | Impact | Status |
-|---|---|---:|---:|---|
-| TG1 | Add Telegram report dispatcher with research-only guardrails, dry-run mode and injectable transport | P1 | High | Done |
-| TG2 | Integrate Telegram summaries into daily evidence/report workflows after CI workflow permissions are confirmed | P2 | Medium | Done / CI-wired |
-| TG3 | Add report templates for Daily Evidence, Fill Quality, Kill Switch and Backtest Summary | P2 | Medium | Done / CI-wired |
-
-## Phase SR — Signal Runtime Audit Stabilization
-
-Target window: completed / CI-green  
-Goal: protect the audit chain from signal identity drift, dead exit-management paths, inactive governance inputs, workflow write races and dependency drift before adding any new strategy complexity.
-
-| ID | Task | Priority | Impact | Status |
-|---|---|---:|---:|---|
-| SR1 | Make `signal_id` stable across regenerations by excluding volatile `generated_at` from identity fields and proving same-day logical signal stability with regression tests | P0 | Critical | Done / CI-green |
-| SR2 | Persist `atr14` or reconstruct ATR deterministically so Target-1 runner management can activate the declared ATR trailing-stop path | P0 | Critical | Done / CI-green |
-| SR3 | Serialize all repo-writing GitHub Actions with a shared repo-wide write concurrency group or robust pull-rebase-push retry loop | P0 | Critical | Done / CI-green |
-| SR4 | Remove or evidence-gate override arguments that mark portfolio governance valid without a trusted portfolio-state source | P1 | High | Done / CI-green |
-| SR5 | Feed anomaly kill-switch logic from persistent anomaly state instead of process-local in-memory cache during GitHub Actions runs | P1 | High | Done / CI-green |
-| SR6 | Consolidate governance thresholds into a single source of truth so tuning constants cannot be changed in dead code | P1 | Medium | Done / CI-green |
-| SR7 | Align watcher cadence with completed-bar semantics or migrate watcher evaluation to true intraday bars | P1 | High | Done / CI-green |
-| SR8 | Pin runtime/test dependencies and introduce a lockfile or equivalent reproducibility contract | P1 | Medium | Done / CI-green |
-
-SR1-SR8 are complete and CI-green. The signal runtime audit stabilization block is closed. None of these authorize live trading.
-
-## Phase PSR — Post-SR Runtime Evidence Hardening
-
-Target window: completed / CI-green  
-Goal: harden paper/observation evidence quality before any Phase D expansion or live-execution consideration.
-
-| ID | Task | Priority | Impact | Status |
-|---|---|---:|---:|---|
-| PSR1 | Add daily runtime evidence manifest with required input/output/governance artifact hashes and PASS/FAIL status | P0 | Critical | Done / CI-green |
-| PSR2 | Add daily manifest CI/report guard so missing evidence blocks observation-day acceptance | P0 | Critical | Done / CI-green |
-| PSR3 | Add fill-quality evidence manifest integration for paper execution outcomes | P1 | High | Done / CI-green |
-| PSR4 | Add drift and regime-change evidence linkage into the daily manifest | P1 | High | Done / CI-green |
-
-PSR1-PSR4 are implemented and CI-green. The Post-SR Runtime Evidence Hardening block is closed. None of these authorize live trading.
-
-## Phase A — Foundation Repair and Evidence Hygiene
-
-| ID | Task | Priority | Impact | Status |
-|---|---|---:|---:|---|
