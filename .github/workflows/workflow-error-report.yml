@@ -23,7 +23,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: workflow-error-report-main
+  group: repo-write-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -76,6 +76,7 @@ jobs:
           fi
 
           git commit -m "Update workflow error report $(date -u +'%Y-%m-%d_%H-%M-%S_UTC')"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
 
       - name: Upload workflow error report artifact
