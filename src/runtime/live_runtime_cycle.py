@@ -29,6 +29,10 @@ from datetime import UTC, datetime
 from typing import Any
 
 from src.bridge.scanner_to_orchestrator import translate
+from src.governance.governance_thresholds import (
+    DEFAULT_GOVERNANCE_THRESHOLDS,
+    GovernanceThresholds,
+)
 from src.governance.kill_switch import evaluate_kill_switch
 from src.governance.risk_limits import validate_risk_limits
 from src.orchestration.institutional_decision_orchestrator import (
