@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## PSR3 Fill-Quality Evidence — 2026-05-31
+
+### Added
+- PSR3: added fill-quality evidence generation for paper/observation execution review.
+- Added `src/operations/fill_quality_evidence.py` with normalized fill records, slippage calculation, reconciliation checks and PASS/WARN/FAIL summary status.
+- Added `scripts/generate_fill_quality_evidence.py` for CLI-based fill-quality evidence generation from JSON fill records.
+- Added regression coverage for buy/sell slippage, failed fills, unreconciled fills, required-field validation, summary status, JSON round-trip loading and live-trading authorization guardrails.
+
+### Changed
+- Paper execution quality can now be represented as a daily audit artifact and included in the runtime evidence manifest chain.
+- Slippage, fill status and reconciliation status are no longer treated as loose observation details; they can be persisted as structured evidence.
+
+### Stabilization Result
+- PSR3 implementation status: done.
+- CI status: green.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## PSR2 Runtime Evidence Manifest Guard — 2026-05-31
 
 ### Added
