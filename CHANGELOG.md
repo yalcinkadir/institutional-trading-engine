@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## IP9/IP10 Public Repository Governance — 2026-05-31
+
+### Added
+- IP9/IP10 Public Repository Governance documentation status restored for CI evidence checks.
+- Public repository governance documentation confirms proprietary logic boundaries, public-safe artifacts, and non-secret repository operation.
+- Project status files now consistently document IP9/IP10 as completed and CI-wired.
+
+### Stabilization Result
+- IP9/IP10 implementation status: done.
+- CI status: wired.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## SR4 Trusted Portfolio Governance Source — 2026-05-31
 
 ### Fixed
