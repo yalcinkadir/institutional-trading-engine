@@ -1,7 +1,7 @@
 # Institutional Trading Engine Roadmap
 
-Status date: 2026-05-29  
-Current state: EV1-EV12 evidence-integrity and execution-governance remediation is implemented, centrally documented and CI-green. B1.1 evidence operation discipline plus TG2/TG3 reporting integration is implemented and CI-wired. Phase B1.1 remains active as the 3-6 month observation-only evidence collection period. GOV1-GOV10 runtime/pre-live governance hardening is implemented and CI-green. Real-money execution is not authorized by code.
+Status date: 2026-05-31  
+Current state: EV1-EV12 evidence-integrity and execution-governance remediation is implemented, centrally documented and CI-green. B1.1 evidence operation discipline plus TG2/TG3 reporting integration is implemented and CI-wired. Phase B1.1 remains active as the 3-6 month observation-only evidence collection period. GOV1-GOV10 runtime/pre-live governance hardening is implemented and CI-green. SR1-SR8 signal runtime audit stabilization is now the immediate priority before CI simplification, Phase D expansion or any live-execution consideration. Real-money execution is not authorized by code.
 
 ## Strategic direction
 
@@ -137,6 +137,24 @@ BT5 is a robustness gate only. BT6 is a baseline-regression gate only. BT7 is a 
 | TG2 | Integrate Telegram summaries into daily evidence/report workflows after CI workflow permissions are confirmed | P2 | Medium | Done / CI-wired |
 | TG3 | Add report templates for Daily Evidence, Fill Quality, Kill Switch and Backtest Summary | P2 | Medium | Done / CI-wired |
 
+## Phase SR — Signal Runtime Audit Stabilization
+
+Target window: immediate  
+Goal: protect the audit chain from signal identity drift, dead exit-management paths, inactive governance inputs and workflow write races before adding any new strategy complexity.
+
+| ID | Task | Priority | Impact | Status |
+|---|---|---:|---:|---|
+| SR1 | Make `signal_id` stable across regenerations by excluding volatile `generated_at` from identity fields and proving same-day logical signal stability with regression tests | P0 | Critical | In Progress / implementation committed |
+| SR2 | Persist `atr14` or reconstruct ATR deterministically so Target-1 runner management can activate the declared ATR trailing-stop path | P0 | Critical | Planned |
+| SR3 | Serialize all repo-writing GitHub Actions with a shared repo-wide write concurrency group or robust pull-rebase-push retry loop | P0 | Critical | Planned |
+| SR4 | Remove or evidence-gate override arguments that mark portfolio governance valid without a trusted portfolio-state source | P1 | High | Planned |
+| SR5 | Feed anomaly kill-switch logic from persistent anomaly state instead of process-local in-memory cache during GitHub Actions runs | P1 | High | Planned |
+| SR6 | Consolidate governance thresholds into a single source of truth so tuning constants cannot be changed in dead code | P1 | Medium | Planned |
+| SR7 | Align watcher cadence with completed-bar semantics or migrate watcher evaluation to true intraday bars | P1 | High | Planned |
+| SR8 | Pin runtime/test dependencies and introduce a lockfile or equivalent reproducibility contract | P1 | Medium | Planned |
+
+SR1-SR3 are blocking for audit reliability. SR4-SR8 are required before treating the runtime governance layer as production-grade. None of these authorize live trading.
+
 ## Phase A — Foundation Repair and Evidence Hygiene
 
 | ID | Task | Priority | Impact | Status |
@@ -165,7 +183,7 @@ Goal: prove whether the rule-based system has live-observable edge before adding
 
 ## Phase D — Strategy Expansion
 
-Start only after Phase B and C produce credible evidence, after the private-edge boundary exists, after GOV1-GOV10 runtime/pre-live hygiene is CI-green, and after EV1-EV12 evidence-integrity items are complete and CI-green.
+Start only after Phase B and C produce credible evidence, after the private-edge boundary exists, after GOV1-GOV10 runtime/pre-live hygiene is CI-green, after EV1-EV12 evidence-integrity items are complete and CI-green, and after SR1-SR3 audit reliability blockers are complete and CI-green.
 
 | ID | Task | Priority | Impact | Status |
 |---|---|---:|---:|---|
@@ -217,21 +235,21 @@ Start only after Phase B and C produce credible evidence, after the private-edge
 
 ## Current execution focus
 
-B1.1 remains the long-running evidence collection period. EV1-EV12 and GOV1-GOV10 are implemented and CI-green. Phase C remains paper-execution infrastructure only. Immediate focus: roadmap cleanup, CI runtime simplification, full-suite flake review and evidence artifact index consistency.
+B1.1 remains the long-running evidence collection period. EV1-EV12 and GOV1-GOV10 are implemented and CI-green. Phase C remains paper-execution infrastructure only. Immediate focus: SR1 stable signal identity, SR2 ATR persistence for runner management and SR3 repo-wide workflow write serialization. CI runtime simplification, flake review and evidence artifact index cleanup are deferred until SR1-SR3 are complete.
 
 ## Recommended next block
 
-1. Reduce CI runtime duplication while preserving targeted EV/GOV/CL/BT gates.
-2. Add a full-suite flake review document with clear retry/escalation criteria.
-3. Consolidate evidence artifact index expectations so generated evidence remains traceable.
-4. Keep B1.1 observation evidence running until the required observation window is complete.
+1. Finish SR1 with targeted signal identity tests and full regression confirmation.
+2. Implement SR2 so stored signals carry enough ATR evidence for watcher-side trailing-stop management.
+3. Implement SR3 shared write-lock or push-retry protection for all repo-writing workflows.
+4. Continue B1.1 observation evidence only after audit-chain blockers stay green.
 
 ## Do not do yet
 
 - Do not enable real-money execution.
 - Do not add new asset classes.
 - Do not add ML before rule-based edge is statistically significant.
-- Do not add Phase D strategy expansion before B1.1 observation evidence, GOV1-GOV10 runtime/pre-live hygiene and EV1-EV12 evidence-integrity items are complete and CI-green.
+- Do not add Phase D strategy expansion before B1.1 observation evidence, GOV1-GOV10 runtime/pre-live hygiene, EV1-EV12 evidence-integrity items and SR1-SR3 audit reliability blockers are complete and CI-green.
 - Do not compare old public-demo evidence artifacts across the EV1-EV2 Sharpe definition version boundary.
 - Do not feed sample-size-scaled t-statistics into Deflated Sharpe.
 - Do not treat Sharpe, t-statistic and Deflated Sharpe as interchangeable units.
@@ -245,6 +263,9 @@ B1.1 remains the long-running evidence collection period. EV1-EV12 and GOV1-GOV1
 - Do not treat partial VIX curve compression as the same as direct VIX inversion.
 - Do not leave duplicate or overlapping modules without ownership/deprecation markers.
 - Do not rely only on max daily drift when cumulative small drift can accumulate across Paper Observation days.
+- Do not allow volatile timestamps such as `generated_at` to define stable signal identity.
+- Do not claim ATR trailing-stop management is active unless stored or reconstructable ATR data reaches the watcher path.
+- Do not let multiple workflows push generated artifacts without shared serialization or retry protection.
 - Do not open or reuse lockbox evidence casually.
 - Do not skip forward paper observation.
 - Do not add new proprietary thresholds, setup maps, scoring weights or exit profiles directly to the public repo unless they are explicitly demo-only.
