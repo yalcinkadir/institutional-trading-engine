@@ -1,7 +1,7 @@
 # Institutional Trading Engine Roadmap
 
 Status date: 2026-05-31  
-Current state: EV1-EV12 evidence-integrity remediation is implemented, centrally documented and CI-green. CI runtime simplification is implemented and CI-green. B1.1 evidence operation discipline plus TG2/TG3 reporting integration is implemented and CI-wired. Phase B1.1 remains active as the 3-6 month observation-only evidence collection period. GOV1-GOV10 runtime/pre-live governance hardening is implemented and CI-green. SR1 stable signal identity, SR2 ATR persistence, SR3 repo-write serialization, SR4 trusted portfolio-governance source enforcement, SR5 persistent anomaly-state governance and SR6 governance-threshold single source of truth are implemented and CI-green. SR7-SR8 signal runtime audit stabilization remains the immediate priority before Phase D expansion or any live-execution consideration. Real-money execution is not authorized by code.
+Current state: EV1-EV12 evidence-integrity remediation is implemented, centrally documented and CI-green. CI runtime simplification is implemented and CI-green. B1.1 evidence operation discipline plus TG2/TG3 reporting integration is implemented and CI-wired. Phase B1.1 remains active as the 3-6 month observation-only evidence collection period. GOV1-GOV10 runtime/pre-live governance hardening is implemented and CI-green. SR1 stable signal identity, SR2 ATR persistence, SR3 repo-write serialization, SR4 trusted portfolio-governance source enforcement, SR5 persistent anomaly-state governance, SR6 governance-threshold single source of truth and SR7 completed-bar watcher semantics are implemented and CI-green. SR8 signal runtime audit stabilization remains the immediate priority before Phase D expansion or any live-execution consideration. Real-money execution is not authorized by code.
 
 ## Strategic direction
 
@@ -150,10 +150,10 @@ Goal: protect the audit chain from signal identity drift, dead exit-management p
 | SR4 | Remove or evidence-gate override arguments that mark portfolio governance valid without a trusted portfolio-state source | P1 | High | Done / CI-green |
 | SR5 | Feed anomaly kill-switch logic from persistent anomaly state instead of process-local in-memory cache during GitHub Actions runs | P1 | High | Done / CI-green |
 | SR6 | Consolidate governance thresholds into a single source of truth so tuning constants cannot be changed in dead code | P1 | Medium | Done / CI-green |
-| SR7 | Align watcher cadence with completed-bar semantics or migrate watcher evaluation to true intraday bars | P1 | High | Planned |
+| SR7 | Align watcher cadence with completed-bar semantics or migrate watcher evaluation to true intraday bars | P1 | High | Done / CI-green |
 | SR8 | Pin runtime/test dependencies and introduce a lockfile or equivalent reproducibility contract | P1 | Medium | Planned |
 
-SR1-SR6 are complete and CI-green. SR7-SR8 are required before treating the runtime governance layer as production-grade. None of these authorize live trading.
+SR1-SR7 are complete and CI-green. SR8 is required before treating the runtime governance layer as production-grade. None of these authorize live trading.
 
 ## Phase A — Foundation Repair and Evidence Hygiene
 
