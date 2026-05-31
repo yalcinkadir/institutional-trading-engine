@@ -52,6 +52,7 @@ class Signal:
     notes: str
     exit_model: str = "n/a"
     exit_reason: str = "n/a"
+    atr14: float | None = None
 
 
 def _safe(v: Any, fallback: float | None = None) -> float | None:
@@ -245,6 +246,7 @@ def build_signals(
             notes="; ".join(notes_parts),
             exit_model=exit_model,
             exit_reason=exit_reason,
+            atr14=atr14,
         ))
 
     return signals
@@ -285,6 +287,12 @@ def save_signals(
         lines += ["## Actionable Setups", ""]
         for s in buy_signals:
             rr_str = f" | R:R {s.risk_reward}" if s.risk_reward else ""
+            atr_parts = []
+            if s.atr14 is not None:
+                atr_parts.append(f"ATR14: {s.atr14:.2f}")
+            if s.atr_pct is not None:
+                atr_parts.append(f"ATR%: {s.atr_pct:.2f}%")
+            atr_line = "- " + " | ".join(atr_parts) + f" | Valid until: {s.valid_until}" if atr_parts else f"- Valid until: {s.valid_until}"
             lines += [
                 f"### {s.symbol} - {s.action} ({s.risk_tier})",
                 f"- Signal ID: `{s.signal_id}`",
@@ -292,7 +300,7 @@ def save_signals(
                 f"- Entry: {s.entry_trigger} ({s.entry_type}) | Entry Reason: {s.entry_reason}",
                 f"- Stop: {s.stop_loss} ({s.stop_model}) | Stop Reason: {s.stop_reason}",
                 f"- T1: {s.target_1}" + (f" | T2: {s.target_2}" if s.target_2 else "") + f" | Exit: {s.exit_model} | Exit Reason: {s.exit_reason}" + rr_str,
-                f"- ATR%: {s.atr_pct:.2f}% | Valid until: {s.valid_until}" if s.atr_pct else f"- Valid until: {s.valid_until}",
+                atr_line,
             ]
             if s.notes:
                 lines.append(f"- Notes: {s.notes}")
