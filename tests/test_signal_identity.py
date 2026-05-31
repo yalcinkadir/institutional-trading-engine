@@ -11,6 +11,7 @@ def _payload(**overrides):
     payload = {
         "symbol": "NVDA",
         "action": "BUY_WATCH",
+        "signal_date": "2026-05-21",
         "generated_at": "2026-05-21T08:00:00+00:00",
         "entry_trigger": 101.0,
         "stop_loss": 95.0,
@@ -34,6 +35,32 @@ def test_build_signal_id_is_deterministic() -> None:
     signal = _payload()
 
     assert build_signal_id(signal) == build_signal_id(dict(signal))
+
+
+def test_build_signal_id_ignores_generated_at_time_for_same_signal_date() -> None:
+    first = _payload(
+        signal_date="2026-05-21",
+        generated_at="2026-05-21T08:00:00+00:00",
+    )
+    second = _payload(
+        signal_date="2026-05-21",
+        generated_at="2026-05-21T16:45:12+00:00",
+    )
+
+    assert build_signal_id(first) == build_signal_id(second)
+
+
+def test_build_signal_id_changes_when_signal_date_changes() -> None:
+    first = _payload(
+        signal_date="2026-05-21",
+        generated_at="2026-05-21T08:00:00+00:00",
+    )
+    second = _payload(
+        signal_date="2026-05-22",
+        generated_at="2026-05-22T08:00:00+00:00",
+    )
+
+    assert build_signal_id(first) != build_signal_id(second)
 
 
 def test_build_signal_id_changes_when_material_field_changes() -> None:
