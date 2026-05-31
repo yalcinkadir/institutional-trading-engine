@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## PSR2 Runtime Evidence Manifest Guard — 2026-05-31
+
+### Added
+- PSR2: added runtime evidence manifest guard for paper/observation acceptance.
+- Added `src/operations/runtime_evidence_manifest_guard.py` with fail-closed manifest evaluation.
+- Added `scripts/guard_runtime_evidence_manifest.py` for CLI-based manifest guard execution and optional JSON guard reports.
+- Added regression coverage for missing manifests, invalid JSON/schema, PASS manifests, FAIL manifests, live-trading authorization mutation and date-based manifest lookup.
+
+### Changed
+- Daily observation evidence now requires a valid PASS manifest before the day can be accepted.
+- Missing evidence, missing manifests or invalid manifest state now block acceptance instead of being silently tolerated.
+
+### Stabilization Result
+- PSR2 implementation status: done.
+- CI status: green.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## PSR1 Daily Runtime Evidence Manifest — 2026-05-31
 
 ### Added
