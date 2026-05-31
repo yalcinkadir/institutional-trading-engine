@@ -63,16 +63,16 @@ class LiveRuntimeCycle:
         snapshot = cycle.run(metrics_map=..., vix_data=...)
     """
 
-    def __init__(
-    self,
-    portfolio_state_store: PortfolioStateStore | None = None,
-    anomaly_state_store: AnomalyStateStore | None = None,
-    governance_thresholds: GovernanceThresholds = DEFAULT_GOVERNANCE_THRESHOLDS,
-) -> None:
-    self.portfolio_state_store = portfolio_state_store or PortfolioStateStore()
-    self.anomaly_state_store = anomaly_state_store or AnomalyStateStore()
-    self.governance_thresholds = governance_thresholds
-    
+        def __init__(
+        self,
+        portfolio_state_store: PortfolioStateStore | None = None,
+        anomaly_state_store: AnomalyStateStore | None = None,
+        governance_thresholds: GovernanceThresholds = DEFAULT_GOVERNANCE_THRESHOLDS,
+    ) -> None:
+        self.portfolio_state_store = portfolio_state_store or PortfolioStateStore()
+        self.anomaly_state_store = anomaly_state_store or AnomalyStateStore()
+        self.governance_thresholds = governance_thresholds
+        
     def _log(
         self,
         *,
