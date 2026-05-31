@@ -19,7 +19,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: weekly-expectancy-feedback-${{ github.ref }}
+  group: repo-write-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
