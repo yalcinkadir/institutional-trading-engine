@@ -43,11 +43,39 @@ SR5: persistent anomaly-state governance implemented and CI-green
 SR6: governance thresholds single source of truth implemented and CI-green
 SR7: completed-bar watcher semantics implemented and CI-green
 SR8: dependency reproducibility contract implemented and CI-green
+PSR1: daily runtime evidence manifest implemented and CI-green
 Live trading authorization: not granted by code
 Broker execution: paper-only infrastructure; live execution is not implemented
 ```
 
 Code quality is not trading edge. The system is promising enough to test seriously, but real capital still requires long-running forward evidence, drift detection, regime-change monitoring, position-level risk attribution, execution-quality review, capacity/turnover realism and manual approval.
+
+## PSR1 Daily Runtime Evidence Manifest
+
+PSR1 starts the post-SR runtime evidence hardening block. It adds a daily manifest for paper/observation evidence integrity.
+
+```text
+src/operations/runtime_evidence_manifest.py
+scripts/generate_runtime_evidence_manifest.py
+tests/test_psr1_runtime_evidence_manifest.py
+```
+
+Implemented safeguards:
+
+- Daily runtime evidence manifests include required input, output and governance-state artifact metadata.
+- Existing artifacts are recorded with SHA256 hashes and file sizes.
+- Missing required artifacts produce manifest status `FAIL`.
+- Missing optional artifacts do not fail the manifest.
+- Manifest validation enforces schema consistency and keeps `live_trading_authorized=False`.
+- A CLI script can generate daily manifests into `reports/evidence/manifests/`.
+- No broker execution, no live trading authorization and no private edge parameters are introduced.
+
+PSR1 test commands:
+
+```bash
+pytest tests/test_psr1_runtime_evidence_manifest.py -q
+python scripts/generate_runtime_evidence_manifest.py --trading-date 2026-05-31 --required-input requirements.txt --required-output requirements.lock --required-governance-state requirements.lock
+```
 
 ## SR8 Dependency Reproducibility Contract
 
