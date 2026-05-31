@@ -46,11 +46,39 @@ SR8: dependency reproducibility contract implemented and CI-green
 PSR1: daily runtime evidence manifest implemented and CI-green
 PSR2: runtime evidence manifest guard implemented and CI-green
 PSR3: fill-quality evidence artifact implemented and CI-green
+PSR4: drift and regime evidence artifact implemented and CI-green
 Live trading authorization: not granted by code
 Broker execution: paper-only infrastructure; live execution is not implemented
 ```
 
 Code quality is not trading edge. The system is promising enough to test seriously, but real capital still requires long-running forward evidence, drift detection, regime-change monitoring, position-level risk attribution, execution-quality review, capacity/turnover realism and manual approval.
+
+## PSR4 Drift and Regime Evidence
+
+PSR4 adds structured drift and regime-change evidence. Observation days can now document score/decision drift, cumulative drift and market-regime transitions as daily audit artifacts.
+
+```text
+src/operations/drift_regime_evidence.py
+scripts/generate_drift_regime_evidence.py
+tests/test_psr4_drift_regime_evidence.py
+```
+
+Implemented safeguards:
+
+- Drift metrics compare observed and expected values and classify drift as `PASS`, `WARN` or `FAIL`.
+- Cumulative drift is tracked separately with warn/fail thresholds.
+- Regime transitions classify stable, minor, major and unknown transitions.
+- Daily evidence summarizes metric, cumulative and regime statuses into one final status.
+- Evidence JSON supports deterministic write/load round trips.
+- Evidence validation rejects inconsistent metric drift, status mismatches, schema drift and `live_trading_authorized=True`.
+- No broker execution, no live trading authorization and no private edge parameters are introduced.
+
+PSR4 test commands:
+
+```bash
+pytest tests/test_psr4_drift_regime_evidence.py -q
+python scripts/generate_drift_regime_evidence.py --trading-date 2026-05-31 --input path/to/drift-regime.json
+```
 
 ## PSR3 Fill-Quality Evidence
 
