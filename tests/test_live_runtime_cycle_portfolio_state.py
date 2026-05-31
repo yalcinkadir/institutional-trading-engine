@@ -194,12 +194,12 @@ def test_live_cycle_blocks_from_portfolio_state_daily_loss(tmp_path: Path) -> No
     assert block_payload["portfolio_state"]["daily_loss_percent"] == 5.0
 
 
-def test_live_cycle_runtime_arguments_override_file_state(tmp_path: Path) -> None:
+def test_live_cycle_runtime_arguments_are_rejected_as_untrusted_state(tmp_path: Path) -> None:
     portfolio_path = tmp_path / "portfolio_state.json"
     _write_portfolio_state(
         portfolio_path,
-        drawdown_percent=20.0,
-        daily_loss_percent=5.0,
+        drawdown_percent=0.0,
+        daily_loss_percent=0.0,
     )
     cycle = LiveRuntimeCycle(portfolio_state_store=PortfolioStateStore(portfolio_path))
 
@@ -207,14 +207,17 @@ def test_live_cycle_runtime_arguments_override_file_state(tmp_path: Path) -> Non
          patch("src.runtime.live_runtime_cycle.runtime_state"), \
          patch("src.runtime.live_runtime_cycle.in_memory_state_cache"):
         mock_store.append.return_value = None
-        cycle.run(
-            metrics_map=_make_metrics_map(),
-            vix_data=_make_vix_data(),
-            portfolio_drawdown_percent=1.0,
-            daily_loss_percent=0.5,
-        )
+        with pytest.raises(GovernanceBlockedError) as exc_info:
+            cycle.run(
+                metrics_map=_make_metrics_map(),
+                vix_data=_make_vix_data(),
+                portfolio_drawdown_percent=1.0,
+                daily_loss_percent=0.5,
+            )
 
+    assert exc_info.value.reasons == ["portfolio_state_invalid_or_missing"]
     payload = mock_store.append.call_args.kwargs["payload"]
     assert payload["portfolio_state"]["drawdown_percent"] == 1.0
     assert payload["portfolio_state"]["daily_loss_percent"] == 0.5
-    assert payload["portfolio_state"]["source"] == "runtime_argument_override"
+    assert payload["portfolio_state"]["source"] == "runtime_argument_override_rejected"
+    assert payload["portfolio_state"]["governance_valid"] is False
