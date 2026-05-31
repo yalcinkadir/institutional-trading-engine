@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## PSR4 Drift and Regime Evidence — 2026-05-31
+
+### Added
+- PSR4: added drift and regime-change evidence generation for paper/observation review.
+- Added `src/operations/drift_regime_evidence.py` with drift metrics, cumulative drift status, regime-transition classification and PASS/WARN/FAIL summary status.
+- Added `scripts/generate_drift_regime_evidence.py` for CLI-based evidence generation from JSON drift/regime input.
+- Added regression coverage for PASS/WARN/FAIL drift thresholds, stable/minor/major/unknown regime transitions, cumulative drift, JSON round-trip loading and live-trading authorization guardrails.
+
+### Changed
+- Observation-day evidence can now document behavior drift and market-regime changes as structured audit artifacts.
+- The PSR evidence chain now covers manifest presence, manifest validation, fill quality and drift/regime state.
+
+### Stabilization Result
+- PSR4 implementation status: done.
+- CI status: green.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## PSR3 Fill-Quality Evidence — 2026-05-31
 
 ### Added
