@@ -44,11 +44,39 @@ SR6: governance thresholds single source of truth implemented and CI-green
 SR7: completed-bar watcher semantics implemented and CI-green
 SR8: dependency reproducibility contract implemented and CI-green
 PSR1: daily runtime evidence manifest implemented and CI-green
+PSR2: runtime evidence manifest guard implemented and CI-green
 Live trading authorization: not granted by code
 Broker execution: paper-only infrastructure; live execution is not implemented
 ```
 
 Code quality is not trading edge. The system is promising enough to test seriously, but real capital still requires long-running forward evidence, drift detection, regime-change monitoring, position-level risk attribution, execution-quality review, capacity/turnover realism and manual approval.
+
+## PSR2 Runtime Evidence Manifest Guard
+
+PSR2 turns the PSR1 manifest into an enforceable observation-day gate. A paper/observation day is not accepted when the manifest is missing, invalid or not `PASS`.
+
+```text
+src/operations/runtime_evidence_manifest_guard.py
+scripts/guard_runtime_evidence_manifest.py
+tests/test_psr2_runtime_evidence_manifest_guard.py
+```
+
+Implemented safeguards:
+
+- Missing daily manifests fail closed with `manifest_missing`.
+- Invalid manifest JSON or schema fails closed.
+- Manifest status other than `PASS` blocks observation-day acceptance.
+- Missing required artifacts are surfaced as guard errors.
+- `live_trading_authorized=True` is rejected by the guard.
+- A CLI script can evaluate a manifest by explicit path or trading date and optionally write a JSON guard report.
+- No broker execution, no live trading authorization and no private edge parameters are introduced.
+
+PSR2 test commands:
+
+```bash
+pytest tests/test_psr1_runtime_evidence_manifest.py tests/test_psr2_runtime_evidence_manifest_guard.py -q
+python scripts/guard_runtime_evidence_manifest.py --trading-date 2026-05-31
+```
 
 ## PSR1 Daily Runtime Evidence Manifest
 
