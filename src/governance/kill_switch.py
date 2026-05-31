@@ -18,6 +18,10 @@ from src.governance.governance_thresholds import (
     DEFAULT_GOVERNANCE_THRESHOLDS,
     GovernanceThresholds,
 )
+from src.runtime.portfolio_state import PortfolioState
+
+
+INVALID_PORTFOLIO_GOVERNANCE_REASON = "invalid_portfolio_governance_state"
 
 
 def evaluate_kill_switch(
@@ -61,4 +65,44 @@ def evaluate_kill_switch(
         "kill_switch": activated,
         "reasons": reasons,
         "vix_available": vix_available,
+    }
+
+
+def evaluate_kill_switch_for_portfolio_state(
+    *,
+    portfolio_state: PortfolioState,
+    vix: float | None,
+    severe_anomaly_count: int,
+    thresholds: GovernanceThresholds = DEFAULT_GOVERNANCE_THRESHOLDS,
+) -> dict:
+    """Evaluate kill-switch state from a trusted portfolio-state object.
+
+    This wrapper is the fail-closed governance boundary for runtime callers.
+    The legacy numeric function intentionally remains available for pure unit
+    checks, but runtime code should use this function so `governance_valid=False`
+    cannot be accidentally converted into a harmless `0.0` drawdown input.
+    """
+
+    result = evaluate_kill_switch(
+        vix=vix,
+        drawdown_percent=portfolio_state.drawdown_percent,
+        severe_anomaly_count=severe_anomaly_count,
+        thresholds=thresholds,
+    )
+
+    if not portfolio_state.governance_valid:
+        reasons = list(result["reasons"])
+        if INVALID_PORTFOLIO_GOVERNANCE_REASON not in reasons:
+            reasons.insert(0, INVALID_PORTFOLIO_GOVERNANCE_REASON)
+        result = {
+            **result,
+            "kill_switch": True,
+            "reasons": reasons,
+        }
+
+    return {
+        **result,
+        "portfolio_governance_valid": portfolio_state.governance_valid,
+        "portfolio_state_source": portfolio_state.source,
+        "portfolio_state_warnings": list(portfolio_state.warnings),
     }
