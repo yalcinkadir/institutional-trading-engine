@@ -1,7 +1,7 @@
 # Institutional Trading Engine Roadmap
 
 Status date: 2026-05-31  
-Current state: EV1-EV12 evidence-integrity and execution-governance remediation is implemented, centrally documented and CI-green. B1.1 evidence operation discipline plus TG2/TG3 reporting integration is implemented and CI-wired. Phase B1.1 remains active as the 3-6 month observation-only evidence collection period. GOV1-GOV10 runtime/pre-live governance hardening is implemented and CI-green. SR1-SR8 signal runtime audit stabilization is now the immediate priority before CI simplification, Phase D expansion or any live-execution consideration. Real-money execution is not authorized by code.
+Current state: EV1-EV12 evidence-integrity and execution-governance remediation is implemented, centrally documented and CI-green. B1.1 evidence operation discipline plus TG2/TG3 reporting integration is implemented and CI-wired. Phase B1.1 remains active as the 3-6 month observation-only evidence collection period. GOV1-GOV10 runtime/pre-live governance hardening is implemented and CI-green. SR1 stable signal identity is implemented and CI-green. SR2-SR8 signal runtime audit stabilization remains the immediate priority before CI simplification, Phase D expansion or any live-execution consideration. Real-money execution is not authorized by code.
 
 ## Strategic direction
 
@@ -144,7 +144,7 @@ Goal: protect the audit chain from signal identity drift, dead exit-management p
 
 | ID | Task | Priority | Impact | Status |
 |---|---|---:|---:|---|
-| SR1 | Make `signal_id` stable across regenerations by excluding volatile `generated_at` from identity fields and proving same-day logical signal stability with regression tests | P0 | Critical | In Progress / implementation committed |
+| SR1 | Make `signal_id` stable across regenerations by excluding volatile `generated_at` from identity fields and proving same-day logical signal stability with regression tests | P0 | Critical | Done / CI-green |
 | SR2 | Persist `atr14` or reconstruct ATR deterministically so Target-1 runner management can activate the declared ATR trailing-stop path | P0 | Critical | Planned |
 | SR3 | Serialize all repo-writing GitHub Actions with a shared repo-wide write concurrency group or robust pull-rebase-push retry loop | P0 | Critical | Planned |
 | SR4 | Remove or evidence-gate override arguments that mark portfolio governance valid without a trusted portfolio-state source | P1 | High | Planned |
@@ -153,7 +153,7 @@ Goal: protect the audit chain from signal identity drift, dead exit-management p
 | SR7 | Align watcher cadence with completed-bar semantics or migrate watcher evaluation to true intraday bars | P1 | High | Planned |
 | SR8 | Pin runtime/test dependencies and introduce a lockfile or equivalent reproducibility contract | P1 | Medium | Planned |
 
-SR1-SR3 are blocking for audit reliability. SR4-SR8 are required before treating the runtime governance layer as production-grade. None of these authorize live trading.
+SR1 is complete and CI-green. SR2-SR3 remain blocking for audit reliability. SR4-SR8 are required before treating the runtime governance layer as production-grade. None of these authorize live trading.
 
 ## Phase A — Foundation Repair and Evidence Hygiene
 
@@ -209,6 +209,7 @@ Start only after Phase B and C produce credible evidence, after the private-edge
 
 ## Recently completed evidence-visibility, IP and logic-safety work
 
+- SR1 stable signal identity: done and CI-green.
 - EV1-EV12 evidence-integrity remediation and consolidated evidence matrix: done and CI-green.
 - GOV1-GOV10 runtime/pre-live governance hardening: implemented and CI-green.
 - B1.1 evidence operation discipline plus TG2/TG3 reporting integration: implemented and CI-wired.
@@ -235,13 +236,13 @@ Start only after Phase B and C produce credible evidence, after the private-edge
 
 ## Current execution focus
 
-B1.1 remains the long-running evidence collection period. EV1-EV12 and GOV1-GOV10 are implemented and CI-green. Phase C remains paper-execution infrastructure only. Immediate focus: SR1 stable signal identity, SR2 ATR persistence for runner management and SR3 repo-wide workflow write serialization. CI runtime simplification, flake review and evidence artifact index cleanup are deferred until SR1-SR3 are complete.
+B1.1 remains the long-running evidence collection period. EV1-EV12, GOV1-GOV10 and SR1 are implemented and CI-green. Phase C remains paper-execution infrastructure only. Immediate focus: SR2 ATR persistence for runner management and SR3 repo-wide workflow write serialization. CI runtime simplification, flake review and evidence artifact index cleanup are deferred until SR2-SR3 are complete.
 
 ## Recommended next block
 
-1. Finish SR1 with targeted signal identity tests and full regression confirmation.
-2. Implement SR2 so stored signals carry enough ATR evidence for watcher-side trailing-stop management.
-3. Implement SR3 shared write-lock or push-retry protection for all repo-writing workflows.
+1. Implement SR2 so stored signals carry enough ATR evidence for watcher-side trailing-stop management.
+2. Implement SR3 shared write-lock or push-retry protection for all repo-writing workflows.
+3. Move SR4/SR5 governance evidence-source hardening into the next remediation batch.
 4. Continue B1.1 observation evidence only after audit-chain blockers stay green.
 
 ## Do not do yet
