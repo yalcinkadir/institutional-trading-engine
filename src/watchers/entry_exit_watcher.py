@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -60,6 +60,9 @@ class PriceBar:
     high: float | None = None
     low: float | None = None
     close: float | None = None
+    is_complete: bool = True
+    completed_at: str | None = None
+    completion_source: str = "assumed_complete"
 
 
 @dataclass(frozen=True)
@@ -157,6 +160,37 @@ def _bar_price_for_alert(bar: PriceBar, level: float | None) -> float | None:
     return bar.close or bar.high or bar.low or bar.open
 
 
+def _parse_bar_timestamp_date(timestamp: str) -> date | None:
+    if not timestamp:
+        return None
+    try:
+        normalized = str(timestamp).replace("Z", "+00:00")
+        return datetime.fromisoformat(normalized).date()
+    except ValueError:
+        try:
+            return date.fromisoformat(str(timestamp)[:10])
+        except ValueError:
+            return None
+
+
+def _is_daily_bar_complete(bar_timestamp: str, *, today: date | None = None) -> bool:
+    bar_date = _parse_bar_timestamp_date(bar_timestamp)
+    if bar_date is None:
+        return False
+    return bar_date < (today or _today_utc())
+
+
+def _completion_timestamp_for_daily_bar(bar_timestamp: str) -> str | None:
+    bar_date = _parse_bar_timestamp_date(bar_timestamp)
+    if bar_date is None:
+        return None
+    return datetime.combine(
+        bar_date + timedelta(days=1),
+        datetime.min.time(),
+        tzinfo=UTC,
+    ).isoformat()
+
+
 def _is_expired(signal: dict[str, Any], today: date | None = None) -> bool:
     valid_until = _parse_date(signal.get("valid_until"))
     if valid_until is None:
@@ -185,8 +219,17 @@ def evaluate_signal_against_bar(
     invalidation/stop is evaluated before entry/targets. This avoids optimistic
     backtest bias and prevents stale PENDING plans from activating after their
     original risk boundary was already breached.
+
+    SR7 completed-bar rule:
+    price lifecycle transitions are evaluated only on complete bars. If the bar
+    is explicitly incomplete, the signal is preserved and no lifecycle event is
+    emitted. This prevents intrabar high/low noise from being treated as final.
     """
     signal = ensure_signal_identity(signal)
+
+    if not bar.is_complete:
+        return None, None
+
     signal_id = str(signal["signal_id"])
     symbol = str(signal.get("symbol") or "")
     if not symbol or symbol != bar.symbol:
@@ -248,6 +291,7 @@ def evaluate_signal_against_bar(
     updated_signal = dict(signal)
     updated_signal["signal_id"] = signal_id
     updated_signal["status"] = new_status
+
     if event_type == "ENTRY_TRIGGERED":
         updated_signal["entry_triggered_at"] = bar.timestamp
         updated_signal["entry_price"] = trigger_price
@@ -315,7 +359,9 @@ def evaluate_regime_invalidation(
 
     signal_id = str(signal["signal_id"])
     symbol = str(signal.get("symbol") or "")
-    trigger_price = _safe_float(signal.get("last_event_price") or signal.get("close") or signal.get("entry_price"))
+    trigger_price = _safe_float(
+        signal.get("last_event_price") or signal.get("close") or signal.get("entry_price")
+    )
 
     alert = WatcherAlert(
         alert_type=result.event_type,
@@ -332,6 +378,7 @@ def evaluate_regime_invalidation(
         signal_id=signal_id,
         notes=f"{result.previous_status} → {result.new_status}: regime invalidation",
     )
+
     lifecycle = SignalLifecycleUpdate(
         signal_id=signal_id,
         symbol=symbol,
@@ -343,6 +390,7 @@ def evaluate_regime_invalidation(
         price=trigger_price,
         signal=result.signal,
     )
+
     return alert, lifecycle
 
 
@@ -431,7 +479,10 @@ def save_alerts(
 
     payload = existing + [asdict(alert) for alert in alerts]
     dated_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-    latest_path.write_text(json.dumps([asdict(alert) for alert in alerts], indent=2), encoding="utf-8")
+    latest_path.write_text(
+        json.dumps([asdict(alert) for alert in alerts], indent=2),
+        encoding="utf-8",
+    )
 
     return dated_path, latest_path
 
@@ -505,7 +556,8 @@ def save_updated_signal_file(
         1 for signal in signals_with_identity if signal.get("action") == "BUY_WATCH"
     )
     payload["open_count"] = sum(
-        1 for signal in signals_with_identity
+        1
+        for signal in signals_with_identity
         if signal.get("status", "PENDING") not in TERMINAL_STATUSES
     )
 
@@ -525,6 +577,17 @@ def build_price_bar_from_polygon(symbol: str, bar: dict[str, Any]) -> PriceBar:
     else:
         ts = utc_now_iso()
 
+    explicit_complete = bar.get("is_complete")
+    if explicit_complete is None:
+        explicit_complete = bar.get("complete")
+
+    if explicit_complete is None:
+        is_complete = _is_daily_bar_complete(ts)
+        completion_source = "daily_bar_timestamp"
+    else:
+        is_complete = bool(explicit_complete)
+        completion_source = "provider_flag"
+
     return PriceBar(
         symbol=symbol,
         timestamp=ts,
@@ -532,6 +595,9 @@ def build_price_bar_from_polygon(symbol: str, bar: dict[str, Any]) -> PriceBar:
         high=_safe_float(bar.get("h")),
         low=_safe_float(bar.get("l")),
         close=_safe_float(bar.get("c")),
+        is_complete=is_complete,
+        completed_at=_completion_timestamp_for_daily_bar(ts),
+        completion_source=completion_source,
     )
 
 
