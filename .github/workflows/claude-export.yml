@@ -1,0 +1,52 @@
+name: Claude Project Export
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  export:
+    name: Build Claude import artifact
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run Claude export
+        run: python tools/export_for_claude.py --mode all --area all
+
+      - name: Show export summary
+        run: |
+          echo "Generated Claude export files:"
+          find exports/claude -maxdepth 3 -type f -print | sort
+          echo "ZIP artifact:"
+          ls -lh exports/claude_project_import.zip
+
+      - name: Upload Claude export zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: claude-project-import-zip
+          path: exports/claude_project_import.zip
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload Claude markdown files
+        uses: actions/upload-artifact@v4
+        with:
+          name: claude-project-import-md
+          path: exports/claude/
+          if-no-files-found: error
+          retention-days: 14
