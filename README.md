@@ -40,11 +40,41 @@ BT7: Capacity / Turnover / Realism Gate implemented and CI-green
 SR1-SR3: signal identity, ATR persistence and repo-write serialization implemented and CI-green
 SR4: trusted portfolio-governance source enforcement implemented and CI-green
 SR5: persistent anomaly-state governance implemented and CI-green
+SR6: governance thresholds single source of truth implemented and CI-green
 Live trading authorization: not granted by code
 Broker execution: paper-only infrastructure; live execution is not implemented
 ```
 
 Code quality is not trading edge. The system is promising enough to test seriously, but real capital still requires long-running forward evidence, drift detection, regime-change monitoring, position-level risk attribution, execution-quality review, capacity/turnover realism and manual approval.
+
+## SR6 Governance Thresholds Single Source of Truth
+
+SR6 closes a governance configuration-drift gap. Runtime kill-switch and risk-limit thresholds are now centralized instead of being spread across runtime modules as local magic numbers.
+
+```text
+src/governance/governance_thresholds.py
+src/governance/kill_switch.py
+src/runtime/live_runtime_cycle.py
+tests/test_governance_thresholds.py
+```
+
+Implemented safeguards:
+
+- `GovernanceThresholds` centralizes VIX kill level, portfolio drawdown kill level, severe anomaly kill count, max drawdown and max daily loss thresholds.
+- `DEFAULT_GOVERNANCE_THRESHOLDS` preserves the existing public/demo defaults.
+- `evaluate_kill_switch()` receives thresholds explicitly instead of owning hardcoded governance constants.
+- `LiveRuntimeCycle` accepts injectable `governance_thresholds` and uses them for kill-switch and risk-limit checks.
+- Decision payloads and governance-block payloads include `governance_thresholds` for auditability.
+- Regression tests prove custom thresholds affect behavior and the runtime cycle no longer defines local governance threshold constants.
+- No broker execution, no live trading authorization and no private edge parameters are introduced.
+
+SR6 test commands:
+
+```bash
+pytest tests/test_governance_thresholds.py -q
+pytest tests/test_live_runtime_cycle.py -q
+pytest tests/test_portfolio_state.py -q
+```
 
 ## SR5 Persistent Anomaly-State Governance
 
