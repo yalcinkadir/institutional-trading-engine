@@ -129,4 +129,3 @@ def test_runtime_governance_approval_blocks_valid_state_when_kill_switch_fires()
     assert approval.blocked is True
     assert KILL_SWITCH_APPROVAL_REASON in approval.reasons
     assert "portfolio_drawdown_limit" in approval.reasons
-}
