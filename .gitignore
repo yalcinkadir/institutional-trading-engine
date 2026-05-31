@@ -50,6 +50,7 @@ lockbox/
 artifacts/
 outputs/
 generated/
+exports/
 reports/generated/
 reports/private/
 reports/live/
