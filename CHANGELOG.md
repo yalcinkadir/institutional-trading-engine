@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## PSR1 Daily Runtime Evidence Manifest — 2026-05-31
+
+### Added
+- PSR1: added daily runtime evidence manifest generation for paper/observation evidence integrity.
+- Added `src/operations/runtime_evidence_manifest.py` with deterministic artifact metadata, SHA256 hashing, PASS/FAIL status and manifest validation.
+- Added `scripts/generate_runtime_evidence_manifest.py` for CLI-based manifest generation.
+- Added regression coverage for hashing, required/optional artifacts, manifest PASS/FAIL semantics, JSON round-trip loading and live-trading authorization guardrails.
+
+### Changed
+- Post-SR work now starts with runtime evidence quality instead of new strategy complexity.
+- Daily observation evidence can now be audited through required input/output/governance artifact hashes.
+
+### Stabilization Result
+- PSR1 implementation status: done.
+- CI status: green.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## SR8 Dependency Reproducibility Contract — 2026-05-31
 
 ### Added
