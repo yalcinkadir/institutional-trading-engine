@@ -1,48 +1,50 @@
 """
 Tests for src/runtime/live_runtime_cycle.py
-
-Covers:
-- Successful cycle execution end-to-end
-- Runtime state updated after cycle
-- Decision persisted after cycle
-- In-memory cache updated after cycle
-- Governance kill switch blocks cycle
-- Governance risk limits block cycle
-- Blocked cycles are persisted as audit entries
-- Snapshot returned on success
-- Cycle duration is tracked
-- GOV1 severe anomaly count comes from runtime state cache
-- GOV2 missing portfolio state fails closed
 """
 
 from __future__ import annotations
 
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
 from src.runtime.in_memory_state_cache import InMemoryStateCache
 from src.runtime.live_runtime_cycle import GovernanceBlockedError, LiveRuntimeCycle
-from src.runtime.portfolio_state import PortfolioStateStore
+from src.runtime.portfolio_state import PortfolioState, PortfolioStateStore
 from src.runtime.runtime_market_snapshot import RuntimeMarketSnapshot
 from src.runtime.runtime_state import RuntimeState
 from src.storage.decision_log_store import DecisionLogStore
 
 
-# ── Fixtures ──────────────────────────────────────────────────────────────────
-
 def _make_metrics_map():
     base = {
-        "close": 500.0, "high": 502.5, "low": 497.5,
-        "volume": 80_000_000, "sma20": 490.0, "sma50": 470.0,
-        "sma200": 450.0, "rsi14": 58.0, "atr14": 6.0, "atr_pct": 1.2,
-        "vol20": 75_000_000, "rvol": 1.1, "ret_20d": 4.0,
-        "benchmark": "SPY", "benchmark_ret_20d": 4.0,
-        "rs_spread": 0.0, "rs_label": "Neutral", "trend": "Strong Uptrend",
-        "momentum": "Strong", "volatility": "Normal", "rvol_label": "Normal",
-        "setup_readiness": "Trend Strong, Entry Unclear", "warnings": [],
-        "entry": None, "stop_loss": None, "exit_1": None, "exit_2": None,
+        "close": 500.0,
+        "high": 502.5,
+        "low": 497.5,
+        "volume": 80_000_000,
+        "sma20": 490.0,
+        "sma50": 470.0,
+        "sma200": 450.0,
+        "rsi14": 58.0,
+        "atr14": 6.0,
+        "atr_pct": 1.2,
+        "vol20": 75_000_000,
+        "rvol": 1.1,
+        "ret_20d": 4.0,
+        "benchmark": "SPY",
+        "benchmark_ret_20d": 4.0,
+        "rs_spread": 0.0,
+        "rs_label": "Neutral",
+        "trend": "Strong Uptrend",
+        "momentum": "Strong",
+        "volatility": "Normal",
+        "rvol_label": "Normal",
+        "setup_readiness": "Trend Strong, Entry Unclear",
+        "warnings": [],
+        "entry": None,
+        "stop_loss": None,
+        "exit_1": None,
+        "exit_2": None,
     }
     return {
         "SPY": {**base, "symbol": "SPY"},
@@ -54,19 +56,39 @@ def _make_vix_data(close: float = 16.5) -> dict:
     return {"close": close, "direction": "Falling"}
 
 
+class _StaticPortfolioStateStore:
+    def __init__(
+        self,
+        *,
+        drawdown_percent: float = 0.0,
+        daily_loss_percent: float = 0.0,
+    ) -> None:
+        self.state = PortfolioState(
+            equity_start=10000.0,
+            equity_current=10000.0,
+            drawdown_percent=drawdown_percent,
+            daily_loss_percent=daily_loss_percent,
+            open_positions=[],
+            source="test_portfolio_state_store",
+            governance_valid=True,
+        )
+
+    def load(self) -> PortfolioState:
+        return self.state
+
+
 def _run_with_valid_portfolio(cycle: LiveRuntimeCycle, **kwargs):
-    return cycle.run(
-        portfolio_drawdown_percent=kwargs.pop("portfolio_drawdown_percent", 0.0),
+    cycle.portfolio_state_store = _StaticPortfolioStateStore(
+        drawdown_percent=kwargs.pop("portfolio_drawdown_percent", 0.0),
         daily_loss_percent=kwargs.pop("daily_loss_percent", 0.0),
-        **kwargs,
     )
+    return cycle.run(**kwargs)
 
-
-# ── Success path ──────────────────────────────────────────────────────────────
 
 class TestLiveRuntimeCycleSuccess:
     def test_returns_snapshot(self, tmp_path):
         cycle = LiveRuntimeCycle()
+
         with patch("src.runtime.live_runtime_cycle.decision_log_store") as mock_store:
             mock_store.append.return_value = None
             with patch("src.runtime.live_runtime_cycle.runtime_state"):
@@ -76,10 +98,12 @@ class TestLiveRuntimeCycleSuccess:
                         metrics_map=_make_metrics_map(),
                         vix_data=_make_vix_data(),
                     )
+
         assert isinstance(snapshot, RuntimeMarketSnapshot)
 
     def test_snapshot_has_valid_orchestrator_result(self, tmp_path):
         cycle = LiveRuntimeCycle()
+
         with patch("src.runtime.live_runtime_cycle.decision_log_store") as mock_store, \
              patch("src.runtime.live_runtime_cycle.runtime_state"), \
              patch("src.runtime.live_runtime_cycle.in_memory_state_cache"):
@@ -89,6 +113,7 @@ class TestLiveRuntimeCycleSuccess:
                 metrics_map=_make_metrics_map(),
                 vix_data=_make_vix_data(),
             )
+
         assert snapshot.orchestrator_result.macro_regime != ""
         assert snapshot.orchestrator_result.final_exposure_percent >= 0.0
 
@@ -151,6 +176,7 @@ class TestLiveRuntimeCycleSuccess:
 
     def test_snapshot_cycle_duration_is_tracked(self, tmp_path):
         cycle = LiveRuntimeCycle()
+
         with patch("src.runtime.live_runtime_cycle.decision_log_store") as mock_store, \
              patch("src.runtime.live_runtime_cycle.runtime_state"), \
              patch("src.runtime.live_runtime_cycle.in_memory_state_cache"):
@@ -160,6 +186,7 @@ class TestLiveRuntimeCycleSuccess:
                 metrics_map=_make_metrics_map(),
                 vix_data=_make_vix_data(),
             )
+
         assert snapshot.cycle_duration_ms > 0.0
 
     def test_multiple_cycles_accumulate_state(self, tmp_path):
@@ -182,8 +209,6 @@ class TestLiveRuntimeCycleSuccess:
         assert len(entries) == 3
 
 
-# ── Governance paths ──────────────────────────────────────────────────────────
-
 class TestLiveRuntimeCycleGovernance:
     def test_kill_switch_on_extreme_vix_raises(self, tmp_path):
         store = DecisionLogStore(path=tmp_path / "log.jsonl")
@@ -196,7 +221,7 @@ class TestLiveRuntimeCycleGovernance:
                 _run_with_valid_portfolio(
                     cycle,
                     metrics_map=_make_metrics_map(),
-                    vix_data=_make_vix_data(close=45.0),  # >= 40 triggers kill
+                    vix_data=_make_vix_data(close=45.0),
                 )
 
         assert "extreme_volatility" in exc_info.value.reasons
@@ -228,10 +253,11 @@ class TestLiveRuntimeCycleGovernance:
              patch("src.runtime.live_runtime_cycle.runtime_state"), \
              patch("src.runtime.live_runtime_cycle.in_memory_state_cache"):
             with pytest.raises(GovernanceBlockedError) as exc_info:
-                cycle.run(
+                _run_with_valid_portfolio(
+                    cycle,
                     metrics_map=_make_metrics_map(),
                     vix_data=_make_vix_data(close=18.0),
-                    portfolio_drawdown_percent=20.0,  # >= 20 → kill switch fires
+                    portfolio_drawdown_percent=20.0,
                     daily_loss_percent=0.0,
                 )
 
@@ -278,18 +304,40 @@ class TestLiveRuntimeCycleGovernance:
 
     def test_normal_conditions_do_not_raise(self, tmp_path):
         cycle = LiveRuntimeCycle()
+
         with patch("src.runtime.live_runtime_cycle.decision_log_store") as mock_store, \
              patch("src.runtime.live_runtime_cycle.runtime_state"), \
              patch("src.runtime.live_runtime_cycle.in_memory_state_cache"):
             mock_store.append.return_value = None
-            # Should not raise
-            snapshot = cycle.run(
+            snapshot = _run_with_valid_portfolio(
+                cycle,
                 metrics_map=_make_metrics_map(),
                 vix_data=_make_vix_data(close=18.0),
                 portfolio_drawdown_percent=5.0,
                 daily_loss_percent=1.0,
             )
+
         assert snapshot is not None
+
+    def test_runtime_portfolio_argument_override_fails_closed(self, tmp_path):
+        store = DecisionLogStore(path=tmp_path / "log.jsonl")
+        cycle = LiveRuntimeCycle()
+
+        with patch("src.runtime.live_runtime_cycle.decision_log_store", store), \
+             patch("src.runtime.live_runtime_cycle.runtime_state"), \
+             patch("src.runtime.live_runtime_cycle.in_memory_state_cache"):
+            with pytest.raises(GovernanceBlockedError) as exc_info:
+                cycle.run(
+                    metrics_map=_make_metrics_map(),
+                    vix_data=_make_vix_data(close=18.0),
+                    portfolio_drawdown_percent=0.0,
+                    daily_loss_percent=0.0,
+                )
+
+        assert exc_info.value.reasons == ["portfolio_state_invalid_or_missing"]
+        entries = store.load_all()
+        assert entries[0].payload["portfolio_state"]["source"] == "runtime_argument_override_rejected"
+        assert entries[0].payload["portfolio_state"]["governance_valid"] is False
 
     def test_governance_block_error_carries_reasons(self):
         err = GovernanceBlockedError(["extreme_volatility", "market_instability"])
