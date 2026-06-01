@@ -9,11 +9,11 @@
 
 ### Changed
 - RGP12 is resolved by persisting the `PARTIAL_EXIT_FILLED` path instead of removing it.
-- `README.md` and `ROADMAP.md` now document RGP12 as implemented / CI-wired.
+- `README.md` and `ROADMAP.md` now document RGP12 as Done / CI-green.
 
 ### Stabilization Result
-- RGP12 implementation status: implemented / CI-wired.
-- CI status: pending current run.
+- RGP12 implementation status: Done / CI-green.
+- CI status: green.
 - Live trading authorization: unchanged; not granted by code.
 
 ---
