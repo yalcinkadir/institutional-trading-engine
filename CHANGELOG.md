@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## PO3 Daily Observation Run Record — 2026-06-01
+
+### Added
+- Added `docs/operations/po3_daily_observation_run_record.md` to define the daily Paper Observation run-record contract.
+- Added `tests/test_po3_daily_observation_run_record.py` to guard required fields, status vocabulary, acceptance mapping and the paper-only safety boundary.
+
+### Record Vocabulary
+- ACCEPTED.
+- REJECTED.
+- NEEDS_REVIEW.
+
+### Stabilization Result
+- PO3 implementation status: Done / CI-green.
+- CI status: green.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## PO2 Daily Observation Acceptance Gate — 2026-06-01
 
 ### Added
