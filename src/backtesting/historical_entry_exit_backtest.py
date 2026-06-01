@@ -35,6 +35,9 @@ class BacktestExecutionConfig:
     # Gap-through-stop handling: if the bar opens beyond the stop, use the open
     # instead of pretending the stop filled exactly at the stop-loss level.
     model_stop_gaps: bool = True
+    # Gap-through-entry handling: if a long entry bar opens above the trigger,
+    # use the open instead of pretending the entry filled at the lower trigger.
+    model_entry_gaps: bool = True
 
 
 def load_historical_bars(path: Path) -> pd.DataFrame:
@@ -122,15 +125,34 @@ def _result(plan: HistoricalTradePlan, **kwargs: Any) -> HistoricalBacktestResul
     return HistoricalBacktestResult(**base)
 
 
-def _r(plan: HistoricalTradePlan, price: float) -> float:
-    distance = plan.entry_trigger - plan.stop_loss
-    return 0.0 if distance <= 0 else round((price - plan.entry_trigger) / distance, 4)
+def _r(plan: HistoricalTradePlan, price: float, entry_price: float | None = None) -> float:
+    effective_entry = plan.entry_trigger if entry_price is None else entry_price
+    distance = effective_entry - plan.stop_loss
+    return 0.0 if distance <= 0 else round((price - effective_entry) / distance, 4)
+
+
+def _entry_fill_price(plan: HistoricalTradePlan, bar_open: float, cfg: BacktestExecutionConfig) -> float:
+    if cfg.model_entry_gaps and bar_open > plan.entry_trigger:
+        return bar_open
+    return plan.entry_trigger
 
 
 def _stop_fill_price(plan: HistoricalTradePlan, bar_open: float, cfg: BacktestExecutionConfig) -> float:
     if cfg.model_stop_gaps and bar_open < plan.stop_loss:
         return bar_open
     return plan.stop_loss
+
+
+def _effective_stop_fill_price(
+    *,
+    plan: HistoricalTradePlan,
+    bar_open: float,
+    effective_stop: float,
+    cfg: BacktestExecutionConfig,
+) -> float:
+    if cfg.model_stop_gaps and bar_open < effective_stop:
+        return bar_open
+    return effective_stop
 
 
 def simulate_plan(
@@ -158,7 +180,7 @@ def simulate_plan(
     entered = False
     t1 = False
     entry_date: str | None = None
-    t1_date: str | None = None
+    entry_fill_price: float | None = None
 
     for index, row in future.iterrows():
         current_date = str(row["date"])
@@ -166,11 +188,12 @@ def simulate_plan(
         high = float(row["high"])
         low = float(row["low"])
         count = index + 1
-        effective_stop = plan.entry_trigger if (t1 and breakeven_after_t1) else plan.stop_loss
+        effective_stop = (entry_fill_price or plan.entry_trigger) if (t1 and breakeven_after_t1) else plan.stop_loss
 
         if not entered and high >= plan.entry_trigger:
             entered = True
             entry_date = current_date
+            entry_fill_price = _entry_fill_price(plan, bar_open, cfg)
             if cfg.same_bar_stop_first and low <= plan.stop_loss:
                 fill = _stop_fill_price(plan, bar_open, cfg)
                 return _result(
@@ -184,13 +207,12 @@ def simulate_plan(
                     entry_date=entry_date,
                     exit_date=current_date,
                     exit_price=fill,
-                    r_multiple=_r(plan, fill),
+                    r_multiple=_r(plan, fill, entry_fill_price),
                     bars_evaluated=count,
                     reason="same_bar_stop_first",
                 )
             if high >= plan.target_1:
                 t1 = True
-                t1_date = current_date
                 if t1_only:
                     return _result(
                         plan,
@@ -203,7 +225,7 @@ def simulate_plan(
                         entry_date=entry_date,
                         exit_date=current_date,
                         exit_price=plan.target_1,
-                        r_multiple=_r(plan, plan.target_1),
+                        r_multiple=_r(plan, plan.target_1, entry_fill_price),
                         bars_evaluated=count,
                         reason="target_1_only_exit",
                     )
@@ -219,7 +241,7 @@ def simulate_plan(
                         entry_date=entry_date,
                         exit_date=current_date,
                         exit_price=plan.target_2,
-                        r_multiple=_r(plan, plan.target_2),
+                        r_multiple=_r(plan, plan.target_2, entry_fill_price),
                         bars_evaluated=count,
                         reason="target_2_hit",
                     )
@@ -227,10 +249,11 @@ def simulate_plan(
 
         if entered:
             if low <= effective_stop:
-                fill = (
-                    plan.entry_trigger
-                    if (t1 and breakeven_after_t1)
-                    else _stop_fill_price(plan, bar_open, cfg)
+                fill = _effective_stop_fill_price(
+                    plan=plan,
+                    bar_open=bar_open,
+                    effective_stop=effective_stop,
+                    cfg=cfg,
                 )
                 return _result(
                     plan,
@@ -243,13 +266,12 @@ def simulate_plan(
                     entry_date=entry_date,
                     exit_date=current_date,
                     exit_price=fill,
-                    r_multiple=_r(plan, fill),
+                    r_multiple=_r(plan, fill, entry_fill_price),
                     bars_evaluated=count,
                     reason="breakeven_stop_after_t1" if (t1 and breakeven_after_t1) else "stop_hit",
                 )
             if high >= plan.target_1 and not t1:
                 t1 = True
-                t1_date = current_date
                 if t1_only:
                     return _result(
                         plan,
@@ -262,7 +284,7 @@ def simulate_plan(
                         entry_date=entry_date,
                         exit_date=current_date,
                         exit_price=plan.target_1,
-                        r_multiple=_r(plan, plan.target_1),
+                        r_multiple=_r(plan, plan.target_1, entry_fill_price),
                         bars_evaluated=count,
                         reason="target_1_only_exit",
                     )
@@ -278,7 +300,7 @@ def simulate_plan(
                     entry_date=entry_date,
                     exit_date=current_date,
                     exit_price=plan.target_2,
-                    r_multiple=_r(plan, plan.target_2),
+                    r_multiple=_r(plan, plan.target_2, entry_fill_price),
                     bars_evaluated=count,
                     reason="target_2_hit",
                 )
@@ -295,23 +317,23 @@ def simulate_plan(
             bars_evaluated=len(future),
             reason="entry_not_hit",
         )
+    close = float(future.iloc[-1]["close"]) if not future.empty else (entry_fill_price or plan.entry_trigger)
     if t1:
         return _result(
             plan,
-            outcome=OUTCOME_TARGET_1_HIT,
+            outcome=OUTCOME_EXPIRED,
             entry_hit=True,
             target_1_hit=True,
             target_2_hit=False,
             stop_hit=False,
             false_breakout=False,
             entry_date=entry_date,
-            exit_date=t1_date,
-            exit_price=plan.target_1,
-            r_multiple=_r(plan, plan.target_1),
+            exit_date=str(future.iloc[-1]["date"]) if not future.empty else entry_date,
+            exit_price=close,
+            r_multiple=_r(plan, close, entry_fill_price),
             bars_evaluated=len(future),
-            reason="target_1_only",
+            reason="expired_after_target_1_without_target_2",
         )
-    close = float(future.iloc[-1]["close"]) if not future.empty else plan.entry_trigger
     return _result(
         plan,
         outcome=OUTCOME_EXPIRED,
@@ -323,7 +345,7 @@ def simulate_plan(
         entry_date=entry_date,
         exit_date=str(future.iloc[-1]["date"]) if not future.empty else entry_date,
         exit_price=close,
-        r_multiple=_r(plan, close),
+        r_multiple=_r(plan, close, entry_fill_price),
         bars_evaluated=len(future),
         reason="no_exit_level_hit",
     )
