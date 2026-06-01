@@ -1,5 +1,27 @@
 # CHANGELOG
 
+## PO11 Scheduled Daily Observation Workflow — 2026-06-01
+
+### Added
+- Added `.github/workflows/po11_daily_observation.yml` to schedule PO10 Daily Observation Automation through GitHub Actions.
+- Added `tests/test_po11_scheduled_daily_observation_workflow.py` to guard schedule configuration, workflow dispatch inputs, PO10 invocation, artifact upload, read-only permissions and paper-only safety boundaries.
+- Added `docs/operations/po11_scheduled_daily_observation_workflow.md` to document PO11 and CI-green status.
+
+### Workflow Contract
+- Runs Monday to Friday at 22:15 UTC via cron `15 22 * * 1-5`.
+- Supports manual `workflow_dispatch` with `observation_date` and `minimum_records` inputs.
+- Runs PO10 Daily Observation Automation Runner.
+- Uploads `po11-daily-observation-artifact` from `reports/daily_observation_automation/*.json`.
+- Uses read-only repository permissions with `contents: read`.
+- Preserves the paper-only boundary with `live_trading_authorized=false` and `broker_execution_mode=paper_only`.
+
+### Stabilization Result
+- PO11 implementation status: Done / CI-green.
+- CI status: green; guarded by `tests/test_po11_scheduled_daily_observation_workflow.py`.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## PO10 Daily Observation Automation Runner — 2026-06-01
 
 ### Added
@@ -25,7 +47,7 @@
 ### Added
 - Added `src/operations/paper_observation_review_gate.py` to evaluate PO8 review summaries as a deterministic Paper Observation review gate.
 - Added `tests/test_po9_paper_observation_review_gate.py` to guard passed/blocked gate status, minimum-record enforcement, rejected/needs-review blockers and paper-only boundary enforcement.
-- Added `docs/operations/po9_paper_observation_review_gate.md` to document PO9 and CI-wired status.
+- Added `docs/operations/po9_paper_observation_review_gate.md` to document PO9 and CI-green status.
 
 ### Review Gate Contract
 - Produces `PASSED` or `BLOCKED`.
