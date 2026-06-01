@@ -15,6 +15,7 @@ P36-P47 validation roadmap: implemented
 Phase A Evidence Hygiene A3-A10: implemented and CI-green
 Phase B evidence pipeline: implemented, CI-green and workflow-green
 Phase B1.1: evidence operation discipline implemented / CI-wired; 3-6 month observation-only evidence collection remains active
+PO1: Paper Observation timeline and review gate implemented and CI-green
 Phase C paper execution infrastructure: implemented for planning, reconciliation, drift, fill-quality and kill-switch governance
 Phase EV1-EV2: Sharpe/Deflated-Sharpe evidence-unit correction implemented / CI-wired
 Phase IP1/IP2: public/private edge boundary and public repository hygiene policy implemented
@@ -65,6 +66,24 @@ Broker execution: paper-only infrastructure; live execution is not implemented
 ```
 
 Code quality is not trading edge. The system is promising enough to test seriously, but real capital still requires long-running forward evidence, drift detection, regime-change monitoring, position-level risk attribution, execution-quality review, capacity/turnover realism and manual approval.
+
+## PO1 Paper Observation Timeline
+
+PO1 formalizes Paper Observation as a 3-6 month evidence process.
+
+```text
+Paper Observation start date: 2026-06-01
+Minimum duration: 3 months
+Target duration: 3-6 months
+First review date: 2026-07-01
+Major evidence review date: 2026-09-01
+Target extended review date: 2026-12-01
+Live trading authorization: not granted by code
+```
+
+```bash
+pytest tests/test_po1_paper_observation_timeline.py -q
+```
 
 ## BT8 Backtesting Evidence Report
 
