@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## IP9/IP10 Public Repository Governance — 2026-05-31
+
+### Added
+- IP9/IP10 Public Repository Governance documentation restored for CI status-file guard coverage.
+- Public repository governance remains research/paper-only and does not authorize live trading.
+
+### Stabilization Result
+- IP9 implementation status: Done / CI-wired.
+- IP10 implementation status: Done / CI-wired.
+- CI status: guard documented.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## RGP3 Stale Portfolio State Governance — 2026-05-31
 
 ### Added
