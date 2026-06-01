@@ -1,5 +1,28 @@
 # CHANGELOG
 
+## PO4 Daily Observation Record Validator — 2026-06-01
+
+### Added
+- Added `src/operations/daily_observation_record_validator.py` to validate PO3 daily observation run records.
+- Added `tests/test_po4_daily_observation_record_validator.py` to guard required fields, status consistency, ISO date handling, list typing and the paper-only safety boundary.
+- Added `docs/operations/po4_daily_observation_record_validator.md` to document the PO4 validator and CI-green status.
+
+### Validation Rules
+- Required fields must be present.
+- Status must be ACCEPTED, REJECTED or NEEDS_REVIEW.
+- ACCEPTED records cannot contain missing evidence or unresolved incidents.
+- REJECTED records require missing evidence.
+- NEEDS_REVIEW records require incidents and review_required=true.
+- live_trading_authorized must remain false.
+- broker_execution_mode must remain paper_only.
+
+### Stabilization Result
+- PO4 implementation status: Done / CI-green.
+- CI status: green.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## PO3 Daily Observation Run Record — 2026-06-01
 
 ### Added
