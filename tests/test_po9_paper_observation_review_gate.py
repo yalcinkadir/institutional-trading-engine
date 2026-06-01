@@ -17,13 +17,18 @@ def _record(day: str, **kwargs: object) -> dict[str, object]:
 def _summary(*records: dict[str, object]) -> dict[str, object]:
     index_result = build_daily_observation_record_index(records)
     assert index_result.valid is True
+
     summary_result = build_daily_observation_review_summary(index_result.index)
     assert summary_result.valid is True
+
     return summary_result.summary
 
 
 def test_po9_passes_clean_review_ready_summary() -> None:
-    summary = _summary(_record("2026-06-01"), _record("2026-06-02"))
+    summary = _summary(
+        _record("2026-06-01"),
+        _record("2026-06-02"),
+    )
 
     result = evaluate_paper_observation_review_gate(summary, minimum_records=2)
 
@@ -48,7 +53,10 @@ def test_po9_blocks_insufficient_observation_records() -> None:
 
 
 def test_po9_blocks_rejected_observation_days() -> None:
-    summary = _summary(_record("2026-06-01"), _record("2026-06-02", missing_evidence=["report"]))
+    summary = _summary(
+        _record("2026-06-01"),
+        _record("2026-06-02", missing_evidence=["report"]),
+    )
 
     result = evaluate_paper_observation_review_gate(summary)
 
@@ -59,7 +67,9 @@ def test_po9_blocks_rejected_observation_days() -> None:
 
 
 def test_po9_blocks_needs_review_observation_days() -> None:
-    summary = _summary(_record("2026-06-01", incidents=["manual review"]))
+    summary = _summary(
+        _record("2026-06-01", incidents=["manual review"]),
+    )
 
     result = evaluate_paper_observation_review_gate(summary)
 
