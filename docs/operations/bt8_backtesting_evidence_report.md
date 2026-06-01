@@ -1,7 +1,7 @@
 # BT8 Backtesting Evidence Report
 
 Status date: 2026-06-01
-Status: implemented / CI-wired
+Status: Done / CI-green
 
 ## Purpose
 
@@ -58,6 +58,12 @@ python scripts/generate_backtesting_evidence_report.py \
 
 ```bash
 pytest tests/test_bt8_backtesting_evidence_report.py -q
+```
+
+## CI result
+
+```text
+BT8 Backtesting Evidence Report: Done / CI-green
 ```
 
 ## Live trading authorization
