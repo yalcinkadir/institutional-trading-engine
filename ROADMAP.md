@@ -1,7 +1,7 @@
 # Institutional Trading Engine Roadmap
 
 Status date: 2026-06-01  
-Current state: EV1-EV12 evidence-integrity remediation is implemented, centrally documented and CI-green. CI runtime simplification is implemented and CI-green. B1.1 evidence operation discipline plus TG2/TG3 reporting integration is implemented and CI-wired. Phase B1.1 remains active as the 3-6 month observation-only evidence collection period. PO1 Paper Observation Timeline and Review Gate and PO2 Daily Observation Acceptance Gate are implemented and CI-green. GOV1-GOV10 runtime/pre-live governance hardening is implemented and CI-green. SR1 stable signal identity, SR2 ATR persistence, SR3 repo-write serialization, SR4 trusted portfolio-governance source enforcement, SR5 persistent anomaly-state governance, SR6 governance-threshold single source of truth, SR7 completed-bar watcher semantics and SR8 dependency reproducibility contract are implemented and CI-green. PSR1 daily runtime evidence manifest, PSR2 runtime evidence manifest guard, PSR3 fill-quality evidence integration and PSR4 drift/regime-change evidence linkage are implemented and CI-green. Phase RGP Runtime Governance Proof Pack is complete through RGP12; RGP1 missing/invalid PortfolioState fail-closed proof, RGP2 runtime governance approval gate, RGP3 stale PortfolioState approval blocking, RGP4 actionable signal provider-fetch failure blocking, RGP5 critical STOP/EXIT alert ordering, RGP6 strict critical notification failure handling, RGP7 repo-write workflow governance guard, RGP8 artifact upload-on-failure guard, RGP9 signal lifecycle status source of truth, RGP10 latest-bar timestamp ordering guard, RGP11 signal identity float quantization and RGP12 partial-exit lifecycle persistence are implemented and CI-green. BT8 Backtesting Evidence Report generator is implemented and CI-green. Phase D expansion or any live-execution consideration remains blocked until forward evidence, drift monitoring, risk attribution, execution quality review, capacity/turnover realism and manual approval are in place. Real-money execution is not authorized by code.
+Current state: EV1-EV12 evidence-integrity remediation is implemented, centrally documented and CI-green. CI runtime simplification is implemented and CI-green. B1.1 evidence operation discipline plus TG2/TG3 reporting integration is implemented and CI-wired. Phase B1.1 remains active as the 3-6 month observation-only evidence collection period. PO1 Paper Observation Timeline and Review Gate, PO2 Daily Observation Acceptance Gate and PO3 Daily Observation Run Record are implemented and CI-green. GOV1-GOV10 runtime/pre-live governance hardening is implemented and CI-green. SR1 stable signal identity, SR2 ATR persistence, SR3 repo-write serialization, SR4 trusted portfolio-governance source enforcement, SR5 persistent anomaly-state governance, SR6 governance-threshold single source of truth, SR7 completed-bar watcher semantics and SR8 dependency reproducibility contract are implemented and CI-green. PSR1 daily runtime evidence manifest, PSR2 runtime evidence manifest guard, PSR3 fill-quality evidence integration and PSR4 drift/regime-change evidence linkage are implemented and CI-green. Phase RGP Runtime Governance Proof Pack is complete through RGP12; RGP1 missing/invalid PortfolioState fail-closed proof, RGP2 runtime governance approval gate, RGP3 stale PortfolioState approval blocking, RGP4 actionable signal provider-fetch failure blocking, RGP5 critical STOP/EXIT alert ordering, RGP6 strict critical notification failure handling, RGP7 repo-write workflow governance guard, RGP8 artifact upload-on-failure guard, RGP9 signal lifecycle status source of truth, RGP10 latest-bar timestamp ordering guard, RGP11 signal identity float quantization and RGP12 partial-exit lifecycle persistence are implemented and CI-green. BT8 Backtesting Evidence Report generator is implemented and CI-green. Phase D expansion or any live-execution consideration remains blocked until forward evidence, drift monitoring, risk attribution, execution quality review, capacity/turnover realism and manual approval are in place. Real-money execution is not authorized by code.
 
 ## Strategic direction
 
@@ -21,6 +21,7 @@ The project now prioritizes:
 10. public repository governance before new strategy complexity
 11. multi-strategy expansion only after the base edge is proven
 12. end-to-end runtime governance proof before any additional expansion
+13. daily observation acceptance records before Paper Observation evidence can be reviewed
 
 Hard rule: no real-money execution before real forward evidence, drift detection, regime-change monitoring, position-level risk attribution, capacity/turnover realism, runtime governance hardening and manual approval are in place.
 
@@ -43,10 +44,13 @@ Goal: formalize the 3-6 month paper-observation evidence period before any Phase
 |---|---|---:|---:|---|
 | PO1 | Define Paper Observation start date, minimum duration, review dates, required evidence families and live-trading hard block | P0 | Critical | Done / CI-green |
 | PO2 | Define daily Paper Observation acceptance rules, required evidence families, rejection reasons and review status vocabulary | P0 | Critical | Done / CI-green |
+| PO3 | Define daily Paper Observation run-record fields, status mapping, artifact paths, incident notes and paper-only execution boundary | P0 | Critical | Done / CI-green |
 
 PO1 establishes 2026-06-01 as the Paper Observation start date, 2026-07-01 as the first review date, 2026-09-01 as the major evidence review date and 2026-12-01 as the extended review date. It does not authorize live trading.
 
 PO2 defines whether a Paper Observation day is ACCEPTED, REJECTED or NEEDS_REVIEW. It keeps incomplete or execution-implying days out of accepted forward evidence and does not authorize live trading.
+
+PO3 defines the machine-readable Daily Observation Run Record with `date`, `status`, `missing_evidence`, `incidents`, `artifact_paths`, `review_required`, `review_notes`, `live_trading_authorized=false`, `broker_execution_mode=paper_only` and `created_at`.
 
 ## Phase RGP — Runtime Governance Proof Pack
 
