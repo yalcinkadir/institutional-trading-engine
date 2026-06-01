@@ -1,5 +1,27 @@
 # CHANGELOG
 
+## PO5 Daily Observation Record Writer — 2026-06-01
+
+### Added
+- Added `src/operations/daily_observation_record_writer.py` to generate PO3 Daily Observation Run Records.
+- Added `tests/test_po5_daily_observation_record_writer.py` to guard status mapping, JSON writing, PO4 validation integration and fail-closed behavior for invalid records.
+- Added `docs/operations/po5_daily_observation_record_writer.md` to document PO5 and CI-green status.
+
+### Writer Rules
+- Clean day maps to ACCEPTED.
+- Missing evidence maps to REJECTED.
+- Incidents map to NEEDS_REVIEW.
+- live_trading_authorized is always false.
+- broker_execution_mode is always paper_only.
+- Invalid records are not written.
+
+### Stabilization Result
+- PO5 implementation status: Done / CI-green.
+- CI status: green.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## PO4 Daily Observation Record Validator — 2026-06-01
 
 ### Added
@@ -77,62 +99,3 @@
 - PO1 implementation status: Done / CI-green.
 - CI status: green.
 - Live trading authorization: unchanged; not granted by code.
-
----
-
-## BT8 Backtesting Evidence Report — 2026-06-01
-
-### Added
-- Added `src/validation/backtesting_evidence_report.py` for reproducible BT8 JSON/Markdown reports from BT3 backtest run contracts.
-- Added `scripts/generate_backtesting_evidence_report.py` CLI.
-- Added `tests/test_bt8_backtesting_evidence_report.py` and `tests/test_bt8_demo_contracts.py`.
-- Added public-safe demo contracts under `examples/backtesting/bt8_demo_contracts.json`.
-
-### Stabilization Result
-- BT8 implementation status: Done / CI-green.
-- CI status: green.
-- Live trading authorization: unchanged; not granted by code.
-
----
-
-## IP9/IP10 Public Repository Governance — 2026-06-01
-
-### Added
-- Added public-edge pull request review governance for newly introduced edge constants.
-- Added license and usage disclaimer documentation for the public decision-support research framework.
-- Added `docs/operations/ip9_ip10_public_repo_governance.md` and `tests/test_ip9_ip10_public_repo_governance.py`.
-
-### Stabilization Result
-- IP9/IP10 implementation status: Done / CI-wired.
-- CI status: guarded by `tests/test_ip9_ip10_public_repo_governance.py`.
-- Live trading authorization: unchanged; not granted by code.
-
----
-
-## Post-RGP Stabilization Review — 2026-06-01
-
-### Added
-- Added `tests/test_post_rgp_status_consistency.py` as a documentation-status regression guard for the completed RGP proof pack.
-- The guard verifies that README and ROADMAP keep RGP1-RGP12 aligned as Done / CI-green after the Post-RGP review.
-
-### Changed
-- Corrected remaining README status drift for RGP4 from CI-wired to CI-green.
-- Locked the completed Runtime Governance Proof Pack documentation state after RGP1-RGP12 reached CI-green.
-
-### Stabilization Result
-- RGP1-RGP12 status: Done / CI-green.
-- Post-RGP documentation consistency guard: implemented / CI-wired.
-- CI status: pending current run.
-- Live trading authorization: unchanged; not granted by code.
-
----
-## RGP12 Partial Exit Lifecycle Persistence — 2026-06-01
-
-### Added
-- RGP12: added regression coverage for `PARTIAL_EXIT_FILLED` lifecycle persistence after Target-1 runner activation.
-- Added `tests/test_rgp12_partial_exit_lifecycle.py` to prove Target-1 runner management emits a supplemental partial-exit lifecycle event.
-- Added coverage proving `append_lifecycle_updates()` persists both `TARGET_1_HIT` and `PARTIAL_EXIT_FILLED` JSONL records and deduplicates repeated writes.
-
-### Changed
-- RGP12 is resolved by persisting the `PARTIAL_EXIT_FILLED` path instead of removing it.
-- `README.md` and `ROADMAP.md` now document RGP12 as Done / CI-green.
