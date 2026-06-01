@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## PO9 Paper Observation Review Gate — 2026-06-01
+
+### Added
+- Added `src/operations/paper_observation_review_gate.py` to evaluate PO8 review summaries as a deterministic Paper Observation review gate.
+- Added `tests/test_po9_paper_observation_review_gate.py` to guard passed/blocked gate status, minimum-record enforcement, rejected/needs-review blockers and paper-only boundary enforcement.
+- Added `docs/operations/po9_paper_observation_review_gate.md` to document PO9 and CI-wired status.
+
+### Review Gate Contract
+- Produces `PASSED` or `BLOCKED`.
+- Requires `review_ready=true`, sufficient observation records, all records accepted, no rejected days, no needs-review days and no manual-review dates.
+- Preserves the paper-only boundary with `live_trading_authorized=false` and `broker_execution_mode=paper_only`.
+
+### Stabilization Result
+- PO9 implementation status: Done / CI-wired.
+- CI status: guarded by `tests/test_po9_paper_observation_review_gate.py`.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## PO8 Daily Observation Review Summary — 2026-06-01
 
 ### Added
