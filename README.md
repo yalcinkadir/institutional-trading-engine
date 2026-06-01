@@ -18,6 +18,8 @@ Phase B1.1: evidence operation discipline implemented / CI-wired; 3-6 month obse
 PO1: Paper Observation timeline and review gate implemented and CI-green
 PO2: Daily Observation Acceptance Gate implemented and CI-green
 PO3: Daily Observation Run Record implemented and CI-green
+PO4: Daily Observation Record Validator implemented and CI-green
+PO5: Daily Observation Record Writer implemented and CI-green
 Phase C paper execution infrastructure: implemented for planning, reconciliation, drift, fill-quality and kill-switch governance
 Phase EV1-EV2: Sharpe/Deflated-Sharpe evidence-unit correction implemented / CI-wired
 Phase IP1/IP2: public/private edge boundary and public repository hygiene policy implemented
