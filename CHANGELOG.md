@@ -99,3 +99,17 @@
 - PO1 implementation status: Done / CI-green.
 - CI status: green.
 - Live trading authorization: unchanged; not granted by code.
+
+---
+
+## IP9/IP10 Public Repository Governance — 2026-06-01
+
+### Added
+- Added public-edge pull request review governance for newly introduced edge constants.
+- Added license and usage disclaimer documentation for the public decision-support research framework.
+- Added `docs/operations/ip9_ip10_public_repo_governance.md` and `tests/test_ip9_ip10_public_repo_governance.py`.
+
+### Stabilization Result
+- IP9/IP10 implementation status: Done / CI-wired.
+- CI status: guarded by `tests/test_ip9_ip10_public_repo_governance.py`.
+- Live trading authorization: unchanged; not granted by code.
