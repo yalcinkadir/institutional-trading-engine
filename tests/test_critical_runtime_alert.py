@@ -1,7 +1,9 @@
 from pathlib import Path
 
 from src.notifications.critical_runtime_alert import (
+    CRITICAL_NOTIFICATION_FAILED_STATUS,
     CriticalRuntimeAlert,
+    CriticalRuntimeAlertNotificationError,
     build_critical_runtime_alert_message,
     deliver_critical_runtime_alert_before_repo_persistence,
 )
@@ -9,6 +11,11 @@ from src.notifications.telegram_report_dispatcher import (
     RESEARCH_ONLY_FOOTER,
     TelegramDispatchStatus,
 )
+
+
+class FailingTransport:
+    def send_message(self, *, text: str, parse_mode: str) -> dict[str, object]:
+        raise RuntimeError("telegram unavailable")
 
 
 def test_critical_stop_alert_message_is_research_only_and_order_safe() -> None:
@@ -22,7 +29,7 @@ def test_critical_stop_alert_message_is_research_only_and_order_safe() -> None:
     )
     rendered = message.render()
 
-    assert "RGP5 Critical STOP Runtime Alert" in rendered
+    assert "RGP5/RGP6 Critical STOP Runtime Alert" in rendered
     assert "Signal ID: sig-001" in rendered
     assert "Symbol: AAPL" in rendered
     assert "Execution: none" in rendered
@@ -99,3 +106,65 @@ def test_non_stop_exit_alert_type_is_rejected(tmp_path: Path) -> None:
         assert "STOP or EXIT" in str(exc)
     else:
         raise AssertionError("Expected non-critical alert type to be rejected")
+
+
+def test_strict_notification_failure_is_persisted_and_not_masked(tmp_path: Path) -> None:
+    output_path = tmp_path / "critical-alert-failure.json"
+    repo_attempted = False
+
+    def repository_persistence() -> None:
+        nonlocal repo_attempted
+        repo_attempted = True
+
+    try:
+        deliver_critical_runtime_alert_before_repo_persistence(
+            CriticalRuntimeAlert(
+                alert_type="STOP",
+                signal_id="sig-005",
+                symbol="AAPL",
+                reason="stop lifecycle status reached",
+            ),
+            alert_result_path=output_path,
+            repository_persistence=repository_persistence,
+            transport=FailingTransport(),
+        )
+    except CriticalRuntimeAlertNotificationError as exc:
+        assert "notification failed before repository persistence" in str(exc)
+    else:
+        raise AssertionError("Expected critical notification failure to raise")
+
+    assert repo_attempted is False
+    assert output_path.exists()
+    payload = output_path.read_text(encoding="utf-8")
+    assert CRITICAL_NOTIFICATION_FAILED_STATUS in payload
+    assert "telegram unavailable" in payload
+    assert '"repository_persistence_attempted": false' in payload
+
+
+def test_strict_notification_block_prevents_repository_persistence(tmp_path: Path) -> None:
+    output_path = tmp_path / "critical-alert-blocked.json"
+    repo_attempted = False
+
+    def repository_persistence() -> None:
+        nonlocal repo_attempted
+        repo_attempted = True
+
+    try:
+        deliver_critical_runtime_alert_before_repo_persistence(
+            CriticalRuntimeAlert(
+                alert_type="EXIT",
+                signal_id="sig-006",
+                symbol="MSFT",
+                reason="execute order now",
+            ),
+            alert_result_path=output_path,
+            repository_persistence=repository_persistence,
+        )
+    except CriticalRuntimeAlertNotificationError as exc:
+        assert "notification blocked by guardrails" in str(exc)
+    else:
+        raise AssertionError("Expected guardrail-blocked critical notification to raise")
+
+    assert repo_attempted is False
+    assert output_path.exists()
+    assert "BLOCKED" in output_path.read_text(encoding="utf-8")
