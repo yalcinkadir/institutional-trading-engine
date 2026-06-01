@@ -4,14 +4,15 @@ The live runtime governance layer needs real portfolio values to make
 risk-limit and kill-switch checks meaningful. This module provides a small,
 deterministic file-backed state store for that purpose.
 
-The current implementation intentionally stays simple: repository-local JSON
-persistence first, database-backed persistence later.
+The implementation is intentionally file-backed, but writes are atomic and
+invalid state loads fail closed instead of crashing the runtime loop.
 """
 
 from __future__ import annotations
 
 import json
 import math
+import os
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -85,7 +86,7 @@ class PortfolioState:
         )
 
     @classmethod
-    def conservative_default(cls, warning: str) -> "PortfolioState":
+    def conservative_default(cls, warning: str, *, source: str = "missing_portfolio_state_fail_closed") -> "PortfolioState":
         """Return a non-crashing fallback that is visibly degraded and fail-closed."""
 
         return cls(
@@ -95,10 +96,10 @@ class PortfolioState:
             daily_loss_percent=0.0,
             open_positions=[],
             updated_at=datetime.now(UTC).isoformat(),
-            source="missing_portfolio_state_fail_closed",
+            source=source,
             warnings=[
                 warning,
-                "Portfolio state is missing or unavailable. Runtime governance must fail closed until real state is provided.",
+                "Portfolio state is missing, invalid or unavailable. Runtime governance must fail closed until real state is provided.",
             ],
             governance_valid=False,
         )
@@ -121,20 +122,21 @@ class PortfolioStateStore:
 
         try:
             payload = json.loads(self.path.read_text(encoding="utf-8"))
-        except json.JSONDecodeError as exc:
-            raise PortfolioStateError(f"Invalid portfolio state JSON: {self.path}: {exc}") from exc
-
-        if not isinstance(payload, dict):
-            raise PortfolioStateError(f"Portfolio state must be a JSON object: {self.path}")
-
-        return PortfolioState.from_mapping(payload)
+            if not isinstance(payload, dict):
+                raise PortfolioStateError(f"Portfolio state must be a JSON object: {self.path}")
+            return PortfolioState.from_mapping(payload)
+        except (json.JSONDecodeError, PortfolioStateError) as exc:
+            return PortfolioState.conservative_default(
+                f"Invalid portfolio state JSON: {self.path}: {exc}",
+                source="invalid_portfolio_state_fail_closed",
+            )
 
     def save(self, state: PortfolioState) -> Path:
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.path.write_text(
-            json.dumps(state.to_dict(), indent=2, sort_keys=True),
-            encoding="utf-8",
-        )
+        payload = json.dumps(state.to_dict(), indent=2, sort_keys=True) + "\n"
+        tmp_path = self.path.with_name(f".{self.path.name}.tmp")
+        tmp_path.write_text(payload, encoding="utf-8")
+        os.replace(tmp_path, self.path)
         return self.path
 
 
