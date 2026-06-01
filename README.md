@@ -124,6 +124,26 @@ created_at
 pytest tests/test_po3_daily_observation_run_record.py -q
 ```
 
+## PO4 Daily Observation Record Validator
+
+PO4 adds executable validation for the PO3 Daily Observation Run Record. It checks required fields, status consistency, ISO date fields, list typing and the paper-only execution boundary.
+
+Test command:
+
+    pytest tests/test_po4_daily_observation_record_validator.py -q
+
+PO4 does not authorize live trading.
+
+## PO5 Daily Observation Record Writer
+
+PO5 generates machine-readable PO3 Daily Observation Run Records and validates them with the PO4 validator before writing JSON output.
+
+Test command:
+
+    pytest tests/test_po5_daily_observation_record_writer.py -q
+
+PO5 maps clean days to ACCEPTED, missing evidence to REJECTED and documented incidents to NEEDS_REVIEW. Invalid records are not written. PO5 does not authorize live trading.
+
 ## BT8 Backtesting Evidence Report
 
 BT8 turns reproducible BT3 backtest run contracts into audit-friendly JSON and Markdown evidence reports. The report summarizes run count, strategy count, datasets, symbols, trades, average return, average win rate, average Sharpe, worst max drawdown, BT3 gate results, run-level metrics and research-only limitations.
