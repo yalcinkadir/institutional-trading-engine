@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## RGP5 Critical Alert Ordering Guard — 2026-06-01
+
+### Added
+- RGP5: added critical STOP/EXIT runtime alert ordering guard.
+- Added `src/notifications/critical_runtime_alert.py` to dispatch and persist critical lifecycle alerts before repository commit/rebase/push style persistence can fail.
+- Added regression coverage proving alert JSON evidence exists before repository persistence runs and survives repository persistence failure.
+
+### Changed
+- Critical lifecycle alert handling now reuses the existing Telegram report dispatcher instead of introducing a parallel notification path.
+- Critical STOP/EXIT alerts remain research/paper-only and explicitly state that no execution or live-trading authorization is granted.
+
+### Stabilization Result
+- RGP5 implementation status: implemented / CI-wired.
+- CI status: pending current run.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## RGP4 Provider Fetch Failure Governance — 2026-06-01
 
 ### Added
