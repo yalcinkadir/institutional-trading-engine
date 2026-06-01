@@ -36,20 +36,22 @@ from src.signals.signal_identity import (
     ensure_signal_identity,
     signal_date_from_payload,
 )
+from src.signals.signal_status import (
+    ACTIONABLE_SIGNAL_ACTIONS,
+    TERMINAL_SIGNAL_STATUSES,
+    SignalEventType,
+    SignalStatus,
+    is_terminal_signal_status,
+    normalize_signal_status,
+)
 from src.watchers.regime_invalidation import apply_regime_invalidation
 from src.watchers.trailing_stop_manager import apply_target_1_runner_management
 
 ALERTS_DIR = Path("reports/alerts")
 LIFECYCLE_LOG = Path("data/signal_lifecycle.jsonl")
 
-ACTIONABLE_ACTIONS = {"BUY_WATCH"}
-TERMINAL_STATUSES = {
-    "INVALIDATED_BEFORE_ENTRY",
-    "STOP_HIT",
-    "TARGET_2_HIT",
-    "EXPIRED",
-    "CANCELLED_BY_REGIME_CHANGE",
-}
+ACTIONABLE_ACTIONS = ACTIONABLE_SIGNAL_ACTIONS
+TERMINAL_STATUSES = TERMINAL_SIGNAL_STATUSES
 
 
 @dataclass(frozen=True)
@@ -126,7 +128,7 @@ def _signal_date(signal: dict[str, Any]) -> str:
 
 
 def _current_status(signal: dict[str, Any]) -> str:
-    return str(signal.get("status") or "PENDING")
+    return normalize_signal_status(signal.get("status"))
 
 
 def load_signal_file(path: str | Path) -> list[dict[str, Any]]:
@@ -240,7 +242,7 @@ def evaluate_signal_against_bar(
         return None, None
 
     previous_status = _current_status(signal)
-    if previous_status in TERMINAL_STATUSES:
+    if is_terminal_signal_status(previous_status):
         return None, None
 
     signal_date = _signal_date(signal)
@@ -256,33 +258,33 @@ def evaluate_signal_against_bar(
     new_status: str | None = None
     trigger_price: float | None = None
 
-    if previous_status == "PENDING" and stop is not None and low is not None and low <= stop:
-        event_type = "INVALIDATED_BEFORE_ENTRY"
-        new_status = "INVALIDATED_BEFORE_ENTRY"
+    if previous_status == SignalStatus.PENDING.value and stop is not None and low is not None and low <= stop:
+        event_type = SignalEventType.INVALIDATED_BEFORE_ENTRY.value
+        new_status = SignalStatus.INVALIDATED_BEFORE_ENTRY.value
         trigger_price = stop
 
-    elif previous_status == "PENDING" and _is_expired(signal, today=today):
-        event_type = "EXPIRED"
-        new_status = "EXPIRED"
+    elif previous_status == SignalStatus.PENDING.value and _is_expired(signal, today=today):
+        event_type = SignalEventType.EXPIRED.value
+        new_status = SignalStatus.EXPIRED.value
         trigger_price = None
 
-    elif previous_status == "PENDING" and entry is not None and high is not None and high >= entry:
-        event_type = "ENTRY_TRIGGERED"
-        new_status = "TRIGGERED"
+    elif previous_status == SignalStatus.PENDING.value and entry is not None and high is not None and high >= entry:
+        event_type = SignalEventType.ENTRY_TRIGGERED.value
+        new_status = SignalStatus.TRIGGERED.value
         trigger_price = entry
 
-    elif previous_status in {"TRIGGERED", "TARGET_1_HIT"}:
+    elif previous_status in {SignalStatus.TRIGGERED.value, SignalStatus.TARGET_1_HIT.value}:
         if stop is not None and low is not None and low <= stop:
-            event_type = "STOP_HIT"
-            new_status = "STOP_HIT"
+            event_type = SignalEventType.STOP_HIT.value
+            new_status = SignalStatus.STOP_HIT.value
             trigger_price = stop
-        elif previous_status == "TRIGGERED" and target_1 is not None and high is not None and high >= target_1:
-            event_type = "TARGET_1_HIT"
-            new_status = "TARGET_1_HIT"
+        elif previous_status == SignalStatus.TRIGGERED.value and target_1 is not None and high is not None and high >= target_1:
+            event_type = SignalEventType.TARGET_1_HIT.value
+            new_status = SignalStatus.TARGET_1_HIT.value
             trigger_price = target_1
-        elif previous_status == "TARGET_1_HIT" and target_2 is not None and high is not None and high >= target_2:
-            event_type = "TARGET_2_HIT"
-            new_status = "TARGET_2_HIT"
+        elif previous_status == SignalStatus.TARGET_1_HIT.value and target_2 is not None and high is not None and high >= target_2:
+            event_type = SignalEventType.TARGET_2_HIT.value
+            new_status = SignalStatus.TARGET_2_HIT.value
             trigger_price = target_2
 
     if not event_type or not new_status:
@@ -292,20 +294,20 @@ def evaluate_signal_against_bar(
     updated_signal["signal_id"] = signal_id
     updated_signal["status"] = new_status
 
-    if event_type == "ENTRY_TRIGGERED":
+    if event_type == SignalEventType.ENTRY_TRIGGERED.value:
         updated_signal["entry_triggered_at"] = bar.timestamp
         updated_signal["entry_price"] = trigger_price
     elif event_type in {
-        "INVALIDATED_BEFORE_ENTRY",
-        "STOP_HIT",
-        "TARGET_1_HIT",
-        "TARGET_2_HIT",
-        "EXPIRED",
+        SignalEventType.INVALIDATED_BEFORE_ENTRY.value,
+        SignalEventType.STOP_HIT.value,
+        SignalEventType.TARGET_1_HIT.value,
+        SignalEventType.TARGET_2_HIT.value,
+        SignalEventType.EXPIRED.value,
     }:
         updated_signal["last_event_at"] = bar.timestamp
         updated_signal["last_event_price"] = trigger_price
 
-    if event_type == "TARGET_1_HIT":
+    if event_type == SignalEventType.TARGET_1_HIT.value:
         runner_result = apply_target_1_runner_management(
             updated_signal,
             latest_high=high,
@@ -553,12 +555,12 @@ def save_updated_signal_file(
     payload["signals"] = signals_with_identity
     payload["last_watcher_update"] = utc_now_iso()
     payload["actionable_count"] = sum(
-        1 for signal in signals_with_identity if signal.get("action") == "BUY_WATCH"
+        1 for signal in signals_with_identity if signal.get("action") in ACTIONABLE_ACTIONS
     )
     payload["open_count"] = sum(
         1
         for signal in signals_with_identity
-        if signal.get("status", "PENDING") not in TERMINAL_STATUSES
+        if not is_terminal_signal_status(signal.get("status", SignalStatus.PENDING.value))
     )
 
     signal_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
