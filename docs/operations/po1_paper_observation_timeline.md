@@ -1,7 +1,7 @@
 # PO1 Paper Observation Timeline and Review Gate
 
 Status date: 2026-06-01
-Status: implemented / CI-wired
+Status: Done / CI-green
 
 ## Purpose
 
@@ -47,6 +47,12 @@ Target extended review date: 2026-12-01
 Live trading authorization: not granted by code
 Broker execution: paper-only infrastructure
 Real-money execution: blocked until manual approval after sufficient forward evidence
+```
+
+## CI result
+
+```text
+PO1 Paper Observation Timeline and Review Gate: Done / CI-green
 ```
 
 ## Acceptance rule
