@@ -37,10 +37,10 @@ def test_roadmap_marks_every_rgp_item_done_ci_green_after_post_rgp_review() -> N
         assert "Pending" not in line
 
 
-def test_changelog_contains_post_rgp_green_closure_entry() -> None:
-    changelog = _read("CHANGELOG.md")
+def test_post_rgp_review_document_records_green_closure() -> None:
+    review = _read("docs/operations/post_rgp_stabilization_review.md")
 
-    assert "## Post-RGP Stabilization Review" in changelog
-    assert "RGP1-RGP12" in changelog
-    assert "Done / CI-green" in changelog
-    assert "Live trading authorization: unchanged; not granted by code." in changelog
+    assert "Post-RGP Stabilization Review" in review
+    assert "RGP1-RGP12: Done / CI-green" in review
+    assert "README status drift for RGP4" in review
+    assert "Live trading is not authorized by code." in review
