@@ -185,7 +185,7 @@ def _bar_sort_key(bar: dict[str, Any]) -> tuple[int, float, str]:
     timestamp = bar.get("t")
     if timestamp is not None:
         try:
-            return (0, float(timestamp), str(timestamp))
+            return (2, float(timestamp), str(timestamp))
         except (TypeError, ValueError):
             pass
 
@@ -201,9 +201,9 @@ def _bar_sort_key(bar: dict[str, Any]) -> tuple[int, float, str]:
             try:
                 return (1, datetime.fromisoformat(text[:10]).timestamp(), text)
             except ValueError:
-                return (2, float("-inf"), text)
+                return (0, float("-inf"), text)
 
-    return (2, float("-inf"), "")
+    return (0, float("-inf"), "")
 
 
 def _latest_bar(bars: Iterable[dict[str, Any]]) -> dict[str, Any] | None:
