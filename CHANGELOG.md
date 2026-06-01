@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## PO7 Daily Observation Record Index — 2026-06-01
+
+### Added
+- Added `src/operations/daily_observation_record_index.py` to build a deterministic index for PO3/PO5 daily observation records.
+- Added `tests/test_po7_daily_observation_record_index.py` to guard sorting, status counts, duplicate-date rejection, invalid-record rejection, canonical writing and fail-closed output-path handling.
+- Added `docs/operations/po7_daily_observation_record_index.md` to document PO7 and CI-green status.
+
+### Index Contract
+- Canonical index path: `reports/daily_observation_records/index.json`.
+- Includes `total_records`, `status_counts` and one record entry per observation day.
+- Preserves the paper-only boundary with `live_trading_authorized=false` and `broker_execution_mode=paper_only`.
+
+### Stabilization Result
+- PO7 implementation status: Done / CI-green.
+- CI status: green.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## PO6 Daily Observation Record Artifact Contract — 2026-06-01
 
 ### Added
