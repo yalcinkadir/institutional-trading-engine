@@ -28,6 +28,7 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from src.data.polygon_client import PolygonClient
+from src.signals.signal_status import ACTIONABLE_SIGNAL_ACTIONS, is_terminal_signal_status
 from src.structured_logging import emit_structured_log
 from src.watchers.entry_exit_watcher import (
     append_lifecycle_updates,
@@ -187,8 +188,8 @@ def main() -> int:
     signals = load_signal_file(signals_file)
     actionable = [
         signal for signal in signals
-        if signal.get("action") == "BUY_WATCH"
-        and signal.get("status", "PENDING") not in {"STOP_HIT", "TARGET_2_HIT", "EXPIRED"}
+        if signal.get("action") in ACTIONABLE_SIGNAL_ACTIONS
+        and not is_terminal_signal_status(signal.get("status"))
     ]
     _log(
         level="INFO",
