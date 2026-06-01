@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from src.signals.signal_status import RunnerStatus, SignalEventType
 
 DEFAULT_PARTIAL_EXIT_RATIO = 0.50
 DEFAULT_ATR_TRAIL_MULTIPLIER = 1.5
@@ -84,13 +85,13 @@ def apply_target_1_runner_management(
 
     updated["partial_exit_completed"] = True
     updated["partial_exit_ratio"] = partial_exit_ratio
-    updated["runner_status"] = "active"
+    updated["runner_status"] = RunnerStatus.ACTIVE.value
     updated["stop_loss"] = runner_stop
     updated["trail_stop"] = runner_stop
     updated["stop_adjustment_reason"] = "target_1_hit_breakeven_and_atr_trail"
 
     return TrailingStopResult(
         signal=updated,
-        event_type="PARTIAL_EXIT_FILLED",
+        event_type=SignalEventType.PARTIAL_EXIT_FILLED.value,
         reasons=["target_1_hit_runner_activated"],
     )
