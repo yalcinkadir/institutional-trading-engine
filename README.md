@@ -16,6 +16,7 @@ Phase A Evidence Hygiene A3-A10: implemented and CI-green
 Phase B evidence pipeline: implemented, CI-green and workflow-green
 Phase B1.1: evidence operation discipline implemented / CI-wired; 3-6 month observation-only evidence collection remains active
 PO1: Paper Observation timeline and review gate implemented and CI-green
+PO2: Daily Observation Acceptance Gate implemented and CI-green
 Phase C paper execution infrastructure: implemented for planning, reconciliation, drift, fill-quality and kill-switch governance
 Phase EV1-EV2: Sharpe/Deflated-Sharpe evidence-unit correction implemented / CI-wired
 Phase IP1/IP2: public/private edge boundary and public repository hygiene policy implemented
@@ -83,6 +84,20 @@ Live trading authorization: not granted by code
 
 ```bash
 pytest tests/test_po1_paper_observation_timeline.py -q
+```
+
+## PO2 Daily Observation Acceptance Gate
+
+PO2 defines when a Paper Observation day is accepted as valid evidence. A day must have required evidence families, generated reports, artifact references, research-only status and no live-trading authorization.
+
+```text
+ACCEPTED
+REJECTED
+NEEDS_REVIEW
+```
+
+```bash
+pytest tests/test_po2_daily_observation_acceptance_gate.py -q
 ```
 
 ## BT8 Backtesting Evidence Report
