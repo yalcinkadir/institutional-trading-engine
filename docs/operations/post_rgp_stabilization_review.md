@@ -1,6 +1,7 @@
 # Post-RGP Stabilization Review
 
 Status date: 2026-06-01
+Status: Done / CI-green
 
 ## Purpose
 
@@ -29,6 +30,12 @@ The guard fails if any RGP1-RGP12 entry in README or ROADMAP regresses to:
 ```text
 CI-wired
 Pending
+```
+
+## CI result
+
+```text
+Post-RGP documentation consistency guard: Done / CI-green
 ```
 
 ## Fix applied during review
