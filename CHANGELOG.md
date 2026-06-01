@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## RGP12 Partial Exit Lifecycle Persistence — 2026-06-01
+
+### Added
+- RGP12: added regression coverage for `PARTIAL_EXIT_FILLED` lifecycle persistence after Target-1 runner activation.
+- Added `tests/test_rgp12_partial_exit_lifecycle.py` to prove Target-1 runner management emits a supplemental partial-exit lifecycle event.
+- Added coverage proving `append_lifecycle_updates()` persists both `TARGET_1_HIT` and `PARTIAL_EXIT_FILLED` JSONL records and deduplicates repeated writes.
+
+### Changed
+- RGP12 is resolved by persisting the `PARTIAL_EXIT_FILLED` path instead of removing it.
+- `README.md` and `ROADMAP.md` now document RGP12 as implemented / CI-wired.
+
+### Stabilization Result
+- RGP12 implementation status: implemented / CI-wired.
+- CI status: pending current run.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## RGP8 Artifact Upload-On-Failure Governance Guard — 2026-06-01
 
 ### Added
@@ -188,7 +206,7 @@
 ### Added
 - PSR1: added daily runtime evidence manifest generation for paper/observation evidence integrity.
 - Added `src/operations/runtime_evidence_manifest.py` with deterministic artifact metadata, SHA256 hashing, PASS/FAIL status and manifest validation.
-- Added `scripts/generate_runtime_evidence_manifest.py` for CLI-based manifest generation.
+- Added `scripts/generate_runtime_evidence_manifest.py` for CLI-based evidence generation.
 - Added regression coverage for hashing, required/optional artifacts, manifest PASS/FAIL semantics, JSON round-trip loading and live-trading authorization guardrails.
 
 ### Changed
