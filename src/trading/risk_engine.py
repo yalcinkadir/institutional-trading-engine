@@ -24,8 +24,16 @@ def calculate_position_risk(
     risk_capped_shares = int(risk_amount / risk_per_share)
 
     notional_caps = [cap for cap in (buying_power, max_notional) if cap is not None]
-    positive_notional_caps = [cap for cap in notional_caps if cap > 0]
-    notional_cap = min(positive_notional_caps) if positive_notional_caps else None
+    if any(cap <= 0 for cap in notional_caps):
+        return {
+            "shares": 0,
+            "risk_amount": round(risk_amount, 2),
+            "risk_per_share": round(risk_per_share, 2),
+            "notional": 0,
+            "notional_cap": 0,
+        }
+
+    notional_cap = min(notional_caps) if notional_caps else None
 
     if notional_cap is None:
         shares = risk_capped_shares
