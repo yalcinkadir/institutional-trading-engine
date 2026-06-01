@@ -25,6 +25,7 @@ PO7: Daily Observation Record Index implemented and CI-green
 PO8: Daily Observation Review Summary implemented and CI-green
 PO9: Paper Observation Review Gate implemented and CI-green
 PO10: Daily Observation Automation Runner implemented and CI-green
+PO11: Scheduled Daily Observation Workflow implemented and CI-green
 Phase C paper execution infrastructure: implemented for planning, reconciliation, drift, fill-quality and kill-switch governance
 Phase EV1-EV2: Sharpe/Deflated-Sharpe evidence-unit correction implemented / CI-wired
 Phase IP1/IP2: public/private edge boundary and public repository hygiene policy implemented
@@ -272,6 +273,34 @@ Test command:
     pytest tests/test_po10_daily_observation_automation_runner.py -q
 
 PO10 does not authorize live trading. A passed PO10 artifact means the daily Paper Observation automation chain completed and the resulting evidence package is review-ready according to PO9.
+
+## PO11 Scheduled Daily Observation Workflow
+
+PO11 schedules the PO10 Daily Observation Automation Runner through GitHub Actions.
+
+Workflow file:
+
+    .github/workflows/po11_daily_observation.yml
+
+Scheduled run:
+
+    15 22 * * 1-5
+
+This runs Monday to Friday at 22:15 UTC. Manual dispatch supports `observation_date` and `minimum_records` inputs.
+
+PO11 uploads the generated PO10 automation artifact:
+
+    po11-daily-observation-artifact
+
+Artifact path:
+
+    reports/daily_observation_automation/*.json
+
+Test command:
+
+    pytest tests/test_po11_scheduled_daily_observation_workflow.py -q
+
+PO11 uses read-only repository permissions and does not authorize live trading. It preserves `live_trading_authorized=false` and `broker_execution_mode=paper_only`.
 
 ## BT8 Backtesting Evidence Report
 
