@@ -58,7 +58,7 @@ RGP8: alert/evidence artifact upload-on-failure guard implemented and CI-green
 RGP9: signal lifecycle status source of truth implemented and CI-green
 RGP10: latest bar timestamp ordering guard implemented and CI-green
 RGP11: signal identity float quantization implemented and CI-green
-RGP12: partial-exit lifecycle persistence implemented and CI-wired
+RGP12: partial-exit lifecycle persistence implemented and CI-green
 Live trading authorization: not granted by code
 Broker execution: paper-only infrastructure; live execution is not implemented
 ```
