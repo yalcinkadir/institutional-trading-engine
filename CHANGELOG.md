@@ -36,6 +36,20 @@
 
 ---
 
+## IP9/IP10 Public Repository Governance — 2026-06-01
+
+### Added
+- Added public-edge pull request review governance for newly introduced edge constants.
+- Added license and usage disclaimer documentation for the public decision-support research framework.
+- Added `docs/operations/ip9_ip10_public_repo_governance.md` and `tests/test_ip9_ip10_public_repo_governance.py`.
+
+### Stabilization Result
+- IP9/IP10 implementation status: Done / CI-wired.
+- CI status: guarded by `tests/test_ip9_ip10_public_repo_governance.py`.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## Post-RGP Stabilization Review — 2026-06-01
 
 ### Added
@@ -77,80 +91,3 @@
 - RGP8: added CI guard coverage that protects alert/evidence artifacts from git persistence failure.
 - Added `tests/test_rgp8_artifact_upload_on_git_failure.py` to scan repo-writing GitHub Actions workflows.
 - Added regression coverage proving repo-writing workflows must upload alert/evidence/runtime artifacts with `if: always()`.
-
-### Changed
-- Artifact retention safety is now enforced as a future-proof workflow guard instead of relying on manual review only.
-- The RGP documentation now includes alert/evidence artifact upload-on-failure governance.
-
-### Stabilization Result
-- RGP8 implementation status: implemented / CI-wired.
-- CI status: pending current run.
-- Live trading authorization: unchanged; not granted by code.
-
----
-
-## RGP7 Repo-Write Workflow Governance Guard — 2026-06-01
-
-### Added
-- RGP7: added CI guard coverage for repo-writing GitHub Actions workflow governance.
-- Added `tests/test_rgp7_repo_write_workflow_governance.py` to scan `.github/workflows/*.yml` and `.github/workflows/*.yaml`.
-- Added regression coverage that fails when a workflow uses `git commit`, `git push`, `git pull` or `git rebase` without repo-wide concurrency or a robust push retry strategy.
-
-### Changed
-- Repo-write safety is now enforced as a future-proof guard instead of relying on manual workflow review only.
-- The RGP documentation now includes repo-write workflow serialization/retry governance.
-
-### Stabilization Result
-- RGP7 implementation status: implemented / CI-wired.
-- CI status: pending current run.
-- Live trading authorization: unchanged; not granted by code.
-
----
-
-## RGP6 Strict Critical Notification Handling — 2026-06-01
-
-### Added
-- RGP6: added strict notification handling for critical STOP/EXIT runtime alerts.
-- Added `CriticalRuntimeAlertNotificationError` so critical notification transport failures and guardrail blocks cannot be silently masked.
-- Added `NOTIFICATION_FAILED` failure evidence persistence before raising critical notification failures.
-- Added regression coverage proving repository persistence is not attempted after critical notification failure or guardrail blocking.
-
-### Changed
-- Critical alert delivery now treats notification failure as a hard runtime failure, while repository persistence failure remains captured as evidence after alert persistence.
-- Critical STOP/EXIT alert messages now identify the combined RGP5/RGP6 ordering and strict-notification guard.
-
-### Stabilization Result
-- RGP6 implementation status: implemented / CI-wired.
-- CI status: pending current run.
-- Live trading authorization: unchanged; not granted by code.
-
----
-
-## RGP5 Critical Alert Ordering Guard — 2026-06-01
-
-### Added
-- RGP5: added critical STOP/EXIT runtime alert ordering guard.
-- Added `src/notifications/critical_runtime_alert.py` to dispatch and persist critical lifecycle alerts before repository commit/rebase/push style persistence can fail.
-- Added regression coverage proving alert JSON evidence exists before repository persistence runs and survives repository persistence failure.
-
-### Changed
-- Critical lifecycle alert handling now reuses the existing Telegram report dispatcher instead of introducing a parallel notification path.
-- Critical STOP/EXIT alerts remain research/paper-only and explicitly state that no execution or live-trading authorization is granted.
-
-### Stabilization Result
-- RGP5 implementation status: implemented / CI-wired.
-- CI status: pending current run.
-- Live trading authorization: unchanged; not granted by code.
-
----
-
-## RGP4 Provider Fetch Failure Governance — 2026-06-01
-
-### Added
-- RGP4: added actionable-signal provider/data-fetch failure blocking in the runtime governance approval gate.
-- Added `DATA_PROVIDER_FETCH_FAILURE_REASON` so provider degradation is explicit in approval-block reasons.
-- Added regression coverage proving actionable signal fetch failures block approval and non-actionable fetch failures are recorded without blocking.
-
-### Changed
-- `evaluate_runtime_governance_approval()` now accepts `actionable_signal` and `provider_fetch_errors` inputs.
-- Runtime approval now fails closed when an actionable signal cannot be evaluated because required provider data is degraded or unavailable.
