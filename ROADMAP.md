@@ -45,12 +45,21 @@ Goal: formalize the 3-6 month paper-observation evidence period before any Phase
 | PO1 | Define Paper Observation start date, minimum duration, review dates, required evidence families and live-trading hard block | P0 | Critical | Done / CI-green |
 | PO2 | Define daily Paper Observation acceptance rules, required evidence families, rejection reasons and review status vocabulary | P0 | Critical | Done / CI-green |
 | PO3 | Define daily Paper Observation run-record fields, status mapping, artifact paths, incident notes and paper-only execution boundary | P0 | Critical | Done / CI-green |
+| PO4 | Add executable validator for Daily Observation Run Records, including required fields, status consistency, incident handling and paper-only safety boundary | P0 | Critical | Done / CI-green |
+| PO5 | Add writer/generator for Daily Observation Run Records with PO4 validation integration and fail-closed JSON writing | P0 | Critical | Done / CI-green |
+| PO6 | Define canonical artifact path contract for Daily Observation Run Records with deterministic root and YYYY-MM-DD.json filename convention | P0 | Critical | Done / CI-green |
 
 PO1 establishes 2026-06-01 as the Paper Observation start date, 2026-07-01 as the first review date, 2026-09-01 as the major evidence review date and 2026-12-01 as the extended review date. It does not authorize live trading.
 
 PO2 defines whether a Paper Observation day is ACCEPTED, REJECTED or NEEDS_REVIEW. It keeps incomplete or execution-implying days out of accepted forward evidence and does not authorize live trading.
 
 PO3 defines the machine-readable Daily Observation Run Record with `date`, `status`, `missing_evidence`, `incidents`, `artifact_paths`, `review_required`, `review_notes`, `live_trading_authorized=false`, `broker_execution_mode=paper_only` and `created_at`.
+
+PO4 adds executable validation for the PO3 Daily Observation Run Record. It rejects incomplete records, invalid statuses, inconsistent ACCEPTED / REJECTED / NEEDS_REVIEW states and any record implying live trading or non-paper broker execution.
+
+PO5 generates PO3 Daily Observation Run Records, maps clean days to ACCEPTED, missing evidence to REJECTED and incidents to NEEDS_REVIEW, validates records with PO4 before writing and never authorizes live trading.
+
+PO6 defines the canonical storage contract for PO3/PO5 Daily Observation Run Records. Records use the deterministic root `reports/daily_observation_records/` and the filename format `YYYY-MM-DD.json`. PO6 does not authorize live trading.
 
 ## Phase RGP — Runtime Governance Proof Pack
 
