@@ -13,8 +13,8 @@
 - Preserves the paper-only boundary with `live_trading_authorized=false` and `broker_execution_mode=paper_only`.
 
 ### Stabilization Result
-- PO9 implementation status: Done / CI-wired.
-- CI status: guarded by `tests/test_po9_paper_observation_review_gate.py`.
+- PO9 implementation status: Done / CI-green.
+- CI status: green; guarded by `tests/test_po9_paper_observation_review_gate.py`.
 - Live trading authorization: unchanged; not granted by code.
 
 ---
