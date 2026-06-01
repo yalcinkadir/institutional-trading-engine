@@ -6,6 +6,7 @@ and lifecycle events can be joined across time.
 
 from __future__ import annotations
 
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 import hashlib
 import json
 from typing import Any
@@ -21,12 +22,47 @@ _SIGNAL_ID_FIELDS = (
     "valid_until",
 )
 
+_PRICE_IDENTITY_FIELDS = frozenset({"entry_trigger", "stop_loss", "target_1", "target_2"})
+_SIGNAL_ID_PRICE_QUANTUM = Decimal("0.0001")
+
 
 def signal_date_from_payload(signal: dict[str, Any]) -> str:
     generated_at = str(signal.get("generated_at") or "")
     if generated_at:
         return generated_at[:10]
     return str(signal.get("signal_date") or signal.get("date") or "unknown")
+
+
+def _normalize_identity_price(value: Any) -> str | None:
+    """Return a stable string for price-like identity fields.
+
+    RGP11 intentionally quantizes only the identity payload. The source signal is
+    not mutated, so downstream execution/research values keep their original
+    precision while signal ids remain robust to float/string representation noise.
+    """
+    if value is None:
+        return None
+
+    try:
+        decimal_value = Decimal(str(value))
+    except (InvalidOperation, ValueError):
+        return str(value)
+
+    if not decimal_value.is_finite():
+        return str(value)
+
+    quantized = decimal_value.quantize(_SIGNAL_ID_PRICE_QUANTUM, rounding=ROUND_HALF_UP)
+    return format(quantized.normalize(), "f")
+
+
+def _normalize_identity_field(field: str, value: Any) -> Any:
+    if field in _PRICE_IDENTITY_FIELDS:
+        return _normalize_identity_price(value)
+    if field == "symbol":
+        return str(value or "UNKNOWN").upper()
+    if field == "action":
+        return str(value or "").upper()
+    return value
 
 
 def build_signal_id(signal: dict[str, Any]) -> str:
@@ -36,7 +72,7 @@ def build_signal_id(signal: dict[str, Any]) -> str:
     normalized.setdefault("signal_date", signal_date_from_payload(signal))
 
     identity_payload = {
-        field: normalized.get(field)
+        field: _normalize_identity_field(field, normalized.get(field))
         for field in _SIGNAL_ID_FIELDS
     }
     raw = json.dumps(identity_payload, sort_keys=True, separators=(",", ":"), default=str)
