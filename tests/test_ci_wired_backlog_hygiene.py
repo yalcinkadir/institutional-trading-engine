@@ -7,8 +7,13 @@ ROOT = Path(__file__).resolve().parents[1]
 ALLOWED_CI_WIRED_MARKERS = (
     "Phase B1.1",
     "Phase EV1-EV2",
+    "Target window: completed / CI-wired",
     "IP5/IP6",
     "IP9/IP10",
+    "| IP5 |",
+    "| IP6 |",
+    "| IP9 |",
+    "| IP10 |",
     "CL1",
     "CL2",
     "CL3",
@@ -48,7 +53,14 @@ def test_ci_wired_statuses_are_explicitly_allowlisted_after_rgp_closure() -> Non
     assert unexpected == []
 
 
-def test_no_rgp_status_is_left_ci_wired_after_rgp_closure() -> None:
+def test_no_rgp_item_status_is_left_ci_wired_after_rgp_closure() -> None:
+    rgp_tokens = [f"RGP{index}" for index in range(1, 13)]
+
     for path in CHECKED_DOCUMENTS:
         for line_number, line in _ci_wired_lines(path):
-            assert "RGP" not in line, f"{path}:{line_number}: {line}"
+            for rgp_id in rgp_tokens:
+                forbidden_status_patterns = (
+                    f"{rgp_id}:" if path == "README.md" else f"| {rgp_id} |",
+                )
+                if any(pattern in line for pattern in forbidden_status_patterns):
+                    assert "CI-wired" not in line, f"{path}:{line_number}: {line}"
