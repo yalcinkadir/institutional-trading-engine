@@ -17,6 +17,7 @@ Phase B evidence pipeline: implemented, CI-green and workflow-green
 Phase B1.1: evidence operation discipline implemented / CI-wired; 3-6 month observation-only evidence collection remains active
 PO1: Paper Observation timeline and review gate implemented and CI-green
 PO2: Daily Observation Acceptance Gate implemented and CI-green
+PO3: Daily Observation Run Record implemented and CI-green
 Phase C paper execution infrastructure: implemented for planning, reconciliation, drift, fill-quality and kill-switch governance
 Phase EV1-EV2: Sharpe/Deflated-Sharpe evidence-unit correction implemented / CI-wired
 Phase IP1/IP2: public/private edge boundary and public repository hygiene policy implemented
@@ -98,6 +99,27 @@ NEEDS_REVIEW
 
 ```bash
 pytest tests/test_po2_daily_observation_acceptance_gate.py -q
+```
+
+## PO3 Daily Observation Run Record
+
+PO3 defines the machine-readable daily Paper Observation run record. Each observation day records status, missing evidence, incidents, artifact paths, review requirement and the hard paper-only execution boundary.
+
+```text
+date
+status: ACCEPTED / REJECTED / NEEDS_REVIEW
+missing_evidence
+incidents
+artifact_paths
+review_required
+review_notes
+live_trading_authorized: false
+broker_execution_mode: paper_only
+created_at
+```
+
+```bash
+pytest tests/test_po3_daily_observation_run_record.py -q
 ```
 
 ## BT8 Backtesting Evidence Report
