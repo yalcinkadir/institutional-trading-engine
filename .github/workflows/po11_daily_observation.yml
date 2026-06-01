@@ -1,0 +1,94 @@
+name: PO11 Scheduled Daily Observation
+
+on:
+  schedule:
+    - cron: "15 22 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      observation_date:
+        description: "Observation date in YYYY-MM-DD format. Defaults to current UTC date."
+        required: false
+        type: string
+      minimum_records:
+        description: "Minimum records required for PO9 gate evaluation."
+        required: false
+        default: "1"
+        type: string
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  scheduled-daily-observation:
+    name: Build PO10 daily observation artifact
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run PO10 daily observation automation
+        env:
+          OBSERVATION_DATE: ${{ inputs.observation_date }}
+          MINIMUM_RECORDS: ${{ inputs.minimum_records || '1' }}
+        run: |
+          python - <<'PY'
+          from __future__ import annotations
+
+          import os
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          from src.operations.daily_observation_automation_runner import (
+              build_daily_observation_automation_artifact,
+              write_daily_observation_automation_artifact,
+          )
+
+          observation_date = os.environ.get("OBSERVATION_DATE") or datetime.now(timezone.utc).date().isoformat()
+          minimum_records = int(os.environ.get("MINIMUM_RECORDS") or "1")
+          created_at = f"{observation_date}T00:00:00Z"
+
+          result = build_daily_observation_automation_artifact(
+              observation_date=observation_date,
+              artifact_paths=[f"reports/daily_evidence/{observation_date}.json"],
+              minimum_records=minimum_records,
+              created_at=created_at,
+          )
+          write_result = write_daily_observation_automation_artifact(result=result)
+
+          print(f"PO11 observation_date={observation_date}")
+          print(f"PO11 artifact_path={write_result.artifact_path}")
+          print(f"PO11 automation_status={write_result.artifact['automation_status']}")
+          print(f"PO11 live_trading_authorized={write_result.artifact['live_trading_authorized']}")
+          print(f"PO11 broker_execution_mode={write_result.artifact['broker_execution_mode']}")
+
+          artifact_path = Path(write_result.artifact_path)
+          if not artifact_path.exists():
+              raise SystemExit("PO11 automation artifact was not written")
+          if write_result.artifact["live_trading_authorized"] is not False:
+              raise SystemExit("PO11 must not authorize live trading")
+          if write_result.artifact["broker_execution_mode"] != "paper_only":
+              raise SystemExit("PO11 must remain paper_only")
+          PY
+
+      - name: Upload PO11 automation artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: po11-daily-observation-artifact
+          path: reports/daily_observation_automation/*.json
+          if-no-files-found: error
