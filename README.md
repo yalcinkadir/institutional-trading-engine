@@ -27,6 +27,7 @@ PO9: Paper Observation Review Gate implemented and CI-green
 PO10: Daily Observation Automation Runner implemented and CI-green
 PO11: Scheduled Daily Observation Workflow implemented and CI-green
 PO12: Daily Observation Artifact Retention & Review Index implemented and CI-green
+PO13: Monthly Paper Observation Review Pack implemented and CI-green
 Phase C paper execution infrastructure: implemented for planning, reconciliation, drift, fill-quality and kill-switch governance
 Phase EV1-EV2: Sharpe/Deflated-Sharpe evidence-unit correction implemented / CI-wired
 Phase IP1/IP2: public/private edge boundary and public repository hygiene policy implemented
@@ -339,6 +340,43 @@ Test command:
     pytest tests/test_po12_daily_observation_artifact_review_index.py -q
 
 PO12 does not authorize live trading. A valid PO12 index means generated observation artifacts are structured for review only.
+
+## PO13 Monthly Paper Observation Review Pack
+
+PO13 builds a deterministic monthly review pack from the PO12 Daily Observation Artifact Review Index.
+
+Monthly pack path:
+
+    reports/monthly_paper_observation_review/YYYY-MM.json
+
+Monthly review status:
+
+    REVIEW_READY
+    BLOCKED
+
+The monthly review pack includes:
+
+    month
+    monthly_review_status
+    minimum_review_ready_days
+    total_days
+    passed_days
+    blocked_days
+    review_ready_days
+    gate_failure_days
+    blocker_count
+    error_count
+    rejected_record_count
+    needs_review_record_count
+    artifacts[]
+    live_trading_authorized: false
+    broker_execution_mode: paper_only
+
+Test command:
+
+    pytest tests/test_po13_monthly_paper_observation_review_pack.py -q
+
+PO13 does not authorize live trading. `REVIEW_READY` means the monthly paper-observation evidence package is ready for human review only.
 
 ## BT8 Backtesting Evidence Report
 
