@@ -1,7 +1,7 @@
 # Institutional Trading Engine Roadmap
 
 Status date: 2026-06-01  
-Current state: EV1-EV12 evidence-integrity remediation is implemented, centrally documented and CI-green. CI runtime simplification is implemented and CI-green. B1.1 evidence operation discipline plus TG2/TG3 reporting integration is implemented and CI-wired. Phase B1.1 remains active as the 3-6 month observation-only evidence collection period. GOV1-GOV10 runtime/pre-live governance hardening is implemented and CI-green. SR1 stable signal identity, SR2 ATR persistence, SR3 repo-write serialization, SR4 trusted portfolio-governance source enforcement, SR5 persistent anomaly-state governance, SR6 governance-threshold single source of truth, SR7 completed-bar watcher semantics and SR8 dependency reproducibility contract are implemented and CI-green. PSR1 daily runtime evidence manifest, PSR2 runtime evidence manifest guard, PSR3 fill-quality evidence integration and PSR4 drift/regime-change evidence linkage are implemented and CI-green. Phase RGP Runtime Governance Proof Pack is active; RGP1 missing/invalid PortfolioState fail-closed proof, RGP2 runtime governance approval gate, RGP3 stale PortfolioState approval blocking, RGP4 actionable signal provider-fetch failure blocking, RGP5 critical STOP/EXIT alert ordering, RGP6 strict critical notification failure handling, RGP7 repo-write workflow governance guard, RGP8 artifact upload-on-failure guard, RGP9 signal lifecycle status source of truth, RGP10 latest-bar timestamp ordering guard and RGP11 signal identity float quantization are implemented and CI-green. RGP12 partial-exit lifecycle persistence is implemented and CI-wired. Phase D expansion or any live-execution consideration remains blocked until forward evidence, drift monitoring, risk attribution, execution quality review, capacity/turnover realism and manual approval are in place. Real-money execution is not authorized by code.
+Current state: EV1-EV12 evidence-integrity remediation is implemented, centrally documented and CI-green. CI runtime simplification is implemented and CI-green. B1.1 evidence operation discipline plus TG2/TG3 reporting integration is implemented and CI-wired. Phase B1.1 remains active as the 3-6 month observation-only evidence collection period. GOV1-GOV10 runtime/pre-live governance hardening is implemented and CI-green. SR1 stable signal identity, SR2 ATR persistence, SR3 repo-write serialization, SR4 trusted portfolio-governance source enforcement, SR5 persistent anomaly-state governance, SR6 governance-threshold single source of truth, SR7 completed-bar watcher semantics and SR8 dependency reproducibility contract are implemented and CI-green. PSR1 daily runtime evidence manifest, PSR2 runtime evidence manifest guard, PSR3 fill-quality evidence integration and PSR4 drift/regime-change evidence linkage are implemented and CI-green. Phase RGP Runtime Governance Proof Pack is complete through RGP12; RGP1 missing/invalid PortfolioState fail-closed proof, RGP2 runtime governance approval gate, RGP3 stale PortfolioState approval blocking, RGP4 actionable signal provider-fetch failure blocking, RGP5 critical STOP/EXIT alert ordering, RGP6 strict critical notification failure handling, RGP7 repo-write workflow governance guard, RGP8 artifact upload-on-failure guard, RGP9 signal lifecycle status source of truth, RGP10 latest-bar timestamp ordering guard, RGP11 signal identity float quantization and RGP12 partial-exit lifecycle persistence are implemented and CI-green. Phase D expansion or any live-execution consideration remains blocked until forward evidence, drift monitoring, risk attribution, execution quality review, capacity/turnover realism and manual approval are in place. Real-money execution is not authorized by code.
 
 ## Strategic direction
 
@@ -36,7 +36,7 @@ Hard evidence-integrity rule: Sharpe-like metrics must use explicit units. Per-t
 
 ## Phase RGP — Runtime Governance Proof Pack
 
-Target window: active  
+Target window: completed / CI-green  
 Goal: prove that the runtime fails closed end-to-end when governance state, market data, alert delivery or persistence is degraded. This phase is not about adding scanner features. It is about proving the system cannot silently continue when runtime safety evidence is missing.
 
 | ID | Task | Priority | Impact | Status |
@@ -52,9 +52,9 @@ Goal: prove that the runtime fails closed end-to-end when governance state, mark
 | RGP9 | Consolidate terminal signal-status definitions into one shared source of truth | P2 | Medium | Done / CI-green |
 | RGP10 | Sort latest bars by timestamp before selecting the newest bar for watcher evaluation | P2 | Medium | Done / CI-green |
 | RGP11 | Quantize signal identity float inputs before hashing to prevent deterministic-ID drift across platforms | P2 | Medium | Done / CI-green |
-| RGP12 | Persist `PARTIAL_EXIT_FILLED` as a supplemental lifecycle event emitted by Target-1 runner management | P2 | Medium | Implemented / CI-wired |
+| RGP12 | Persist `PARTIAL_EXIT_FILLED` as a supplemental lifecycle event emitted by Target-1 runner management | P2 | Medium | Done / CI-green |
 
-RGP is an audit/proof phase. It does not authorize live trading, production execution or new strategy complexity. It must be CI-backed before Phase D expansion resumes.
+RGP is an audit/proof phase. It does not authorize live trading, production execution or new strategy complexity. Phase D remains blocked until forward evidence, risk attribution, execution-quality review and manual approval requirements are satisfied.
 
 ## Phase EV — Evidence Integrity Fixes
 
