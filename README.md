@@ -26,6 +26,7 @@ PO8: Daily Observation Review Summary implemented and CI-green
 PO9: Paper Observation Review Gate implemented and CI-green
 PO10: Daily Observation Automation Runner implemented and CI-green
 PO11: Scheduled Daily Observation Workflow implemented and CI-green
+PO12: Daily Observation Artifact Retention & Review Index implemented and CI-green
 Phase C paper execution infrastructure: implemented for planning, reconciliation, drift, fill-quality and kill-switch governance
 Phase EV1-EV2: Sharpe/Deflated-Sharpe evidence-unit correction implemented / CI-wired
 Phase IP1/IP2: public/private edge boundary and public repository hygiene policy implemented
@@ -301,6 +302,43 @@ Test command:
     pytest tests/test_po11_scheduled_daily_observation_workflow.py -q
 
 PO11 uses read-only repository permissions and does not authorize live trading. It preserves `live_trading_authorized=false` and `broker_execution_mode=paper_only`.
+
+## PO12 Daily Observation Artifact Retention & Review Index
+
+PO12 builds a deterministic review index over generated PO10/PO11 daily observation automation artifacts.
+
+Review index path:
+
+    reports/daily_observation_automation/review_index.json
+
+Default retention metadata:
+
+    retention_days: 180
+
+The review index includes:
+
+    total_artifacts
+    status_counts
+    passed_count
+    blocked_count
+    review_ready_count
+    artifacts[]
+    artifacts[].observation_date
+    artifacts[].artifact_path
+    artifacts[].automation_status
+    artifacts[].review_ready
+    artifacts[].gate_status
+    artifacts[].approved_for_review
+    artifacts[].blocker_count
+    artifacts[].error_count
+    live_trading_authorized: false
+    broker_execution_mode: paper_only
+
+Test command:
+
+    pytest tests/test_po12_daily_observation_artifact_review_index.py -q
+
+PO12 does not authorize live trading. A valid PO12 index means generated observation artifacts are structured for review only.
 
 ## BT8 Backtesting Evidence Report
 
