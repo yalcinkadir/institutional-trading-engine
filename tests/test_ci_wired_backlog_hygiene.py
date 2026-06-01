@@ -22,8 +22,6 @@ ALLOWED_CI_WIRED_MARKERS = (
     "TG2/TG3",
     "TG2 |",
     "TG3 |",
-    "BT8",
-    "| BT8 |",
 )
 
 CHECKED_DOCUMENTS = (
