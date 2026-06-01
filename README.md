@@ -50,7 +50,7 @@ PSR4: drift and regime evidence artifact implemented and CI-green
 RGP1: missing/invalid PortfolioState fail-closed proof implemented and CI-green
 RGP2: runtime governance approval gate implemented and CI-green
 RGP3: stale PortfolioState approval blocking implemented and CI-green
-RGP4: actionable signal provider-fetch failure blocking implemented and CI-wired
+RGP4: actionable signal provider-fetch failure blocking implemented and CI-green
 RGP5: critical STOP/EXIT alert ordering guard implemented and CI-green
 RGP6: strict critical notification failure handling implemented and CI-green
 RGP7: repo-writing workflow serialization/retry guard implemented and CI-green
