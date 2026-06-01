@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## PO2 Daily Observation Acceptance Gate — 2026-06-01
+
+### Added
+- Added `docs/operations/po2_daily_observation_acceptance_gate.md` to define when a Paper Observation day is accepted as valid evidence.
+- Added `tests/test_po2_daily_observation_acceptance_gate.py` to guard required evidence families, rejection reasons, status vocabulary and the research-only safety boundary.
+
+### Acceptance Vocabulary
+- ACCEPTED.
+- REJECTED.
+- NEEDS_REVIEW.
+
+### Stabilization Result
+- PO2 implementation status: Done / CI-green.
+- CI status: green.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## PO1 Paper Observation Timeline — 2026-06-01
 
 ### Added
@@ -77,17 +95,3 @@
 ### Changed
 - RGP12 is resolved by persisting the `PARTIAL_EXIT_FILLED` path instead of removing it.
 - `README.md` and `ROADMAP.md` now document RGP12 as Done / CI-green.
-
-### Stabilization Result
-- RGP12 implementation status: Done / CI-green.
-- CI status: green.
-- Live trading authorization: unchanged; not granted by code.
-
----
-
-## RGP8 Artifact Upload-On-Failure Governance Guard — 2026-06-01
-
-### Added
-- RGP8: added CI guard coverage that protects alert/evidence artifacts from git persistence failure.
-- Added `tests/test_rgp8_artifact_upload_on_git_failure.py` to scan repo-writing GitHub Actions workflows.
-- Added regression coverage proving repo-writing workflows must upload alert/evidence/runtime artifacts with `if: always()`.
