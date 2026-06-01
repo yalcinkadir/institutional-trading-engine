@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## RGP6 Strict Critical Notification Handling — 2026-06-01
+
+### Added
+- RGP6: added strict notification handling for critical STOP/EXIT runtime alerts.
+- Added `CriticalRuntimeAlertNotificationError` so critical notification transport failures and guardrail blocks cannot be silently masked.
+- Added `NOTIFICATION_FAILED` failure evidence persistence before raising critical notification failures.
+- Added regression coverage proving repository persistence is not attempted after critical notification failure or guardrail blocking.
+
+### Changed
+- Critical alert delivery now treats notification failure as a hard runtime failure, while repository persistence failure remains captured as evidence after alert persistence.
+- Critical STOP/EXIT alert messages now identify the combined RGP5/RGP6 ordering and strict-notification guard.
+
+### Stabilization Result
+- RGP6 implementation status: implemented / CI-wired.
+- CI status: pending current run.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## RGP5 Critical Alert Ordering Guard — 2026-06-01
 
 ### Added
