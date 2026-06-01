@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## RGP4 Provider Fetch Failure Governance — 2026-06-01
+
+### Added
+- RGP4: added actionable-signal provider/data-fetch failure blocking in the runtime governance approval gate.
+- Added `DATA_PROVIDER_FETCH_FAILURE_REASON` so provider degradation is explicit in approval-block reasons.
+- Added regression coverage proving actionable signal fetch failures block approval and non-actionable fetch failures are recorded without blocking.
+
+### Changed
+- `evaluate_runtime_governance_approval()` now accepts `actionable_signal` and `provider_fetch_errors` inputs.
+- Runtime approval now fails closed when an actionable signal cannot be evaluated because required provider data is degraded or unavailable.
+- Approval serialization now includes provider-fetch errors and actionable-signal context for auditability.
+
+### Stabilization Result
+- RGP4 implementation status: implemented / CI-wired.
+- CI status: pending current run.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## IP9/IP10 Public Repository Governance — 2026-05-31
 
 ### Added
