@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## PO6 Daily Observation Record Artifact Contract — 2026-06-01
+
+### Added
+- Added `src/operations/daily_observation_record_artifact_contract.py` to define the canonical artifact path contract for PO3/PO5 daily observation records.
+- Added `tests/test_po6_artifact_contract.py` to guard the canonical daily observation record path.
+- Added `docs/operations/po6_daily_observation_record_artifact_contract.md` to document PO6 and CI-green status.
+
+### Artifact Contract
+- Canonical root: `reports/daily_observation_records/`.
+- Canonical filename: `YYYY-MM-DD.json`.
+- Example: `reports/daily_observation_records/2026-06-01.json`.
+
+### Stabilization Result
+- PO6 implementation status: Done / CI-green.
+- CI status: green.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## PO5 Daily Observation Record Writer — 2026-06-01
 
 ### Added
