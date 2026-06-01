@@ -37,7 +37,7 @@ BT3: Backtest reproducibility contract implemented
 BT5: Walk-Forward / Out-of-Sample Robustness Gate implemented and CI-green
 BT6: Evidence Baseline Regression Gate implemented and CI-green
 BT7: Capacity / Turnover / Realism Gate implemented and CI-green
-BT8: Backtesting Evidence Report generator implemented / CI-wired
+BT8: Backtesting Evidence Report generator implemented and CI-green
 SR1-SR3: signal identity, ATR persistence and repo-write serialization implemented and CI-green
 SR4: trusted portfolio-governance source enforcement implemented and CI-green
 SR5: persistent anomaly-state governance implemented and CI-green
