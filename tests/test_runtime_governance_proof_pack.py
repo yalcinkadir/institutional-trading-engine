@@ -7,6 +7,7 @@ from src.governance.kill_switch import (
     evaluate_kill_switch_for_portfolio_state,
 )
 from src.runtime.governance_approval_gate import (
+    DATA_PROVIDER_FETCH_FAILURE_REASON,
     INVALID_GOVERNANCE_APPROVAL_REASON,
     KILL_SWITCH_APPROVAL_REASON,
     STALE_PORTFOLIO_STATE_REASON,
@@ -17,6 +18,18 @@ from src.runtime.portfolio_state import PortfolioState
 
 
 REFERENCE_TIME = datetime(2026, 5, 31, 12, 0, tzinfo=UTC)
+
+
+def _valid_portfolio_state() -> PortfolioState:
+    return PortfolioState(
+        equity_start=100_000.0,
+        equity_current=100_000.0,
+        drawdown_percent=0.0,
+        daily_loss_percent=0.0,
+        governance_valid=True,
+        source="trusted_test_snapshot",
+        updated_at=REFERENCE_TIME.isoformat(),
+    )
 
 
 def test_missing_portfolio_state_conservative_default_forces_kill_switch() -> None:
@@ -98,15 +111,7 @@ def test_runtime_governance_approval_blocks_invalid_portfolio_state() -> None:
 
 
 def test_runtime_governance_approval_allows_valid_state_without_breach() -> None:
-    state = PortfolioState(
-        equity_start=100_000.0,
-        equity_current=100_000.0,
-        drawdown_percent=0.0,
-        daily_loss_percent=0.0,
-        governance_valid=True,
-        source="trusted_test_snapshot",
-        updated_at=REFERENCE_TIME.isoformat(),
-    )
+    state = _valid_portfolio_state()
 
     approval = evaluate_runtime_governance_approval(
         portfolio_state=state,
@@ -204,3 +209,37 @@ def test_invalid_portfolio_state_timestamp_is_stale() -> None:
     assert is_portfolio_state_stale(portfolio_state=state, now=REFERENCE_TIME) is True
     assert approval.approved is False
     assert STALE_PORTFOLIO_STATE_REASON in approval.reasons
+
+
+def test_actionable_signal_provider_fetch_failure_blocks_runtime_approval() -> None:
+    approval = evaluate_runtime_governance_approval(
+        portfolio_state=_valid_portfolio_state(),
+        vix=None,
+        severe_anomaly_count=0,
+        now=REFERENCE_TIME,
+        actionable_signal=True,
+        provider_fetch_errors=["Polygon latest bars fetch failed for AAPL"],
+    )
+
+    assert approval.approved is False
+    assert approval.blocked is True
+    assert DATA_PROVIDER_FETCH_FAILURE_REASON in approval.reasons
+    assert approval.provider_fetch_errors == ["Polygon latest bars fetch failed for AAPL"]
+    assert approval.actionable_signal is True
+    assert approval.to_dict()["provider_fetch_errors"] == ["Polygon latest bars fetch failed for AAPL"]
+
+
+def test_non_actionable_provider_fetch_failure_is_recorded_but_does_not_block() -> None:
+    approval = evaluate_runtime_governance_approval(
+        portfolio_state=_valid_portfolio_state(),
+        vix=None,
+        severe_anomaly_count=0,
+        now=REFERENCE_TIME,
+        actionable_signal=False,
+        provider_fetch_errors=["Polygon latest bars fetch failed for inactive symbol"],
+    )
+
+    assert approval.approved is True
+    assert approval.blocked is False
+    assert DATA_PROVIDER_FETCH_FAILURE_REASON not in approval.reasons
+    assert approval.provider_fetch_errors == ["Polygon latest bars fetch failed for inactive symbol"]
