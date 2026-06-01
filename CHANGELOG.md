@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## RGP7 Repo-Write Workflow Governance Guard — 2026-06-01
+
+### Added
+- RGP7: added CI guard coverage for repo-writing GitHub Actions workflow governance.
+- Added `tests/test_rgp7_repo_write_workflow_governance.py` to scan `.github/workflows/*.yml` and `.github/workflows/*.yaml`.
+- Added regression coverage that fails when a workflow uses `git commit`, `git push`, `git pull` or `git rebase` without repo-wide concurrency or a robust push retry strategy.
+
+### Changed
+- Repo-write safety is now enforced as a future-proof guard instead of relying on manual workflow review only.
+- The RGP documentation now includes repo-write workflow serialization/retry governance.
+
+### Stabilization Result
+- RGP7 implementation status: implemented / CI-wired.
+- CI status: pending current run.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## RGP6 Strict Critical Notification Handling — 2026-06-01
 
 ### Added
