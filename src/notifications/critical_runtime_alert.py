@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -8,6 +9,7 @@ from typing import Any
 from src.notifications.telegram_report_dispatcher import (
     TelegramDispatchConfig,
     TelegramDispatchResult,
+    TelegramDispatchStatus,
     TelegramReportMessage,
     TelegramTransport,
     dispatch_telegram_report,
@@ -15,6 +17,11 @@ from src.notifications.telegram_report_dispatcher import (
 )
 
 CRITICAL_ALERT_TYPES = {"STOP", "EXIT"}
+CRITICAL_NOTIFICATION_FAILED_STATUS = "NOTIFICATION_FAILED"
+
+
+class CriticalRuntimeAlertNotificationError(RuntimeError):
+    """Raised when a critical STOP/EXIT alert cannot be delivered or persisted safely."""
 
 
 @dataclass(frozen=True)
@@ -65,7 +72,7 @@ def build_critical_runtime_alert_message(alert: CriticalRuntimeAlert) -> Telegra
         ]
     )
     return TelegramReportMessage(
-        title=f"RGP5 Critical {alert_type} Runtime Alert",
+        title=f"RGP5/RGP6 Critical {alert_type} Runtime Alert",
         body=body,
         report_type="critical_runtime_alert",
     )
@@ -78,21 +85,34 @@ def deliver_critical_runtime_alert_before_repo_persistence(
     repository_persistence: Callable[[], None] | None = None,
     config: TelegramDispatchConfig | None = None,
     transport: TelegramTransport | None = None,
+    strict_notification: bool = True,
 ) -> CriticalRuntimeAlertDeliveryResult:
     """Dispatch and persist a critical STOP/EXIT alert before repository persistence.
 
     RGP5 requires critical lifecycle alerts to be delivered or persisted before any
-    git commit/rebase/push style persistence can fail. This helper enforces that
-    order explicitly and records repository persistence failure as metadata rather
-    than allowing it to erase alert evidence.
+    git commit/rebase/push style persistence can fail. RGP6 adds strict
+    notification handling: notification delivery/persistence failures are not
+    masked and repository persistence is not attempted after notification failure.
     """
 
     alert_type = _normalize_alert_type(alert.alert_type)
     message = build_critical_runtime_alert_message(alert)
-    dispatch_result = dispatch_telegram_report(message, config=config, transport=transport)
-    write_telegram_dispatch_result(dispatch_result, alert_result_path)
-
     output_path = Path(alert_result_path)
+
+    try:
+        dispatch_result = dispatch_telegram_report(message, config=config, transport=transport)
+        write_telegram_dispatch_result(dispatch_result, output_path)
+    except Exception as exc:  # noqa: BLE001 - critical notification failure must be persisted then raised
+        _write_critical_notification_failure(alert=alert, alert_result_path=output_path, error=exc)
+        raise CriticalRuntimeAlertNotificationError(
+            f"critical {alert_type} notification failed before repository persistence: {exc}"
+        ) from exc
+
+    if strict_notification and dispatch_result.status == TelegramDispatchStatus.BLOCKED:
+        raise CriticalRuntimeAlertNotificationError(
+            f"critical {alert_type} notification blocked by guardrails before repository persistence"
+        )
+
     alert_persisted = output_path.exists()
     repository_persisted = False
     repository_error: str | None = None
@@ -121,3 +141,23 @@ def _normalize_alert_type(alert_type: str) -> str:
     if normalized not in CRITICAL_ALERT_TYPES:
         raise ValueError("critical runtime alert type must be STOP or EXIT")
     return normalized
+
+
+def _write_critical_notification_failure(
+    *,
+    alert: CriticalRuntimeAlert,
+    alert_result_path: Path,
+    error: Exception,
+) -> None:
+    alert_result_path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "status": CRITICAL_NOTIFICATION_FAILED_STATUS,
+        "sent": False,
+        "alert_type": _normalize_alert_type(alert.alert_type),
+        "signal_id": alert.signal_id,
+        "symbol": alert.symbol.upper(),
+        "error": str(error),
+        "repository_persistence_attempted": False,
+        "live_trading_authorization": "not_granted",
+    }
+    alert_result_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
