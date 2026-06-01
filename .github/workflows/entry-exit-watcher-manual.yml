@@ -75,6 +75,7 @@ jobs:
           git push origin "HEAD:${GITHUB_REF_NAME}"
 
       - name: Upload alert artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: manual-entry-exit-alerts-${{ github.run_id }}
