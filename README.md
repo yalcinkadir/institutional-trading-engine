@@ -22,6 +22,7 @@ PO4: Daily Observation Record Validator implemented and CI-green
 PO5: Daily Observation Record Writer implemented and CI-green
 PO6: Daily Observation Record Artifact Contract implemented and CI-green
 PO7: Daily Observation Record Index implemented and CI-green
+PO8: Daily Observation Review Summary implemented and CI-green
 Phase C paper execution infrastructure: implemented for planning, reconciliation, drift, fill-quality and kill-switch governance
 Phase EV1-EV2: Sharpe/Deflated-Sharpe evidence-unit correction implemented / CI-wired
 Phase IP1/IP2: public/private edge boundary and public repository hygiene policy implemented
@@ -195,6 +196,31 @@ Test command:
     pytest tests/test_po7_daily_observation_record_index.py -q
 
 PO7 does not authorize live trading.
+
+## PO8 Daily Observation Review Summary
+
+PO8 builds a deterministic review summary from the PO7 Daily Observation Record Index.
+
+Summary includes:
+
+    total_records
+    accepted_count
+    rejected_count
+    needs_review_count
+    review_required_dates
+    rejected_dates
+    needs_review_dates
+    review_ready
+    live_trading_authorized: false
+    broker_execution_mode: paper_only
+
+Review readiness requires at least one observation record, zero rejected records, zero needs-review records, no review-required records and no consistency errors.
+
+Test command:
+
+    pytest tests/test_po8_daily_observation_review_summary.py -q
+
+PO8 does not authorize live trading.
 
 ## BT8 Backtesting Evidence Report
 
