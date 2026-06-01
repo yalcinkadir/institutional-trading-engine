@@ -37,6 +37,7 @@ BT3: Backtest reproducibility contract implemented
 BT5: Walk-Forward / Out-of-Sample Robustness Gate implemented and CI-green
 BT6: Evidence Baseline Regression Gate implemented and CI-green
 BT7: Capacity / Turnover / Realism Gate implemented and CI-green
+BT8: Backtesting Evidence Report generator implemented / CI-wired
 SR1-SR3: signal identity, ATR persistence and repo-write serialization implemented and CI-green
 SR4: trusted portfolio-governance source enforcement implemented and CI-green
 SR5: persistent anomaly-state governance implemented and CI-green
@@ -64,6 +65,23 @@ Broker execution: paper-only infrastructure; live execution is not implemented
 ```
 
 Code quality is not trading edge. The system is promising enough to test seriously, but real capital still requires long-running forward evidence, drift detection, regime-change monitoring, position-level risk attribution, execution-quality review, capacity/turnover realism and manual approval.
+
+## BT8 Backtesting Evidence Report
+
+BT8 turns reproducible BT3 backtest run contracts into audit-friendly JSON and Markdown evidence reports. The report summarizes run count, strategy count, datasets, symbols, trades, average return, average win rate, average Sharpe, worst max drawdown, BT3 gate results, run-level metrics and research-only limitations.
+
+```bash
+python scripts/generate_backtesting_evidence_report.py \
+  --contracts-json reports/backtest_run_contract/contracts.json \
+  --output-json reports/backtesting_evidence/bt8_report.json \
+  --output-md reports/backtesting_evidence/bt8_report.md
+```
+
+```bash
+pytest tests/test_bt8_backtesting_evidence_report.py -q
+```
+
+BT8 does not authorize live trading. It is a research / paper-observation evidence report.
 
 ## RGP Runtime Governance Proof Pack
 
