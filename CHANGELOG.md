@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## TEST1 Evidence-Oriented TDD Policy — 2026-06-01
+
+### Added
+- Added `docs/operations/test1_evidence_oriented_tdd_policy.md` as the active project policy for safety-relevant fixes and external review findings.
+- Documented the test-first workflow: guard test first, minimal fix second, targeted test, relevant module tests, full suite, documentation last.
+- Added README and ROADMAP visibility for TEST1.
+
+### Policy Contract
+- A fix is not complete without a guard test.
+- A happy-path-only test is not sufficient for safety-critical logic.
+- Dangerous paths, boundary cases and fail-closed invariants must be explicitly covered.
+- External review findings should receive explicit guard tests.
+
+### Safety Boundary
+- TEST1 does not authorize live trading, broker execution, capital allocation or production deployment.
+
+---
+
 ## PO13 Monthly Paper Observation Review Pack — 2026-06-01
 
 ### Added
