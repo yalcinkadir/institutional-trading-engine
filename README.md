@@ -23,7 +23,7 @@ PO5: Daily Observation Record Writer implemented and CI-green
 PO6: Daily Observation Record Artifact Contract implemented and CI-green
 PO7: Daily Observation Record Index implemented and CI-green
 PO8: Daily Observation Review Summary implemented and CI-green
-PO9: Paper Observation Review Gate implemented and CI-wired
+PO9: Paper Observation Review Gate implemented and CI-green
 Phase C paper execution infrastructure: implemented for planning, reconciliation, drift, fill-quality and kill-switch governance
 Phase EV1-EV2: Sharpe/Deflated-Sharpe evidence-unit correction implemented / CI-wired
 Phase IP1/IP2: public/private edge boundary and public repository hygiene policy implemented
