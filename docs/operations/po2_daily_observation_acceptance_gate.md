@@ -1,7 +1,7 @@
 # PO2 Daily Observation Acceptance Gate
 
 Status date: 2026-06-01
-Status: implemented / CI-wired
+Status: Done / CI-green
 
 ## Purpose
 
@@ -61,6 +61,12 @@ NEEDS_REVIEW
 ```
 
 `NEEDS_REVIEW` is used for days that have all core artifacts but contain incidents requiring manual review before they can be promoted to accepted evidence.
+
+## CI result
+
+```text
+PO2 Daily Observation Acceptance Gate: Done / CI-green
+```
 
 ## Test command
 
