@@ -23,6 +23,7 @@ PO5: Daily Observation Record Writer implemented and CI-green
 PO6: Daily Observation Record Artifact Contract implemented and CI-green
 PO7: Daily Observation Record Index implemented and CI-green
 PO8: Daily Observation Review Summary implemented and CI-green
+PO9: Paper Observation Review Gate implemented and CI-wired
 Phase C paper execution infrastructure: implemented for planning, reconciliation, drift, fill-quality and kill-switch governance
 Phase EV1-EV2: Sharpe/Deflated-Sharpe evidence-unit correction implemented / CI-wired
 Phase IP1/IP2: public/private edge boundary and public repository hygiene policy implemented
@@ -221,6 +222,23 @@ Test command:
     pytest tests/test_po8_daily_observation_review_summary.py -q
 
 PO8 does not authorize live trading.
+
+## PO9 Paper Observation Review Gate
+
+PO9 evaluates the PO8 Daily Observation Review Summary and decides whether Paper Observation evidence is ready for human review.
+
+Gate status:
+
+    PASSED
+    BLOCKED
+
+PO9 passes only when the PO8 summary is review-ready, the minimum observation-record requirement is met, all records are accepted, no rejected or needs-review days exist, no manual-review dates remain and the paper-only boundary is preserved.
+
+Test command:
+
+    pytest tests/test_po9_paper_observation_review_gate.py -q
+
+PO9 does not authorize live trading. A passed PO9 gate means review-ready paper-observation evidence only.
 
 ## BT8 Backtesting Evidence Report
 
