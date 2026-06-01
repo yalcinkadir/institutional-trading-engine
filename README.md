@@ -57,6 +57,7 @@ RGP7: repo-writing workflow serialization/retry guard implemented and CI-green
 RGP8: alert/evidence artifact upload-on-failure guard implemented and CI-green
 RGP9: signal lifecycle status source of truth implemented and CI-green
 RGP10: latest bar timestamp ordering guard implemented and CI-green
+RGP11: signal identity float quantization implemented and CI-wired
 Live trading authorization: not granted by code
 Broker execution: paper-only infrastructure; live execution is not implemented
 ```
@@ -73,12 +74,14 @@ src/runtime/governance_approval_gate.py
 src/runtime/portfolio_state.py
 src/notifications/critical_runtime_alert.py
 src/signals/signal_status.py
+src/signals/signal_identity.py
 tests/test_runtime_governance_proof_pack.py
 tests/test_critical_runtime_alert.py
 tests/test_rgp7_repo_write_workflow_governance.py
 tests/test_rgp8_artifact_upload_on_git_failure.py
 tests/test_rgp9_signal_status_source_of_truth.py
 tests/test_entry_exit_watcher.py
+tests/test_rgp11_signal_identity_quantization.py
 ```
 
 Implemented safeguards:
@@ -93,6 +96,7 @@ Implemented safeguards:
 - RGP8: repo-writing GitHub Actions are guarded so alert/evidence/runtime artifacts must be uploaded with `if: always()` even when git persistence fails.
 - RGP9: signal lifecycle statuses and event types are centralized in `src/signals/signal_status.py` so watcher, regime invalidation and runner management cannot drift.
 - RGP10: provider bar order is not trusted; watcher latest-bar selection now sorts by timestamp before lifecycle evaluation.
+- RGP11: signal identity price fields are quantized before hashing so representation noise does not split lifecycle history.
 - Runtime approval is explicit: `approved=True` is only possible when governance is valid, portfolio state is recent, provider evidence is usable for actionable signals and the kill switch is inactive.
 - Critical lifecycle alerts are research/paper-only, persisted as audit evidence and do not authorize live trading.
 - Tests inject deterministic timestamps so CI remains reproducible.
@@ -107,6 +111,7 @@ pytest tests/test_rgp7_repo_write_workflow_governance.py -q
 pytest tests/test_rgp8_artifact_upload_on_git_failure.py -q
 pytest tests/test_rgp9_signal_status_source_of_truth.py -q
 pytest tests/test_entry_exit_watcher.py -q
+pytest tests/test_rgp11_signal_identity_quantization.py -q
 ```
 
 ## PSR4 Drift and Regime Evidence
