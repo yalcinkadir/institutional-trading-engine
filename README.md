@@ -51,6 +51,7 @@ RGP1: missing/invalid PortfolioState fail-closed proof implemented and CI-green
 RGP2: runtime governance approval gate implemented and CI-green
 RGP3: stale PortfolioState approval blocking implemented and CI-green
 RGP4: actionable signal provider-fetch failure blocking implemented and CI-wired
+RGP5: critical STOP/EXIT alert ordering guard implemented and CI-wired
 Live trading authorization: not granted by code
 Broker execution: paper-only infrastructure; live execution is not implemented
 ```
@@ -65,7 +66,9 @@ RGP proves that runtime governance fails closed when safety evidence is missing,
 src/governance/kill_switch.py
 src/runtime/governance_approval_gate.py
 src/runtime/portfolio_state.py
+src/notifications/critical_runtime_alert.py
 tests/test_runtime_governance_proof_pack.py
+tests/test_critical_runtime_alert.py
 ```
 
 Implemented safeguards:
@@ -74,14 +77,17 @@ Implemented safeguards:
 - RGP2: `evaluate_runtime_governance_approval()` blocks runtime approval when portfolio governance is invalid or the kill switch is active.
 - RGP3: stale, future-dated or invalid `portfolio_state.updated_at` blocks runtime approval with `stale_portfolio_state`.
 - RGP4: actionable signals with provider/data-fetch failures block runtime approval with `data_provider_fetch_failure` instead of being silently skipped.
+- RGP5: critical STOP/EXIT runtime alerts are dispatched and persisted before repository commit/rebase/push style persistence can fail.
 - Runtime approval is explicit: `approved=True` is only possible when governance is valid, portfolio state is recent, provider evidence is usable for actionable signals and the kill switch is inactive.
+- Critical lifecycle alerts are research/paper-only, persisted as audit evidence and do not authorize live trading.
 - Tests inject deterministic timestamps so CI remains reproducible.
 - No broker execution, no live trading authorization and no private edge parameters are introduced.
 
-RGP test command:
+RGP test commands:
 
 ```bash
 pytest tests/test_runtime_governance_proof_pack.py -q
+pytest tests/test_critical_runtime_alert.py -q
 ```
 
 ## PSR4 Drift and Regime Evidence
