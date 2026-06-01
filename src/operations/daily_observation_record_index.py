@@ -81,14 +81,14 @@ def build_daily_observation_record_index(records: Iterable[Mapping[str, Any]]) -
 def write_daily_observation_record_index(
     *,
     records: Iterable[Mapping[str, Any]],
-    output_path: str | Path = INDEX_PATH,
+    output_path: str | Path | None = None,
     indent: int = 2,
 ) -> DailyObservationRecordIndexResult:
     result = build_daily_observation_record_index(records)
     if not result.valid:
         return result
 
-    path = Path(output_path)
+    path = Path(output_path) if output_path is not None else INDEX_PATH
     if path != INDEX_PATH:
         return DailyObservationRecordIndexResult(
             valid=False,
