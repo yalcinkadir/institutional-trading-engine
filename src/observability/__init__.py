@@ -1,23 +1,8 @@
 """
-Paper Observation module.
+Observability helpers.
 
-This package records real-time/paper-mode decision behavior without placing trades.
-It is intentionally separated from execution and broker logic.
+This package intentionally exposes no eager imports so optional observability
+modules cannot break unrelated CI collection.
 """
 
-from .paper_observation_models import (
-    PaperObservationRecord,
-    PaperObservationDecision,
-    PaperObservationReview,
-)
-
-from .paper_observation_store import PaperObservationStore
-from .paper_observation_service import PaperObservationService
-
-__all__ = [
-    "PaperObservationRecord",
-    "PaperObservationDecision",
-    "PaperObservationReview",
-    "PaperObservationStore",
-    "PaperObservationService",
-]
+__all__: list[str] = []
