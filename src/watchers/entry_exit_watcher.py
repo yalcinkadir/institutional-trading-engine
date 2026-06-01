@@ -175,6 +175,44 @@ def _parse_bar_timestamp_date(timestamp: str) -> date | None:
             return None
 
 
+def _bar_sort_key(bar: dict[str, Any]) -> tuple[int, float, str]:
+    """Return a deterministic sort key for Polygon-style bars.
+
+    RGP10 rule: provider order is not trusted. Numeric millisecond timestamps are
+    preferred, ISO-like timestamps are second, and unknown timestamps sort last so
+    they cannot replace a known newest bar.
+    """
+    timestamp = bar.get("t")
+    if timestamp is not None:
+        try:
+            return (0, float(timestamp), str(timestamp))
+        except (TypeError, ValueError):
+            pass
+
+    for key in ("timestamp", "datetime", "date"):
+        value = bar.get(key)
+        if not value:
+            continue
+        text = str(value)
+        normalized = text.replace("Z", "+00:00")
+        try:
+            return (1, datetime.fromisoformat(normalized).timestamp(), text)
+        except ValueError:
+            try:
+                return (1, datetime.fromisoformat(text[:10]).timestamp(), text)
+            except ValueError:
+                return (2, float("-inf"), text)
+
+    return (2, float("-inf"), "")
+
+
+def _latest_bar(bars: Iterable[dict[str, Any]]) -> dict[str, Any] | None:
+    bars_list = list(bars)
+    if not bars_list:
+        return None
+    return max(bars_list, key=_bar_sort_key)
+
+
 def _is_daily_bar_complete(bar_timestamp: str, *, today: date | None = None) -> bool:
     bar_date = _parse_bar_timestamp_date(bar_timestamp)
     if bar_date is None:
@@ -610,9 +648,9 @@ def latest_bars_to_price_map(
     result: dict[str, PriceBar] = {}
 
     for symbol, bars in bars_by_symbol.items():
-        bars_list = list(bars)
-        if not bars_list:
+        latest = _latest_bar(bars)
+        if latest is None:
             continue
-        result[symbol] = build_price_bar_from_polygon(symbol, bars_list[-1])
+        result[symbol] = build_price_bar_from_polygon(symbol, latest)
 
     return result
