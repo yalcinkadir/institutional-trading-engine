@@ -25,4 +25,4 @@ def test_er2_gap_entry_uses_open_for_r_multiple() -> None:
 
     assert result.outcome == OUTCOME_TARGET_2_HIT
     assert result.exit_price == 120
-    assert result.r_multiple == 3.0
+    assert result.r_multiple == 1.5
