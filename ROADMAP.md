@@ -1,7 +1,7 @@
 # Institutional Trading Engine Roadmap
 
 Status date: 2026-06-01  
-Current state: EV1-EV12 evidence-integrity remediation is implemented, centrally documented and CI-green. CI runtime simplification is implemented and CI-green. B1.1 evidence operation discipline plus TG2/TG3 reporting integration is implemented and CI-wired. Phase B1.1 remains active as the 3-6 month observation-only evidence collection period. 
+Current state: TEST1 Evidence-Oriented TDD Policy is active as the default workflow for safety-relevant fixes and external review findings. EV1-EV12 evidence-integrity remediation is implemented, centrally documented and CI-green. CI runtime simplification is implemented and CI-green. B1.1 evidence operation discipline plus TG2/TG3 reporting integration is implemented and CI-wired. Phase B1.1 remains active as the 3-6 month observation-only evidence collection period. 
 PO1 Paper Observation Timeline and Review Gate, PO2 Daily Observation Acceptance Gate, PO3 Daily Observation Run Record, PO4 Daily Observation Record Validator, PO5 Daily Observation Record Writer, PO6 Daily Observation Record Artifact Contract, PO7 Daily Observation Record Index, PO8 Daily Observation Review Summary, PO9 Paper Observation Review Gate, PO10 Daily Observation Automation Runner, PO11 Scheduled Daily Observation Workflow, PO12 Daily Observation Artifact Retention & Review Index and PO13 Monthly Paper Observation Review Pack are implemented and CI-green.
 GOV1-GOV10 runtime/pre-live governance hardening is implemented and CI-green. SR1 stable signal identity, SR2 ATR persistence, SR3 repo-write serialization, SR4 trusted portfolio-governance source enforcement, SR5 persistent anomaly-state governance, SR6 governance-threshold single source of truth, SR7 completed-bar watcher semantics and SR8 dependency reproducibility contract are implemented and CI-green. PSR1 daily runtime evidence manifest, PSR2 runtime evidence manifest guard, PSR3 fill-quality evidence integration and PSR4 drift/regime-change evidence linkage are implemented and CI-green. Phase RGP Runtime Governance Proof Pack is complete through RGP12; RGP1 missing/invalid PortfolioState fail-closed proof, RGP2 runtime governance approval gate, RGP3 stale PortfolioState approval blocking, RGP4 actionable signal provider-fetch failure blocking, RGP5 critical STOP/EXIT alert ordering, RGP6 strict critical notification failure handling, RGP7 repo-write workflow governance guard, RGP8 artifact upload-on-failure guard, RGP9 signal lifecycle status source of truth, RGP10 latest-bar timestamp ordering guard, RGP11 signal identity float quantization and RGP12 partial-exit lifecycle persistence are implemented and CI-green. BT8 Backtesting Evidence Report generator is implemented and CI-green. Phase D expansion or any live-execution consideration remains blocked until forward evidence, drift monitoring, risk attribution, execution quality review, capacity/turnover realism and manual approval are in place. Real-money execution is not authorized by code.
 
@@ -29,6 +29,7 @@ The project now prioritizes:
 16. scheduled daily observation workflow before operational evidence collection scales
 17. indexed daily observation artifact retention before long-horizon evidence review scales
 18. monthly paper-observation review packs before any 3-month evidence review can be considered
+19. test-first guard coverage before safety-relevant fixes can be considered complete
 
 Hard rule: no real-money execution before real forward evidence, drift detection, regime-change monitoring, position-level risk attribution, capacity/turnover realism, runtime governance hardening and manual approval are in place.
 
@@ -51,6 +52,19 @@ Hard scheduling rule: Scheduled observation workflows may upload artifacts only.
 Hard review-index rule: Observation artifact review indexes may structure evidence for audit only. They must not authorize live trading, broker execution or capital allocation.
 
 Hard monthly-review rule: Monthly paper-observation review packs may mark evidence as ready for human review only. They must not authorize live trading, broker execution or capital allocation.
+
+Hard TEST1 rule: safety-relevant fixes and external review findings require a guard test first. A green suite is not sufficient unless the dangerous path is explicitly covered.
+
+## Phase TEST — Evidence-Oriented Test Discipline
+
+Target window: active policy  
+Goal: make test-first evidence discipline mandatory for safety-relevant fixes, external review findings and trading-risk logic.
+
+| ID | Task | Priority | Impact | Status |
+|---|---|---:|---:|---|
+| TEST1 | Adopt Evidence-Oriented TDD Policy: guard test first, minimal fix second, targeted test, module tests, full suite, documentation last | P0 | Critical | Active |
+
+TEST1 makes TDD the default for high-risk remediation. No fix is considered complete unless the dangerous path, boundary case or fail-closed invariant is captured by a guard test.
 
 ## Phase PO — Paper Observation Evidence Process
 
