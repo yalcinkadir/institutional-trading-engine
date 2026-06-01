@@ -52,7 +52,8 @@ RGP2: runtime governance approval gate implemented and CI-green
 RGP3: stale PortfolioState approval blocking implemented and CI-green
 RGP4: actionable signal provider-fetch failure blocking implemented and CI-wired
 RGP5: critical STOP/EXIT alert ordering guard implemented and CI-green
-RGP6: strict critical notification failure handling implemented and CI-wired
+RGP6: strict critical notification failure handling implemented and CI-green
+RGP7: repo-writing workflow serialization/retry guard implemented and CI-wired
 Live trading authorization: not granted by code
 Broker execution: paper-only infrastructure; live execution is not implemented
 ```
@@ -70,6 +71,7 @@ src/runtime/portfolio_state.py
 src/notifications/critical_runtime_alert.py
 tests/test_runtime_governance_proof_pack.py
 tests/test_critical_runtime_alert.py
+tests/test_rgp7_repo_write_workflow_governance.py
 ```
 
 Implemented safeguards:
@@ -80,6 +82,7 @@ Implemented safeguards:
 - RGP4: actionable signals with provider/data-fetch failures block runtime approval with `data_provider_fetch_failure` instead of being silently skipped.
 - RGP5: critical STOP/EXIT runtime alerts are dispatched and persisted before repository commit/rebase/push style persistence can fail.
 - RGP6: critical notification transport failures and guardrail blocks are not masked; failure evidence is persisted and repository persistence is not attempted.
+- RGP7: repo-writing GitHub Actions are guarded so future commit/push/rebase workflows require repo-wide concurrency or robust push retry.
 - Runtime approval is explicit: `approved=True` is only possible when governance is valid, portfolio state is recent, provider evidence is usable for actionable signals and the kill switch is inactive.
 - Critical lifecycle alerts are research/paper-only, persisted as audit evidence and do not authorize live trading.
 - Tests inject deterministic timestamps so CI remains reproducible.
@@ -90,6 +93,7 @@ RGP test commands:
 ```bash
 pytest tests/test_runtime_governance_proof_pack.py -q
 pytest tests/test_critical_runtime_alert.py -q
+pytest tests/test_rgp7_repo_write_workflow_governance.py -q
 ```
 
 ## PSR4 Drift and Regime Evidence
