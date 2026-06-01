@@ -29,14 +29,8 @@ SUPPORTED_EXIT_MODELS = {None, "t1_t2", "r_multiple_targets", "t1_only"}
 class BacktestExecutionConfig:
     """Execution assumptions for deterministic historical plan simulation."""
 
-    # Conservative same-bar assumption: if entry and stop are both touched on the
-    # entry bar, assume the stop was hit first.
     same_bar_stop_first: bool = True
-    # Gap-through-stop handling: if the bar opens beyond the stop, use the open
-    # instead of pretending the stop filled exactly at the stop-loss level.
     model_stop_gaps: bool = True
-    # Gap-through-entry handling: if a long entry bar opens above the trigger,
-    # use the open instead of pretending the entry filled at the lower trigger.
     model_entry_gaps: bool = True
 
 
@@ -196,159 +190,35 @@ def simulate_plan(
             entry_fill_price = _entry_fill_price(plan, bar_open, cfg)
             if cfg.same_bar_stop_first and low <= plan.stop_loss:
                 fill = _stop_fill_price(plan, bar_open, cfg)
-                return _result(
-                    plan,
-                    outcome=OUTCOME_STOP_HIT,
-                    entry_hit=True,
-                    target_1_hit=False,
-                    target_2_hit=False,
-                    stop_hit=True,
-                    false_breakout=True,
-                    entry_date=entry_date,
-                    exit_date=current_date,
-                    exit_price=fill,
-                    r_multiple=_r(plan, fill, entry_fill_price),
-                    bars_evaluated=count,
-                    reason="same_bar_stop_first",
-                )
+                return _result(plan, outcome=OUTCOME_STOP_HIT, entry_hit=True, target_1_hit=False, target_2_hit=False, stop_hit=True, false_breakout=True, entry_date=entry_date, exit_date=current_date, exit_price=fill, r_multiple=_r(plan, fill, entry_fill_price), bars_evaluated=count, reason="same_bar_stop_first")
             if high >= plan.target_1:
                 t1 = True
                 if t1_only:
-                    return _result(
-                        plan,
-                        outcome=OUTCOME_TARGET_1_HIT,
-                        entry_hit=True,
-                        target_1_hit=True,
-                        target_2_hit=False,
-                        stop_hit=False,
-                        false_breakout=False,
-                        entry_date=entry_date,
-                        exit_date=current_date,
-                        exit_price=plan.target_1,
-                        r_multiple=_r(plan, plan.target_1, entry_fill_price),
-                        bars_evaluated=count,
-                        reason="target_1_only_exit",
-                    )
+                    return _result(plan, outcome=OUTCOME_TARGET_1_HIT, entry_hit=True, target_1_hit=True, target_2_hit=False, stop_hit=False, false_breakout=False, entry_date=entry_date, exit_date=current_date, exit_price=plan.target_1, r_multiple=_r(plan, plan.target_1, entry_fill_price), bars_evaluated=count, reason="target_1_only_exit")
                 if plan.target_2 and high >= plan.target_2:
-                    return _result(
-                        plan,
-                        outcome=OUTCOME_TARGET_2_HIT,
-                        entry_hit=True,
-                        target_1_hit=True,
-                        target_2_hit=True,
-                        stop_hit=False,
-                        false_breakout=False,
-                        entry_date=entry_date,
-                        exit_date=current_date,
-                        exit_price=plan.target_2,
-                        r_multiple=_r(plan, plan.target_2, entry_fill_price),
-                        bars_evaluated=count,
-                        reason="target_2_hit",
-                    )
+                    return _result(plan, outcome=OUTCOME_TARGET_2_HIT, entry_hit=True, target_1_hit=True, target_2_hit=True, stop_hit=False, false_breakout=False, entry_date=entry_date, exit_date=current_date, exit_price=plan.target_2, r_multiple=_r(plan, plan.target_2, entry_fill_price), bars_evaluated=count, reason="target_2_hit")
             continue
 
         if entered:
             if low <= effective_stop:
-                fill = _effective_stop_fill_price(
-                    plan=plan,
-                    bar_open=bar_open,
-                    effective_stop=effective_stop,
-                    cfg=cfg,
-                )
-                return _result(
-                    plan,
-                    outcome=OUTCOME_STOP_HIT,
-                    entry_hit=True,
-                    target_1_hit=t1,
-                    target_2_hit=False,
-                    stop_hit=True,
-                    false_breakout=not t1,
-                    entry_date=entry_date,
-                    exit_date=current_date,
-                    exit_price=fill,
-                    r_multiple=_r(plan, fill, entry_fill_price),
-                    bars_evaluated=count,
-                    reason="breakeven_stop_after_t1" if (t1 and breakeven_after_t1) else "stop_hit",
-                )
+                fill = _effective_stop_fill_price(plan=plan, bar_open=bar_open, effective_stop=effective_stop, cfg=cfg)
+                return _result(plan, outcome=OUTCOME_STOP_HIT, entry_hit=True, target_1_hit=t1, target_2_hit=False, stop_hit=True, false_breakout=not t1, entry_date=entry_date, exit_date=current_date, exit_price=fill, r_multiple=_r(plan, fill, entry_fill_price), bars_evaluated=count, reason="breakeven_stop_after_t1" if (t1 and breakeven_after_t1) else "stop_hit")
             if high >= plan.target_1 and not t1:
                 t1 = True
                 if t1_only:
-                    return _result(
-                        plan,
-                        outcome=OUTCOME_TARGET_1_HIT,
-                        entry_hit=True,
-                        target_1_hit=True,
-                        target_2_hit=False,
-                        stop_hit=False,
-                        false_breakout=False,
-                        entry_date=entry_date,
-                        exit_date=current_date,
-                        exit_price=plan.target_1,
-                        r_multiple=_r(plan, plan.target_1, entry_fill_price),
-                        bars_evaluated=count,
-                        reason="target_1_only_exit",
-                    )
+                    return _result(plan, outcome=OUTCOME_TARGET_1_HIT, entry_hit=True, target_1_hit=True, target_2_hit=False, stop_hit=False, false_breakout=False, entry_date=entry_date, exit_date=current_date, exit_price=plan.target_1, r_multiple=_r(plan, plan.target_1, entry_fill_price), bars_evaluated=count, reason="target_1_only_exit")
             if t1 and not t1_only and plan.target_2 and high >= plan.target_2:
-                return _result(
-                    plan,
-                    outcome=OUTCOME_TARGET_2_HIT,
-                    entry_hit=True,
-                    target_1_hit=True,
-                    target_2_hit=True,
-                    stop_hit=False,
-                    false_breakout=False,
-                    entry_date=entry_date,
-                    exit_date=current_date,
-                    exit_price=plan.target_2,
-                    r_multiple=_r(plan, plan.target_2, entry_fill_price),
-                    bars_evaluated=count,
-                    reason="target_2_hit",
-                )
+                return _result(plan, outcome=OUTCOME_TARGET_2_HIT, entry_hit=True, target_1_hit=True, target_2_hit=True, stop_hit=False, false_breakout=False, entry_date=entry_date, exit_date=current_date, exit_price=plan.target_2, r_multiple=_r(plan, plan.target_2, entry_fill_price), bars_evaluated=count, reason="target_2_hit")
 
     if not entered:
-        return _result(
-            plan,
-            outcome=OUTCOME_EXPIRED if plan.valid_until else OUTCOME_ENTRY_NOT_HIT,
-            entry_hit=False,
-            target_1_hit=False,
-            target_2_hit=False,
-            stop_hit=False,
-            false_breakout=False,
-            bars_evaluated=len(future),
-            reason="entry_not_hit",
-        )
+        return _result(plan, outcome=OUTCOME_EXPIRED if plan.valid_until else OUTCOME_ENTRY_NOT_HIT, entry_hit=False, target_1_hit=False, target_2_hit=False, stop_hit=False, false_breakout=False, bars_evaluated=len(future), reason="entry_not_hit")
+
     close = float(future.iloc[-1]["close"]) if not future.empty else (entry_fill_price or plan.entry_trigger)
+    if t1 and plan.exit_model != "t1_t2":
+        return _result(plan, outcome=OUTCOME_TARGET_1_HIT, entry_hit=True, target_1_hit=True, target_2_hit=False, stop_hit=False, false_breakout=False, entry_date=entry_date, exit_date=entry_date, exit_price=plan.target_1, r_multiple=_r(plan, plan.target_1, entry_fill_price), bars_evaluated=len(future), reason="target_1_only")
     if t1:
-        return _result(
-            plan,
-            outcome=OUTCOME_EXPIRED,
-            entry_hit=True,
-            target_1_hit=True,
-            target_2_hit=False,
-            stop_hit=False,
-            false_breakout=False,
-            entry_date=entry_date,
-            exit_date=str(future.iloc[-1]["date"]) if not future.empty else entry_date,
-            exit_price=close,
-            r_multiple=_r(plan, close, entry_fill_price),
-            bars_evaluated=len(future),
-            reason="expired_after_target_1_without_target_2",
-        )
-    return _result(
-        plan,
-        outcome=OUTCOME_EXPIRED,
-        entry_hit=True,
-        target_1_hit=False,
-        target_2_hit=False,
-        stop_hit=False,
-        false_breakout=True,
-        entry_date=entry_date,
-        exit_date=str(future.iloc[-1]["date"]) if not future.empty else entry_date,
-        exit_price=close,
-        r_multiple=_r(plan, close, entry_fill_price),
-        bars_evaluated=len(future),
-        reason="no_exit_level_hit",
-    )
+        return _result(plan, outcome=OUTCOME_EXPIRED, entry_hit=True, target_1_hit=True, target_2_hit=False, stop_hit=False, false_breakout=False, entry_date=entry_date, exit_date=str(future.iloc[-1]["date"]) if not future.empty else entry_date, exit_price=close, r_multiple=_r(plan, close, entry_fill_price), bars_evaluated=len(future), reason="expired_after_target_1_without_target_2")
+    return _result(plan, outcome=OUTCOME_EXPIRED, entry_hit=True, target_1_hit=False, target_2_hit=False, stop_hit=False, false_breakout=True, entry_date=entry_date, exit_date=str(future.iloc[-1]["date"]) if not future.empty else entry_date, exit_price=close, r_multiple=_r(plan, close, entry_fill_price), bars_evaluated=len(future), reason="no_exit_level_hit")
 
 
 def calculate_metrics(results: list[HistoricalBacktestResult]) -> HistoricalBacktestMetrics:
@@ -357,26 +227,10 @@ def calculate_metrics(results: list[HistoricalBacktestResult]) -> HistoricalBack
         return HistoricalBacktestMetrics(0, 0, 0, 0, 0, 0, 0, 0, 0)
     rate = lambda fn: round(sum(1 for item in results if fn(item)) / total, 4)
     avg_r = round(sum(item.r_multiple for item in results) / total, 4)
-    return HistoricalBacktestMetrics(
-        total=total,
-        entry_hit_rate=rate(lambda item: item.entry_hit),
-        expired_without_entry_rate=rate(lambda item: not item.entry_hit),
-        stop_hit_rate=rate(lambda item: item.stop_hit),
-        target_1_hit_rate=rate(lambda item: item.target_1_hit),
-        target_2_hit_rate=rate(lambda item: item.target_2_hit),
-        false_breakout_rate=rate(lambda item: item.false_breakout),
-        average_r=avg_r,
-        expectancy_r=avg_r,
-    )
+    return HistoricalBacktestMetrics(total=total, entry_hit_rate=rate(lambda item: item.entry_hit), expired_without_entry_rate=rate(lambda item: not item.entry_hit), stop_hit_rate=rate(lambda item: item.stop_hit), target_1_hit_rate=rate(lambda item: item.target_1_hit), target_2_hit_rate=rate(lambda item: item.target_2_hit), false_breakout_rate=rate(lambda item: item.false_breakout), average_r=avg_r, expectancy_r=avg_r)
 
 
-def run_backtest(
-    plans: list[HistoricalTradePlan],
-    *,
-    bars_root: Path,
-    max_bars: int = 20,
-    cfg: BacktestExecutionConfig = BacktestExecutionConfig(),
-) -> HistoricalBacktestReport:
+def run_backtest(plans: list[HistoricalTradePlan], *, bars_root: Path, max_bars: int = 20, cfg: BacktestExecutionConfig = BacktestExecutionConfig()) -> HistoricalBacktestReport:
     cache: dict[str, pd.DataFrame] = {}
     results: list[HistoricalBacktestResult] = []
     for plan in plans:
