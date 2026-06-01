@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## Post-RGP Stabilization Review — 2026-06-01
+
+### Added
+- Added `tests/test_post_rgp_status_consistency.py` as a documentation-status regression guard for the completed RGP proof pack.
+- The guard verifies that README and ROADMAP keep RGP1-RGP12 aligned as Done / CI-green after the Post-RGP review.
+
+### Changed
+- Corrected remaining README status drift for RGP4 from CI-wired to CI-green.
+- Locked the completed Runtime Governance Proof Pack documentation state after RGP1-RGP12 reached CI-green.
+
+### Stabilization Result
+- RGP1-RGP12 status: Done / CI-green.
+- Post-RGP documentation consistency guard: implemented / CI-wired.
+- CI status: pending current run.
+- Live trading authorization: unchanged; not granted by code.
+
+---
 ## RGP12 Partial Exit Lifecycle Persistence — 2026-06-01
 
 ### Added
