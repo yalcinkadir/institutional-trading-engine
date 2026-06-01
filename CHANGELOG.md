@@ -1,5 +1,25 @@
 # CHANGELOG
 
+## PO10 Daily Observation Automation Runner — 2026-06-01
+
+### Added
+- Added `src/operations/daily_observation_automation_runner.py` to connect PO5 Daily Observation Record creation, PO7 indexing, PO8 review summary generation and PO9 review-gate evaluation into one deterministic daily automation artifact.
+- Added `tests/test_po10_daily_observation_automation_runner.py` to guard passed/blocked automation status, minimum-record blocking, rejected/needs-review observation days, existing-record inclusion, duplicate-date error surfacing and canonical artifact writing.
+- Added `docs/operations/po10_daily_observation_automation_runner.md` to document PO10 and CI-green status.
+
+### Automation Contract
+- Produces canonical daily automation artifacts under `reports/daily_observation_automation/YYYY-MM-DD.json`.
+- Produces `PASSED` or `BLOCKED` automation status.
+- Includes the generated observation record path, PO7 index path, PO8 summary, PO9 gate output and deterministic errors.
+- Preserves the paper-only boundary with `live_trading_authorized=false` and `broker_execution_mode=paper_only`.
+
+### Stabilization Result
+- PO10 implementation status: Done / CI-green.
+- CI status: green; guarded by `tests/test_po10_daily_observation_automation_runner.py`.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## PO9 Paper Observation Review Gate — 2026-06-01
 
 ### Added
