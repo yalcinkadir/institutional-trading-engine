@@ -3,11 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
 from src.runtime.portfolio_state import (
     PortfolioState,
-    PortfolioStateError,
     PortfolioStateStore,
 )
 
@@ -81,23 +78,29 @@ def test_load_explicit_invalid_governance_state(tmp_path: Path) -> None:
     assert state.governance_valid is False
 
 
-def test_load_invalid_json_raises(tmp_path: Path) -> None:
+def test_load_invalid_json_returns_fail_closed_state(tmp_path: Path) -> None:
     path = tmp_path / "portfolio_state.json"
     path.write_text("not-json", encoding="utf-8")
 
-    with pytest.raises(PortfolioStateError, match="Invalid portfolio state JSON"):
-        PortfolioStateStore(path).load()
+    state = PortfolioStateStore(path).load()
+
+    assert state.source == "invalid_portfolio_state_fail_closed"
+    assert state.governance_valid is False
+    assert any("Invalid portfolio state JSON" in warning for warning in state.warnings)
 
 
-def test_load_non_object_raises(tmp_path: Path) -> None:
+def test_load_non_object_returns_fail_closed_state(tmp_path: Path) -> None:
     path = tmp_path / "portfolio_state.json"
     path.write_text("[]", encoding="utf-8")
 
-    with pytest.raises(PortfolioStateError, match="JSON object"):
-        PortfolioStateStore(path).load()
+    state = PortfolioStateStore(path).load()
+
+    assert state.source == "invalid_portfolio_state_fail_closed"
+    assert state.governance_valid is False
+    assert any("JSON object" in warning for warning in state.warnings)
 
 
-def test_load_missing_required_field_raises(tmp_path: Path) -> None:
+def test_load_missing_required_field_returns_fail_closed_state(tmp_path: Path) -> None:
     path = tmp_path / "portfolio_state.json"
     path.write_text(
         json.dumps(
@@ -111,11 +114,14 @@ def test_load_missing_required_field_raises(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    with pytest.raises(PortfolioStateError, match="daily_loss_percent"):
-        PortfolioStateStore(path).load()
+    state = PortfolioStateStore(path).load()
+
+    assert state.source == "invalid_portfolio_state_fail_closed"
+    assert state.governance_valid is False
+    assert any("daily_loss_percent" in warning for warning in state.warnings)
 
 
-def test_load_non_finite_number_raises(tmp_path: Path) -> None:
+def test_load_non_finite_number_returns_fail_closed_state(tmp_path: Path) -> None:
     path = tmp_path / "portfolio_state.json"
     path.write_text(
         json.dumps(
@@ -130,8 +136,11 @@ def test_load_non_finite_number_raises(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    with pytest.raises(PortfolioStateError, match="Non-finite"):
-        PortfolioStateStore(path).load()
+    state = PortfolioStateStore(path).load()
+
+    assert state.source == "invalid_portfolio_state_fail_closed"
+    assert state.governance_valid is False
+    assert any("Non-finite" in warning for warning in state.warnings)
 
 
 def test_save_and_reload_roundtrip(tmp_path: Path) -> None:
