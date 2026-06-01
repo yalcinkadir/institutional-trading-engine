@@ -26,7 +26,7 @@ Data fetching belongs to scripts/run_entry_exit_watcher.py or another adapter.
 from __future__ import annotations
 
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any, Iterable
@@ -95,6 +95,7 @@ class SignalLifecycleUpdate:
     event_type: str
     price: float | None
     signal: dict[str, Any]
+    supplemental_events: list[dict[str, Any]] = field(default_factory=list)
 
 
 def utc_now_iso() -> str:
@@ -331,6 +332,7 @@ def evaluate_signal_against_bar(
     updated_signal = dict(signal)
     updated_signal["signal_id"] = signal_id
     updated_signal["status"] = new_status
+    supplemental_events: list[dict[str, Any]] = []
 
     if event_type == SignalEventType.ENTRY_TRIGGERED.value:
         updated_signal["entry_triggered_at"] = bar.timestamp
@@ -353,6 +355,21 @@ def evaluate_signal_against_bar(
         )
         updated_signal = runner_result.signal
         stop = _safe_float(updated_signal.get("stop_loss"))
+        if runner_result.event_type:
+            supplemental_events.append(
+                {
+                    "signal_id": signal_id,
+                    "symbol": symbol,
+                    "signal_date": signal_date,
+                    "timestamp": bar.timestamp,
+                    "previous_status": previous_status,
+                    "new_status": new_status,
+                    "event_type": runner_result.event_type,
+                    "price": trigger_price,
+                    "signal": updated_signal,
+                    "reasons": runner_result.reasons,
+                }
+            )
 
     alert = WatcherAlert(
         alert_type=event_type,
@@ -380,6 +397,7 @@ def evaluate_signal_against_bar(
         event_type=event_type,
         price=alert.price,
         signal=updated_signal,
+        supplemental_events=supplemental_events,
     )
 
     return alert, lifecycle
@@ -551,6 +569,12 @@ def _read_existing_lifecycle_keys(path: Path) -> set[tuple[str, str]]:
     return keys
 
 
+def _lifecycle_payloads(update: SignalLifecycleUpdate) -> list[dict[str, Any]]:
+    payload = asdict(update)
+    supplemental_events = payload.pop("supplemental_events", []) or []
+    return [payload, *supplemental_events]
+
+
 def append_lifecycle_updates(
     updates: list[SignalLifecycleUpdate],
     *,
@@ -563,13 +587,13 @@ def append_lifecycle_updates(
 
     with target.open("a", encoding="utf-8") as handle:
         for update in updates:
-            payload = asdict(update)
-            key = _lifecycle_key(payload)
-            if all(key) and key in existing_keys:
-                continue
-            handle.write(json.dumps(payload) + "\n")
-            if all(key):
-                existing_keys.add(key)
+            for payload in _lifecycle_payloads(update):
+                key = _lifecycle_key(payload)
+                if all(key) and key in existing_keys:
+                    continue
+                handle.write(json.dumps(payload) + "\n")
+                if all(key):
+                    existing_keys.add(key)
 
     return target
 
