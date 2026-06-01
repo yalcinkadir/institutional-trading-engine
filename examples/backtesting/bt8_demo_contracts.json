@@ -1,0 +1,95 @@
+{
+  "contracts": [
+    {
+      "artifacts": [
+        {
+          "name": "input_manifest",
+          "path": "reports/backtest_run_contract/bt3-demo-trend-001/input_manifest.json",
+          "sha256": "3e46d6fe733b91c854667ff42bc752be45b04e9baf3fa6990f28de9d42befe1c"
+        },
+        {
+          "name": "result_summary",
+          "path": "reports/backtest_run_contract/bt3-demo-trend-001/result_summary.json",
+          "sha256": "ff9c30b87165543c0390c0153730e3128e1de695a816714d9237d19d0b3d40b5"
+        }
+      ],
+      "code_commit_sha": "30dede33b0fe1ec7fd845520c9199483c1fbd8fe",
+      "data_mode": "synthetic",
+      "dataset_fingerprint": "b1132ebbd4e46943ed748a98ed780ec4f7e517650e66b79497ab7043a64d4059",
+      "dataset_id": "synthetic-us-largecap-demo-2024",
+      "deterministic": true,
+      "end_date": "2024-12-31",
+      "execution_model": "next_bar_open",
+      "footer": "Research / Paper Observation Only. Execution is not authorized by this report.",
+      "metrics": {
+        "max_drawdown_pct": -7.1,
+        "sharpe": 1.18,
+        "total_return_pct": 12.4,
+        "trade_count": 48,
+        "win_rate_pct": 54.2
+      },
+      "notes": "Synthetic demonstration contract for reproducibility validation.",
+      "parameter_version": "params-demo-v1",
+      "run_id": "bt3-demo-trend-001",
+      "seed": 42,
+      "start_date": "2024-01-01",
+      "strategy_id": "trend_demo",
+      "strategy_version": "strategy-demo-v1",
+      "symbols": [
+        "AAPL",
+        "MSFT",
+        "QQQ"
+      ],
+      "tags": [
+        "demo",
+        "public_safe",
+        "research_only"
+      ]
+    },
+    {
+      "artifacts": [
+        {
+          "name": "input_manifest",
+          "path": "reports/backtest_run_contract/bt3-demo-reversion-001/input_manifest.json",
+          "sha256": "fa9d9fd156d7157b3a36024ca36036eec5e4b0486e700b8dc121d16e06abf2ec"
+        },
+        {
+          "name": "result_summary",
+          "path": "reports/backtest_run_contract/bt3-demo-reversion-001/result_summary.json",
+          "sha256": "cfebc3b65b4a399351236291be10523d0e10f19bae95961206fc4564919b3662"
+        }
+      ],
+      "code_commit_sha": "30dede33b0fe1ec7fd845520c9199483c1fbd8fe",
+      "data_mode": "paper_observation",
+      "dataset_fingerprint": "e657427a5d5db92bf868b0f08307bb3529f82180739203935fb72bea26f9f528",
+      "dataset_id": "paper-observation-demo-2024",
+      "deterministic": true,
+      "end_date": "2024-09-30",
+      "execution_model": "paper_fill_model",
+      "footer": "Research / Paper Observation Only. Execution is not authorized by this report.",
+      "metrics": {
+        "max_drawdown_pct": -3.6,
+        "sharpe": 0.91,
+        "total_return_pct": 5.8,
+        "trade_count": 31,
+        "win_rate_pct": 51.0
+      },
+      "notes": "Paper-observation demonstration contract for reproducibility validation.",
+      "parameter_version": "params-demo-v1",
+      "run_id": "bt3-demo-reversion-001",
+      "seed": 7,
+      "start_date": "2024-03-01",
+      "strategy_id": "mean_reversion_demo",
+      "strategy_version": "strategy-demo-v1",
+      "symbols": [
+        "SPY",
+        "IWM"
+      ],
+      "tags": [
+        "demo",
+        "public_safe",
+        "research_only"
+      ]
+    }
+  ]
+}
