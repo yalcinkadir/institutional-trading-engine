@@ -10,6 +10,7 @@ from src.watchers.entry_exit_watcher import (
     evaluate_regime_invalidations,
     evaluate_signal_against_bar,
     evaluate_signals,
+    latest_bars_to_price_map,
     load_signal_file,
     save_alerts,
     save_updated_signal_file,
@@ -263,6 +264,48 @@ def test_evaluate_signals_updates_only_matching_symbols_and_preserves_ids():
     assert updated_signals[0]["signal_id"].startswith("sig_NVDA_")
     assert updated_signals[1]["status"] == "PENDING"
     assert updated_signals[1]["signal_id"] == "aapl-id"
+
+
+def test_latest_bars_to_price_map_selects_newest_bar_by_numeric_timestamp_when_provider_order_is_unsorted():
+    bars = {
+        "NVDA": [
+            {"t": 1_780_000_000_000, "o": 100, "h": 101, "l": 99, "c": 100.5},
+            {"t": 1_779_900_000_000, "o": 90, "h": 91, "l": 89, "c": 90.5},
+            {"t": 1_780_100_000_000, "o": 110, "h": 111, "l": 109, "c": 110.5},
+        ]
+    }
+
+    result = latest_bars_to_price_map(bars)
+
+    assert result["NVDA"].close == 110.5
+    assert result["NVDA"].open == 110.0
+
+
+def test_latest_bars_to_price_map_selects_newest_bar_by_iso_timestamp_when_numeric_timestamp_is_missing():
+    bars = {
+        "NVDA": [
+            {"date": "2026-05-20", "o": 100, "h": 101, "l": 99, "c": 100.5},
+            {"date": "2026-05-22", "o": 120, "h": 121, "l": 119, "c": 120.5},
+            {"date": "2026-05-21", "o": 110, "h": 111, "l": 109, "c": 110.5},
+        ]
+    }
+
+    result = latest_bars_to_price_map(bars)
+
+    assert result["NVDA"].close == 120.5
+
+
+def test_latest_bars_to_price_map_prefers_known_timestamp_over_unknown_timestamp():
+    bars = {
+        "NVDA": [
+            {"o": 999, "h": 999, "l": 999, "c": 999},
+            {"t": 1_780_100_000_000, "o": 110, "h": 111, "l": 109, "c": 110.5},
+        ]
+    }
+
+    result = latest_bars_to_price_map(bars)
+
+    assert result["NVDA"].close == 110.5
 
 
 def test_append_lifecycle_updates_deduplicates_by_signal_id_and_event_type(tmp_path: Path):
