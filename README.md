@@ -50,6 +50,7 @@ PSR4: drift and regime evidence artifact implemented and CI-green
 RGP1: missing/invalid PortfolioState fail-closed proof implemented and CI-green
 RGP2: runtime governance approval gate implemented and CI-green
 RGP3: stale PortfolioState approval blocking implemented and CI-green
+RGP4: actionable signal provider-fetch failure blocking implemented and CI-wired
 Live trading authorization: not granted by code
 Broker execution: paper-only infrastructure; live execution is not implemented
 ```
@@ -72,7 +73,8 @@ Implemented safeguards:
 - RGP1: missing or invalid `PortfolioState` forces kill-switch activation and prevents harmless-looking `0.0` drawdown from being treated as valid governance.
 - RGP2: `evaluate_runtime_governance_approval()` blocks runtime approval when portfolio governance is invalid or the kill switch is active.
 - RGP3: stale, future-dated or invalid `portfolio_state.updated_at` blocks runtime approval with `stale_portfolio_state`.
-- Runtime approval is explicit: `approved=True` is only possible when governance is valid, portfolio state is recent and the kill switch is inactive.
+- RGP4: actionable signals with provider/data-fetch failures block runtime approval with `data_provider_fetch_failure` instead of being silently skipped.
+- Runtime approval is explicit: `approved=True` is only possible when governance is valid, portfolio state is recent, provider evidence is usable for actionable signals and the kill switch is inactive.
 - Tests inject deterministic timestamps so CI remains reproducible.
 - No broker execution, no live trading authorization and no private edge parameters are introduced.
 
