@@ -1,9 +1,14 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
 
-from src.validation.backtesting_evidence_report import (
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from src.validation.backtesting_evidence_report import (  # noqa: E402
     load_backtesting_evidence_report_from_contracts_json,
     write_backtesting_evidence_report,
 )
