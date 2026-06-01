@@ -1,7 +1,7 @@
 # PO3 Daily Observation Run Record
 
 Status date: 2026-06-01
-Status: implemented / CI-wired
+Status: Done / CI-green
 
 ## Purpose
 
@@ -73,6 +73,12 @@ NEEDS_REVIEW: core evidence exists but incidents require manual review
   "broker_execution_mode": "paper_only",
   "created_at": "2026-06-01T00:00:00Z"
 }
+```
+
+## CI result
+
+```text
+PO3 Daily Observation Run Record: Done / CI-green
 ```
 
 ## Test command
