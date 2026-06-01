@@ -1,5 +1,25 @@
 # CHANGELOG
 
+## PO12 Daily Observation Artifact Retention & Review Index — 2026-06-01
+
+### Added
+- Added `src/operations/daily_observation_artifact_review_index.py` to build a deterministic review index over generated PO10/PO11 daily observation automation artifacts.
+- Added `tests/test_po12_daily_observation_artifact_review_index.py` to guard passed/blocked artifact counts, sorting, duplicate-date rejection, retention validation, canonical path enforcement and paper-only safety boundaries.
+- Added `docs/operations/po12_daily_observation_artifact_review_index.md` to document PO12 and CI-green status.
+
+### Review Index Contract
+- Produces `reports/daily_observation_automation/review_index.json`.
+- Uses default retention metadata of `180` days.
+- Summarizes total artifacts, passed/blocked counts, review-ready count and per-artifact gate/review metadata.
+- Preserves the paper-only boundary with `live_trading_authorized=false` and `broker_execution_mode=paper_only`.
+
+### Stabilization Result
+- PO12 implementation status: Done / CI-green.
+- CI status: green; guarded by `tests/test_po12_daily_observation_artifact_review_index.py`.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## PO11 Scheduled Daily Observation Workflow — 2026-06-01
 
 ### Added
