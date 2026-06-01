@@ -9,18 +9,23 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from src.signals.signal_status import (
+    ACTIONABLE_SIGNAL_ACTIONS,
+    REGIME_INVALIDATION_ELIGIBLE_STATUSES,
+    TERMINAL_SIGNAL_STATUSES,
+    SignalEventType,
+    SignalStatus,
+    is_regime_invalidation_eligible_status,
+    is_terminal_signal_status,
+    normalize_signal_status,
+)
 
-REGIME_INVALIDATION_EVENT = "REGIME_INVALIDATION_EXIT"
-REGIME_INVALIDATION_STATUS = "CANCELLED_BY_REGIME_CHANGE"
-ELIGIBLE_STATUSES = {"PENDING", "TRIGGERED", "TARGET_1_HIT"}
+REGIME_INVALIDATION_EVENT = SignalEventType.REGIME_INVALIDATION_EXIT.value
+REGIME_INVALIDATION_STATUS = SignalStatus.CANCELLED_BY_REGIME_CHANGE.value
+ELIGIBLE_STATUSES = REGIME_INVALIDATION_ELIGIBLE_STATUSES
 ACTIVE_STATUSES = ELIGIBLE_STATUSES
-TERMINAL_STATUSES = {
-    "STOP_HIT",
-    "TARGET_2_HIT",
-    "EXPIRED",
-    REGIME_INVALIDATION_STATUS,
-}
-ACTIONABLE_ACTIONS = {"BUY_WATCH"}
+TERMINAL_STATUSES = TERMINAL_SIGNAL_STATUSES
+ACTIONABLE_ACTIONS = ACTIONABLE_SIGNAL_ACTIONS
 RISK_OFF_LABELS = {
     "risk_off",
     "risk-off",
@@ -77,7 +82,7 @@ def apply_regime_invalidation(
     - TARGET_1_HIT: runner should be cancelled by regime deterioration.
     """
     updated = dict(signal)
-    previous_status = str(updated.get("status") or "PENDING")
+    previous_status = normalize_signal_status(updated.get("status"))
     action = str(updated.get("action") or "")
 
     if action not in ACTIONABLE_ACTIONS:
@@ -88,7 +93,7 @@ def apply_regime_invalidation(
             reasons=["non_actionable_signal"],
         )
 
-    if previous_status in TERMINAL_STATUSES:
+    if is_terminal_signal_status(previous_status):
         return RegimeInvalidationResult(
             signal=updated,
             invalidated=False,
@@ -96,7 +101,7 @@ def apply_regime_invalidation(
             reasons=["terminal_signal"],
         )
 
-    if previous_status not in ELIGIBLE_STATUSES:
+    if not is_regime_invalidation_eligible_status(previous_status):
         return RegimeInvalidationResult(
             signal=updated,
             invalidated=False,
