@@ -80,6 +80,7 @@ jobs:
           git push origin "HEAD:${GITHUB_REF_NAME}"
 
       - name: Upload workflow error report artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: workflow-error-report-${{ github.run_id }}
