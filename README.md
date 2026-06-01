@@ -11,6 +11,7 @@ The system is designed for research and decision support. It does not place live
 ## Current Validation Status
 
 ```text
+TEST1: Evidence-Oriented TDD Policy active
 P36-P47 validation roadmap: implemented
 Phase A Evidence Hygiene A3-A10: implemented and CI-green
 Phase B evidence pipeline: implemented, CI-green and workflow-green
@@ -78,6 +79,24 @@ Broker execution: paper-only infrastructure; live execution is not implemented
 ```
 
 Code quality is not trading edge. The system is promising enough to test seriously, but real capital still requires long-running forward evidence, drift detection, regime-change monitoring, position-level risk attribution, execution-quality review, capacity/turnover realism and manual approval.
+
+## TEST1 Evidence-Oriented TDD Policy
+
+TEST1 makes test-first development the default for safety-relevant fixes and external review findings.
+
+```text
+Test first
+Fix second
+Targeted test third
+Full suite fourth
+Documentation last
+```
+
+A fix is not complete unless a guard test captures the dangerous path, boundary case or fail-closed invariant.
+
+Policy document:
+
+    docs/operations/test1_evidence_oriented_tdd_policy.md
 
 ## PO1 Paper Observation Timeline
 
