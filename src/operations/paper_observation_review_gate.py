@@ -37,9 +37,10 @@ def evaluate_paper_observation_review_gate(
 ) -> PaperObservationReviewGateResult:
     """Evaluate whether Paper Observation evidence is ready for human review.
 
-    PO9 consumes the deterministic PO8 Daily Observation Review Summary. It only
-    approves a review gate for paper-observation evidence. It never authorizes
-    live trading or broker execution.
+    PO9 consumes the deterministic PO8 Daily Observation Review Summary.
+
+    This gate only approves paper-observation evidence for human review.
+    It never authorizes live trading, broker execution or production deployment.
     """
 
     blockers: list[str] = []
@@ -48,6 +49,7 @@ def evaluate_paper_observation_review_gate(
     accepted_count = _as_int(summary.get("accepted_count"))
     rejected_count = _as_int(summary.get("rejected_count"))
     needs_review_count = _as_int(summary.get("needs_review_count"))
+
     review_required_dates = _as_list(summary.get("review_required_dates"))
     rejected_dates = _as_list(summary.get("rejected_dates"))
     needs_review_dates = _as_list(summary.get("needs_review_dates"))
