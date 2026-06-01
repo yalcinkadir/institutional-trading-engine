@@ -42,7 +42,7 @@ Hard review-gate rule: Paper Observation evidence may only advance to human revi
 
 ## Phase PO — Paper Observation Evidence Process
 
-Target window: active / CI-wired  
+Target window: active / CI-green  
 Goal: formalize the 3-6 month paper-observation evidence period before any Phase D or live-execution consideration.
 
 | ID | Task | Priority | Impact | Status |
