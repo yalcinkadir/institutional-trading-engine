@@ -91,8 +91,20 @@ jobs:
           fi
 
       - name: Upload outcome artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: institutional-outcomes-$(date -u +'%Y-%m-%d')
           path: reports/outcomes/
+          retention-days: 90
+
+      - name: Upload runtime evidence artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: outcome-runtime-evidence-${{ github.run_id }}
+          path: |
+            reports/outcomes/
+            reports/expectancy-report.md
+            data/
           retention-days: 90
