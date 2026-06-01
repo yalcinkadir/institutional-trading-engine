@@ -145,6 +145,7 @@ jobs:
           fi
 
       - name: Upload dated report artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.report_type.outputs.report_type }}-${{ steps.report_type.outputs.run_timestamp }}
@@ -152,6 +153,7 @@ jobs:
           retention-days: 90
 
       - name: Upload signals artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: signals-${{ steps.report_type.outputs.run_timestamp }}
@@ -159,6 +161,7 @@ jobs:
           retention-days: 90
 
       - name: Upload full reports archive artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: reports-archive-${{ steps.report_type.outputs.run_timestamp }}
