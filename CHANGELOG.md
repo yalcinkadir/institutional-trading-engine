@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## PO8 Daily Observation Review Summary — 2026-06-01
+
+### Added
+- Added `src/operations/daily_observation_review_summary.py` to build a deterministic review summary from the PO7 Daily Observation Record Index.
+- Added `tests/test_po8_daily_observation_review_summary.py` to guard review-ready state, rejected/needs-review date extraction, count consistency and paper-only boundary enforcement.
+- Added `docs/operations/po8_daily_observation_review_summary.md` to document PO8 and CI-green status.
+
+### Review Summary Contract
+- Includes `total_records`, `accepted_count`, `rejected_count`, `needs_review_count`, `review_required_dates`, `rejected_dates`, `needs_review_dates` and `review_ready`.
+- `review_ready` requires at least one record, zero rejected records, zero needs-review records, no review-required records and no consistency errors.
+- Preserves the paper-only boundary with `live_trading_authorized=false` and `broker_execution_mode=paper_only`.
+
+### Stabilization Result
+- PO8 implementation status: Done / CI-green.
+- CI status: green.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## PO7 Daily Observation Record Index — 2026-06-01
 
 ### Added
