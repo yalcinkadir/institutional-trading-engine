@@ -19,6 +19,7 @@ from src.runtime.portfolio_state import PortfolioState
 INVALID_GOVERNANCE_APPROVAL_REASON = "portfolio_governance_invalid"
 KILL_SWITCH_APPROVAL_REASON = "kill_switch_active"
 STALE_PORTFOLIO_STATE_REASON = "stale_portfolio_state"
+DATA_PROVIDER_FETCH_FAILURE_REASON = "data_provider_fetch_failure"
 DEFAULT_PORTFOLIO_STATE_MAX_AGE = timedelta(days=1)
 
 
@@ -29,6 +30,8 @@ class RuntimeGovernanceApproval:
     approved: bool
     reasons: list[str] = field(default_factory=list)
     kill_switch: dict[str, Any] = field(default_factory=dict)
+    provider_fetch_errors: list[str] = field(default_factory=list)
+    actionable_signal: bool = False
 
     @property
     def blocked(self) -> bool:
@@ -40,6 +43,8 @@ class RuntimeGovernanceApproval:
             "blocked": self.blocked,
             "reasons": list(self.reasons),
             "kill_switch": dict(self.kill_switch),
+            "provider_fetch_errors": list(self.provider_fetch_errors),
+            "actionable_signal": self.actionable_signal,
         }
 
 
@@ -50,6 +55,8 @@ def evaluate_runtime_governance_approval(
     severe_anomaly_count: int,
     now: datetime | None = None,
     portfolio_state_max_age: timedelta = DEFAULT_PORTFOLIO_STATE_MAX_AGE,
+    actionable_signal: bool = False,
+    provider_fetch_errors: list[str] | tuple[str, ...] | None = None,
 ) -> RuntimeGovernanceApproval:
     """Return whether runtime decision approval is allowed.
 
@@ -57,6 +64,7 @@ def evaluate_runtime_governance_approval(
 
     - invalid portfolio governance always blocks approval
     - stale portfolio state always blocks approval
+    - actionable signals with provider/data fetch failures always block approval
     - any active kill switch always blocks approval
     - approval is allowed only when all checks pass
     """
@@ -66,6 +74,8 @@ def evaluate_runtime_governance_approval(
         vix=vix,
         severe_anomaly_count=severe_anomaly_count,
     )
+
+    normalized_provider_errors = _normalize_provider_fetch_errors(provider_fetch_errors)
 
     reasons: list[str] = []
     if not portfolio_state.governance_valid:
@@ -78,6 +88,9 @@ def evaluate_runtime_governance_approval(
     ):
         reasons.append(STALE_PORTFOLIO_STATE_REASON)
 
+    if actionable_signal and normalized_provider_errors:
+        reasons.append(DATA_PROVIDER_FETCH_FAILURE_REASON)
+
     if kill_switch["kill_switch"]:
         reasons.append(KILL_SWITCH_APPROVAL_REASON)
         for reason in kill_switch["reasons"]:
@@ -88,6 +101,8 @@ def evaluate_runtime_governance_approval(
         approved=not reasons,
         reasons=reasons,
         kill_switch=kill_switch,
+        provider_fetch_errors=normalized_provider_errors,
+        actionable_signal=actionable_signal,
     )
 
 
@@ -115,3 +130,17 @@ def is_portfolio_state_stale(
         return True
 
     return reference_time - updated_at > max_age
+
+
+def _normalize_provider_fetch_errors(
+    provider_fetch_errors: list[str] | tuple[str, ...] | None,
+) -> list[str]:
+    if provider_fetch_errors is None:
+        return []
+
+    normalized: list[str] = []
+    for error in provider_fetch_errors:
+        text = str(error).strip()
+        if text:
+            normalized.append(text)
+    return normalized
