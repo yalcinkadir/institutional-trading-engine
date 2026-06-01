@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## RGP8 Artifact Upload-On-Failure Governance Guard — 2026-06-01
+
+### Added
+- RGP8: added CI guard coverage that protects alert/evidence artifacts from git persistence failure.
+- Added `tests/test_rgp8_artifact_upload_on_git_failure.py` to scan repo-writing GitHub Actions workflows.
+- Added regression coverage proving repo-writing workflows must upload alert/evidence/runtime artifacts with `if: always()`.
+
+### Changed
+- Artifact retention safety is now enforced as a future-proof workflow guard instead of relying on manual review only.
+- The RGP documentation now includes alert/evidence artifact upload-on-failure governance.
+
+### Stabilization Result
+- RGP8 implementation status: implemented / CI-wired.
+- CI status: pending current run.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## RGP7 Repo-Write Workflow Governance Guard — 2026-06-01
 
 ### Added
