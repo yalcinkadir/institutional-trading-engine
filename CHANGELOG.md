@@ -1,5 +1,25 @@
 # CHANGELOG
 
+## PO13 Monthly Paper Observation Review Pack — 2026-06-01
+
+### Added
+- Added `src/operations/monthly_paper_observation_review_pack.py` to build deterministic monthly Paper Observation review packs from the PO12 review index.
+- Added `tests/test_po13_monthly_paper_observation_review_pack.py` to guard `REVIEW_READY` / `BLOCKED` monthly status, month filtering, insufficient evidence blocking, gate-failure blocking, boundary enforcement and canonical pack writing.
+- Added `docs/operations/po13_monthly_paper_observation_review_pack.md` to document PO13 and CI-green status.
+
+### Monthly Review Contract
+- Produces `reports/monthly_paper_observation_review/YYYY-MM.json`.
+- Produces `REVIEW_READY` or `BLOCKED` monthly review status.
+- Summarizes passed days, blocked days, review-ready days, gate-failure days, blocker/error counts and rejected/needs-review record counts.
+- Preserves the paper-only boundary with `live_trading_authorized=false` and `broker_execution_mode=paper_only`.
+
+### Stabilization Result
+- PO13 implementation status: Done / CI-green.
+- CI status: green; guarded by `tests/test_po13_monthly_paper_observation_review_pack.py`.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## PO12 Daily Observation Artifact Retention & Review Index — 2026-06-01
 
 ### Added
