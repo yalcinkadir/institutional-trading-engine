@@ -2,7 +2,7 @@
 
 Status date: 2026-06-02
 
-Current state: TEST1 Evidence-Oriented TDD Policy is active as the default workflow for safety-relevant fixes and external review findings. EV1-EV12 evidence-integrity remediation is implemented, centrally documented and CI-green. CI runtime simplification is implemented and CI-green. Paper Observation evidence collection is active. Runtime governance proofing, evidence integrity, report boundaries, public-repository governance and external-review remediation are being handled through guard-test-first development. ER1/ER2 backtest-realism guards are implemented and CI-green. ER4 atomic persistence guard is implemented and CI-green.
+Current state: TEST1 Evidence-Oriented TDD Policy is active as the default workflow for safety-relevant fixes and external review findings. EV1-EV12 evidence-integrity remediation is implemented, centrally documented and CI-green. CI runtime simplification is implemented and CI-green. Paper Observation evidence collection is active. Runtime governance proofing, evidence integrity, report boundaries, public-repository governance and external-review remediation are being handled through guard-test-first development. ER1/ER2 backtest-realism guards are implemented and CI-green. ER4 atomic persistence guard is implemented and CI-green. ER7/ER8 expectancy statistical discipline is implemented and CI-green.
 
 The system remains research / decision-support / paper-observation only. Real-money execution is not authorized by code.
 
@@ -146,8 +146,8 @@ EV1-EV12 evidence-integrity remediation is complete and CI-green.
 | ER4 | P0 | Persistence / audit integrity | State/evidence writes not consistently atomic | CLOSED_CI_GREEN |
 | ER5 | P1 | Outcome metrics | Falsy-zero bug can replace true `0.0` result | CLOSED_CI_GREEN |
 | ER6 | P1 | Evidence quality | Missing result keys counted as `0.0` breakeven evidence | CLOSED_CI_GREEN |
-| ER7 | P1 | Sizing governance | `MIN_SAMPLES = 5` too weak for automatic size adjustment | OPEN |
-| ER8 | P1 | Expectancy logic | Isolated win-rate gate can block positive-asymmetry profiles | OPEN |
+| ER7 | P1 | Sizing governance | `MIN_SAMPLES = 5` too weak for automatic size adjustment | CLOSED_CI_GREEN |
+| ER8 | P1 | Expectancy logic | Isolated win-rate gate can block positive-asymmetry profiles | CLOSED_CI_GREEN |
 | ER9 | P1 | Portfolio risk | Portfolio-risk reduction too global | OPEN |
 | ER10 | P1 | OOS methodology | No purge/embargo around OOS split | OPEN |
 | ER11 | P2 | Metric semantics | Mixed expectancy naming / units | CLOSED_CI_GREEN |
@@ -236,14 +236,40 @@ docs/operations/er11_ci_green_closure_2026_06_02.md
 docs/operations/er5_er6_er11_documentation_update_2026_06_02.md
 ```
 
+## ER7 / ER8 Closure Summary
+
+ER7/ER8 expectancy statistical discipline remediation is implemented and CI-green.
+
+Implemented behavior:
+
+```text
+score evidence is separated from size evidence
+size multiplier remains neutral below the stronger size-evidence floor
+positive asymmetric expectancy is not blocked solely by low win rate
+public premarket report example restored to synthetic/public-safe content
+```
+
+Guard tests:
+
+```text
+tests/test_er7_er8_expectancy_statistical_discipline.py
+tests/test_expectancy_adjuster.py
+tests/test_artifact_hygiene.py
+```
+
+Closure doc:
+
+```text
+docs/operations/er7_er8_expectancy_statistical_discipline_ci_green_closure_2026_06_02.md
+```
+
 ## Recommended Next Remediation Order
 
 ```text
-1. ER7 / ER8 — expectancy adjuster statistical discipline
-2. ER9 — targeted portfolio-risk reduction evidence
-3. ER10 — OOS purge / embargo
-4. ER14 / ER15 — stop-loss quality guards
-5. ER12 / ER13 — evidence caveats and accounting precision review
+1. ER9 — targeted portfolio-risk reduction evidence
+2. ER10 — OOS purge / embargo
+3. ER14 / ER15 — stop-loss quality guards
+4. ER12 / ER13 — evidence caveats and accounting precision review
 ```
 
 ## Safety Boundary
