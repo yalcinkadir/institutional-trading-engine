@@ -41,8 +41,8 @@ This backlog does not authorize live trading, broker execution or capital alloca
 
 | ID | Severity | Area | Finding | Status | Notes |
 |---|---:|---|---|---|---|
-| ER1 | P0 | Backtest realism | Optimistic T1 expiry booking in `t1_t2` model books full T1 even when trade expires after T1 without T2 | OPEN | Verify and fix if still present |
-| ER2 | P0 | Backtest realism | Entry fills ignore gap-through-entry while stop fills model gaps pessimistically | OPEN | Add entry gap fill realism and breakeven gap handling |
+| ER1 | P0 | Backtest realism | Optimistic T1 expiry booking in `t1_t2` model books full T1 even when trade expires after T1 without T2 | CLOSED_CI_GREEN | Guarded by `tests/test_er1_er2_backtest_realism_guard.py` |
+| ER2 | P0 | Backtest realism | Entry fills ignore gap-through-entry while stop fills model gaps pessimistically | CLOSED_CI_GREEN | Guarded by `tests/test_er1_er2_backtest_realism_guard.py` |
 | ER3 | P0 | Position sizing | Position sizing lacked notional / buying-power cap | CLOSED_CI_GREEN | Fixed in `src/trading/risk_engine.py` |
 | ER4 | P0 | Persistence / audit integrity | State and evidence writes are not consistently atomic | OPEN | Standardize tmp + `os.replace` |
 | ER5 | P1 | Outcome metrics | Falsy-zero bug can replace true `0.0` result with alternate metric | CLOSED_CI_GREEN | Guarded by `tests/test_er5_expectancy_zero_result_guard.py` |
@@ -73,16 +73,29 @@ Risk:
 Systematically inflated win rate and expectancy.
 ```
 
-Expected remediation:
+Validated remediation:
 
 ```text
-If T1 was touched but T2 was not hit and no stop occurred before expiry, close remaining exposure at the final available close, not at target_1.
+If T1 was touched but T2 was not hit and no stop occurred before expiry, remaining exposure closes at the final available close, not at target_1.
+```
+
+Files:
+
+```text
+src/backtesting/historical_entry_exit_backtest.py
+tests/test_er1_er2_backtest_realism_guard.py
+```
+
+Closure doc:
+
+```text
+docs/operations/er1_er2_backtest_realism_ci_green_closure_2026_06_02.md
 ```
 
 Status:
 
 ```text
-OPEN
+CLOSED_CI_GREEN
 ```
 
 ---
@@ -101,16 +114,31 @@ Risk:
 Understates entry price and risk for gap-up entries; makes R-multiple evidence too optimistic.
 ```
 
-Expected remediation:
+Validated remediation:
 
 ```text
-When open gaps through entry, fill at worse open price for long entries. For breakeven-after-T1 gap below entry, avoid filling at exact breakeven if open is worse.
+When open gaps through entry, fill at worse open price for long entries.
+For breakeven-after-T1 gap below entry, fill at the worse open rather than exact breakeven.
+R-multiple is recalculated from the actual entry fill.
+```
+
+Files:
+
+```text
+src/backtesting/historical_entry_exit_backtest.py
+tests/test_er1_er2_backtest_realism_guard.py
+```
+
+Closure doc:
+
+```text
+docs/operations/er1_er2_backtest_realism_ci_green_closure_2026_06_02.md
 ```
 
 Status:
 
 ```text
-OPEN
+CLOSED_CI_GREEN
 ```
 
 ---
@@ -184,12 +212,6 @@ External finding:
 outcome.get("result_5d") or outcome.get("performance_percent") treats a true 0.0 as missing and swaps metric source.
 ```
 
-Risk:
-
-```text
-Silent metric substitution and distorted expectancy profiles.
-```
-
 Implemented remediation:
 
 ```text
@@ -203,15 +225,6 @@ Files:
 ```text
 src/scoring/expectancy_adjuster.py
 tests/test_er5_expectancy_zero_result_guard.py
-```
-
-Relevant commits:
-
-```text
-419878b8a31b7de8cbac3c3afa085030d99fa59d
-a7ad248b17d42cce4101503948f12cd1bb3b493e
-8660b752e736513cd67d230364f7d6ec0358ba13
-f5257df6485d3c835293b45e9a0a42c484186109
 ```
 
 Status:
@@ -230,12 +243,6 @@ External finding:
 Patterns like record.get("result_r") or 0.0 can convert missing data into breakeven trades.
 ```
 
-Risk:
-
-```text
-Data gaps become evidence, hiding missingness and distorting expectancy toward zero.
-```
-
 Implemented remediation:
 
 ```text
@@ -252,13 +259,6 @@ src/backtesting/edge_evidence_backtest.py
 tests/test_er6_edge_evidence_missing_result_guard.py
 ```
 
-Relevant commits:
-
-```text
-5a931bda3edaec511f587c112d869bbe1cc3b9e8
-0dfe9e8f13e9cf71856c6d07dfb9d87c44f60e7d
-```
-
 Status:
 
 ```text
@@ -273,12 +273,6 @@ External finding:
 
 ```text
 MIN_SAMPLES = 5 is too low for automatic size adjustment.
-```
-
-Risk:
-
-```text
-Noise-driven size increases or reductions.
 ```
 
 Expected remediation:
@@ -303,12 +297,6 @@ External finding:
 An isolated low win-rate gate can block high-payoff positive expectancy profiles.
 ```
 
-Risk:
-
-```text
-Contradicts asymmetry-focused strategy logic and may reject desirable profiles.
-```
-
 Expected remediation:
 
 ```text
@@ -329,12 +317,6 @@ External finding:
 
 ```text
 One correlation or sector warning reduces all tradable symbols globally and returns only symbols, not actual reduced multipliers.
-```
-
-Risk:
-
-```text
-Over-broad risk response; unclear whether actual sizing is reduced downstream.
 ```
 
 Expected remediation:
@@ -359,12 +341,6 @@ External finding:
 In-sample signals close to split date can resolve into OOS period when max holding period is multiple bars.
 ```
 
-Risk:
-
-```text
-Boundary leakage in OOS evidence.
-```
-
 Expected remediation:
 
 ```text
@@ -387,12 +363,6 @@ External finding:
 Backtest expectancy and adjustment expectancy use different units and denominators while sharing similar naming.
 ```
 
-Risk:
-
-```text
-Audit confusion and possible misuse across modules.
-```
-
 Implemented remediation:
 
 ```text
@@ -408,16 +378,6 @@ src/scoring/expectancy_adjuster.py
 src/reporting/decision_report.py
 tests/test_er11_expectancy_units_guard.py
 tests/test_er5_expectancy_zero_result_guard.py
-```
-
-Relevant commits:
-
-```text
-bfad22fc357803c462b68f9e4dcf954242356e97
-8a45637191913530f8ad4d78b6e6b1ca92b95b27
-458e78a7b67c24450e90c8855eb04b6f302e485b
-f5257df6485d3c835293b45e9a0a42c484186109
-90951ccf1551da074ebe5e8fb42c19181e40907b
 ```
 
 Status:
@@ -464,12 +424,6 @@ External finding:
 PnL/equity paths use float broadly.
 ```
 
-Risk:
-
-```text
-Rounding drift in audit / aggregation paths.
-```
-
 Expected remediation:
 
 ```text
@@ -490,12 +444,6 @@ External finding:
 
 ```text
 Stop-loss quality logic is long-side but may not explicitly reject short setups.
-```
-
-Risk:
-
-```text
-Future short support could silently get invalid stop placement.
 ```
 
 Expected remediation:
@@ -520,12 +468,6 @@ External finding:
 ATR fallback stops may not have the same max-distance cap as swing stop logic.
 ```
 
-Risk:
-
-```text
-Unexpectedly wide stops can distort sizing and risk acceptance.
-```
-
 Expected remediation:
 
 ```text
@@ -543,13 +485,12 @@ OPEN
 ## Recommended Remediation Order
 
 ```text
-1. ER1 / ER2 — backtest fill realism and T1 expiry logic
-2. ER4 — atomic persistence for governance state and evidence files
-3. ER7 / ER8 — expectancy adjuster statistical discipline
-4. ER9 — targeted portfolio-risk reduction evidence
-5. ER10 — OOS purge/embargo
-6. ER14 / ER15 — stop-loss quality guards
-7. ER12 / ER13 — evidence caveats and accounting precision review
+1. ER4 — atomic persistence for governance state and evidence files
+2. ER7 / ER8 — expectancy adjuster statistical discipline
+3. ER9 — targeted portfolio-risk reduction evidence
+4. ER10 — OOS purge/embargo
+5. ER14 / ER15 — stop-loss quality guards
+6. ER12 / ER13 — evidence caveats and accounting precision review
 ```
 
 ## Next Action
@@ -557,11 +498,11 @@ OPEN
 Continue with:
 
 ```text
-ER1 / ER2 — backtest realism
+ER4 — atomic persistence for governance state and evidence files
 ```
 
 Rationale:
 
 ```text
-These are P0 evidence-realism issues and directly affect historical expectancy, win-rate and R-multiple quality.
+ER4 remains the next open P0 issue. It protects governance and evidence artifacts from partial/corrupt writes.
 ```
