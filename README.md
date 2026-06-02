@@ -58,6 +58,7 @@ External Review Remediation:
 ER1: T1/T2 expiry realism guard implemented and CI-green
 ER2: gap-through-entry and breakeven-gap realism guards implemented and CI-green
 ER3: notional / buying-power capped position sizing implemented and CI-green
+ER4: atomic persistence utility and PortfolioStateStore atomic save implemented and CI-green
 ER5: falsy-zero outcome substitution guard implemented and CI-green
 ER6: missing result evidence is surfaced instead of counted as breakeven and CI-green
 ER11: explicit expectancy_r unit naming implemented and CI-green
@@ -133,6 +134,24 @@ CLOSED_CI_GREEN
 ### ER3 — Notional-Capped Position Sizing
 
 `calculate_position_risk` now supports optional `buying_power` and `max_notional` caps.
+
+Status:
+
+```text
+CLOSED_CI_GREEN
+```
+
+### ER4 — Atomic Persistence Guard
+
+A central atomic persistence helper now protects governance/evidence writes from direct destination truncation and failed replacement scenarios.
+
+Files:
+
+```text
+src/persistence/atomic_write.py
+src/runtime/portfolio_state.py
+tests/test_er4_atomic_persistence_guard.py
+```
 
 Status:
 
@@ -237,6 +256,8 @@ NEEDS_REVIEW
 Targeted remediation tests:
 
 ```bash
+pytest tests/test_er4_atomic_persistence_guard.py -q
+pytest tests/test_portfolio_state.py -q
 pytest tests/test_er1_er2_backtest_realism_guard.py -q
 pytest tests/test_historical_entry_exit_backtest.py -q
 pytest tests/test_er5_expectancy_zero_result_guard.py -q
