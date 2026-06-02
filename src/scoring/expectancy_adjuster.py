@@ -71,6 +71,15 @@ def _safe_float(value: Any) -> float | None:
         return None
 
 
+def _first_present_float(payload: dict[str, Any], keys: tuple[str, ...]) -> float | None:
+    for key in keys:
+        if key in payload:
+            value = _safe_float(payload.get(key))
+            if value is not None:
+                return value
+    return None
+
+
 def _setup_to_default_entry_type(setup_type: str) -> str:
     return {
         "momentum_breakout": "break_above",
@@ -118,7 +127,7 @@ def _usable_result(outcome: dict[str, Any]) -> float | None:
     if lifecycle_status in NON_TRADING_LIFECYCLE_STATUSES:
         return None
 
-    return _safe_float(outcome.get("result_5d") or outcome.get("performance_percent"))
+    return _first_present_float(outcome, ("result_5d", "performance_percent"))
 
 
 def _build_profiles(outcomes: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
