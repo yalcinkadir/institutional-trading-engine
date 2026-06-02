@@ -54,40 +54,41 @@ This backlog does not authorize live trading, broker execution or capital alloca
 | ER11 | P2 | Metric semantics | Two different expectancy definitions use similar naming but different units / denominators | CLOSED_CI_GREEN | Standardized to `expectancy_r` |
 | ER12 | P2 | Sharpe evidence | Per-trade Sharpe uses population std and IID-style t-stat assumption | LIKELY_CLOSED_BY_EXISTING_WORK_NEEDS_VERIFICATION | EV1/EV2 addressed unit issue; verify caveats |
 | ER13 | P2 | Accounting precision | Money/PnL paths use float rather than Decimal | OPEN | Consider Decimal/integer cents at ledger boundaries |
-| ER14 | P2 | Stop quality | Long-only stop logic lacks explicit short guard | OPEN | Add reject/assert for unsupported short setups |
-| ER15 | P2 | Stop quality | ATR fallback stops may lack max-distance cap comparable to swing stop cap | OPEN | Verify and cap if missing |
+| ER14 | P2 | Stop quality | Long-only stop logic lacks explicit short guard | CLOSED_CI_GREEN | Guarded by `tests/test_er14_er15_stop_loss_quality_guard.py` |
+| ER15 | P2 | Stop quality | ATR fallback stops may lack max-distance cap comparable to swing stop cap | CLOSED_CI_GREEN | Guarded by `tests/test_er14_er15_stop_loss_quality_guard.py` |
 
 ---
 
-## ER10 — OOS Purge / Embargo
+## ER14 / ER15 — Stop-Loss Quality Guards
 
-External finding:
+External findings:
 
 ```text
-No purge/embargo around OOS split while trades can overlap boundary.
+ER14: Long-only stop logic lacks explicit short guard.
+ER15: ATR fallback stops may lack max-distance cap comparable to swing stop cap.
 ```
 
 Implemented remediation:
 
 ```text
-Split-spanning trades are purged from fixed-date holdout evidence.
-Post-split embargo-window trades are embargoed, not purged.
-purge_days and embargo_days are included in the evidence contract hash.
-purged_records and embargoed_records are exposed in JSON and Markdown reports.
+Unsupported short-side stop derivation fails closed with unsupported_side:<side>.
+Scanner-provided stops exceeding MAX_ATR_STOP_DISTANCE fail closed.
+ATR fallback stops use MAX_ATR_STOP_DISTANCE = 2.0.
+Valid scanner-provided stop reason remains backward compatible.
 ```
 
 Files:
 
 ```text
-src/validation/out_of_sample_lockbox.py
-tests/test_er10_oos_purge_embargo_guard.py
-tests/test_out_of_sample_lockbox.py
+src/signals/stop_loss_quality.py
+tests/test_er14_er15_stop_loss_quality_guard.py
+tests/test_stop_loss_quality.py
 ```
 
 Closure doc:
 
 ```text
-docs/operations/er10_oos_purge_embargo_ci_green_closure_2026_06_02.md
+docs/operations/er14_er15_stop_loss_quality_ci_green_closure_2026_06_02.md
 ```
 
 Status:
@@ -101,8 +102,7 @@ CLOSED_CI_GREEN
 ## Recommended Remediation Order
 
 ```text
-1. ER14 / ER15 — stop-loss quality guards
-2. ER12 / ER13 — evidence caveats and accounting precision review
+1. ER12 / ER13 — evidence caveats and accounting precision review
 ```
 
 ## Next Action
@@ -110,5 +110,5 @@ CLOSED_CI_GREEN
 Continue with:
 
 ```text
-ER14 / ER15 — stop-loss quality guards
+ER12 / ER13 — evidence caveats and accounting precision review
 ```
