@@ -1,5 +1,30 @@
 # CHANGELOG
 
+## ER10 OOS Purge / Embargo — 2026-06-02
+
+### Added
+- Added `tests/test_er10_oos_purge_embargo_guard.py`.
+- Added `docs/operations/er10_oos_purge_embargo_ci_green_closure_2026_06_02.md`.
+
+### Changed
+- Updated `src/validation/out_of_sample_lockbox.py` with explicit `purge_days` and `embargo_days` configuration.
+- Added `purged_records` and `embargoed_records` to the OOS lockbox report.
+- Added purge / embargo values to the evidence contract hash.
+- Added purge / embargo counts to JSON and Markdown lockbox outputs.
+- Refined boundary semantics so split-spanning trades are purged and post-split embargo-window trades are embargoed.
+
+### Validated
+- Trades that start before the split and exit on/after the split are purged from fixed-date holdout evidence.
+- OOS trades that start inside the embargo window are embargoed, not purged.
+- Purge and embargo metadata are serialized and included in the evidence contract hash.
+- Existing OOS lockbox tests remain green.
+
+### Status
+- ER10: CLOSED_CI_GREEN.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## ER9 Targeted Portfolio-Risk Reduction — 2026-06-02
 
 ### Added
