@@ -2,7 +2,7 @@
 
 Status date: 2026-06-02
 
-Current state: TEST1 Evidence-Oriented TDD Policy is active. Paper Observation evidence collection is active. Runtime governance proofing, evidence integrity, report boundaries and external-review remediation are being handled through guard-test-first development.
+Current state: TEST1 Evidence-Oriented TDD Policy is active as the default workflow for safety-relevant fixes and external review findings. EV1-EV12 evidence-integrity remediation is implemented, centrally documented and CI-green. CI runtime simplification is implemented and CI-green. Paper Observation evidence collection is active. Runtime governance proofing, evidence integrity, report boundaries and external-review remediation are being handled through guard-test-first development.
 
 The system remains research / decision-support / paper-observation only. Real-money execution is not authorized by code.
 
@@ -104,15 +104,22 @@ RGP is an audit/proof phase. It does not authorize live execution.
 
 ## Phase EV — Evidence Integrity Fixes
 
+EV1-EV12 evidence-integrity remediation is complete and CI-green.
+
 | ID | Task | Priority | Impact | Status |
 |---|---|---:|---:|---|
-| EV1 | Fix Sharpe so it returns per-trade Sharpe instead of t-statistic | P0 | Critical | Done / CI-green |
-| EV2 | Ensure Deflated Sharpe receives per-trade Sharpe | P0 | Critical | Done / CI-green |
-| EV3 | Historical backtest must simulate declared stop/exit model or fail closed | P0 | Critical | Done / CI-green |
-| EV4 | Prevent full -1R booking after T1 when breakeven/partial management applies | P0 | High | Done / CI-green |
-| EV5 | Model gap-through-stop fills pessimistically | P0 | High | Done / CI-green |
-| EV6 | Fix Target-1-only exit_date for fixed-date holdout segmentation | P1 | High | Done / CI-green |
-| EV7-EV12 | Remaining evidence-integrity remediation | P1/P2 | High/Medium | Done / CI-green |
+| EV1 | Fix `calculate_sharpe_ratio` so it returns per-trade Sharpe instead of a sample-size-scaled t-statistic | P0 | Critical | Done / CI-green |
+| EV2 | Ensure Deflated Sharpe receives per-trade Sharpe and not the t-statistic | P0 | Critical | Done / CI-green |
+| EV3 | Make historical backtest actually simulate declared `stop_model` / `exit_model` or fail closed | P0 | Critical | Done / CI-green |
+| EV4 | Prevent full `-1R` booking after Target 1 when the declared stop model implies breakeven or partial management | P0 | High | Done / CI-green |
+| EV5 | Model gap-through-stop fills pessimistically instead of always filling exactly at stop | P0 | High | Done / CI-green |
+| EV6 | Fix Target-1-only `exit_date` so fixed-date holdout segmentation uses the actual hit date | P1 | High | Done / CI-green |
+| EV7 | Prevent `tier_3` and other weak-evidence tiers from being treated as fully institutional evidence without appropriate guardrails | P1 | High | Done / CI-green |
+| EV8 | Add evidence consolidation guard so generated evidence artifacts remain internally consistent and public-safe | P1 | High | Done / CI-green |
+| EV9 | Add historical-edge validation guardrails for minimum evidence quality and fail-closed reporting | P1 | High | Done / CI-green |
+| EV10 | Add report-output boundary guard so committed examples remain synthetic/public-safe and generated runtime reports stay outside committed output | P1 | High | Done / CI-green |
+| EV11 | Add full-suite flake review policy so ignored or unstable tests are tracked instead of silently accepted | P2 | Medium | Done / CI-green |
+| EV12 | Add drawdown-magnitude evidence guard so drawdown reporting is explicit and not confused with unrelated risk measures | P2 | Medium | Done / CI-green |
 
 ## External Review Remediation Backlog
 
