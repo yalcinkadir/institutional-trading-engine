@@ -1,149 +1,58 @@
-# Institutional Trading Engine — PREMARKET REPORT
+# Institutional Trading Engine — Premarket Report Example
 
-Generated: 2026-06-02 13:52 UTC
+Synthetic example: yes
+Public-safe artifact: yes
+Live data source: none
 
-## Market Regime
+## Purpose
 
-- Data Status: PARTIAL
-- Regime: Bullish (VIX missing)
-- Market Health Score: 65
+This committed file is a synthetic public example only. It demonstrates the intended premarket report layout without publishing live market data, real ranked opportunities, provider-backed values, private thresholds or proprietary edge configuration.
 
-### Core Market Metrics
+## Market Regime Summary
 
-#### SPY
-- Close: 693.77
-- SMA50: 680.44 ✅
-- SMA200: 631.82 ✅
-- ATR14: 4.54
+- Data status: synthetic example
+- Regime: example_neutral
+- Market health score: example_only
 
-#### QQQ
-- Close: 626.24
-- SMA50: 616.61 ✅
-- SMA200: 563.36 ✅
-- ATR14: 5.92
+## Core Market Metrics
 
-#### VIX
-- Close: DATA_UNAVAILABLE
-- SMA50: DATA_UNAVAILABLE
-- SMA200: DATA_UNAVAILABLE
-- ATR14: DATA_UNAVAILABLE
+Synthetic examples only. No live provider-backed market readings are stored in this public artifact.
 
-### Market Breadth
-- Universe Size: 16
-- Above SMA50: 5
-- Breadth %: 31.25%
+| Example Index | Example State | Example Note |
+|---|---|---|
+| DEMO_INDEX_ALPHA | example_trend_supportive | no_live_data |
+| DEMO_INDEX_BETA | example_volatility_watch | no_live_data |
 
 ## Cross-Asset Regime
 
-- Data Status: LIVE
-- Cross-Asset Regime: cross_asset_neutral
-- Risk Score: 71
-- Risk-On Score: 36
-- Risk-Off Score: 15
-
-### Cross-Asset Warnings
-- defensive_gold_outperformance
-
-### Cross-Asset Confirmations
-- usd_pressure_contained
-- duration_stress_contained
-- equity_trend_supportive
-
-### Focus Areas
-- US index trend confirmation before open
-- VIX risk regime before new exposure
-- Leader continuation potential
-- Opening gap and volatility risk
+Synthetic examples only. No real cross-asset readings, provider values or private risk signals are committed here.
 
 ## Decision Engine
 
-- Market State: neutral
-- Portfolio Heat Limit: 1.0
-- Approved / Reduced Size: 6
-- Blocked / No Trade: 0
+This section intentionally contains no real ranked opportunities.
 
-> ℹ️ Data feeds partial (Free Polygon tier — VIX unavailable). Data confidence reduced; sizing conservative.
-
-### Active Strategy Types
-- pullback_continuation
-- mean_reversion
-
-### Decision Summary
-- Decision context allows selective risk-taking in regime-aligned setups.
-
-### Ranked Opportunities
-
-#### MSFT
-- Decision: **approved** | Risk Tier: tier_2
-- Setup Type: pullback_continuation | Size: 0.5x
-- Setup Score: 82.0 | Regime Alignment: 0.82 | Asymmetry Score: 0.72 | Data Confidence: 0.65
-- Notes: thresholds_version=public-demo-2026.05.29-v4-ev1-ev2-sharpe-definition-fix
-
-#### NVDA
-- Decision: **approved** | Risk Tier: tier_2
-- Setup Type: pullback_continuation | Size: 0.5x
-- Setup Score: 79.0 | Regime Alignment: 0.78 | Asymmetry Score: 0.69 | Data Confidence: 0.65
-- Notes: thresholds_version=public-demo-2026.05.29-v4-ev1-ev2-sharpe-definition-fix
-
-#### META
-- Decision: **approved** | Risk Tier: tier_2
-- Setup Type: pullback_continuation | Size: 0.5x
-- Setup Score: 76.0 | Regime Alignment: 0.74 | Asymmetry Score: 0.66 | Data Confidence: 0.65
-- Notes: thresholds_version=public-demo-2026.05.29-v4-ev1-ev2-sharpe-definition-fix
-
-#### AAPL
-- Decision: **approved** | Risk Tier: tier_2
-- Setup Type: pullback_continuation | Size: 0.5x
-- Setup Score: 73.0 | Regime Alignment: 0.7 | Asymmetry Score: 0.63 | Data Confidence: 0.65
-- Notes: thresholds_version=public-demo-2026.05.29-v4-ev1-ev2-sharpe-definition-fix
-
-#### MU
-- Decision: **approved** | Risk Tier: tier_2
-- Setup Type: pullback_continuation | Size: 0.5x
-- Setup Score: 70.0 | Regime Alignment: 0.66 | Asymmetry Score: 0.6 | Data Confidence: 0.65
-- Notes: thresholds_version=public-demo-2026.05.29-v4-ev1-ev2-sharpe-definition-fix
-
-#### QQQ
-- Decision: **approved** | Risk Tier: tier_2
-- Setup Type: pullback_continuation | Size: 0.5x
-- Setup Score: 67.0 | Regime Alignment: 0.62 | Asymmetry Score: 0.57 | Data Confidence: 0.65
-- Notes: thresholds_version=public-demo-2026.05.29-v4-ev1-ev2-sharpe-definition-fix
-
-#### GLD
-- Decision: **watch** | Risk Tier: tier_3
-- Setup Type: pullback_continuation | Size: 0.25x
-- Setup Score: 64.0 | Regime Alignment: 0.58 | Asymmetry Score: 0.54 | Data Confidence: 0.65
-- Notes: thresholds_version=public-demo-2026.05.29-v4-ev1-ev2-sharpe-definition-fix
-
-#### SLV
-- Decision: **watch** | Risk Tier: tier_3
-- Setup Type: pullback_continuation | Size: 0.25x
-- Setup Score: 61.0 | Regime Alignment: 0.54 | Asymmetry Score: 0.51 | Data Confidence: 0.65
-- Notes: thresholds_version=public-demo-2026.05.29-v4-ev1-ev2-sharpe-definition-fix
+| Example Candidate | Example Decision | Example Rationale |
+|---|---|---|
+| DEMO_PRE_ALPHA | watch_example | synthetic_layout_only |
+| DEMO_PRE_BETA | no_trade_example | synthetic_layout_only |
 
 ## Pre-Market Watchlist
 
-### Watchlist
-- MSFT
-- NVDA
-- META
-- AAPL
-- MU
-- QQQ
-- GLD
-- SLV
+Synthetic examples only. No real watchlist, ranked opportunity output or provider-backed market observations are committed here.
 
-### Objectives
-- Gap analysis
-- Opening range preparation
-- High relative strength leaders
+## Setup Readiness
 
-### Warnings
-- Avoid oversized exposure before macro events.
-- Confirm liquidity before entering trades.
+- Example readiness only
+- No real symbols
+- No real scores
+- No private edge parameters
 
-### Notes
-- Live data source: Polygon.io daily aggregates.
-- Breadth currently uses the configured leader universe, not the full S&P 500 universe.
-- VIX data unavailable; scoring used a neutral fallback VIX value of 20.0.
-- Some market data feeds failed; report is running in degraded mode.
+## Data / Risk Warnings
+
+- Public example report only.
+- Generated live, private, raw or provider-backed reports must be written outside committed public report paths.
+- This file must not contain real ranked opportunities.
+
+## Safety Note
+
+This public report is research documentation only. It does not authorize live trading.
