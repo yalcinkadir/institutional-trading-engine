@@ -1,5 +1,32 @@
 # CHANGELOG
 
+## ER14 / ER15 Stop-Loss Quality Guards — 2026-06-02
+
+### Added
+- Added `tests/test_er14_er15_stop_loss_quality_guard.py`.
+- Added `docs/operations/er14_er15_stop_loss_quality_ci_green_closure_2026_06_02.md`.
+
+### Changed
+- Updated `src/signals/stop_loss_quality.py` with explicit `side="long"` default and unsupported-side rejection.
+- Added `SUPPORTED_SIDE = "long"`.
+- Added `MAX_ATR_STOP_DISTANCE = 2.0`.
+- Added central stop-distance validation for scanner-provided stops.
+- Updated ATR fallback stop reasons to declare max 2.0 ATR.
+- Preserved the existing scanner-provided valid stop reason for backward compatibility.
+
+### Validated
+- Unsupported short-side stop derivation fails closed with `unsupported_side:<side>`.
+- Scanner-provided stops farther than the max ATR distance are rejected.
+- ATR fallback stops respect the max 2.0 ATR cap.
+- Existing stop-loss quality tests remain green.
+
+### Status
+- ER14: CLOSED_CI_GREEN.
+- ER15: CLOSED_CI_GREEN.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## ER10 OOS Purge / Embargo — 2026-06-02
 
 ### Added
