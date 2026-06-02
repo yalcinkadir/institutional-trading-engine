@@ -4,7 +4,7 @@ import hashlib
 import json
 import math
 from dataclasses import asdict, dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -28,6 +28,7 @@ THRESHOLD_VERSION_FIELDS = (
     "threshold_version",
     "decision_thresholds_version",
 )
+ENTRY_DATE_FIELDS = ("entry_date", "opened_at", "signal_date", "date")
 
 
 @dataclass(frozen=True)
@@ -37,6 +38,8 @@ class OutOfSampleLockboxConfig:
     edge_config: HistoricalEdgeValidationConfig = HistoricalEdgeValidationConfig()
     threshold_version: str = DEFAULT_THRESHOLDS.version
     require_matching_record_threshold_version: bool = False
+    purge_days: int = 0
+    embargo_days: int = 0
 
 
 @dataclass(frozen=True)
@@ -66,6 +69,10 @@ class OutOfSampleLockboxReport:
     out_of_sample_report: HistoricalEdgeValidationReport
     validation_method: str = VALIDATION_METHOD
     validation_scope_note: str = VALIDATION_SCOPE_NOTE
+    purge_days: int = 0
+    embargo_days: int = 0
+    purged_records: int = 0
+    embargoed_records: int = 0
     degradation_checks: list[MetricDegradation] = field(default_factory=list)
     invalidation_reasons: tuple[str, ...] = field(default_factory=tuple)
 
@@ -75,11 +82,15 @@ class OutOfSampleLockboxReport:
             "validation_method": self.validation_method,
             "validation_scope_note": self.validation_scope_note,
             "split_date": self.split_date,
+            "purge_days": self.purge_days,
+            "embargo_days": self.embargo_days,
             "threshold_version": self.threshold_version,
             "evidence_contract_hash": self.evidence_contract_hash,
             "in_sample_count": self.in_sample_count,
             "out_of_sample_count": self.out_of_sample_count,
             "unassigned_records": self.unassigned_records,
+            "purged_records": self.purged_records,
+            "embargoed_records": self.embargoed_records,
             "in_sample_report": self.in_sample_report.to_dict(),
             "out_of_sample_report": self.out_of_sample_report.to_dict(),
             "degradation_checks": [check.to_dict() for check in self.degradation_checks],
@@ -98,6 +109,8 @@ def build_out_of_sample_lockbox(
     in_sample_records: list[dict[str, Any]] = []
     out_of_sample_records: list[dict[str, Any]] = []
     unassigned_records = 0
+    purged_records = 0
+    embargoed_records = 0
 
     for record in records:
         if not isinstance(record, dict):
@@ -106,6 +119,13 @@ def build_out_of_sample_lockbox(
         record_date = _extract_record_date(record, primary_field=date_field, fallback_fields=fallback_date_fields)
         if record_date is None:
             unassigned_records += 1
+            continue
+        entry_date = _extract_record_date(record, primary_field="entry_date", fallback_fields=ENTRY_DATE_FIELDS)
+        if _is_purged_overlap(entry_date, record_date, config=config):
+            purged_records += 1
+            continue
+        if _is_embargoed(entry_date or record_date, config=config):
+            embargoed_records += 1
             continue
         if record_date < config.split_date:
             in_sample_records.append(dict(record))
@@ -130,6 +150,8 @@ def build_out_of_sample_lockbox(
     invalidation_reasons = build_invalidation_reasons(
         [*in_sample_records, *out_of_sample_records],
         config=config,
+        purged_records=purged_records,
+        embargoed_records=embargoed_records,
     )
     passed = (
         not invalidation_reasons
@@ -141,11 +163,15 @@ def build_out_of_sample_lockbox(
     return OutOfSampleLockboxReport(
         passed=passed,
         split_date=config.split_date.isoformat(),
+        purge_days=config.purge_days,
+        embargo_days=config.embargo_days,
         threshold_version=config.threshold_version,
         evidence_contract_hash=build_evidence_contract_hash(config),
         in_sample_count=len(in_sample_records),
         out_of_sample_count=len(out_of_sample_records),
         unassigned_records=unassigned_records,
+        purged_records=purged_records,
+        embargoed_records=embargoed_records,
         in_sample_report=in_sample_report,
         out_of_sample_report=out_of_sample_report,
         degradation_checks=degradation_checks,
@@ -192,6 +218,8 @@ def build_invalidation_reasons(
     assigned_records: Iterable[dict[str, Any]],
     *,
     config: OutOfSampleLockboxConfig,
+    purged_records: int = 0,
+    embargoed_records: int = 0,
 ) -> list[str]:
     reasons: list[str] = []
 
@@ -199,6 +227,11 @@ def build_invalidation_reasons(
         reasons.append(
             f"stale_threshold_version:{config.threshold_version}!={DEFAULT_THRESHOLDS.version}"
         )
+
+    if purged_records:
+        reasons.append(f"purged_overlap_records:{purged_records}")
+    if embargoed_records:
+        reasons.append(f"embargoed_records:{embargoed_records}")
 
     if not config.require_matching_record_threshold_version:
         return reasons
@@ -222,6 +255,8 @@ def build_invalidation_reasons(
 def build_evidence_contract_hash(config: OutOfSampleLockboxConfig) -> str:
     payload = {
         "split_date": config.split_date.isoformat(),
+        "purge_days": config.purge_days,
+        "embargo_days": config.embargo_days,
         "max_core_metric_degradation": config.max_core_metric_degradation,
         "edge_config": asdict(config.edge_config),
         "threshold_version": config.threshold_version,
@@ -241,11 +276,15 @@ def render_out_of_sample_lockbox_markdown(report: OutOfSampleLockboxReport) -> s
         f"Validation method: `{report.validation_method}`",
         f"Validation scope: {report.validation_scope_note}",
         f"Split date: `{report.split_date}`",
+        f"Purge days: **{report.purge_days}**",
+        f"Embargo days: **{report.embargo_days}**",
         f"Threshold version: `{report.threshold_version}`",
         f"Evidence contract hash: `{report.evidence_contract_hash}`",
         f"In-sample records: **{report.in_sample_count}**",
         f"Holdout records: **{report.out_of_sample_count}**",
         f"Unassigned records: **{report.unassigned_records}**",
+        f"Purged overlap records: **{report.purged_records}**",
+        f"Embargoed records: **{report.embargoed_records}**",
         "",
     ]
     if report.invalidation_reasons:
@@ -357,13 +396,35 @@ def _metrics_row(label: str, report: HistoricalEdgeValidationReport) -> str:
     )
 
 
+def _is_purged_overlap(entry_date: date | None, exit_date: date, *, config: OutOfSampleLockboxConfig) -> bool:
+    if entry_date is None:
+        return False
+    purge_start = config.split_date - timedelta(days=max(config.purge_days, 0))
+    purge_end = config.split_date + timedelta(days=max(config.purge_days, 0))
+    spans_split = entry_date < config.split_date <= exit_date
+    touches_purge_window = entry_date <= purge_end and exit_date >= purge_start
+    return spans_split or (config.purge_days > 0 and touches_purge_window)
+
+
+def _is_embargoed(entry_or_exit_date: date, *, config: OutOfSampleLockboxConfig) -> bool:
+    if config.embargo_days <= 0:
+        return False
+    embargo_start = config.split_date
+    embargo_end = config.split_date + timedelta(days=config.embargo_days)
+    return embargo_start <= entry_or_exit_date <= embargo_end
+
+
 def _extract_record_date(
     record: dict[str, Any],
     *,
     primary_field: str,
     fallback_fields: tuple[str, ...],
 ) -> date | None:
-    for field in (primary_field, *fallback_fields):
+    fields: list[str] = []
+    for field_name in (primary_field, *fallback_fields):
+        if field_name not in fields:
+            fields.append(field_name)
+    for field in fields:
         parsed = _parse_date(record.get(field))
         if parsed is not None:
             return parsed
