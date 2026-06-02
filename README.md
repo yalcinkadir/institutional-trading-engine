@@ -61,6 +61,8 @@ ER3: notional / buying-power capped position sizing implemented and CI-green
 ER4: atomic persistence utility and PortfolioStateStore atomic save implemented and CI-green
 ER5: falsy-zero outcome substitution guard implemented and CI-green
 ER6: missing result evidence is surfaced instead of counted as breakeven and CI-green
+ER7: expectancy-based adjustment sample discipline implemented and CI-green
+ER8: positive asymmetric expectancy handling implemented and CI-green
 ER11: explicit expectancy_r unit naming implemented and CI-green
 
 Repository / Public Safety:
@@ -199,6 +201,28 @@ Status:
 CLOSED_CI_GREEN
 ```
 
+### ER7 / ER8 — Expectancy Statistical Discipline
+
+The expectancy adjuster now separates score evidence from size evidence. Smaller samples may affect score, but the multiplier remains neutral until the stronger sample floor is met. Positive asymmetric expectancy is no longer blocked solely by low win rate.
+
+Guard:
+
+```text
+tests/test_er7_er8_expectancy_statistical_discipline.py
+```
+
+Related tests:
+
+```text
+tests/test_expectancy_adjuster.py
+```
+
+Status:
+
+```text
+CLOSED_CI_GREEN
+```
+
 ### ER11 — Explicit Expectancy Units
 
 Ambiguous `expectancy` fields were replaced with explicit `expectancy_r`.
@@ -256,6 +280,9 @@ NEEDS_REVIEW
 Targeted remediation tests:
 
 ```bash
+pytest tests/test_er7_er8_expectancy_statistical_discipline.py -q
+pytest tests/test_expectancy_adjuster.py -q
+pytest tests/test_artifact_hygiene.py -q
 pytest tests/test_er4_atomic_persistence_guard.py -q
 pytest tests/test_portfolio_state.py -q
 pytest tests/test_er1_er2_backtest_realism_guard.py -q
@@ -263,7 +290,6 @@ pytest tests/test_historical_entry_exit_backtest.py -q
 pytest tests/test_er5_expectancy_zero_result_guard.py -q
 pytest tests/test_er6_edge_evidence_missing_result_guard.py -q
 pytest tests/test_er11_expectancy_units_guard.py -q
-pytest tests/test_expectancy_adjuster.py -q
 pytest tests/test_edge_evidence_backtest.py -q
 pytest tests/test_decision_report.py -q
 ```
