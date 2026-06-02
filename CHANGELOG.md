@@ -1,5 +1,29 @@
 # CHANGELOG
 
+## ER9 Targeted Portfolio-Risk Reduction — 2026-06-02
+
+### Added
+- Added `tests/test_er9_targeted_portfolio_risk_reduction.py`.
+- Added `docs/operations/er9_targeted_portfolio_risk_reduction_ci_green_closure_2026_06_02.md`.
+
+### Changed
+- Updated `src/portfolio_risk.py` so portfolio-risk reductions are targeted instead of globally applied for every warning.
+- Added `symbol_risk_multipliers` evidence to `PortfolioRiskResult`.
+- Updated `tests/test_portfolio_risk.py` to preserve true global portfolio-heat behavior while validating targeted pair/sector reductions.
+
+### Validated
+- High-correlation warnings reduce only the involved symbols.
+- Sector-concentration warnings reduce only the affected sector.
+- Uninvolved symbols remain approved.
+- Portfolio-heat excess can still reduce all tradable symbols because the risk source is global.
+- `no_trade` candidates remain excluded from reduced symbols.
+
+### Status
+- ER9: CLOSED_CI_GREEN.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## ER7 / ER8 Expectancy Statistical Discipline — 2026-06-02
 
 ### Added
@@ -161,7 +185,7 @@
 
 ### Added
 - Added PR public-edge review governance for newly introduced edge constants.
-- Added license and usage disclaimer documentation for the public decision-support research framework.
+- Added license and research-only usage disclaimer documentation for the public decision-support research framework.
 - Added `docs/operations/ip9_ip10_public_repo_governance.md`.
 - Added `tests/test_ip9_ip10_public_repo_governance.py`.
 
