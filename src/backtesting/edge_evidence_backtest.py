@@ -272,7 +272,15 @@ def build_edge_evidence_diagnostics(
     walk_forward_report: WalkForwardValidationReport,
     oos_report: OutOfSampleLockboxReport,
 ) -> dict[str, Any]:
-    result_values = [float(record.get("result_r") or 0.0) for record in validation_records]
+    result_values: list[float] = []
+    missing_result_count = 0
+    for record in validation_records:
+        value = _extract_result_value(record)
+        if value is None:
+            missing_result_count += 1
+            continue
+        result_values.append(value)
+
     positive = [value for value in result_values if value > 0]
     negative = [value for value in result_values if value < 0]
     breakeven = len(result_values) - len(positive) - len(negative)
@@ -284,6 +292,7 @@ def build_edge_evidence_diagnostics(
     return {
         "historical_results": {
             "total": len(result_values),
+            "missing_result_count": missing_result_count,
             "wins": len(positive),
             "losses": len(negative),
             "breakeven": breakeven,
@@ -337,11 +346,22 @@ def build_edge_evidence_diagnostics(
 
 def _result_to_validation_record(result: Any) -> dict[str, Any]:
     payload = result.to_dict()
+    r_multiple = _optional_float(payload.get("r_multiple"))
     return {
         **payload,
-        "result_r": float(payload.get("r_multiple") or 0.0),
+        "result_r": r_multiple,
         "exit_date": payload.get("exit_date") or payload.get("signal_date"),
     }
+
+
+def _extract_result_value(record: Any) -> float | None:
+    if not isinstance(record, dict):
+        return None
+    if "result_r" in record:
+        return _optional_float(record.get("result_r"))
+    if "r_multiple" in record:
+        return _optional_float(record.get("r_multiple"))
+    return None
 
 
 def _write_diagnostics(diagnostics: dict[str, Any], *, json_path: Path, markdown_path: Path) -> None:
@@ -361,6 +381,7 @@ def _render_diagnostics(diagnostics: dict[str, Any]) -> str:
         "## Historical Results",
         "",
         f"- Total results: **{historical['total']}**",
+        f"- Missing result records: **{historical.get('missing_result_count', 0)}**",
         f"- Wins / losses / breakeven: **{historical['wins']} / {historical['losses']} / {historical['breakeven']}**",
         f"- Win rate: **{historical['win_rate']:.2%}**",
         f"- Average R: **{historical['average_r']:.4f}**",
@@ -471,6 +492,7 @@ def _render_summary(report: EdgeEvidenceBacktestReport) -> str:
         lines.extend(
             [
                 f"- Average R: {_format_number(historical.get('average_r', 0.0))}",
+                f"- Missing result records: {historical.get('missing_result_count', 0)}",
                 f"- Win rate: {float(historical.get('win_rate', 0.0)):.2%}",
                 f"- Walk-forward cycles: {walk_forward.get('passing_cycles', 0)}/{walk_forward.get('generated_cycles', 0)} passing",
                 f"- OOS records: {oos.get('out_of_sample_count', 0)}",
@@ -499,6 +521,15 @@ def _safe_ratio(numerator: int, denominator: int) -> float:
 
 def _rounded(value: float) -> float:
     return round(float(value), 6)
+
+
+def _optional_float(value: Any) -> float | None:
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def _format_number(value: Any) -> str:
