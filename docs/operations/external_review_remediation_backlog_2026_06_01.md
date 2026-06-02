@@ -44,7 +44,7 @@ This backlog does not authorize live trading, broker execution or capital alloca
 | ER1 | P0 | Backtest realism | Optimistic T1 expiry booking in `t1_t2` model books full T1 even when trade expires after T1 without T2 | CLOSED_CI_GREEN | Guarded by `tests/test_er1_er2_backtest_realism_guard.py` |
 | ER2 | P0 | Backtest realism | Entry fills ignore gap-through-entry while stop fills model gaps pessimistically | CLOSED_CI_GREEN | Guarded by `tests/test_er1_er2_backtest_realism_guard.py` |
 | ER3 | P0 | Position sizing | Position sizing lacked notional / buying-power cap | CLOSED_CI_GREEN | Fixed in `src/trading/risk_engine.py` |
-| ER4 | P0 | Persistence / audit integrity | State and evidence writes are not consistently atomic | OPEN | Standardize tmp + `os.replace` |
+| ER4 | P0 | Persistence / audit integrity | State and evidence writes are not consistently atomic | CLOSED_CI_GREEN | Guarded by `tests/test_er4_atomic_persistence_guard.py` |
 | ER5 | P1 | Outcome metrics | Falsy-zero bug can replace true `0.0` result with alternate metric | CLOSED_CI_GREEN | Guarded by `tests/test_er5_expectancy_zero_result_guard.py` |
 | ER6 | P1 | Evidence quality | Missing result keys may be silently counted as `0.0` breakeven trades | CLOSED_CI_GREEN | Guarded by `tests/test_er6_edge_evidence_missing_result_guard.py` |
 | ER7 | P1 | Sizing governance | `MIN_SAMPLES = 5` for automatic size adjustment is statistically weak | OPEN | Raise threshold or add confidence gate |
@@ -188,18 +188,33 @@ Risk:
 Crash or concurrent write can corrupt JSON state used as governance evidence.
 ```
 
-Expected remediation:
+Implemented remediation:
 
 ```text
-Create shared atomic JSON write utility with tmp file, fsync where appropriate, and os.replace.
-Use it for portfolio state, adjustment history, manual portfolio sync, outcome records and evidence files.
-Consider backup-before-overwrite for critical single-source-of-truth files.
+Created central atomic persistence helper for text and JSON files.
+Atomic writes use temporary sibling files and os.replace.
+Existing destination files remain unchanged when replacement fails.
+PortfolioStateStore.save uses the central atomic JSON writer.
+```
+
+Files:
+
+```text
+src/persistence/atomic_write.py
+src/runtime/portfolio_state.py
+tests/test_er4_atomic_persistence_guard.py
+```
+
+Closure doc:
+
+```text
+docs/operations/er4_atomic_persistence_ci_green_closure_2026_06_02.md
 ```
 
 Status:
 
 ```text
-OPEN
+CLOSED_CI_GREEN
 ```
 
 ---
@@ -311,186 +326,14 @@ OPEN
 
 ---
 
-## ER9 — Global Portfolio-Risk Reduction
-
-External finding:
-
-```text
-One correlation or sector warning reduces all tradable symbols globally and returns only symbols, not actual reduced multipliers.
-```
-
-Expected remediation:
-
-```text
-Make reduction targeted to the causing pair/sector or return per-symbol risk multiplier evidence.
-```
-
-Status:
-
-```text
-OPEN
-```
-
----
-
-## ER10 — No Purge/Embargo Around OOS Split
-
-External finding:
-
-```text
-In-sample signals close to split date can resolve into OOS period when max holding period is multiple bars.
-```
-
-Expected remediation:
-
-```text
-Add purge/embargo window around split date, parameterized by max holding bars or explicit embargo days.
-```
-
-Status:
-
-```text
-OPEN
-```
-
----
-
-## ER11 — Mixed Expectancy Units
-
-External finding:
-
-```text
-Backtest expectancy and adjustment expectancy use different units and denominators while sharing similar naming.
-```
-
-Implemented remediation:
-
-```text
-Renamed ambiguous expectancy adjustment fields to expectancy_r.
-Decision report payloads now expose expectancy.expectancy_r.
-expectancy_r means average R-multiple per evaluated trade/outcome profile.
-```
-
-Files:
-
-```text
-src/scoring/expectancy_adjuster.py
-src/reporting/decision_report.py
-tests/test_er11_expectancy_units_guard.py
-tests/test_er5_expectancy_zero_result_guard.py
-```
-
-Status:
-
-```text
-CLOSED_CI_GREEN
-```
-
----
-
-## ER12 — Sharpe Assumptions and Small-Sample Handling
-
-External finding:
-
-```text
-Sharpe evidence uses per-trade std and IID-style significance assumptions.
-```
-
-Existing context:
-
-```text
-EV1/EV2 already addressed the per-trade Sharpe vs t-stat / Deflated Sharpe unit issue.
-```
-
-Expected verification:
-
-```text
-Confirm remaining std/IID/small-sample caveats are documented and not overstated by gates.
-```
-
-Status:
-
-```text
-LIKELY_CLOSED_BY_EXISTING_WORK_NEEDS_VERIFICATION
-```
-
----
-
-## ER13 — Float Money Accounting
-
-External finding:
-
-```text
-PnL/equity paths use float broadly.
-```
-
-Expected remediation:
-
-```text
-Consider Decimal or integer cents at ledger/equity aggregation boundaries.
-```
-
-Status:
-
-```text
-OPEN
-```
-
----
-
-## ER14 — Long-Only Stop Logic Lacks Short Guard
-
-External finding:
-
-```text
-Stop-loss quality logic is long-side but may not explicitly reject short setups.
-```
-
-Expected remediation:
-
-```text
-Add explicit guard/reject for unsupported short direction.
-```
-
-Status:
-
-```text
-OPEN
-```
-
----
-
-## ER15 — ATR Fallback Stop Max-Distance Cap
-
-External finding:
-
-```text
-ATR fallback stops may not have the same max-distance cap as swing stop logic.
-```
-
-Expected remediation:
-
-```text
-Add or verify max ATR-distance cap for fallback stops.
-```
-
-Status:
-
-```text
-OPEN
-```
-
----
-
 ## Recommended Remediation Order
 
 ```text
-1. ER4 — atomic persistence for governance state and evidence files
-2. ER7 / ER8 — expectancy adjuster statistical discipline
-3. ER9 — targeted portfolio-risk reduction evidence
-4. ER10 — OOS purge/embargo
-5. ER14 / ER15 — stop-loss quality guards
-6. ER12 / ER13 — evidence caveats and accounting precision review
+1. ER7 / ER8 — expectancy adjuster statistical discipline
+2. ER9 — targeted portfolio-risk reduction evidence
+3. ER10 — OOS purge/embargo
+4. ER14 / ER15 — stop-loss quality guards
+5. ER12 / ER13 — evidence caveats and accounting precision review
 ```
 
 ## Next Action
@@ -498,11 +341,11 @@ OPEN
 Continue with:
 
 ```text
-ER4 — atomic persistence for governance state and evidence files
+ER7 / ER8 — expectancy adjuster statistical discipline
 ```
 
 Rationale:
 
 ```text
-ER4 remains the next open P0 issue. It protects governance and evidence artifacts from partial/corrupt writes.
+ER7 and ER8 both affect score/risk adjustment quality and should be handled together because both live in expectancy-adjustment governance.
 ```
