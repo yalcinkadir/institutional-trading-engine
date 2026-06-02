@@ -2,7 +2,7 @@
 
 Status date: 2026-06-02
 
-Current state: TEST1 Evidence-Oriented TDD Policy is active as the default workflow for safety-relevant fixes and external review findings. EV1-EV12 evidence-integrity remediation is implemented, centrally documented and CI-green. CI runtime simplification is implemented and CI-green. Paper Observation evidence collection is active. Runtime governance proofing, evidence integrity, report boundaries, public-repository governance and external-review remediation are being handled through guard-test-first development. ER1/ER2 backtest-realism guards are implemented and CI-green. ER4 atomic persistence guard is implemented and CI-green. ER7/ER8 expectancy statistical discipline is implemented and CI-green. ER9 targeted portfolio-risk reduction evidence is implemented and CI-green. ER10 OOS purge / embargo lockbox guard is implemented and CI-green.
+Current state: TEST1 Evidence-Oriented TDD Policy is active as the default workflow for safety-relevant fixes and external review findings. EV1-EV12 evidence-integrity remediation is implemented, centrally documented and CI-green. CI runtime simplification is implemented and CI-green. Paper Observation evidence collection is active. Runtime governance proofing, evidence integrity, report boundaries, public-repository governance and external-review remediation are being handled through guard-test-first development. ER1/ER2 backtest-realism guards are implemented and CI-green. ER4 atomic persistence guard is implemented and CI-green. ER7/ER8 expectancy statistical discipline is implemented and CI-green. ER9 targeted portfolio-risk reduction evidence is implemented and CI-green. ER10 OOS purge / embargo lockbox guard is implemented and CI-green. ER14/ER15 stop-loss quality guards are implemented and CI-green.
 
 The system remains research / decision-support / paper-observation only. Real-money execution is not authorized by code.
 
@@ -153,8 +153,8 @@ EV1-EV12 evidence-integrity remediation is complete and CI-green.
 | ER11 | P2 | Metric semantics | Mixed expectancy naming / units | CLOSED_CI_GREEN |
 | ER12 | P2 | Sharpe evidence | Small-sample / IID assumptions need verification | LIKELY_CLOSED_BY_EXISTING_WORK_NEEDS_VERIFICATION |
 | ER13 | P2 | Accounting precision | Float money/PnL accounting | OPEN |
-| ER14 | P2 | Stop quality | Long-only stop logic lacks explicit short guard | OPEN |
-| ER15 | P2 | Stop quality | ATR fallback stop may lack max-distance cap | OPEN |
+| ER14 | P2 | Stop quality | Long-only stop logic lacks explicit short guard | CLOSED_CI_GREEN |
+| ER15 | P2 | Stop quality | ATR fallback stop may lack max-distance cap | CLOSED_CI_GREEN |
 
 ## ER1 / ER2 Closure Summary
 
@@ -315,11 +315,36 @@ Closure doc:
 docs/operations/er10_oos_purge_embargo_ci_green_closure_2026_06_02.md
 ```
 
+## ER14 / ER15 Closure Summary
+
+ER14/ER15 stop-loss quality remediation is implemented and CI-green.
+
+Implemented behavior:
+
+```text
+unsupported short-side stop derivation fails closed with unsupported_side:<side>
+scanner-provided stops exceeding MAX_ATR_STOP_DISTANCE fail closed
+ATR fallback stops use MAX_ATR_STOP_DISTANCE = 2.0
+valid scanner-provided stop reason remains backward compatible
+```
+
+Guard tests:
+
+```text
+tests/test_er14_er15_stop_loss_quality_guard.py
+tests/test_stop_loss_quality.py
+```
+
+Closure doc:
+
+```text
+docs/operations/er14_er15_stop_loss_quality_ci_green_closure_2026_06_02.md
+```
+
 ## Recommended Next Remediation Order
 
 ```text
-1. ER14 / ER15 — stop-loss quality guards
-2. ER12 / ER13 — evidence caveats and accounting precision review
+1. ER12 / ER13 — evidence caveats and accounting precision review
 ```
 
 ## Safety Boundary
