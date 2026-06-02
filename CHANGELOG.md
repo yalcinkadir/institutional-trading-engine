@@ -1,5 +1,31 @@
 # CHANGELOG
 
+## ER7 / ER8 Expectancy Statistical Discipline — 2026-06-02
+
+### Added
+- Added `tests/test_er7_er8_expectancy_statistical_discipline.py`.
+- Added `docs/operations/er7_er8_expectancy_statistical_discipline_ci_green_closure_2026_06_02.md`.
+
+### Changed
+- Separated score evidence from size evidence in `src/scoring/expectancy_adjuster.py`.
+- Added a stronger sample floor for size multipliers.
+- Updated `tests/test_expectancy_adjuster.py` so small evidence sets may affect score while keeping multiplier neutral.
+- Restored `reports/premarket-report.md` to a synthetic public-safe example after artifact hygiene caught generated report content.
+
+### Validated
+- Positive profiles below the stronger size-evidence floor can score while multiplier remains neutral.
+- Negative profiles below the stronger size-evidence floor can reduce score while multiplier remains neutral.
+- Positive asymmetric expectancy is not blocked only because win rate is low.
+- Existing expectancy tests prove both 6-sample and 20-sample behavior.
+- Public committed premarket report content is synthetic/public-safe again.
+
+### Status
+- ER7: CLOSED_CI_GREEN.
+- ER8: CLOSED_CI_GREEN.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## ER4 Atomic Persistence Remediation — 2026-06-02
 
 ### Added
