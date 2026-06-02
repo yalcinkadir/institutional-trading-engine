@@ -2,7 +2,7 @@
 
 Status date: 2026-06-02
 
-Current state: TEST1 Evidence-Oriented TDD Policy is active as the default workflow for safety-relevant fixes and external review findings. EV1-EV12 evidence-integrity remediation is implemented, centrally documented and CI-green. CI runtime simplification is implemented and CI-green. Paper Observation evidence collection is active. Runtime governance proofing, evidence integrity, report boundaries, public-repository governance and external-review remediation are being handled through guard-test-first development. ER1/ER2 backtest-realism guards are implemented and CI-green. ER4 atomic persistence guard is implemented and CI-green. ER7/ER8 expectancy statistical discipline is implemented and CI-green.
+Current state: TEST1 Evidence-Oriented TDD Policy is active as the default workflow for safety-relevant fixes and external review findings. EV1-EV12 evidence-integrity remediation is implemented, centrally documented and CI-green. CI runtime simplification is implemented and CI-green. Paper Observation evidence collection is active. Runtime governance proofing, evidence integrity, report boundaries, public-repository governance and external-review remediation are being handled through guard-test-first development. ER1/ER2 backtest-realism guards are implemented and CI-green. ER4 atomic persistence guard is implemented and CI-green. ER7/ER8 expectancy statistical discipline is implemented and CI-green. ER9 targeted portfolio-risk reduction evidence is implemented and CI-green.
 
 The system remains research / decision-support / paper-observation only. Real-money execution is not authorized by code.
 
@@ -148,7 +148,7 @@ EV1-EV12 evidence-integrity remediation is complete and CI-green.
 | ER6 | P1 | Evidence quality | Missing result keys counted as `0.0` breakeven evidence | CLOSED_CI_GREEN |
 | ER7 | P1 | Sizing governance | `MIN_SAMPLES = 5` too weak for automatic size adjustment | CLOSED_CI_GREEN |
 | ER8 | P1 | Expectancy logic | Isolated win-rate gate can block positive-asymmetry profiles | CLOSED_CI_GREEN |
-| ER9 | P1 | Portfolio risk | Portfolio-risk reduction too global | OPEN |
+| ER9 | P1 | Portfolio risk | Portfolio-risk reduction too global | CLOSED_CI_GREEN |
 | ER10 | P1 | OOS methodology | No purge/embargo around OOS split | OPEN |
 | ER11 | P2 | Metric semantics | Mixed expectancy naming / units | CLOSED_CI_GREEN |
 | ER12 | P2 | Sharpe evidence | Small-sample / IID assumptions need verification | LIKELY_CLOSED_BY_EXISTING_WORK_NEEDS_VERIFICATION |
@@ -263,13 +263,38 @@ Closure doc:
 docs/operations/er7_er8_expectancy_statistical_discipline_ci_green_closure_2026_06_02.md
 ```
 
+## ER9 Closure Summary
+
+ER9 targeted portfolio-risk reduction remediation is implemented and CI-green.
+
+Implemented behavior:
+
+```text
+correlation warnings reduce only involved pair symbols
+sector concentration warnings reduce only affected-sector symbols
+portfolio heat warnings remain global because the risk source is global
+per-symbol risk multiplier evidence is exposed as symbol_risk_multipliers
+```
+
+Guard tests:
+
+```text
+tests/test_er9_targeted_portfolio_risk_reduction.py
+tests/test_portfolio_risk.py
+```
+
+Closure doc:
+
+```text
+docs/operations/er9_targeted_portfolio_risk_reduction_ci_green_closure_2026_06_02.md
+```
+
 ## Recommended Next Remediation Order
 
 ```text
-1. ER9 — targeted portfolio-risk reduction evidence
-2. ER10 — OOS purge / embargo
-3. ER14 / ER15 — stop-loss quality guards
-4. ER12 / ER13 — evidence caveats and accounting precision review
+1. ER10 — OOS purge / embargo
+2. ER14 / ER15 — stop-loss quality guards
+3. ER12 / ER13 — evidence caveats and accounting precision review
 ```
 
 ## Safety Boundary
