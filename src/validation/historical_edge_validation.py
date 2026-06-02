@@ -18,6 +18,7 @@ MAX_DRAWDOWN_LIMIT = 0.25
 MIN_SHARPE_RATIO = 0.10
 MIN_DEFLATED_SHARPE_PROBABILITY = 0.95
 SHARPE_DEFINITION_VERSION = "per-trade-sharpe-2026.05.29-v1"
+SMALL_SAMPLE_WARNING_THRESHOLD = 30
 
 
 @dataclass(frozen=True)
@@ -57,6 +58,18 @@ class HistoricalEdgeMetrics:
 
 
 @dataclass(frozen=True)
+class HistoricalEdgeCaveats:
+    sharpe_std_method: str
+    iid_assumption: str
+    small_sample_warning: bool
+    not_proof_of_edge: bool
+    message: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
 class HistoricalEdgeGate:
     name: str
     passed: bool
@@ -74,6 +87,7 @@ class HistoricalEdgeValidationReport:
     metrics: HistoricalEdgeMetrics
     gates: list[HistoricalEdgeGate] = field(default_factory=list)
     statistical_robustness: StatisticalRobustnessMetrics | None = None
+    caveats: HistoricalEdgeCaveats | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -83,6 +97,7 @@ class HistoricalEdgeValidationReport:
             "statistical_robustness": (
                 self.statistical_robustness.to_dict() if self.statistical_robustness else None
             ),
+            "caveats": self.caveats.to_dict() if self.caveats else None,
         }
 
 
@@ -102,25 +117,17 @@ def validate_historical_edge(
         confidence_level=config.bootstrap_confidence_level,
         seed=config.bootstrap_seed,
     )
-    gates = build_historical_edge_gates(
-        metrics,
-        config=config,
-        statistical_robustness=statistical_robustness,
-    )
-
+    gates = build_historical_edge_gates(metrics, config=config, statistical_robustness=statistical_robustness)
     return HistoricalEdgeValidationReport(
         passed=all(gate.passed for gate in gates),
         metrics=metrics,
         gates=gates,
         statistical_robustness=statistical_robustness,
+        caveats=build_historical_edge_caveats(metrics),
     )
 
 
-def extract_r_values(
-    records: Iterable[dict[str, Any]],
-    *,
-    result_field: str = "result_r",
-) -> list[float]:
+def extract_r_values(records: Iterable[dict[str, Any]], *, result_field: str = "result_r") -> list[float]:
     values: list[float] = []
     for record in records:
         if not isinstance(record, dict):
@@ -144,10 +151,6 @@ def calculate_historical_edge_metrics(r_values: Iterable[float]) -> HistoricalEd
     max_drawdown = calculate_max_drawdown(values)
     sharpe_ratio = calculate_sharpe_ratio(values)
     sharpe_tstat = calculate_sharpe_tstat(values)
-    max_consecutive_losses = calculate_max_consecutive_losses(values)
-    recovery_time_trades = calculate_recovery_time_trades(values)
-    cumulative_r = sum(values)
-
     return HistoricalEdgeMetrics(
         total_trades=total,
         wins=wins,
@@ -160,9 +163,23 @@ def calculate_historical_edge_metrics(r_values: Iterable[float]) -> HistoricalEd
         sharpe_ratio=round(sharpe_ratio, 6),
         sharpe_tstat=round(sharpe_tstat, 6),
         sharpe_definition_version=SHARPE_DEFINITION_VERSION,
-        max_consecutive_losses=max_consecutive_losses,
-        recovery_time_trades=recovery_time_trades,
-        cumulative_r=round(cumulative_r, 6),
+        max_consecutive_losses=calculate_max_consecutive_losses(values),
+        recovery_time_trades=calculate_recovery_time_trades(values),
+        cumulative_r=round(sum(values), 6),
+    )
+
+
+def build_historical_edge_caveats(metrics: HistoricalEdgeMetrics) -> HistoricalEdgeCaveats:
+    return HistoricalEdgeCaveats(
+        sharpe_std_method="population_std",
+        iid_assumption="not_verified",
+        small_sample_warning=metrics.total_trades < SMALL_SAMPLE_WARNING_THRESHOLD,
+        not_proof_of_edge=True,
+        message=(
+            "Sharpe metrics use per-trade R values and population standard deviation. "
+            "IID assumption is not verified; small samples require caution; this is "
+            + "not proof of live edge."
+        ),
     )
 
 
@@ -177,23 +194,10 @@ def calculate_profit_factor(r_values: Iterable[float]) -> float:
 
 
 def calculate_profit_factor_degradation(current: float, baseline: float) -> float:
-    """Return deterministic profit-factor degradation in [0, 1].
-
-    Profit factor can legitimately be infinite when an evaluated sample has wins
-    and no losses. Naive arithmetic such as ``inf / inf`` or ``inf - inf`` can
-    produce ``nan`` in audit outputs. This helper makes the boundary explicit:
-
-    - baseline inf and current inf -> no degradation
-    - baseline inf and current finite -> maximum degradation
-    - current inf and finite baseline -> no degradation
-    - finite values -> positive relative drop, clipped to [0, 1]
-    """
-
     current_value = float(current)
     baseline_value = float(baseline)
     current_is_inf = math.isinf(current_value)
     baseline_is_inf = math.isinf(baseline_value)
-
     if current_is_inf and baseline_is_inf:
         return 0.0
     if baseline_is_inf:
@@ -204,7 +208,6 @@ def calculate_profit_factor_degradation(current: float, baseline: float) -> floa
         return 1.0
     if baseline_value <= 0:
         return 0.0 if current_value >= baseline_value else 1.0
-
     degradation = (baseline_value - current_value) / baseline_value
     return round(min(1.0, max(0.0, degradation)), 6)
 
@@ -216,14 +219,11 @@ def calculate_max_drawdown(r_values: Iterable[float]) -> float:
     for value in r_values:
         cumulative += value
         peak = max(peak, cumulative)
-        drawdown = peak - cumulative
-        max_drawdown = max(max_drawdown, drawdown)
+        max_drawdown = max(max_drawdown, peak - cumulative)
     return max_drawdown
 
 
 def calculate_sharpe_ratio(r_values: Iterable[float]) -> float:
-    """Per-trade Sharpe = mean(R) / population std(R)."""
-
     values = [float(value) for value in r_values]
     if len(values) < 2:
         return 0.0
@@ -236,8 +236,6 @@ def calculate_sharpe_ratio(r_values: Iterable[float]) -> float:
 
 
 def calculate_sharpe_tstat(r_values: Iterable[float]) -> float:
-    """Significance proxy: per-trade Sharpe multiplied by sqrt(N)."""
-
     values = [float(value) for value in r_values]
     if len(values) < 2:
         return 0.0
@@ -261,7 +259,6 @@ def calculate_recovery_time_trades(r_values: Iterable[float]) -> int:
     peak = 0.0
     current_underwater = 0
     max_recovery = 0
-
     for value in r_values:
         cumulative += value
         if cumulative >= peak:
@@ -271,7 +268,6 @@ def calculate_recovery_time_trades(r_values: Iterable[float]) -> int:
         else:
             current_underwater += 1
             max_recovery = max(max_recovery, current_underwater)
-
     return max_recovery
 
 
@@ -283,72 +279,15 @@ def build_historical_edge_gates(
 ) -> list[HistoricalEdgeGate]:
     effective_drawdown_threshold = config.max_drawdown_limit * max(1.0, abs(metrics.cumulative_r))
     gates = [
-        HistoricalEdgeGate(
-            name="minimum_sample_size",
-            passed=metrics.total_trades >= config.min_total_trades,
-            value=metrics.total_trades,
-            threshold=config.min_total_trades,
-            message="Minimum completed trade count required for edge validation.",
-        ),
-        HistoricalEdgeGate(
-            name="positive_expectancy",
-            passed=metrics.expectancy_r >= config.min_expectancy_r,
-            value=metrics.expectancy_r,
-            threshold=config.min_expectancy_r,
-            message="Average result per trade must clear the configured R threshold.",
-        ),
-        HistoricalEdgeGate(
-            name="profit_factor",
-            passed=metrics.profit_factor >= config.min_profit_factor,
-            value=metrics.profit_factor,
-            threshold=config.min_profit_factor,
-            message="Gross wins divided by gross losses must clear the configured threshold.",
-        ),
-        HistoricalEdgeGate(
-            name="drawdown_limit",
-            passed=metrics.max_drawdown <= effective_drawdown_threshold,
-            value=metrics.max_drawdown,
-            threshold=round(effective_drawdown_threshold, 6),
-            message=(
-                "Max drawdown (R) must stay within max_drawdown_limit * max(1, |cumulative_r|). "
-                "Threshold shown is the effective absolute R limit."
-            ),
-        ),
-        HistoricalEdgeGate(
-            name="sharpe_ratio",
-            passed=metrics.sharpe_ratio >= config.min_sharpe_ratio,
-            value=metrics.sharpe_ratio,
-            threshold=config.min_sharpe_ratio,
-            message="Per-trade Sharpe must clear the configured threshold.",
-        ),
+        HistoricalEdgeGate("minimum_sample_size", metrics.total_trades >= config.min_total_trades, metrics.total_trades, config.min_total_trades, "Minimum completed trade count required for edge validation."),
+        HistoricalEdgeGate("positive_expectancy", metrics.expectancy_r >= config.min_expectancy_r, metrics.expectancy_r, config.min_expectancy_r, "Average result per trade must clear the configured R threshold."),
+        HistoricalEdgeGate("profit_factor", metrics.profit_factor >= config.min_profit_factor, metrics.profit_factor, config.min_profit_factor, "Gross wins divided by gross losses must clear the configured threshold."),
+        HistoricalEdgeGate("drawdown_limit", metrics.max_drawdown <= effective_drawdown_threshold, metrics.max_drawdown, round(effective_drawdown_threshold, 6), "Max drawdown (R) must stay within max_drawdown_limit * max(1, |cumulative_r|). Threshold shown is the effective absolute R limit."),
+        HistoricalEdgeGate("sharpe_ratio", metrics.sharpe_ratio >= config.min_sharpe_ratio, metrics.sharpe_ratio, config.min_sharpe_ratio, "Per-trade Sharpe must clear the configured threshold."),
     ]
-
     if statistical_robustness is not None:
-        gates.append(
-            HistoricalEdgeGate(
-                name="deflated_sharpe_probability",
-                passed=(
-                    statistical_robustness.deflated_sharpe_probability
-                    >= config.min_deflated_sharpe_probability
-                ),
-                value=statistical_robustness.deflated_sharpe_probability,
-                threshold=config.min_deflated_sharpe_probability,
-                message="Per-trade Sharpe must remain significant after multiple-testing deflation.",
-            )
-        )
-        gates.append(
-            HistoricalEdgeGate(
-                name="bootstrap_expectancy_lower_bound",
-                passed=(
-                    not config.require_positive_expectancy_ci_lower_bound
-                    or statistical_robustness.expectancy_ci.lower > 0.0
-                ),
-                value=statistical_robustness.expectancy_ci.lower,
-                threshold=0.0,
-                message="Bootstrap expectancy lower bound should be positive when strict robustness is required.",
-            )
-        )
-
+        gates.append(HistoricalEdgeGate("deflated_sharpe_probability", statistical_robustness.deflated_sharpe_probability >= config.min_deflated_sharpe_probability, statistical_robustness.deflated_sharpe_probability, config.min_deflated_sharpe_probability, "Per-trade Sharpe must remain significant after multiple-testing deflation."))
+        gates.append(HistoricalEdgeGate("bootstrap_expectancy_lower_bound", not config.require_positive_expectancy_ci_lower_bound or statistical_robustness.expectancy_ci.lower > 0.0, statistical_robustness.expectancy_ci.lower, 0.0, "Bootstrap expectancy lower bound should be positive when strict robustness is required."))
     return gates
 
 
@@ -374,52 +313,40 @@ def render_historical_edge_markdown(report: HistoricalEdgeValidationReport) -> s
         f"- Cumulative R: {metrics.cumulative_r:.4f}",
         "",
     ]
+    if report.caveats is not None:
+        lines.extend([
+            "## Sharpe caveats",
+            "",
+            "- Sharpe uses population standard deviation on per-trade R values.",
+            "- IID assumption is not verified.",
+            f"- Small sample warning: {'yes' if report.caveats.small_sample_warning else 'no'}.",
+            "- These diagnostics are not proof of live edge.",
+            "",
+        ])
     if report.statistical_robustness is not None:
         robustness = report.statistical_robustness
-        lines.extend(
-            [
-                "## Statistical Robustness",
-                "",
-                f"- Deflated Sharpe probability: {robustness.deflated_sharpe_probability:.2%}",
-                f"- Estimated trials: {robustness.estimated_trials}",
-                f"- Observations: {robustness.observations}",
-                f"- Skewness: {robustness.skewness:.4f}",
-                f"- Kurtosis: {robustness.kurtosis:.4f}",
-                f"- Expectancy CI ({robustness.expectancy_ci.confidence_level:.0%}): "
-                f"[{robustness.expectancy_ci.lower:.4f}, {robustness.expectancy_ci.upper:.4f}]",
-                f"- Win-rate CI ({robustness.win_rate_ci.confidence_level:.0%}): "
-                f"[{robustness.win_rate_ci.lower:.2%}, {robustness.win_rate_ci.upper:.2%}]",
-                "",
-            ]
-        )
-    lines.extend(
-        [
-            "## Gates",
+        lines.extend([
+            "## Statistical Robustness",
             "",
-            "| Gate | Status | Value | Threshold |",
-            "|---|---:|---:|---:|",
-        ]
-    )
+            f"- Deflated Sharpe probability: {robustness.deflated_sharpe_probability:.2%}",
+            f"- Estimated trials: {robustness.estimated_trials}",
+            f"- Observations: {robustness.observations}",
+            f"- Skewness: {robustness.skewness:.4f}",
+            f"- Kurtosis: {robustness.kurtosis:.4f}",
+            f"- Expectancy CI ({robustness.expectancy_ci.confidence_level:.0%}): [{robustness.expectancy_ci.lower:.4f}, {robustness.expectancy_ci.upper:.4f}]",
+            f"- Win-rate CI ({robustness.win_rate_ci.confidence_level:.0%}): [{robustness.win_rate_ci.lower:.2%}, {robustness.win_rate_ci.upper:.2%}]",
+            "",
+        ])
+    lines.extend(["## Gates", "", "| Gate | Status | Value | Threshold |", "|---|---:|---:|---:|"])
     for gate in report.gates:
-        lines.append(
-            f"| {gate.name} | {'PASS' if gate.passed else 'FAIL'} | "
-            f"{_format_number(gate.value)} | {_format_number(gate.threshold)} |"
-        )
+        lines.append(f"| {gate.name} | {'PASS' if gate.passed else 'FAIL'} | {_format_number(gate.value)} | {_format_number(gate.threshold)} |")
     return "\n".join(lines).rstrip() + "\n"
 
 
-def write_historical_edge_report(
-    report: HistoricalEdgeValidationReport,
-    *,
-    json_path: Path,
-    markdown_path: Path,
-) -> None:
+def write_historical_edge_report(report: HistoricalEdgeValidationReport, *, json_path: Path, markdown_path: Path) -> None:
     json_path.parent.mkdir(parents=True, exist_ok=True)
     markdown_path.parent.mkdir(parents=True, exist_ok=True)
-    json_path.write_text(
-        json.dumps(report.to_dict(), indent=2, sort_keys=True, allow_nan=False),
-        encoding="utf-8",
-    )
+    json_path.write_text(json.dumps(report.to_dict(), indent=2, sort_keys=True, allow_nan=False), encoding="utf-8")
     markdown_path.write_text(render_historical_edge_markdown(report), encoding="utf-8")
 
 
@@ -428,17 +355,17 @@ def _safe_float(value: Any) -> float | None:
         result = float(value)
     except (TypeError, ValueError):
         return None
-    if not math.isfinite(result):
+    if math.isnan(result) or math.isinf(result):
         return None
     return result
 
 
 def _format_number(value: float | int) -> str:
-    if isinstance(value, float):
-        if math.isinf(value):
-            return "inf"
-        return f"{value:.6g}"
-    return str(value)
+    if isinstance(value, float) and math.isinf(value):
+        return "inf" if value > 0 else "-inf"
+    if isinstance(value, int):
+        return str(value)
+    return f"{float(value):.4f}"
 
 
 def _json_safe(value: Any) -> Any:
