@@ -90,7 +90,10 @@ class PortfolioState:
             open_positions=[],
             updated_at=datetime.now(UTC).isoformat(),
             source=source,
-            warnings=[warning, "Portfolio state is missing, invalid or unavailable."],
+            warnings=[
+                warning,
+                "Portfolio state is missing, invalid or unavailable. Runtime governance must fail closed until real state is provided.",
+            ],
             governance_valid=False,
         )
 
