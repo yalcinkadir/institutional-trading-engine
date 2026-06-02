@@ -66,6 +66,8 @@ ER8: positive asymmetric expectancy handling implemented and CI-green
 ER9: targeted portfolio-risk reduction evidence implemented and CI-green
 ER10: OOS purge / embargo lockbox guard implemented and CI-green
 ER11: explicit expectancy_r unit naming implemented and CI-green
+ER14: unsupported short-side stop guard implemented and CI-green
+ER15: ATR max-distance stop quality guard implemented and CI-green
 
 Repository / Public Safety:
 IP1/IP2: public/private edge boundary and public repository hygiene policy implemented
@@ -312,6 +314,35 @@ Status:
 CLOSED_CI_GREEN
 ```
 
+### ER14 / ER15 — Stop-Loss Quality Guards
+
+The stop-loss quality engine now explicitly rejects unsupported short-side stop derivation and enforces max ATR-distance quality checks for scanner-provided and ATR fallback stops.
+
+The engine now exposes:
+
+```text
+SUPPORTED_SIDE = "long"
+MAX_ATR_STOP_DISTANCE = 2.0
+```
+
+Guard:
+
+```text
+tests/test_er14_er15_stop_loss_quality_guard.py
+```
+
+Related tests:
+
+```text
+tests/test_stop_loss_quality.py
+```
+
+Status:
+
+```text
+CLOSED_CI_GREEN
+```
+
 ## Paper Observation Evidence Process
 
 Paper Observation is a 3-6 month evidence collection process.
@@ -341,6 +372,8 @@ NEEDS_REVIEW
 Targeted remediation tests:
 
 ```bash
+pytest tests/test_er14_er15_stop_loss_quality_guard.py -q
+pytest tests/test_stop_loss_quality.py -q
 pytest tests/test_er10_oos_purge_embargo_guard.py -q
 pytest tests/test_out_of_sample_lockbox.py -q
 pytest tests/test_er9_targeted_portfolio_risk_reduction.py -q
