@@ -50,7 +50,7 @@ This backlog does not authorize live trading, broker execution or capital alloca
 | ER7 | P1 | Sizing governance | `MIN_SAMPLES = 5` for automatic size adjustment is statistically weak | CLOSED_CI_GREEN | Guarded by `tests/test_er7_er8_expectancy_statistical_discipline.py` |
 | ER8 | P1 | Expectancy logic | Isolated win-rate gate can block positive-asymmetry profiles despite positive expectancy | CLOSED_CI_GREEN | Guarded by `tests/test_er7_er8_expectancy_statistical_discipline.py` |
 | ER9 | P1 | Portfolio risk | Portfolio-risk warnings reduce all tradable symbols globally instead of targeted pair/sector reduction | CLOSED_CI_GREEN | Guarded by `tests/test_er9_targeted_portfolio_risk_reduction.py` |
-| ER10 | P1 | OOS methodology | No purge/embargo around OOS split while trades can overlap boundary | OPEN | Add purge/embargo semantics |
+| ER10 | P1 | OOS methodology | No purge/embargo around OOS split while trades can overlap boundary | CLOSED_CI_GREEN | Guarded by `tests/test_er10_oos_purge_embargo_guard.py` |
 | ER11 | P2 | Metric semantics | Two different expectancy definitions use similar naming but different units / denominators | CLOSED_CI_GREEN | Standardized to `expectancy_r` |
 | ER12 | P2 | Sharpe evidence | Per-trade Sharpe uses population std and IID-style t-stat assumption | LIKELY_CLOSED_BY_EXISTING_WORK_NEEDS_VERIFICATION | EV1/EV2 addressed unit issue; verify caveats |
 | ER13 | P2 | Accounting precision | Money/PnL paths use float rather than Decimal | OPEN | Consider Decimal/integer cents at ledger boundaries |
@@ -59,35 +59,35 @@ This backlog does not authorize live trading, broker execution or capital alloca
 
 ---
 
-## ER9 — Global Portfolio-Risk Reduction
+## ER10 — OOS Purge / Embargo
 
 External finding:
 
 ```text
-One correlation or sector warning reduces all tradable symbols globally and returns only symbols, not actual reduced multipliers.
+No purge/embargo around OOS split while trades can overlap boundary.
 ```
 
 Implemented remediation:
 
 ```text
-High-correlation warnings now reduce only involved pair symbols.
-Sector concentration warnings now reduce only affected-sector symbols.
-Portfolio heat warnings remain global because the risk source is global.
-Per-symbol multiplier evidence is exposed as symbol_risk_multipliers.
+Split-spanning trades are purged from fixed-date holdout evidence.
+Post-split embargo-window trades are embargoed, not purged.
+purge_days and embargo_days are included in the evidence contract hash.
+purged_records and embargoed_records are exposed in JSON and Markdown reports.
 ```
 
 Files:
 
 ```text
-src/portfolio_risk.py
-tests/test_er9_targeted_portfolio_risk_reduction.py
-tests/test_portfolio_risk.py
+src/validation/out_of_sample_lockbox.py
+tests/test_er10_oos_purge_embargo_guard.py
+tests/test_out_of_sample_lockbox.py
 ```
 
 Closure doc:
 
 ```text
-docs/operations/er9_targeted_portfolio_risk_reduction_ci_green_closure_2026_06_02.md
+docs/operations/er10_oos_purge_embargo_ci_green_closure_2026_06_02.md
 ```
 
 Status:
@@ -101,9 +101,8 @@ CLOSED_CI_GREEN
 ## Recommended Remediation Order
 
 ```text
-1. ER10 — OOS purge/embargo
-2. ER14 / ER15 — stop-loss quality guards
-3. ER12 / ER13 — evidence caveats and accounting precision review
+1. ER14 / ER15 — stop-loss quality guards
+2. ER12 / ER13 — evidence caveats and accounting precision review
 ```
 
 ## Next Action
@@ -111,5 +110,5 @@ CLOSED_CI_GREEN
 Continue with:
 
 ```text
-ER10 — OOS purge/embargo
+ER14 / ER15 — stop-loss quality guards
 ```
