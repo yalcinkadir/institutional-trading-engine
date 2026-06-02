@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## ER1 / ER2 Backtest Realism Remediation — 2026-06-02
+
+### Added
+- Added `tests/test_er1_er2_backtest_realism_guard.py`.
+- Added `docs/operations/er1_er2_backtest_realism_ci_green_closure_2026_06_02.md`.
+
+### Validated
+- ER1: `t1_t2` trades that touch Target 1 but never reach Target 2 expire at the final available close, not optimistically at Target 1.
+- ER2: gap-through-entry fills at the worse open price and recalculates R-multiple from the actual entry fill.
+- ER2: breakeven-after-T1 gap-down fills at the worse open, not artificially at exact breakeven.
+
+### Status
+- ER1: CLOSED_CI_GREEN.
+- ER2: CLOSED_CI_GREEN.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## ER5 / ER6 / ER11 External Review Remediation — 2026-06-02
 
 ### Fixed
@@ -87,152 +105,3 @@
 - Uploads `po11-daily-observation-artifact`.
 - Uses read-only repository permissions.
 - Does not authorize live trading.
-
----
-
-## PO10 Daily Observation Automation Runner — 2026-06-01
-
-### Added
-- Added `src/operations/daily_observation_automation_runner.py`.
-- Added `tests/test_po10_daily_observation_automation_runner.py`.
-- Added `docs/operations/po10_daily_observation_automation_runner.md`.
-
-### Stabilization Result
-- PO10 implementation status: Done / CI-green.
-- Live trading authorization: unchanged; not granted by code.
-
----
-
-## PO9 Paper Observation Review Gate — 2026-06-01
-
-### Added
-- Added `src/operations/paper_observation_review_gate.py`.
-- Added `tests/test_po9_paper_observation_review_gate.py`.
-- Added `docs/operations/po9_paper_observation_review_gate.md`.
-
-### Stabilization Result
-- PO9 implementation status: Done / CI-green.
-- Live trading authorization: unchanged; not granted by code.
-
----
-
-## PO8 Daily Observation Review Summary — 2026-06-01
-
-### Added
-- Added `src/operations/daily_observation_review_summary.py`.
-- Added `tests/test_po8_daily_observation_review_summary.py`.
-- Added `docs/operations/po8_daily_observation_review_summary.md`.
-
-### Stabilization Result
-- PO8 implementation status: Done / CI-green.
-- Live trading authorization: unchanged; not granted by code.
-
----
-
-## PO7 Daily Observation Record Index — 2026-06-01
-
-### Added
-- Added `src/operations/daily_observation_record_index.py`.
-- Added `tests/test_po7_daily_observation_record_index.py`.
-- Added `docs/operations/po7_daily_observation_record_index.md`.
-
-### Stabilization Result
-- PO7 implementation status: Done / CI-green.
-- Live trading authorization: unchanged; not granted by code.
-
----
-
-## PO6 Daily Observation Record Artifact Contract — 2026-06-01
-
-### Added
-- Added `src/operations/daily_observation_record_artifact_contract.py`.
-- Added `tests/test_po6_artifact_contract.py`.
-- Added `docs/operations/po6_daily_observation_record_artifact_contract.md`.
-
-### Stabilization Result
-- PO6 implementation status: Done / CI-green.
-- Live trading authorization: unchanged; not granted by code.
-
----
-
-## PO5 Daily Observation Record Writer — 2026-06-01
-
-### Added
-- Added `src/operations/daily_observation_record_writer.py`.
-- Added `tests/test_po5_daily_observation_record_writer.py`.
-- Added PO5 documentation.
-
-### Stabilization Result
-- PO5 implementation status: Done / CI-green.
-- Live trading authorization: unchanged; not granted by code.
-
----
-
-## PO4 Daily Observation Record Validator — 2026-06-01
-
-### Added
-- Added `src/operations/daily_observation_record_validator.py`.
-- Added `tests/test_po4_daily_observation_record_validator.py`.
-- Added PO4 documentation.
-
-### Stabilization Result
-- PO4 implementation status: Done / CI-green.
-- Live trading authorization: unchanged; not granted by code.
-
----
-
-## PO3 Daily Observation Run Record — 2026-06-01
-
-### Added
-- Added `docs/operations/po3_daily_observation_run_record.md`.
-- Added `tests/test_po3_daily_observation_run_record.py`.
-
-### Stabilization Result
-- PO3 implementation status: Done / CI-green.
-- Live trading authorization: unchanged; not granted by code.
-
----
-
-## PO2 Daily Observation Acceptance Gate — 2026-06-01
-
-### Added
-- Added `docs/operations/po2_daily_observation_acceptance_gate.md`.
-- Added `tests/test_po2_daily_observation_acceptance_gate.py`.
-
-### Stabilization Result
-- PO2 implementation status: Done / CI-green.
-- Live trading authorization: unchanged; not granted by code.
-
----
-
-## PO1 Paper Observation Timeline — 2026-06-01
-
-### Added
-- Added `docs/operations/po1_paper_observation_timeline.md`.
-- Added `tests/test_po1_paper_observation_timeline.py`.
-
-### Paper Observation Timeline
-- Start date: 2026-06-01.
-- Minimum duration: 3 months.
-- Target duration: 3-6 months.
-- First review date: 2026-07-01.
-- Major evidence review date: 2026-09-01.
-- Extended review date: 2026-12-01.
-
-### Stabilization Result
-- PO1 implementation status: Done / CI-green.
-- Live trading authorization: unchanged; not granted by code.
-
----
-
-## IP9/IP10 Public Repository Governance — 2026-06-01
-
-### Added
-- Added public-edge pull request review governance for newly introduced edge constants.
-- Added license and usage disclaimer documentation for the public decision-support research framework.
-- Added `docs/operations/ip9_ip10_public_repo_governance.md`.
-- Added `tests/test_ip9_ip10_public_repo_governance.py`.
-
-### Stabilization Result
-- IP9/IP10 implementation status: Done / CI-wired.
-- Live trading authorization: unchanged; not granted by code.
