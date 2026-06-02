@@ -41,7 +41,7 @@ class ExpectancyAdjustment:
     source: str
     sample_size: int
     win_rate: float
-    expectancy: float
+    expectancy_r: float
     score_delta: float
     size_multiplier: float
     recommendation: str
@@ -54,7 +54,7 @@ def no_adjustment(reason: str = "no_expectancy_profile") -> ExpectancyAdjustment
         source="none",
         sample_size=0,
         win_rate=0.0,
-        expectancy=0.0,
+        expectancy_r=0.0,
         score_delta=0.0,
         size_multiplier=1.0,
         recommendation="neutral",
@@ -156,12 +156,12 @@ def _build_profiles(outcomes: list[dict[str, Any]]) -> dict[str, dict[str, Any]]
         wins = [value for value in results if value > 0]
         trades = len(results)
         win_rate = len(wins) / trades if trades else 0.0
-        expectancy = sum(results) / trades if trades else 0.0
+        expectancy_r = sum(results) / trades if trades else 0.0
         profiles[key] = {
             "key": key,
             "sample_size": trades,
             "win_rate": round(win_rate, 4),
-            "expectancy": round(expectancy, 4),
+            "expectancy_r": round(expectancy_r, 4),
         }
 
     return profiles
@@ -170,58 +170,58 @@ def _build_profiles(outcomes: list[dict[str, Any]]) -> dict[str, dict[str, Any]]
 def _adjustment_from_profile(profile: dict[str, Any], source: str) -> ExpectancyAdjustment:
     sample_size = int(profile.get("sample_size", 0))
     win_rate = float(profile.get("win_rate", 0.0))
-    expectancy = float(profile.get("expectancy", 0.0))
+    expectancy_r = float(profile.get("expectancy_r", 0.0))
     profile_key = str(profile.get("key", "unknown"))
 
     if sample_size < MIN_SAMPLES:
         return no_adjustment("insufficient_expectancy_sample")
 
-    if expectancy >= 3.0 and win_rate >= 0.60:
+    if expectancy_r >= 3.0 and win_rate >= 0.60:
         return ExpectancyAdjustment(
             profile_key=profile_key,
             source=source,
             sample_size=sample_size,
             win_rate=win_rate,
-            expectancy=expectancy,
+            expectancy_r=expectancy_r,
             score_delta=8.0,
             size_multiplier=1.15,
             recommendation="increase_risk_selectively",
             reason="strong_positive_expectancy",
         )
 
-    if expectancy >= 1.0 and win_rate >= 0.52:
+    if expectancy_r >= 1.0 and win_rate >= 0.52:
         return ExpectancyAdjustment(
             profile_key=profile_key,
             source=source,
             sample_size=sample_size,
             win_rate=win_rate,
-            expectancy=expectancy,
+            expectancy_r=expectancy_r,
             score_delta=4.0,
             size_multiplier=1.05,
             recommendation="maintain_or_slightly_increase",
             reason="positive_expectancy",
         )
 
-    if expectancy <= -2.0 or (expectancy < 0.0 and win_rate <= 0.35):
+    if expectancy_r <= -2.0 or (expectancy_r < 0.0 and win_rate <= 0.35):
         return ExpectancyAdjustment(
             profile_key=profile_key,
             source=source,
             sample_size=sample_size,
             win_rate=win_rate,
-            expectancy=expectancy,
+            expectancy_r=expectancy_r,
             score_delta=-12.0,
             size_multiplier=0.50,
             recommendation="avoid_or_block",
             reason="negative_expectancy",
         )
 
-    if expectancy < -0.5:
+    if expectancy_r < -0.5:
         return ExpectancyAdjustment(
             profile_key=profile_key,
             source=source,
             sample_size=sample_size,
             win_rate=win_rate,
-            expectancy=expectancy,
+            expectancy_r=expectancy_r,
             score_delta=-6.0,
             size_multiplier=0.75,
             recommendation="reduce_size",
@@ -233,7 +233,7 @@ def _adjustment_from_profile(profile: dict[str, Any], source: str) -> Expectancy
         source=source,
         sample_size=sample_size,
         win_rate=win_rate,
-        expectancy=expectancy,
+        expectancy_r=expectancy_r,
         score_delta=0.0,
         size_multiplier=1.0,
         recommendation="neutral",
