@@ -67,8 +67,8 @@ TEST1 is mandatory for external-review findings and safety-relevant fixes.
 
 | ID | Task | Priority | Impact | Status |
 |---|---|---:|---:|---|
-| IP1 | Define public/private edge separation boundary | P0 | Critical | Done / CI-wired |
-| IP2 | Add public repository hygiene policy | P0 | Critical | Done / CI-wired |
+| IP1 | Define public/private edge separation boundary | P0 | Critical | Done / CI-green |
+| IP2 | Add public repository hygiene policy | P0 | Critical | Done / CI-green |
 | IP3 | Add public-demo defaults | P1 | High | Done / CI-green |
 | IP4 | Add optional external edge provider boundary | P1 | High | Done / CI-green |
 | IP5 | Add artifact hygiene controls | P1 | High | Done / CI-wired |
