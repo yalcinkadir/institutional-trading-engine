@@ -63,6 +63,7 @@ ER5: falsy-zero outcome substitution guard implemented and CI-green
 ER6: missing result evidence is surfaced instead of counted as breakeven and CI-green
 ER7: expectancy-based adjustment sample discipline implemented and CI-green
 ER8: positive asymmetric expectancy handling implemented and CI-green
+ER9: targeted portfolio-risk reduction evidence implemented and CI-green
 ER11: explicit expectancy_r unit naming implemented and CI-green
 
 Repository / Public Safety:
@@ -223,6 +224,34 @@ Status:
 CLOSED_CI_GREEN
 ```
 
+### ER9 — Targeted Portfolio-Risk Reduction Evidence
+
+Portfolio-risk warnings now produce targeted evidence instead of reducing every tradable candidate by default. Correlation warnings affect involved pairs, sector-concentration warnings affect the involved sector, and true portfolio-heat warnings remain global.
+
+The result now exposes:
+
+```text
+symbol_risk_multipliers
+```
+
+Guard:
+
+```text
+tests/test_er9_targeted_portfolio_risk_reduction.py
+```
+
+Related tests:
+
+```text
+tests/test_portfolio_risk.py
+```
+
+Status:
+
+```text
+CLOSED_CI_GREEN
+```
+
 ### ER11 — Explicit Expectancy Units
 
 Ambiguous `expectancy` fields were replaced with explicit `expectancy_r`.
@@ -280,6 +309,8 @@ NEEDS_REVIEW
 Targeted remediation tests:
 
 ```bash
+pytest tests/test_er9_targeted_portfolio_risk_reduction.py -q
+pytest tests/test_portfolio_risk.py -q
 pytest tests/test_er7_er8_expectancy_statistical_discipline.py -q
 pytest tests/test_expectancy_adjuster.py -q
 pytest tests/test_artifact_hygiene.py -q
