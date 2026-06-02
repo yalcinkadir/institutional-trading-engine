@@ -49,90 +49,13 @@ This backlog does not authorize live trading, broker execution or capital alloca
 | ER6 | P1 | Evidence quality | Missing result keys may be silently counted as `0.0` breakeven trades | CLOSED_CI_GREEN | Guarded by `tests/test_er6_edge_evidence_missing_result_guard.py` |
 | ER7 | P1 | Sizing governance | `MIN_SAMPLES = 5` for automatic size adjustment is statistically weak | CLOSED_CI_GREEN | Guarded by `tests/test_er7_er8_expectancy_statistical_discipline.py` |
 | ER8 | P1 | Expectancy logic | Isolated win-rate gate can block positive-asymmetry profiles despite positive expectancy | CLOSED_CI_GREEN | Guarded by `tests/test_er7_er8_expectancy_statistical_discipline.py` |
-| ER9 | P1 | Portfolio risk | Portfolio-risk warnings reduce all tradable symbols globally instead of targeted pair/sector reduction | OPEN | Return per-symbol/sector multipliers |
+| ER9 | P1 | Portfolio risk | Portfolio-risk warnings reduce all tradable symbols globally instead of targeted pair/sector reduction | CLOSED_CI_GREEN | Guarded by `tests/test_er9_targeted_portfolio_risk_reduction.py` |
 | ER10 | P1 | OOS methodology | No purge/embargo around OOS split while trades can overlap boundary | OPEN | Add purge/embargo semantics |
 | ER11 | P2 | Metric semantics | Two different expectancy definitions use similar naming but different units / denominators | CLOSED_CI_GREEN | Standardized to `expectancy_r` |
 | ER12 | P2 | Sharpe evidence | Per-trade Sharpe uses population std and IID-style t-stat assumption | LIKELY_CLOSED_BY_EXISTING_WORK_NEEDS_VERIFICATION | EV1/EV2 addressed unit issue; verify caveats |
 | ER13 | P2 | Accounting precision | Money/PnL paths use float rather than Decimal | OPEN | Consider Decimal/integer cents at ledger boundaries |
 | ER14 | P2 | Stop quality | Long-only stop logic lacks explicit short guard | OPEN | Add reject/assert for unsupported short setups |
 | ER15 | P2 | Stop quality | ATR fallback stops may lack max-distance cap comparable to swing stop cap | OPEN | Verify and cap if missing |
-
----
-
-## ER7 — Automatic Sizing With Too Few Samples
-
-External finding:
-
-```text
-MIN_SAMPLES = 5 is too low for automatic size adjustment.
-```
-
-Implemented remediation:
-
-```text
-Score evidence and size evidence are separated.
-MIN_SAMPLES remains the minimum profile evidence floor.
-A stronger MIN_SIZE_ADJUSTMENT_SAMPLES floor gates multiplier changes.
-Below the stronger floor, score may react but multiplier remains neutral.
-```
-
-Files:
-
-```text
-src/scoring/expectancy_adjuster.py
-tests/test_er7_er8_expectancy_statistical_discipline.py
-tests/test_expectancy_adjuster.py
-```
-
-Closure doc:
-
-```text
-docs/operations/er7_er8_expectancy_statistical_discipline_ci_green_closure_2026_06_02.md
-```
-
-Status:
-
-```text
-CLOSED_CI_GREEN
-```
-
----
-
-## ER8 — Win-Rate Gate Conflicts With Asymmetry
-
-External finding:
-
-```text
-An isolated low win-rate gate can block high-payoff positive expectancy profiles.
-```
-
-Implemented remediation:
-
-```text
-Positive asymmetric expectancy is no longer blocked only because win rate is low.
-Expectancy remains the primary signal for this path.
-The stronger multiplier evidence floor keeps the behavior conservative.
-```
-
-Files:
-
-```text
-src/scoring/expectancy_adjuster.py
-tests/test_er7_er8_expectancy_statistical_discipline.py
-tests/test_expectancy_adjuster.py
-```
-
-Closure doc:
-
-```text
-docs/operations/er7_er8_expectancy_statistical_discipline_ci_green_closure_2026_06_02.md
-```
-
-Status:
-
-```text
-CLOSED_CI_GREEN
-```
 
 ---
 
@@ -144,16 +67,33 @@ External finding:
 One correlation or sector warning reduces all tradable symbols globally and returns only symbols, not actual reduced multipliers.
 ```
 
-Expected remediation:
+Implemented remediation:
 
 ```text
-Make reduction targeted to the causing pair/sector or return per-symbol risk multiplier evidence.
+High-correlation warnings now reduce only involved pair symbols.
+Sector concentration warnings now reduce only affected-sector symbols.
+Portfolio heat warnings remain global because the risk source is global.
+Per-symbol multiplier evidence is exposed as symbol_risk_multipliers.
+```
+
+Files:
+
+```text
+src/portfolio_risk.py
+tests/test_er9_targeted_portfolio_risk_reduction.py
+tests/test_portfolio_risk.py
+```
+
+Closure doc:
+
+```text
+docs/operations/er9_targeted_portfolio_risk_reduction_ci_green_closure_2026_06_02.md
 ```
 
 Status:
 
 ```text
-OPEN
+CLOSED_CI_GREEN
 ```
 
 ---
@@ -161,10 +101,9 @@ OPEN
 ## Recommended Remediation Order
 
 ```text
-1. ER9 — targeted portfolio-risk reduction evidence
-2. ER10 — OOS purge/embargo
-3. ER14 / ER15 — stop-loss quality guards
-4. ER12 / ER13 — evidence caveats and accounting precision review
+1. ER10 — OOS purge/embargo
+2. ER14 / ER15 — stop-loss quality guards
+3. ER12 / ER13 — evidence caveats and accounting precision review
 ```
 
 ## Next Action
@@ -172,5 +111,5 @@ OPEN
 Continue with:
 
 ```text
-ER9 — targeted portfolio-risk reduction evidence
+ER10 — OOS purge/embargo
 ```
