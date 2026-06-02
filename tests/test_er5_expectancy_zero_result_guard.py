@@ -29,7 +29,8 @@ def test_er5_zero_result_5d_is_not_replaced_by_performance_percent(tmp_path: Pat
     )
 
     assert adjustment.sample_size == 6
-    assert adjustment.expectancy == 0.0
+    assert adjustment.expectancy_r == 0.0
+    assert not hasattr(adjustment, "expectancy")
     assert adjustment.win_rate == 0.0
     assert adjustment.score_delta == 0.0
     assert adjustment.reason == "flat_or_mixed_expectancy"
