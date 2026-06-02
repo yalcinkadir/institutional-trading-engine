@@ -64,6 +64,7 @@ ER6: missing result evidence is surfaced instead of counted as breakeven and CI-
 ER7: expectancy-based adjustment sample discipline implemented and CI-green
 ER8: positive asymmetric expectancy handling implemented and CI-green
 ER9: targeted portfolio-risk reduction evidence implemented and CI-green
+ER10: OOS purge / embargo lockbox guard implemented and CI-green
 ER11: explicit expectancy_r unit naming implemented and CI-green
 
 Repository / Public Safety:
@@ -252,6 +253,37 @@ Status:
 CLOSED_CI_GREEN
 ```
 
+### ER10 — OOS Purge / Embargo Guard
+
+The fixed-date holdout lockbox now prevents train/test-boundary contamination from trades that overlap the OOS split or start inside the embargo window.
+
+The report now exposes:
+
+```text
+purge_days
+embargo_days
+purged_records
+embargoed_records
+```
+
+Guard:
+
+```text
+tests/test_er10_oos_purge_embargo_guard.py
+```
+
+Related tests:
+
+```text
+tests/test_out_of_sample_lockbox.py
+```
+
+Status:
+
+```text
+CLOSED_CI_GREEN
+```
+
 ### ER11 — Explicit Expectancy Units
 
 Ambiguous `expectancy` fields were replaced with explicit `expectancy_r`.
@@ -309,6 +341,8 @@ NEEDS_REVIEW
 Targeted remediation tests:
 
 ```bash
+pytest tests/test_er10_oos_purge_embargo_guard.py -q
+pytest tests/test_out_of_sample_lockbox.py -q
 pytest tests/test_er9_targeted_portfolio_risk_reduction.py -q
 pytest tests/test_portfolio_risk.py -q
 pytest tests/test_er7_er8_expectancy_statistical_discipline.py -q
