@@ -399,11 +399,13 @@ def _metrics_row(label: str, report: HistoricalEdgeValidationReport) -> str:
 def _is_purged_overlap(entry_date: date | None, exit_date: date, *, config: OutOfSampleLockboxConfig) -> bool:
     if entry_date is None:
         return False
-    purge_start = config.split_date - timedelta(days=max(config.purge_days, 0))
-    purge_end = config.split_date + timedelta(days=max(config.purge_days, 0))
     spans_split = entry_date < config.split_date <= exit_date
-    touches_purge_window = entry_date <= purge_end and exit_date >= purge_start
-    return spans_split or (config.purge_days > 0 and touches_purge_window)
+    if spans_split:
+        return True
+    if config.purge_days <= 0:
+        return False
+    purge_start = config.split_date - timedelta(days=config.purge_days)
+    return entry_date < config.split_date and purge_start <= exit_date < config.split_date
 
 
 def _is_embargoed(entry_or_exit_date: date, *, config: OutOfSampleLockboxConfig) -> bool:
