@@ -11,7 +11,9 @@ from typing import Any
 
 
 MAX_STRUCTURE_STOP_ATR_DISTANCE = 3.0
+MAX_ATR_STOP_DISTANCE = 2.0
 STRUCTURE_STOP_BUFFER = 0.998
+SUPPORTED_SIDE = "long"
 
 
 @dataclass(frozen=True)
@@ -46,9 +48,46 @@ def _reject(reason: str, *, stop_model: str = "n/a", stop_loss: float | None = N
     )
 
 
-def _accept_computed_stop(stop: float, *, stop_model: str, stop_reason: str) -> StopLossQualityResult:
+def _stop_distance_atr(entry_trigger: float, stop: float, atr: float) -> float:
+    return (entry_trigger - stop) / atr
+
+
+def _reject_if_stop_too_far(
+    stop: float,
+    *,
+    entry_trigger: float,
+    atr: float,
+    stop_model: str,
+) -> StopLossQualityResult | None:
+    if _stop_distance_atr(entry_trigger, stop, atr) > MAX_ATR_STOP_DISTANCE:
+        return _reject(
+            "stop_distance_exceeds_max_atr",
+            stop_model=stop_model,
+            stop_loss=_round_price(stop),
+        )
+    return None
+
+
+def _accept_computed_stop(
+    stop: float,
+    *,
+    entry_trigger: float,
+    atr: float,
+    stop_model: str,
+    stop_reason: str,
+    enforce_max_atr_distance: bool = True,
+) -> StopLossQualityResult:
     if stop <= 0:
         return _reject("computed_stop_non_positive", stop_model=stop_model)
+    if enforce_max_atr_distance:
+        too_far = _reject_if_stop_too_far(
+            stop,
+            entry_trigger=entry_trigger,
+            atr=atr,
+            stop_model=stop_model,
+        )
+        if too_far is not None:
+            return too_far
     return StopLossQualityResult(
         is_valid=True,
         stop_loss=_round_price(stop),
@@ -69,14 +108,17 @@ def _structure_stop_from_swing_low(
         return None
 
     stop = swing_low * STRUCTURE_STOP_BUFFER
-    atr_distance = (entry_trigger - stop) / atr
+    atr_distance = _stop_distance_atr(entry_trigger, stop, atr)
     if atr_distance > MAX_STRUCTURE_STOP_ATR_DISTANCE:
         return None
 
     return _accept_computed_stop(
         stop,
+        entry_trigger=entry_trigger,
+        atr=atr,
         stop_model="swing_low_structure_stop",
         stop_reason="swing-low structure stop with 0.2 percent buffer",
+        enforce_max_atr_distance=False,
     )
 
 
@@ -88,6 +130,7 @@ def derive_stop_loss_quality(
     atr: float | None,
     entry_type: str,
     scanner_metrics: dict[str, Any] | None = None,
+    side: str = SUPPORTED_SIDE,
 ) -> StopLossQualityResult:
     """Derive and validate a long-side stop loss.
 
@@ -98,7 +141,13 @@ def derive_stop_loss_quality(
     - pullback_structure_stop
     - retest_structure_stop
     - gap_fill_stop
+
+    Short-side stops are intentionally rejected until explicitly implemented.
     """
+
+    normalized_side = (side or "").lower().strip()
+    if normalized_side != SUPPORTED_SIDE:
+        return _reject(f"unsupported_side:{normalized_side or 'missing'}", stop_model="unsupported_side")
 
     if entry_trigger is None:
         return _reject("missing_entry_trigger")
@@ -122,11 +171,19 @@ def derive_stop_loss_quality(
                 stop_model="scanner_provided_stop",
                 stop_loss=_round_price(explicit_stop),
             )
+        too_far = _reject_if_stop_too_far(
+            explicit_stop,
+            entry_trigger=entry_trigger,
+            atr=atr,
+            stop_model="scanner_provided_stop",
+        )
+        if too_far is not None:
+            return too_far
         return StopLossQualityResult(
             is_valid=True,
             stop_loss=_round_price(explicit_stop),
             stop_model="scanner_provided_stop",
-            stop_reason="scanner provided stop below entry",
+            stop_reason="scanner provided stop below entry within max ATR distance",
         )
 
     swing_low_stop = _structure_stop_from_swing_low(
@@ -144,6 +201,8 @@ def derive_stop_loss_quality(
         stop = entry_trigger - 1.5 * atr
         return _accept_computed_stop(
             stop,
+            entry_trigger=entry_trigger,
+            atr=atr,
             stop_model="pullback_structure_stop",
             stop_reason="pullback structure stop 1.5 ATR below entry",
         )
@@ -152,6 +211,8 @@ def derive_stop_loss_quality(
         stop = entry_trigger - 1.25 * atr
         return _accept_computed_stop(
             stop,
+            entry_trigger=entry_trigger,
+            atr=atr,
             stop_model="retest_structure_stop",
             stop_reason="retest structure stop 1.25 ATR below entry",
         )
@@ -160,21 +221,27 @@ def derive_stop_loss_quality(
         stop = entry_trigger - 1.5 * atr
         return _accept_computed_stop(
             stop,
+            entry_trigger=entry_trigger,
+            atr=atr,
             stop_model="gap_fill_stop",
             stop_reason="gap-fill stop 1.5 ATR below entry",
         )
 
     if normalized_entry_type == "at_market":
-        stop = entry_trigger - 2.0 * atr
+        stop = entry_trigger - MAX_ATR_STOP_DISTANCE * atr
         return _accept_computed_stop(
             stop,
+            entry_trigger=entry_trigger,
+            atr=atr,
             stop_model="atr_stop",
-            stop_reason="at-market volatility stop 2 ATR below entry",
+            stop_reason="at-market volatility stop 2 ATR below entry; max 2.0 ATR",
         )
 
-    stop = entry_trigger - 2.0 * atr
+    stop = entry_trigger - MAX_ATR_STOP_DISTANCE * atr
     return _accept_computed_stop(
         stop,
+        entry_trigger=entry_trigger,
+        atr=atr,
         stop_model="atr_stop",
-        stop_reason="ATR stop 2 ATR below entry",
+        stop_reason="ATR stop 2 ATR below entry; max 2.0 ATR",
     )
