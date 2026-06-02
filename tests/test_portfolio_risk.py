@@ -53,7 +53,7 @@ def test_portfolio_heat_and_sector_concentration_are_detected():
     assert "NVDA" in result.reduced_symbols
 
 
-def test_elevated_portfolio_risk_reduces_all_tradable_tiers():
+def test_elevated_portfolio_risk_reduces_all_tradable_tiers_when_portfolio_heat_exceeded():
     correlated_returns = (0.01, 0.02, 0.03, 0.02, 0.04)
     candidates = [
         PortfolioCandidate(
@@ -78,6 +78,13 @@ def test_elevated_portfolio_risk_reduces_all_tradable_tiers():
             returns_20d=(0.009, 0.018, 0.032, 0.021, 0.039),
         ),
         PortfolioCandidate(
+            symbol="OTHER",
+            sector="Metals",
+            risk_tier="tier_1",
+            position_size_multiplier=2.0,
+            returns_20d=(-0.03, -0.02, 0.01, -0.01, 0.00),
+        ),
+        PortfolioCandidate(
             symbol="BLOCKED",
             sector="Technology",
             risk_tier="no_trade",
@@ -87,10 +94,12 @@ def test_elevated_portfolio_risk_reduces_all_tradable_tiers():
     ]
 
     result = evaluate_portfolio_risk(candidates)
+    multipliers = dict(result.symbol_risk_multipliers)
 
     assert result.approved_symbols == ()
-    assert set(result.reduced_symbols) == {"TIER1", "TIER2", "TIER3"}
+    assert set(result.reduced_symbols) == {"TIER1", "TIER2", "TIER3", "OTHER"}
     assert "BLOCKED" not in result.reduced_symbols
+    assert multipliers["OTHER"] < 1.0
 
 
 def test_diversified_portfolio_has_lower_risk_pressure():
@@ -116,3 +125,4 @@ def test_diversified_portfolio_has_lower_risk_pressure():
     assert result.portfolio_heat < 2
     assert len(result.correlation_warnings) == 0
     assert "AAPL" in result.approved_symbols
+    assert dict(result.symbol_risk_multipliers)["AAPL"] == 1.0
