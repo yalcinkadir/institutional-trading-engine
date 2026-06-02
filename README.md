@@ -55,6 +55,8 @@ BT8: Backtesting Evidence Report generator implemented and CI-green
 EV1-EV12: evidence-integrity remediation implemented and CI-green
 
 External Review Remediation:
+ER1: T1/T2 expiry realism guard implemented and CI-green
+ER2: gap-through-entry and breakeven-gap realism guards implemented and CI-green
 ER3: notional / buying-power capped position sizing implemented and CI-green
 ER5: falsy-zero outcome substitution guard implemented and CI-green
 ER6: missing result evidence is surfaced instead of counted as breakeven and CI-green
@@ -95,6 +97,38 @@ docs/operations/test1_evidence_oriented_tdd_policy.md
 ```
 
 ## External Review Remediation Status
+
+### ER1 — T1/T2 Expiry Realism Guard
+
+A `t1_t2` trade that touches Target 1 but never reaches Target 2 now expires at the final available close, not optimistically at Target 1.
+
+Guard:
+
+```text
+tests/test_er1_er2_backtest_realism_guard.py
+```
+
+Status:
+
+```text
+CLOSED_CI_GREEN
+```
+
+### ER2 — Gap-Through-Entry and Breakeven Gap Guard
+
+Gap-through-entry fills at the worse open price and recalculates R-multiple from the actual entry fill. Breakeven-after-T1 gap-down stops fill at the worse open, not artificially at exact breakeven.
+
+Guard:
+
+```text
+tests/test_er1_er2_backtest_realism_guard.py
+```
+
+Status:
+
+```text
+CLOSED_CI_GREEN
+```
 
 ### ER3 — Notional-Capped Position Sizing
 
@@ -203,6 +237,8 @@ NEEDS_REVIEW
 Targeted remediation tests:
 
 ```bash
+pytest tests/test_er1_er2_backtest_realism_guard.py -q
+pytest tests/test_historical_entry_exit_backtest.py -q
 pytest tests/test_er5_expectancy_zero_result_guard.py -q
 pytest tests/test_er6_edge_evidence_missing_result_guard.py -q
 pytest tests/test_er11_expectancy_units_guard.py -q
