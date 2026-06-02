@@ -1,22 +1,15 @@
-"""Portfolio state model and JSON persistence.
-
-The live runtime governance layer needs real portfolio values to make
-risk-limit and kill-switch checks meaningful. This module provides a small,
-deterministic file-backed state store for that purpose.
-
-The implementation is intentionally file-backed, but writes are atomic and
-invalid state loads fail closed instead of crashing the runtime loop.
-"""
+"""Portfolio state model and JSON persistence."""
 
 from __future__ import annotations
 
 import json
 import math
-import os
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+
+from src.persistence.atomic_write import write_json_atomic
 
 
 DEFAULT_PORTFOLIO_STATE_PATH = Path("data/portfolio_state.json")
@@ -97,10 +90,7 @@ class PortfolioState:
             open_positions=[],
             updated_at=datetime.now(UTC).isoformat(),
             source=source,
-            warnings=[
-                warning,
-                "Portfolio state is missing, invalid or unavailable. Runtime governance must fail closed until real state is provided.",
-            ],
+            warnings=[warning, "Portfolio state is missing, invalid or unavailable."],
             governance_valid=False,
         )
 
@@ -132,12 +122,7 @@ class PortfolioStateStore:
             )
 
     def save(self, state: PortfolioState) -> Path:
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        payload = json.dumps(state.to_dict(), indent=2, sort_keys=True) + "\n"
-        tmp_path = self.path.with_name(f".{self.path.name}.tmp")
-        tmp_path.write_text(payload, encoding="utf-8")
-        os.replace(tmp_path, self.path)
-        return self.path
+        return write_json_atomic(self.path, state.to_dict())
 
 
 def _required_safe_float(payload: dict[str, Any], key: str) -> float:
