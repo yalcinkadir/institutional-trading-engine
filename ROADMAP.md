@@ -2,7 +2,7 @@
 
 Status date: 2026-06-02
 
-Current state: TEST1 Evidence-Oriented TDD Policy is active as the default workflow for safety-relevant fixes and external review findings. EV1-EV12 evidence-integrity remediation is implemented, centrally documented and CI-green. CI runtime simplification is implemented and CI-green. Paper Observation evidence collection is active. Runtime governance proofing, evidence integrity, report boundaries, public-repository governance and external-review remediation are being handled through guard-test-first development. ER1/ER2 backtest-realism guards are implemented and CI-green.
+Current state: TEST1 Evidence-Oriented TDD Policy is active as the default workflow for safety-relevant fixes and external review findings. EV1-EV12 evidence-integrity remediation is implemented, centrally documented and CI-green. CI runtime simplification is implemented and CI-green. Paper Observation evidence collection is active. Runtime governance proofing, evidence integrity, report boundaries, public-repository governance and external-review remediation are being handled through guard-test-first development. ER1/ER2 backtest-realism guards are implemented and CI-green. ER4 atomic persistence guard is implemented and CI-green.
 
 The system remains research / decision-support / paper-observation only. Real-money execution is not authorized by code.
 
@@ -143,7 +143,7 @@ EV1-EV12 evidence-integrity remediation is complete and CI-green.
 | ER1 | P0 | Backtest realism | Optimistic T1 expiry booking in `t1_t2` model | CLOSED_CI_GREEN |
 | ER2 | P0 | Backtest realism | Entry fills ignore gap-through-entry | CLOSED_CI_GREEN |
 | ER3 | P0 | Position sizing | Position sizing lacked notional / buying-power cap | CLOSED_CI_GREEN |
-| ER4 | P0 | Persistence / audit integrity | State/evidence writes not consistently atomic | OPEN |
+| ER4 | P0 | Persistence / audit integrity | State/evidence writes not consistently atomic | CLOSED_CI_GREEN |
 | ER5 | P1 | Outcome metrics | Falsy-zero bug can replace true `0.0` result | CLOSED_CI_GREEN |
 | ER6 | P1 | Evidence quality | Missing result keys counted as `0.0` breakeven evidence | CLOSED_CI_GREEN |
 | ER7 | P1 | Sizing governance | `MIN_SAMPLES = 5` too weak for automatic size adjustment | OPEN |
@@ -181,6 +181,31 @@ Closure doc:
 docs/operations/er1_er2_backtest_realism_ci_green_closure_2026_06_02.md
 ```
 
+## ER4 Closure Summary
+
+ER4 atomic persistence remediation is implemented and CI-green.
+
+Implemented behavior:
+
+```text
+central write_text_atomic and write_json_atomic helpers introduced
+atomic writes use temporary sibling files and os.replace
+failed replace attempts preserve existing destination content
+PortfolioStateStore.save uses the central atomic JSON writer
+```
+
+Guard test:
+
+```text
+tests/test_er4_atomic_persistence_guard.py
+```
+
+Closure doc:
+
+```text
+docs/operations/er4_atomic_persistence_ci_green_closure_2026_06_02.md
+```
+
 ## ER5 / ER6 / ER11 Closure Summary
 
 ER5/ER6/ER11 outcome/evidence metric remediation is implemented and CI-green.
@@ -214,12 +239,11 @@ docs/operations/er5_er6_er11_documentation_update_2026_06_02.md
 ## Recommended Next Remediation Order
 
 ```text
-1. ER4 — atomic persistence for governance state and evidence files
-2. ER7 / ER8 — expectancy adjuster statistical discipline
-3. ER9 — targeted portfolio-risk reduction evidence
-4. ER10 — OOS purge / embargo
-5. ER14 / ER15 — stop-loss quality guards
-6. ER12 / ER13 — evidence caveats and accounting precision review
+1. ER7 / ER8 — expectancy adjuster statistical discipline
+2. ER9 — targeted portfolio-risk reduction evidence
+3. ER10 — OOS purge / embargo
+4. ER14 / ER15 — stop-loss quality guards
+5. ER12 / ER13 — evidence caveats and accounting precision review
 ```
 
 ## Safety Boundary
