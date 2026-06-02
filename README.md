@@ -32,7 +32,18 @@ Runtime Governance:
 GOV1-GOV10: runtime / pre-live governance hardening implemented and CI-green
 SR1-SR8: signal identity, ATR persistence, repo-write serialization, governance source enforcement, anomaly-state governance, threshold source of truth, completed-bar watcher semantics and dependency reproducibility implemented and CI-green
 PSR1-PSR4: runtime evidence manifest, fill-quality evidence and drift/regime evidence linkage implemented and CI-green
-RGP1-RGP12: runtime governance proof pack implemented and CI-green
+RGP1: missing/invalid PortfolioState fail-closed proof implemented and CI-green
+RGP2: runtime governance approval gate implemented and CI-green
+RGP3: stale PortfolioState approval blocking implemented and CI-green
+RGP4: actionable signal provider-fetch failure blocking implemented and CI-green
+RGP5: critical STOP/EXIT alert ordering guard implemented and CI-green
+RGP6: strict critical notification failure handling implemented and CI-green
+RGP7: repo-writing workflow serialization/retry guard implemented and CI-green
+RGP8: alert/evidence artifact upload-on-failure guard implemented and CI-green
+RGP9: signal lifecycle status source of truth implemented and CI-green
+RGP10: latest bar timestamp ordering guard implemented and CI-green
+RGP11: signal identity float quantization implemented and CI-green
+RGP12: partial-exit lifecycle persistence implemented and CI-green
 
 Backtesting / Evidence:
 BT2: Strategy Test Matrix implemented
@@ -88,20 +99,6 @@ docs/operations/test1_evidence_oriented_tdd_policy.md
 ### ER3 — Notional-Capped Position Sizing
 
 `calculate_position_risk` now supports optional `buying_power` and `max_notional` caps.
-
-```text
-shares = min(risk_based_shares, notional_capped_shares)
-```
-
-Returned fields include:
-
-```text
-shares
-risk_amount
-risk_per_share
-notional
-notional_cap
-```
 
 Status:
 
@@ -212,6 +209,14 @@ pytest tests/test_er11_expectancy_units_guard.py -q
 pytest tests/test_expectancy_adjuster.py -q
 pytest tests/test_edge_evidence_backtest.py -q
 pytest tests/test_decision_report.py -q
+```
+
+Documentation/status guards:
+
+```bash
+pytest tests/test_ip9_ip10_public_repo_governance.py -q
+pytest tests/test_post_rgp_status_consistency.py -q
+pytest tests/test_roadmap_ev_completion_guard.py -q
 ```
 
 Full test suite:
