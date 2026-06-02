@@ -29,6 +29,7 @@ class PortfolioRiskResult:
     correlation_warnings: tuple[str, ...]
     approved_symbols: tuple[str, ...]
     reduced_symbols: tuple[str, ...]
+    symbol_risk_multipliers: tuple[tuple[str, float], ...] = ()
 
 
 RISK_TIER_HEAT = {
@@ -37,6 +38,10 @@ RISK_TIER_HEAT = {
     "tier_3": 0.25,
     "no_trade": 0.0,
 }
+
+SECTOR_CONCENTRATION_MULTIPLIER = 0.75
+CORRELATION_MULTIPLIER = 0.80
+PORTFOLIO_HEAT_MULTIPLIER = 0.90
 
 
 def calculate_correlation(a: tuple[float, ...], b: tuple[float, ...]) -> float:
@@ -55,6 +60,14 @@ def calculate_correlation(a: tuple[float, ...], b: tuple[float, ...]) -> float:
     return round(numerator / (denominator_a * denominator_b), 4)
 
 
+def _tradable_symbols(candidates: list[PortfolioCandidate]) -> set[str]:
+    return {candidate.symbol for candidate in candidates if candidate.risk_tier != "no_trade"}
+
+
+def _candidate_by_symbol(candidates: list[PortfolioCandidate]) -> dict[str, PortfolioCandidate]:
+    return {candidate.symbol: candidate for candidate in candidates}
+
+
 def evaluate_portfolio_risk(
     candidates: list[PortfolioCandidate],
     *,
@@ -69,6 +82,9 @@ def evaluate_portfolio_risk(
 
     sector_heat: dict[str, float] = {}
     portfolio_heat = 0.0
+    affected_symbols: set[str] = set()
+    symbol_multipliers: dict[str, float] = {symbol: 1.0 for symbol in _tradable_symbols(candidates)}
+    by_symbol = _candidate_by_symbol(candidates)
 
     for candidate in candidates:
         base_heat = RISK_TIER_HEAT.get(candidate.risk_tier, 0.0)
@@ -79,28 +95,53 @@ def evaluate_portfolio_risk(
     for sector, heat in sector_heat.items():
         if heat > max_sector_heat:
             concentration_warnings.append(f"sector_heat_exceeded:{sector}:{round(heat, 2)}")
+            for candidate in candidates:
+                if candidate.risk_tier != "no_trade" and candidate.sector == sector:
+                    affected_symbols.add(candidate.symbol)
+                    symbol_multipliers[candidate.symbol] = min(
+                        symbol_multipliers[candidate.symbol], SECTOR_CONCENTRATION_MULTIPLIER
+                    )
 
     if portfolio_heat > max_portfolio_heat:
         concentration_warnings.append(f"portfolio_heat_exceeded:{round(portfolio_heat, 2)}")
+        for candidate in candidates:
+            if candidate.risk_tier != "no_trade":
+                affected_symbols.add(candidate.symbol)
+                symbol_multipliers[candidate.symbol] = min(
+                    symbol_multipliers[candidate.symbol], PORTFOLIO_HEAT_MULTIPLIER
+                )
 
     for index, first in enumerate(candidates):
+        if first.risk_tier == "no_trade":
+            continue
         for second in candidates[index + 1 :]:
+            if second.risk_tier == "no_trade":
+                continue
             corr = calculate_correlation(first.returns_20d, second.returns_20d)
             if corr >= correlation_threshold:
                 correlation_warnings.append(
                     f"high_correlation:{first.symbol}-{second.symbol}:{corr}"
                 )
-
-    risk_is_elevated = bool(concentration_warnings or correlation_warnings)
+                for symbol in (first.symbol, second.symbol):
+                    affected_symbols.add(symbol)
+                    symbol_multipliers[symbol] = min(
+                        symbol_multipliers[symbol], CORRELATION_MULTIPLIER
+                    )
 
     for candidate in candidates:
         if candidate.risk_tier == "no_trade":
             continue
 
-        if risk_is_elevated:
+        if candidate.symbol in affected_symbols:
             reduced.append(candidate.symbol)
         else:
             approved.append(candidate.symbol)
+
+    ordered_multipliers = tuple(
+        (symbol, round(symbol_multipliers[symbol], 4))
+        for symbol in sorted(symbol_multipliers)
+        if symbol in by_symbol
+    )
 
     return PortfolioRiskResult(
         portfolio_heat=round(portfolio_heat, 4),
@@ -108,4 +149,5 @@ def evaluate_portfolio_risk(
         correlation_warnings=tuple(correlation_warnings),
         approved_symbols=tuple(approved),
         reduced_symbols=tuple(reduced),
+        symbol_risk_multipliers=ordered_multipliers,
     )
