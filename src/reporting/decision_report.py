@@ -9,7 +9,7 @@ Important integrations:
 
 The expectancy integration closes the loop:
 
-signals → lifecycle → outcomes → expectancy → future scoring
+signals → lifecycle → outcomes → expectancy_r → future scoring
 """
 
 from __future__ import annotations
@@ -193,7 +193,7 @@ def _candidate_for_symbol(
         "expectancy_source": adjustment.source,
         "expectancy_sample_size": adjustment.sample_size,
         "expectancy_win_rate": adjustment.win_rate,
-        "expectancy_value": adjustment.expectancy,
+        "expectancy_r": adjustment.expectancy_r,
         "expectancy_recommendation": adjustment.recommendation,
         "expectancy_reason": adjustment_note,
         "entry_type_assumption": entry_type,
@@ -265,7 +265,7 @@ def build_decision_report(
                     "source": meta.get("expectancy_source"),
                     "sample_size": meta.get("expectancy_sample_size"),
                     "win_rate": meta.get("expectancy_win_rate"),
-                    "expectancy": meta.get("expectancy_value"),
+                    "expectancy_r": meta.get("expectancy_r"),
                     "score_delta": meta.get("expectancy_score_delta"),
                     "size_multiplier": meta.get("expectancy_size_multiplier"),
                     "recommendation": meta.get("expectancy_recommendation"),
