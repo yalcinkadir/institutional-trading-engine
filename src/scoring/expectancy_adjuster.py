@@ -30,6 +30,7 @@ from typing import Any
 
 DEFAULT_OUTCOME_HISTORY = Path("reports/outcomes/outcome-history.json")
 MIN_SAMPLES = 5
+MIN_SIZE_ADJUSTMENT_SAMPLES = 20
 
 TRADING_CLASSIFICATIONS = {"WIN", "LOSS", "NEUTRAL"}
 NON_TRADING_LIFECYCLE_STATUSES = {"PENDING", "EXPIRED", "UNTRIGGERED"}
@@ -167,6 +168,21 @@ def _build_profiles(outcomes: list[dict[str, Any]]) -> dict[str, dict[str, Any]]
     return profiles
 
 
+def _size_multiplier(sample_size: int, requested_multiplier: float) -> float:
+    if sample_size < MIN_SIZE_ADJUSTMENT_SAMPLES:
+        return 1.0
+    return requested_multiplier
+
+
+def _reason_with_size_guard(sample_size: int, base_reason: str) -> str:
+    if sample_size < MIN_SIZE_ADJUSTMENT_SAMPLES:
+        if base_reason in {"strong_positive_expectancy", "positive_expectancy", "positive_asymmetric_expectancy"}:
+            return "positive_expectancy_size_sample_guard"
+        if base_reason in {"negative_expectancy", "weak_expectancy"}:
+            return "negative_expectancy_size_sample_guard"
+    return base_reason
+
+
 def _adjustment_from_profile(profile: dict[str, Any], source: str) -> ExpectancyAdjustment:
     sample_size = int(profile.get("sample_size", 0))
     win_rate = float(profile.get("win_rate", 0.0))
@@ -177,6 +193,7 @@ def _adjustment_from_profile(profile: dict[str, Any], source: str) -> Expectancy
         return no_adjustment("insufficient_expectancy_sample")
 
     if expectancy_r >= 3.0 and win_rate >= 0.60:
+        base_reason = "strong_positive_expectancy"
         return ExpectancyAdjustment(
             profile_key=profile_key,
             source=source,
@@ -184,12 +201,13 @@ def _adjustment_from_profile(profile: dict[str, Any], source: str) -> Expectancy
             win_rate=win_rate,
             expectancy_r=expectancy_r,
             score_delta=8.0,
-            size_multiplier=1.15,
+            size_multiplier=_size_multiplier(sample_size, 1.15),
             recommendation="increase_risk_selectively",
-            reason="strong_positive_expectancy",
+            reason=_reason_with_size_guard(sample_size, base_reason),
         )
 
     if expectancy_r >= 1.0 and win_rate >= 0.52:
+        base_reason = "positive_expectancy"
         return ExpectancyAdjustment(
             profile_key=profile_key,
             source=source,
@@ -197,12 +215,27 @@ def _adjustment_from_profile(profile: dict[str, Any], source: str) -> Expectancy
             win_rate=win_rate,
             expectancy_r=expectancy_r,
             score_delta=4.0,
-            size_multiplier=1.05,
+            size_multiplier=_size_multiplier(sample_size, 1.05),
             recommendation="maintain_or_slightly_increase",
-            reason="positive_expectancy",
+            reason=_reason_with_size_guard(sample_size, base_reason),
+        )
+
+    if expectancy_r >= 1.0 and win_rate > 0.0:
+        base_reason = "positive_asymmetric_expectancy"
+        return ExpectancyAdjustment(
+            profile_key=profile_key,
+            source=source,
+            sample_size=sample_size,
+            win_rate=win_rate,
+            expectancy_r=expectancy_r,
+            score_delta=4.0,
+            size_multiplier=_size_multiplier(sample_size, 1.05),
+            recommendation="maintain_or_slightly_increase",
+            reason=_reason_with_size_guard(sample_size, base_reason),
         )
 
     if expectancy_r <= -2.0 or (expectancy_r < 0.0 and win_rate <= 0.35):
+        base_reason = "negative_expectancy"
         return ExpectancyAdjustment(
             profile_key=profile_key,
             source=source,
@@ -210,12 +243,13 @@ def _adjustment_from_profile(profile: dict[str, Any], source: str) -> Expectancy
             win_rate=win_rate,
             expectancy_r=expectancy_r,
             score_delta=-12.0,
-            size_multiplier=0.50,
+            size_multiplier=_size_multiplier(sample_size, 0.50),
             recommendation="avoid_or_block",
-            reason="negative_expectancy",
+            reason=_reason_with_size_guard(sample_size, base_reason),
         )
 
     if expectancy_r < -0.5:
+        base_reason = "weak_expectancy"
         return ExpectancyAdjustment(
             profile_key=profile_key,
             source=source,
@@ -223,9 +257,9 @@ def _adjustment_from_profile(profile: dict[str, Any], source: str) -> Expectancy
             win_rate=win_rate,
             expectancy_r=expectancy_r,
             score_delta=-6.0,
-            size_multiplier=0.75,
+            size_multiplier=_size_multiplier(sample_size, 0.75),
             recommendation="reduce_size",
-            reason="weak_expectancy",
+            reason=_reason_with_size_guard(sample_size, base_reason),
         )
 
     return ExpectancyAdjustment(
