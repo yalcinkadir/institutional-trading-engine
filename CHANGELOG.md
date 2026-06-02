@@ -1,5 +1,28 @@
 # CHANGELOG
 
+## ER4 Atomic Persistence Remediation — 2026-06-02
+
+### Added
+- Added `src/persistence/atomic_write.py`.
+- Added `tests/test_er4_atomic_persistence_guard.py`.
+- Added `docs/operations/er4_atomic_persistence_ci_green_closure_2026_06_02.md`.
+
+### Changed
+- Updated `PortfolioStateStore.save(...)` to use the central atomic JSON writer.
+- Preserved fail-closed portfolio-state warning semantics required by runtime governance tests.
+
+### Validated
+- Atomic JSON writes replace the destination via temporary sibling file and `os.replace`.
+- Failed replacement preserves the existing destination file.
+- Temporary files are cleaned up after failed replacement.
+- `PortfolioStateStore` routes writes through `write_json_atomic(...)`.
+
+### Status
+- ER4: CLOSED_CI_GREEN.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## ER1 / ER2 Backtest Realism Remediation — 2026-06-02
 
 ### Added
