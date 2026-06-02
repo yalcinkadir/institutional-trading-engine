@@ -183,7 +183,7 @@ def derive_stop_loss_quality(
             is_valid=True,
             stop_loss=_round_price(explicit_stop),
             stop_model="scanner_provided_stop",
-            stop_reason="scanner provided stop below entry within max ATR distance",
+            stop_reason="scanner provided stop below entry",
         )
 
     swing_low_stop = _structure_stop_from_swing_low(
