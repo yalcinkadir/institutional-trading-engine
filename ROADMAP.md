@@ -2,7 +2,7 @@
 
 Status date: 2026-06-02
 
-Current state: TEST1 Evidence-Oriented TDD Policy is active as the default workflow for safety-relevant fixes and external review findings. EV1-EV12 evidence-integrity remediation is implemented, centrally documented and CI-green. CI runtime simplification is implemented and CI-green. Paper Observation evidence collection is active. Runtime governance proofing, evidence integrity, report boundaries and external-review remediation are being handled through guard-test-first development.
+Current state: TEST1 Evidence-Oriented TDD Policy is active as the default workflow for safety-relevant fixes and external review findings. EV1-EV12 evidence-integrity remediation is implemented, centrally documented and CI-green. CI runtime simplification is implemented and CI-green. Paper Observation evidence collection is active. Runtime governance proofing, evidence integrity, report boundaries, public-repository governance and external-review remediation are being handled through guard-test-first development.
 
 The system remains research / decision-support / paper-observation only. Real-money execution is not authorized by code.
 
@@ -62,6 +62,21 @@ Safety-relevant fixes and external review findings require a guard test first. A
 | TEST1 | Adopt Evidence-Oriented TDD Policy: guard test first, minimal fix second, targeted test, module tests, full suite, documentation last | P0 | Critical | Active |
 
 TEST1 is mandatory for external-review findings and safety-relevant fixes.
+
+## Phase IP — Public Repository Governance
+
+| ID | Task | Priority | Impact | Status |
+|---|---|---:|---:|---|
+| IP1 | Define public/private edge separation boundary | P0 | Critical | Done / CI-wired |
+| IP2 | Add public repository hygiene policy | P0 | Critical | Done / CI-wired |
+| IP3 | Add public-demo defaults | P1 | High | Done / CI-green |
+| IP4 | Add optional external edge provider boundary | P1 | High | Done / CI-green |
+| IP5 | Add artifact hygiene controls | P1 | High | Done / CI-wired |
+| IP6 | Harden `.gitignore` for generated evidence artifacts | P1 | High | Done / CI-wired |
+| IP9 | Add PR public-edge review governance checklist | P1 | High | Done / CI-wired |
+| IP10 | Add license and research-only usage disclaimer | P1 | High | Done / CI-wired |
+
+IP9/IP10 preserve public-repository safety. They do not authorize live trading.
 
 ## Phase PO — Paper Observation Evidence Process
 
