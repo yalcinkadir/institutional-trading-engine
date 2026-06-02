@@ -202,7 +202,7 @@ def _adjustment_from_profile(profile: dict[str, Any], source: str) -> Expectancy
             reason="positive_expectancy",
         )
 
-    if expectancy <= -2.0 or win_rate <= 0.35:
+    if expectancy <= -2.0 or (expectancy < 0.0 and win_rate <= 0.35):
         return ExpectancyAdjustment(
             profile_key=profile_key,
             source=source,
