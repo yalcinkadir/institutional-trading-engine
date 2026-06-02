@@ -105,3 +105,17 @@
 - Uploads `po11-daily-observation-artifact`.
 - Uses read-only repository permissions.
 - Does not authorize live trading.
+
+---
+
+## IP9/IP10 Public Repository Governance — 2026-06-01
+
+### Added
+- Added PR public-edge review governance for newly introduced edge constants.
+- Added license and usage disclaimer documentation for the public decision-support research framework.
+- Added `docs/operations/ip9_ip10_public_repo_governance.md`.
+- Added `tests/test_ip9_ip10_public_repo_governance.py`.
+
+### Stabilization Result
+- IP9/IP10 implementation status: Done / CI-wired.
+- Live trading authorization: unchanged; not granted by code.
