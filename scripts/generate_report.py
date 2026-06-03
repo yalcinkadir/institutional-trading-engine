@@ -53,6 +53,17 @@ def _enrich_metrics_with_structure(metrics: dict[str, Any] | None, bars_df: Any)
     return enriched
 
 
+def _stamp_primary_market_data_provenance(metrics: dict[str, Any] | None) -> dict[str, Any] | None:
+    if metrics is None:
+        return None
+    stamped = dict(metrics)
+    stamped.setdefault("source", "polygon")
+    stamped.setdefault("source_timestamp", datetime.now(UTC).isoformat())
+    stamped.setdefault("fallback_level", "primary")
+    stamped.setdefault("data_status", "OK")
+    return stamped
+
+
 def _load_intraday_bars(symbol: str, *, minutes: int = 5) -> list[dict[str, Any]]:
     """Load recent intraday Polygon bars when available.
 
@@ -116,7 +127,8 @@ def _load_scanner_metrics(decision_report: dict) -> dict[str, Any] | None:
                 bars_df = get_daily_bars(symbol)
                 metrics = _enrich_metrics_with_structure(metrics, bars_df)
                 intraday_bars = _load_intraday_bars(symbol)
-                scanner_metrics_map[symbol] = _enrich_metrics_with_intraday_context(metrics, intraday_bars)
+                metrics = _enrich_metrics_with_intraday_context(metrics, intraday_bars)
+                scanner_metrics_map[symbol] = _stamp_primary_market_data_provenance(metrics)
                 time.sleep(2)
             except Exception as exc:
                 print(f"WARNING: scanner metric build failed for {symbol}: {type(exc).__name__}: {exc}")
@@ -168,6 +180,7 @@ def _build_market_payload(report_type: str) -> tuple[dict, dict | None]:
         _decision_symbols(decision_report),
     )
     decision_payload["scanner_metrics_diagnostics"] = scanner_diagnostics
+    decision_payload["scanner_data_quality"] = scanner_diagnostics.as_summary()
     if scanner_diagnostics.has_warnings:
         for warning in scanner_diagnostics.warning_lines():
             print(f"WARNING: {warning}")
@@ -185,6 +198,7 @@ def _build_market_payload(report_type: str) -> tuple[dict, dict | None]:
         print(f"WARNING: Signal level preparation failed (non-fatal): {type(exc).__name__}: {exc}")
         decision_payload["signals"] = []
 
+    decision_report["scanner_data_quality"] = scanner_diagnostics.as_summary()
     payload = {
         "report_type": report_type,
         "market_regime": market_regime,
@@ -222,7 +236,11 @@ def generate_signals(decision_payload: dict) -> None:
                 scanner_metrics_map=None,
                 market_regime=decision_payload["market_regime"],
             )
-        json_path, md_path = save_signals(signals, date_str=datetime.now(UTC).strftime("%Y-%m-%d"))
+        json_path, md_path = save_signals(
+            signals,
+            date_str=datetime.now(UTC).strftime("%Y-%m-%d"),
+            data_quality=decision_payload.get("scanner_data_quality"),
+        )
         print(f"Signals written: {json_path}, {md_path}")
         print(f"  {sum(1 for signal in signals if signal.action == 'BUY_WATCH')} actionable, {sum(1 for signal in signals if signal.action != 'BUY_WATCH')} no-trade")
     except Exception as exc:
@@ -238,7 +256,6 @@ def main() -> int:
     else:
         print(report)
     if args.type in MARKET_REPORT_TYPES and decision_payload is not None:
-        persist_scoring_adjustments(args.type, decision_payload)
         generate_signals(decision_payload)
     return 0
 
