@@ -5,5 +5,8 @@
   "daily_loss_percent": 0.0,
   "open_positions": [],
   "source": "manual_initial_live_decision_support_state",
-  "warnings": []
+  "warnings": [
+    "Initial placeholder portfolio state. Replace with real broker/paper-broker portfolio state before runtime approval."
+  ],
+  "governance_valid": false
 }
