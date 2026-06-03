@@ -1,5 +1,37 @@
 # CHANGELOG
 
+## FCM1 / RPW1 Connectivity and Proof-Pack Retention — 2026-06-03
+
+### Added
+- Added `src/validation/feature_connectivity_matrix_guard.py`.
+- Added `src/validation/runtime_proof_pack_artifact_writer.py`.
+- Added `tests/test_fcm1_feature_connectivity_matrix_guard.py`.
+- Added `tests/test_rpw1_runtime_proof_pack_artifact_writer.py`.
+- Added `.github/workflows/fcm-rpw-ci.yml`.
+- Added `docs/operations/fcm1_rpw1_connectivity_proof_pack_retention_closure_2026_06_03.md`.
+
+### Changed
+- Added a feature connectivity matrix guard that requires feature identity, runtime gate, guard test, evidence artifact, documentation reference and dependency/consumer connectivity.
+- Added a deterministic runtime proof-pack artifact writer that writes JSON artifacts and a retention index with SHA-256 artifact identity.
+- Preserved the paper-only boundary by requiring `live_trading_authorized=false` and `broker_execution_mode=paper_only`.
+- Updated README and ROADMAP with FCM1 / RPW1 status and commands.
+
+### Validated
+- Connected CI-green feature matrix passes.
+- Missing guard test or evidence artifact blocks the matrix.
+- Unknown upstream dependencies block the matrix.
+- Runtime proof-pack artifact and retention index are written deterministically.
+- Existing retention index entries are updated without duplicate `proof_pack_id` rows.
+- Missing proof-pack identity, observation window or summary blocks artifact writing.
+- Live/non-paper boundary violations block and normalize to safe output.
+
+### Status
+- FCM1: Done / CI-wired.
+- RPW1: Done / CI-wired.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## PFA1 Position-level Forward Evidence Attribution — 2026-06-03
 
 ### Added
