@@ -41,6 +41,7 @@ def test_load_valid_portfolio_state(tmp_path: Path) -> None:
                     }
                 ],
                 "updated_at": "2026-05-20T22:00:00+02:00",
+                "governance_valid": True,
             }
         ),
         encoding="utf-8",
@@ -78,6 +79,51 @@ def test_load_explicit_invalid_governance_state(tmp_path: Path) -> None:
     assert state.governance_valid is False
 
 
+def test_load_missing_governance_valid_returns_fail_closed_state(tmp_path: Path) -> None:
+    path = tmp_path / "portfolio_state.json"
+    path.write_text(
+        json.dumps(
+            {
+                "equity_start": 10000.0,
+                "equity_current": 10000.0,
+                "drawdown_percent": 0.0,
+                "daily_loss_percent": 0.0,
+                "open_positions": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    state = PortfolioStateStore(path).load()
+
+    assert state.source == "invalid_portfolio_state_fail_closed"
+    assert state.governance_valid is False
+    assert any("governance_valid" in warning for warning in state.warnings)
+
+
+def test_load_non_boolean_governance_valid_returns_fail_closed_state(tmp_path: Path) -> None:
+    path = tmp_path / "portfolio_state.json"
+    path.write_text(
+        json.dumps(
+            {
+                "equity_start": 10000.0,
+                "equity_current": 10000.0,
+                "drawdown_percent": 0.0,
+                "daily_loss_percent": 0.0,
+                "open_positions": [],
+                "governance_valid": "true",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    state = PortfolioStateStore(path).load()
+
+    assert state.source == "invalid_portfolio_state_fail_closed"
+    assert state.governance_valid is False
+    assert any("governance_valid must be a boolean" in warning for warning in state.warnings)
+
+
 def test_load_invalid_json_returns_fail_closed_state(tmp_path: Path) -> None:
     path = tmp_path / "portfolio_state.json"
     path.write_text("not-json", encoding="utf-8")
@@ -109,6 +155,7 @@ def test_load_missing_required_field_returns_fail_closed_state(tmp_path: Path) -
                 "equity_current": 9900.0,
                 "drawdown_percent": -1.0,
                 "open_positions": [],
+                "governance_valid": True,
             }
         ),
         encoding="utf-8",
@@ -131,6 +178,7 @@ def test_load_non_finite_number_returns_fail_closed_state(tmp_path: Path) -> Non
                 "drawdown_percent": "NaN",
                 "daily_loss_percent": 0.0,
                 "open_positions": [],
+                "governance_valid": True,
             }
         ),
         encoding="utf-8",
