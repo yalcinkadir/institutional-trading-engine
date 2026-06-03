@@ -13,11 +13,11 @@ on:
         default: "reports/signals/latest-signals.json"
 
 permissions:
-  contents: write
+  contents: read
   actions: read
 
 concurrency:
-  group: repo-write-${{ github.ref }}
+  group: entry-exit-watcher-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -36,8 +36,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          persist-credentials: true
-          fetch-depth: 0
+          persist-credentials: false
+          fetch-depth: 1
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -63,7 +63,7 @@ jobs:
       - name: Validate watcher inputs
         shell: bash
         run: |
-          mkdir -p reports/alerts
+          mkdir -p reports/alerts reports/signals data
           if [ -z "${POLYGON_API_KEY:-}" ]; then
             echo "POLYGON_API_KEY secret is missing. Skipping watcher runtime."
             echo "Entry/Exit Watcher SKIPPED" > reports/alerts/watcher-skip-message.txt
@@ -87,20 +87,6 @@ jobs:
         run: |
           mkdir -p reports/alerts reports/signals data
           python scripts/run_entry_exit_watcher.py --signals-file "$SIGNALS_FILE"
-
-      - name: Commit watcher outputs
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add reports/alerts/ reports/signals/ data/ 2>/dev/null || true
-          if git diff --cached --quiet; then
-            echo "No watcher changes to commit."
-            exit 0
-          fi
-          git commit -m "Update entry exit watcher events ${WATCHER_CYCLE_ID}"
-          git pull --rebase origin "${GITHUB_REF_NAME}"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
 
       - name: Build watcher alert summary
         if: success() && env.WATCHER_SKIP != 'true'
@@ -137,13 +123,15 @@ jobs:
             python scripts/send_notification.py --message-file reports/watcher-failure-message.txt --telegram --webhook --cycle-id "${WATCHER_CYCLE_ID:-unknown}" || true
           fi
 
-      - name: Upload alert artifacts
+      - name: Upload watcher runtime artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: entry-exit-alerts-${{ github.run_id }}
+          name: entry-exit-runtime-${{ github.run_id }}
           path: |
             reports/alerts/
+            reports/signals/
+            data/
             reports/watcher-failure-message.txt
           if-no-files-found: ignore
           retention-days: 90
