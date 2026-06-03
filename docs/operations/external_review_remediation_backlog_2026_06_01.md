@@ -52,43 +52,44 @@ This backlog does not authorize live trading, broker execution or capital alloca
 | ER9 | P1 | Portfolio risk | Portfolio-risk warnings reduce all tradable symbols globally instead of targeted pair/sector reduction | CLOSED_CI_GREEN | Guarded by `tests/test_er9_targeted_portfolio_risk_reduction.py` |
 | ER10 | P1 | OOS methodology | No purge/embargo around OOS split while trades can overlap boundary | CLOSED_CI_GREEN | Guarded by `tests/test_er10_oos_purge_embargo_guard.py` |
 | ER11 | P2 | Metric semantics | Two different expectancy definitions use similar naming but different units / denominators | CLOSED_CI_GREEN | Standardized to `expectancy_r` |
-| ER12 | P2 | Sharpe evidence | Per-trade Sharpe uses population std and IID-style t-stat assumption | LIKELY_CLOSED_BY_EXISTING_WORK_NEEDS_VERIFICATION | EV1/EV2 addressed unit issue; verify caveats |
-| ER13 | P2 | Accounting precision | Money/PnL paths use float rather than Decimal | OPEN | Consider Decimal/integer cents at ledger boundaries |
+| ER12 | P2 | Sharpe evidence | Per-trade Sharpe uses population std and IID-style t-stat assumption | CLOSED_CI_GREEN | Guarded by `tests/test_er12_er13_evidence_accounting_precision_guard.py` |
+| ER13 | P2 | Accounting precision | Money/PnL paths use float rather than Decimal | CLOSED_CI_GREEN | Guarded by `tests/test_er12_er13_evidence_accounting_precision_guard.py` |
 | ER14 | P2 | Stop quality | Long-only stop logic lacks explicit short guard | CLOSED_CI_GREEN | Guarded by `tests/test_er14_er15_stop_loss_quality_guard.py` |
 | ER15 | P2 | Stop quality | ATR fallback stops may lack max-distance cap comparable to swing stop cap | CLOSED_CI_GREEN | Guarded by `tests/test_er14_er15_stop_loss_quality_guard.py` |
 
 ---
 
-## ER14 / ER15 — Stop-Loss Quality Guards
+## ER12 / ER13 — Evidence Caveats and Accounting Precision
 
 External findings:
 
 ```text
-ER14: Long-only stop logic lacks explicit short guard.
-ER15: ATR fallback stops may lack max-distance cap comparable to swing stop cap.
+ER12: Per-trade Sharpe uses population std and IID-style t-stat assumptions.
+ER13: Money/PnL paths use float rather than Decimal.
 ```
 
 Implemented remediation:
 
 ```text
-Unsupported short-side stop derivation fails closed with unsupported_side:<side>.
-Scanner-provided stops exceeding MAX_ATR_STOP_DISTANCE fail closed.
-ATR fallback stops use MAX_ATR_STOP_DISTANCE = 2.0.
-Valid scanner-provided stop reason remains backward compatible.
+Historical edge reports now expose explicit Sharpe caveats in JSON and Markdown.
+The report states population_std, iid_assumption=not_verified, small_sample_warning and not_proof_of_edge.
+Position-risk accounting uses Decimal at money boundaries with cent-stable outputs.
+Public postmarket report example was restored to synthetic/public-safe content after the hygiene guard caught generated report leakage.
 ```
 
 Files:
 
 ```text
-src/signals/stop_loss_quality.py
-tests/test_er14_er15_stop_loss_quality_guard.py
-tests/test_stop_loss_quality.py
+src/validation/historical_edge_validation.py
+src/trading/risk_engine.py
+tests/test_er12_er13_evidence_accounting_precision_guard.py
+reports/postmarket-report.md
 ```
 
 Closure doc:
 
 ```text
-docs/operations/er14_er15_stop_loss_quality_ci_green_closure_2026_06_02.md
+docs/operations/er12_er13_evidence_accounting_precision_ci_green_closure_2026_06_02.md
 ```
 
 Status:
@@ -102,7 +103,8 @@ CLOSED_CI_GREEN
 ## Recommended Remediation Order
 
 ```text
-1. ER12 / ER13 — evidence caveats and accounting precision review
+1. External review remediation backlog is closed through ER15.
+2. Continue with paper-observation hardening and forward-evidence review gates.
 ```
 
 ## Next Action
@@ -110,5 +112,5 @@ CLOSED_CI_GREEN
 Continue with:
 
 ```text
-ER12 / ER13 — evidence caveats and accounting precision review
+Paper Observation / forward evidence quality gates
 ```
