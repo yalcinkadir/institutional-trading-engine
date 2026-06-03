@@ -32,7 +32,7 @@ PO14: Forward Evidence Quality Gate implemented and CI-green
 Runtime Governance:
 GOV1-GOV10: runtime / pre-live governance hardening implemented and CI-green
 SR1-SR8: signal identity, ATR persistence, repo-write serialization, governance source enforcement, anomaly-state governance, threshold source of truth, completed-bar watcher semantics and dependency reproducibility implemented and CI-green
-PSR1-SR4: runtime evidence manifest, fill-quality evidence and drift/regime evidence linkage implemented and CI-green
+PSR1-PSR4: runtime evidence manifest, fill-quality evidence and drift/regime evidence linkage implemented and CI-green
 RGP1: missing/invalid PortfolioState fail-closed proof implemented and CI-green
 RGP2: runtime governance approval gate implemented and CI-green
 RGP3: stale PortfolioState approval blocking implemented and CI-green
