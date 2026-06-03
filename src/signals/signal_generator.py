@@ -114,6 +114,31 @@ def _build_signal_payload_for_identity(
     }
 
 
+def _actionable_data_quality_reasons(
+    *,
+    close: float | None,
+    atr14: float | None,
+    data_status: str,
+    source: str | None,
+    source_timestamp: str | None,
+    fallback_level: str | None,
+) -> list[str]:
+    reasons: list[str] = []
+    if close is None:
+        reasons.append("missing_close")
+    if atr14 is None:
+        reasons.append("missing_atr")
+    if data_status != "OK":
+        reasons.append(f"data_status_{data_status.lower()}")
+    if source is None:
+        reasons.append("missing_source")
+    if source_timestamp is None:
+        reasons.append("missing_source_timestamp")
+    if fallback_level is None:
+        reasons.append("missing_fallback_level")
+    return reasons
+
+
 def build_signals(
     decision_report: dict,
     scanner_metrics_map: dict[str, Any] | None = None,
@@ -149,8 +174,16 @@ def build_signals(
         stop_quality_reasons: list[str] = []
         exit_quality_reasons: list[str] = []
         quality_gate_failed = False
+        actionable_data_reasons = _actionable_data_quality_reasons(
+            close=close,
+            atr14=atr14,
+            data_status=data_status,
+            source=source,
+            source_timestamp=source_timestamp,
+            fallback_level=fallback_level,
+        )
 
-        if action == "BUY_WATCH":
+        if action == "BUY_WATCH" and not actionable_data_reasons:
             entry_quality = derive_entry_quality(
                 setup_type=setup_type,
                 close=close,
@@ -207,11 +240,15 @@ def build_signals(
             notes_parts.append(f"blocked: {', '.join(item['blocked_reasons'])}")
         if item.get("notes"):
             notes_parts.append(f"notes: {', '.join(item['notes'])}")
-        if original_action == "BUY_WATCH" and data_status == "BLOCKED":
+        if original_action == "BUY_WATCH" and actionable_data_reasons:
             quality_gate_failed = True
-            notes_parts.append("data_quality: blocked")
-        elif original_action == "BUY_WATCH" and data_status == "DEGRADED":
-            notes_parts.append("data_quality: degraded")
+            if data_status == "BLOCKED":
+                notes_parts.append("data_quality: blocked")
+            elif data_status == "DEGRADED":
+                notes_parts.append("data_quality: degraded")
+            else:
+                notes_parts.append(f"data_quality: {data_status.lower()}")
+            notes_parts.append("data_contract: " + ", ".join(actionable_data_reasons))
         if original_action == "BUY_WATCH" and entry_quality_reasons:
             notes_parts.append("entry_quality: " + ", ".join(entry_quality_reasons))
         if original_action == "BUY_WATCH" and stop_quality_reasons:
