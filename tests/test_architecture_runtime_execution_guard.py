@@ -90,15 +90,35 @@ def test_arch106_report_signal_path_has_runtime_execution_proof(monkeypatch, tmp
     def fake_market_regime(report_type: str) -> dict:
         execution_trace.append("market_regime_called")
         assert report_type == "premarket"
-        return {"regime": "Bullish", "market_health_score": 75, "data_status": "OK"}
+        return {
+            "regime": "Bullish",
+            "market_health_score": 75,
+            "data_status": "OK",
+            "symbols": {},
+            "breadth": {},
+            "focus_areas": ["runtime execution proof"],
+        }
 
     def fake_screener(report_type: str) -> dict:
         execution_trace.append("screener_called")
         assert report_type == "premarket"
-        return {"watchlist": ["NVDA"]}
+        return {
+            "title": "ARCH106 Runtime Screener",
+            "watchlist": ["NVDA"],
+            "objectives": [],
+            "warnings": [],
+        }
 
     def fake_cross_asset() -> dict:
-        return {"status": "ok"}
+        return {
+            "data_status": "OK",
+            "regime": "risk_on",
+            "risk_score": 20,
+            "risk_on_score": 80,
+            "risk_off_score": 20,
+            "warnings": [],
+            "confirmations": [],
+        }
 
     def fake_decision_report(market_regime: dict, screener: dict) -> dict:
         execution_trace.append("decision_report_called")
@@ -111,6 +131,8 @@ def test_arch106_report_signal_path_has_runtime_execution_proof(monkeypatch, tmp
             "hard_overrides": [],
             "soft_overrides": [],
             "portfolio_heat_limit": 1.0,
+            "allowed_setups": ["momentum_breakout"],
+            "summary": "runtime execution proof",
             "scanner_data_quality": {},
             "decisions": [
                 {
@@ -178,6 +200,7 @@ def test_arch106_report_signal_path_has_runtime_execution_proof(monkeypatch, tmp
 
     report, decision_payload = generate_report.build_report("premarket")
     assert "NVDA" in report
+    assert "ARCH106 Runtime Screener" in report
     assert decision_payload is not None
     generate_report.generate_signals(decision_payload)
 
