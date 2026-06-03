@@ -86,6 +86,17 @@ def test_arch106_committed_inventory_artifact_exists_and_has_schema() -> None:
     assert isinstance(artifact["modules"], list)
 
 
+def test_arch106_committed_inventory_artifact_matches_generator_output() -> None:
+    expected = build_inventory()
+    actual = json.loads(INVENTORY_ARTIFACT_PATH.read_text(encoding="utf-8"))
+
+    assert actual == expected, (
+        "ARCH106 inventory artifact is stale. Regenerate it with: "
+        "python scripts/generate_module_inventory.py && "
+        "git add docs/architecture/module_inventory.generated.json"
+    )
+
+
 def test_arch106_inventory_can_be_written_without_missing_paths(tmp_path) -> None:
     output_path = tmp_path / "module_inventory.generated.json"
     inventory = build_inventory()
