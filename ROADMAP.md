@@ -31,3 +31,420 @@ Priorities:
 16. indexed artifact retention
 17. monthly paper-observation review packs
 18. test-first guard coverage for safety-relevant fixes
+```
+
+## Hard Rules
+
+```text
+Hard live-execution rule:
+No real-money execution before forward evidence, drift detection, regime-change monitoring, position-level risk attribution, capacity/turnover realism, runtime governance hardening and manual approval are in place.
+
+Hard IP rule:
+The public repository may demonstrate architecture, evidence discipline and deterministic framework behavior, but proprietary edge configuration must not be developed further in public by default.
+
+Hard logic rule:
+Decision-critical math must be regression-tested before it is trusted by reports, ranking or paper execution workflows.
+
+Hard artifact rule:
+Committed public report examples must remain synthetic/public-safe. Generated runtime reports must be written only to non-committed output locations.
+
+Hard evidence-integrity rule:
+Metrics must use explicit units. Sharpe-like metrics, expectancy metrics, t-statistics and return percentages must not be mixed.
+
+Hard TEST1 rule:
+Safety-relevant fixes and external review findings require a guard test first. A green suite is not sufficient unless the dangerous path is explicitly covered.
+```
+
+## Phase TEST — Evidence-Oriented Test Discipline
+
+| ID | Task | Priority | Impact | Status |
+|---|---|---:|---:|---|
+| TEST1 | Adopt Evidence-Oriented TDD Policy: guard test first, minimal fix second, targeted test, module tests, full suite, documentation last | P0 | Critical | Active |
+
+TEST1 is mandatory for external-review findings and safety-relevant fixes.
+
+## Phase IP — Public Repository Governance
+
+| ID | Task | Priority | Impact | Status |
+|---|---|---:|---:|---|
+| IP1 | Define public/private edge separation boundary | P0 | Critical | Done / CI-green |
+| IP2 | Add public repository hygiene policy | P0 | Critical | Done / CI-green |
+| IP3 | Add public-demo defaults | P1 | High | Done / CI-green |
+| IP4 | Add optional external edge provider boundary | P1 | High | Done / CI-green |
+| IP5 | Add artifact hygiene controls | P1 | High | Done / CI-wired |
+| IP6 | Harden `.gitignore` for generated evidence artifacts | P1 | High | Done / CI-wired |
+| IP9 | Add PR public-edge review governance checklist | P1 | High | Done / CI-wired |
+| IP10 | Add license and research-only usage disclaimer | P1 | High | Done / CI-wired |
+
+IP9/IP10 preserve public-repository safety. They do not authorize live trading.
+
+## Phase PO — Paper Observation Evidence Process
+
+| ID | Task | Priority | Impact | Status |
+|---|---|---:|---:|---|
+| PO1 | Paper Observation timeline and review gate | P0 | Critical | Done / CI-green |
+| PO2 | Daily Observation Acceptance Gate | P0 | Critical | Done / CI-green |
+| PO3 | Daily Observation Run Record | P0 | Critical | Done / CI-green |
+| PO4 | Daily Observation Record Validator | P0 | Critical | Done / CI-green |
+| PO5 | Daily Observation Record Writer | P0 | Critical | Done / CI-green |
+| PO6 | Daily Observation Record Artifact Contract | P0 | Critical | Done / CI-green |
+| PO7 | Daily Observation Record Index | P0 | Critical | Done / CI-green |
+| PO8 | Daily Observation Review Summary | P0 | Critical | Done / CI-green |
+| PO9 | Paper Observation Review Gate | P0 | Critical | Done / CI-green |
+| PO10 | Daily Observation Automation Runner | P0 | Critical | Done / CI-green |
+| PO11 | Scheduled Daily Observation Workflow | P0 | Critical | Done / CI-green |
+| PO12 | Daily Observation Artifact Retention & Review Index | P0 | Critical | Done / CI-green |
+| PO13 | Monthly Paper Observation Review Pack | P0 | Critical | Done / CI-green |
+| PO14 | Forward Evidence Quality Gate | P0 | Critical | Done / CI-green |
+
+PO status does not authorize live trading. It structures paper-observation evidence for future human review only.
+
+## Phase RGP — Runtime Governance Proof Pack
+
+| ID | Task | Priority | Impact | Status |
+|---|---|---:|---:|---|
+| RGP1 | Missing/invalid PortfolioState fail-closed proof | P0 | Critical | Done / CI-green |
+| RGP2 | Runtime governance approval gate | P0 | Critical | Done / CI-green |
+| RGP3 | Stale PortfolioState approval blocking | P0 | Critical | Done / CI-green |
+| RGP4 | Actionable signal provider-fetch failure blocking | P0 | Critical | Done / CI-green |
+| RGP5 | Critical STOP/EXIT alert ordering guard | P0 | Critical | Done / CI-green |
+| RGP6 | Strict critical notification failure handling | P1 | High | Done / CI-green |
+| RGP7 | Repo-writing workflow serialization/retry guard | P1 | High | Done / CI-green |
+| RGP8 | Alert/evidence artifact upload-on-failure guard | P1 | High | Done / CI-green |
+| RGP9 | Signal lifecycle status source of truth | P2 | Medium | Done / CI-green |
+| RGP10 | Latest bar timestamp ordering guard | P2 | Medium | Done / CI-green |
+| RGP11 | Signal identity float quantization | P2 | Medium | Done / CI-green |
+| RGP12 | Partial-exit lifecycle persistence | P2 | Medium | Done / CI-green |
+| RGP13 | Runtime Proof Pack Summary Builder | P1 | High | Done / CI-green |
+
+RGP is an audit/proof phase. It does not authorize live execution.
+
+## Phase EV — Evidence Integrity Fixes
+
+EV1-EV12 evidence-integrity remediation is complete and CI-green.
+
+| ID | Task | Priority | Impact | Status |
+|---|---|---:|---:|---|
+| EV1 | Fix `calculate_sharpe_ratio` so it returns per-trade Sharpe instead of a sample-size-scaled t-statistic | P0 | Critical | Done / CI-green |
+| EV2 | Ensure Deflated Sharpe receives per-trade Sharpe and not the t-statistic | P0 | Critical | Done / CI-green |
+| EV3 | Make historical backtest actually simulate declared `stop_model` / `exit_model` or fail closed | P0 | Critical | Done / CI-green |
+| EV4 | Prevent full `-1R` booking after Target 1 when the declared stop model implies breakeven or partial management | P0 | High | Done / CI-green |
+| EV5 | Model gap-through-stop fills pessimistically instead of always filling exactly at stop | P0 | High | Done / CI-green |
+| EV6 | Fix Target-1-only `exit_date` so fixed-date holdout segmentation uses the actual hit date | P1 | High | Done / CI-green |
+| EV7 | Prevent `tier_3` and other weak-evidence tiers from being treated as fully institutional evidence without appropriate guardrails | P1 | High | Done / CI-green |
+| EV8 | Add evidence consolidation guard so generated evidence artifacts remain internally consistent and public-safe | P1 | High | Done / CI-green |
+| EV9 | Add historical-edge validation guardrails for minimum evidence quality and fail-closed reporting | P1 | High | Done / CI-green |
+| EV10 | Add report-output boundary guard so committed examples remain synthetic/public-safe and generated runtime reports stay outside committed output | P1 | High | Done / CI-green |
+| EV11 | Add full-suite flake review policy so ignored or unstable tests are tracked instead of silently accepted | P2 | Medium | Done / CI-green |
+| EV12 | Add drawdown-magnitude evidence guard so drawdown reporting is explicit and not confused with unrelated risk measures | P2 | Medium | Done / CI-green |
+
+## External Review Remediation Backlog
+
+| ID | Severity | Area | Finding | Status |
+|---|---:|---|---|---|
+| ER1 | P0 | Backtest realism | Optimistic T1 expiry booking in `t1_t2` model | CLOSED_CI_GREEN |
+| ER2 | P0 | Backtest realism | Entry fills ignore gap-through-entry | CLOSED_CI_GREEN |
+| ER3 | P0 | Position sizing | Position sizing lacked notional / buying-power cap | CLOSED_CI_GREEN |
+| ER4 | P0 | Persistence / audit integrity | State/evidence writes not consistently atomic | CLOSED_CI_GREEN |
+| ER5 | P1 | Outcome metrics | Falsy-zero bug can replace true `0.0` result | CLOSED_CI_GREEN |
+| ER6 | P1 | Evidence quality | Missing result keys counted as `0.0` breakeven evidence | CLOSED_CI_GREEN |
+| ER7 | P1 | Sizing governance | `MIN_SAMPLES = 5` too weak for automatic size adjustment | CLOSED_CI_GREEN |
+| ER8 | P1 | Expectancy logic | Isolated win-rate gate can block positive-asymmetry profiles | CLOSED_CI_GREEN |
+| ER9 | P1 | Portfolio risk | Portfolio-risk reduction too global | CLOSED_CI_GREEN |
+| ER10 | P1 | OOS methodology | No purge/embargo around OOS split | CLOSED_CI_GREEN |
+| ER11 | P2 | Metric semantics | Mixed expectancy naming / units | CLOSED_CI_GREEN |
+| ER12 | P2 | Sharpe evidence | Small-sample / IID assumptions need verification | CLOSED_CI_GREEN |
+| ER13 | P2 | Accounting precision | Float money/PnL accounting | CLOSED_CI_GREEN |
+| ER14 | P2 | Stop quality | Long-only stop logic lacks explicit short guard | CLOSED_CI_GREEN |
+| ER15 | P2 | Stop quality | ATR fallback stop may lack max-distance cap | CLOSED_CI_GREEN |
+
+## ER1 / ER2 Closure Summary
+
+ER1/ER2 backtest-realism remediation is implemented and CI-green.
+
+Implemented behavior:
+
+```text
+T1/T2 expiry after Target 1 closes remaining exposure at final close
+Gap-through-entry fills at worse open price
+R-multiple is recalculated from actual entry fill
+Breakeven-after-T1 gap-down fills at worse open, not exact breakeven
+```
+
+Guard test:
+
+```text
+tests/test_er1_er2_backtest_realism_guard.py
+```
+
+Closure doc:
+
+```text
+docs/operations/er1_er2_backtest_realism_ci_green_closure_2026_06_02.md
+```
+
+## ER4 Closure Summary
+
+ER4 atomic persistence remediation is implemented and CI-green.
+
+Implemented behavior:
+
+```text
+central write_text_atomic and write_json_atomic helpers introduced
+atomic writes use temporary sibling files and os.replace
+failed replace attempts preserve existing destination content
+PortfolioStateStore.save uses the central atomic JSON writer
+```
+
+Guard test:
+
+```text
+tests/test_er4_atomic_persistence_guard.py
+```
+
+Closure doc:
+
+```text
+docs/operations/er4_atomic_persistence_ci_green_closure_2026_06_02.md
+```
+
+## ER5 / ER6 / ER11 Closure Summary
+
+ER5/ER6/ER11 outcome/evidence metric remediation is implemented and CI-green.
+
+Implemented behavior:
+
+```text
+true 0.0 outcome results are preserved
+missing result evidence is surfaced explicitly as missing_result_count
+missing results are excluded from win/loss/breakeven metrics
+expectancy units are explicit as expectancy_r
+decision report payloads expose expectancy.expectancy_r
+```
+
+Guard tests:
+
+```text
+tests/test_er5_expectancy_zero_result_guard.py
+tests/test_er6_edge_evidence_missing_result_guard.py
+tests/test_er11_expectancy_units_guard.py
+```
+
+Closure docs:
+
+```text
+docs/operations/er5_er6_ci_green_closure_2026_06_02.md
+docs/operations/er11_ci_green_closure_2026_06_02.md
+docs/operations/er5_er6_er11_documentation_update_2026_06_02.md
+```
+
+## ER7 / ER8 Closure Summary
+
+ER7/ER8 expectancy statistical discipline remediation is implemented and CI-green.
+
+Implemented behavior:
+
+```text
+score evidence is separated from size evidence
+size multiplier remains neutral below the stronger size-evidence floor
+positive asymmetric expectancy is not blocked solely by low win rate
+public premarket report example restored to synthetic/public-safe content
+```
+
+Guard tests:
+
+```text
+tests/test_er7_er8_expectancy_statistical_discipline.py
+tests/test_expectancy_adjuster.py
+tests/test_artifact_hygiene.py
+```
+
+Closure doc:
+
+```text
+docs/operations/er7_er8_expectancy_statistical_discipline_ci_green_closure_2026_06_02.md
+```
+
+## ER9 Closure Summary
+
+ER9 targeted portfolio-risk reduction remediation is implemented and CI-green.
+
+Implemented behavior:
+
+```text
+correlation warnings reduce only involved pair symbols
+sector concentration warnings reduce only affected-sector symbols
+portfolio heat warnings remain global because the risk source is global
+per-symbol risk multiplier evidence is exposed as symbol_risk_multipliers
+```
+
+Guard tests:
+
+```text
+tests/test_er9_targeted_portfolio_risk_reduction.py
+tests/test_portfolio_risk.py
+```
+
+Closure doc:
+
+```text
+docs/operations/er9_targeted_portfolio_risk_reduction_ci_green_closure_2026_06_02.md
+```
+
+## ER10 Closure Summary
+
+ER10 OOS purge / embargo remediation is implemented and CI-green.
+
+Implemented behavior:
+
+```text
+split-spanning trades are purged from fixed-date holdout evidence
+post-split embargo-window trades are embargoed, not purged
+purge_days and embargo_days are included in evidence contract hash
+purged_records and embargoed_records are exposed in JSON and Markdown reports
+```
+
+Guard tests:
+
+```text
+tests/test_er10_oos_purge_embargo_guard.py
+tests/test_out_of_sample_lockbox.py
+```
+
+Closure doc:
+
+```text
+docs/operations/er10_oos_purge_embargo_ci_green_closure_2026_06_02.md
+```
+
+## ER12 / ER13 Closure Summary
+
+ER12/ER13 evidence caveat and accounting precision remediation is implemented and CI-green.
+
+Implemented behavior:
+
+```text
+historical edge JSON reports expose caveats
+historical edge Markdown reports include Sharpe caveats
+population standard deviation is explicitly documented
+IID assumption is explicitly marked not_verified
+small-sample warning is surfaced
+Sharpe diagnostics are not proof of live edge
+position-risk accounting uses Decimal at money boundaries
+position-risk output remains cent-stable and JSON-safe
+public postmarket report example restored to synthetic/public-safe content
+```
+
+Guard tests:
+
+```text
+tests/test_er12_er13_evidence_accounting_precision_guard.py
+tests/test_historical_edge_validation.py
+tests/test_artifact_hygiene.py
+```
+
+Closure doc:
+
+```text
+docs/operations/er12_er13_evidence_accounting_precision_ci_green_closure_2026_06_02.md
+```
+
+## ER14 / ER15 Closure Summary
+
+ER14/ER15 stop-loss quality remediation is implemented and CI-green.
+
+Implemented behavior:
+
+```text
+unsupported short-side stop derivation fails closed with unsupported_side:<side>
+scanner-provided stops exceeding MAX_ATR_STOP_DISTANCE fail closed
+ATR fallback stops use MAX_ATR_STOP_DISTANCE = 2.0
+valid scanner-provided stop reason remains backward compatible
+```
+
+Guard tests:
+
+```text
+tests/test_er14_er15_stop_loss_quality_guard.py
+tests/test_stop_loss_quality.py
+```
+
+Closure doc:
+
+```text
+docs/operations/er14_er15_stop_loss_quality_ci_green_closure_2026_06_02.md
+```
+
+## PO14 Closure Summary
+
+PO14 Forward Evidence Quality Gate is implemented and CI-green.
+
+Implemented behavior:
+
+```text
+monthly pack must remain REVIEW_READY
+minimum total forward days must be met
+minimum review-ready ratio must be met
+blocked forward days block review quality
+gate failure days block review quality
+blocker_count must be zero
+error_count must be zero
+rejected_record_count must be zero
+needs_review_record_count must be zero
+live_trading_authorized must remain false
+broker_execution_mode must remain paper_only
+```
+
+Guard test:
+
+```text
+tests/test_po14_forward_evidence_quality_gate.py
+```
+
+Closure doc:
+
+```text
+docs/operations/po14_forward_evidence_quality_gate_ci_green_closure_2026_06_03.md
+```
+
+## RGP13 Closure Summary
+
+RGP13 Runtime Proof Pack Summary Builder is implemented and CI-green.
+
+Implemented behavior:
+
+```text
+complete runtime proof pack becomes REVIEW_READY
+missing required runtime sections block review
+fail-closed portfolio state is surfaced as portfolio_state_governance_invalid
+not-approved approval gate is surfaced as approval_gate_not_approved
+runtime evidence manifest path is exposed as evidence_paths
+live_trading_authorized must remain false
+broker_execution_mode must remain paper_only
+```
+
+Guard test:
+
+```text
+tests/test_rgp13_runtime_proof_pack_summary.py
+```
+
+Closure doc:
+
+```text
+docs/operations/rgp13_runtime_proof_pack_summary_ci_green_closure_2026_06_03.md
+```
+
+## Recommended Next Remediation Order
+
+```text
+1. Capacity / execution realism evidence review
+2. Position-level forward-evidence attribution
+3. Runtime proof-pack artifact writer / retention index
+```
+
+## Safety Boundary
+
+This roadmap does not authorize live trading, broker execution, capital allocation or production deployment.
+
+The system remains research / decision-support / paper-observation only.
