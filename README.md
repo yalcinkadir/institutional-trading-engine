@@ -32,7 +32,18 @@ Runtime Governance:
 GOV1-GOV10: runtime / pre-live governance hardening implemented and CI-green
 SR1-SR8: signal identity, ATR persistence, repo-write serialization, governance source enforcement, anomaly-state governance, threshold source of truth, completed-bar watcher semantics and dependency reproducibility implemented and CI-green
 PSR1-PSR4: runtime evidence manifest, fill-quality evidence and drift/regime evidence linkage implemented and CI-green
-RGP1-RGP12: runtime governance proof pack implemented and CI-green
+RGP1: missing/invalid PortfolioState fail-closed proof implemented and CI-green
+RGP2: runtime governance approval gate implemented and CI-green
+RGP3: stale PortfolioState approval blocking implemented and CI-green
+RGP4: actionable signal provider-fetch failure blocking implemented and CI-green
+RGP5: critical STOP/EXIT alert ordering guard implemented and CI-green
+RGP6: strict critical notification failure handling implemented and CI-green
+RGP7: repo-writing workflow serialization/retry guard implemented and CI-green
+RGP8: alert/evidence artifact upload-on-failure guard implemented and CI-green
+RGP9: signal lifecycle status source of truth implemented and CI-green
+RGP10: latest bar timestamp ordering guard implemented and CI-green
+RGP11: signal identity float quantization implemented and CI-green
+RGP12: partial-exit lifecycle persistence implemented and CI-green
 
 Backtesting / Evidence:
 BT2: Strategy Test Matrix implemented
