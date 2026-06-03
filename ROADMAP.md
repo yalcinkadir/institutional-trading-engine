@@ -2,7 +2,7 @@
 
 Status date: 2026-06-03
 
-Current state: TEST1 Evidence-Oriented TDD Policy is active. EV1-EV12 evidence-integrity remediation is implemented and CI-green. CI runtime simplification is implemented and CI-green. ER1-ER15, PO14, RGP13, CER1 and PFA1 are implemented and CI-green.
+Current state: TEST1 Evidence-Oriented TDD Policy is active. EV1-EV12 evidence-integrity remediation is implemented and CI-green. CI runtime simplification is implemented and CI-green. ER1-ER15, PO14, RGP13, CER1 and PFA1 are implemented and CI-green. FCM1 and RPW1 are implemented and CI-wired.
 
 The system remains research / decision-support / paper-observation only. Real-money execution is not authorized by code.
 
@@ -70,6 +70,17 @@ Committed public report examples must remain synthetic/public-safe.
 | RGP12 | Partial-exit lifecycle persistence | P2 | Medium | Done / CI-green |
 | RGP13 | Runtime Proof Pack Summary Builder | P1 | High | Done / CI-green |
 
+## Phase FCM/RPW — Connectivity and Proof-Pack Retention
+
+| ID | Task | Priority | Impact | Status |
+|---|---|---:|---:|---|
+| FCM1 | Feature Connectivity Matrix Guard | P1 | High | Done / CI-wired |
+| RPW1 | Runtime Proof-Pack Artifact Writer / Retention Index | P1 | High | Done / CI-wired |
+
+FCM1 requires implemented / CI-green features to declare runtime gates, guard tests, evidence artifacts, documentation references, upstream dependencies and downstream consumers. Unknown dependencies, missing guard tests, missing artifacts and unsafe live/non-paper boundaries block the matrix.
+
+RPW1 writes deterministic runtime proof-pack JSON artifacts and maintains a retention index with artifact identity, SHA-256 hash, observation window, retention days and the paper-only safety boundary.
+
 ## Phase EV — Evidence Integrity Fixes
 
 EV1-EV12 evidence-integrity remediation is complete and CI-green.
@@ -125,11 +136,34 @@ tests/test_pfa1_position_forward_evidence_attribution.py
 Closure doc:
 docs/operations/pfa1_position_forward_evidence_attribution_ci_green_closure_2026_06_03.md
 
+## FCM1 / RPW1 Closure Summary
+
+FCM1 Feature Connectivity Matrix Guard and RPW1 Runtime Proof-Pack Artifact Writer / Retention Index are implemented and CI-wired.
+
+Implemented behavior:
+feature connectivity matrix validates required feature identity fields
+implemented / CI-green features require runtime gate, guard test, evidence artifact and documentation reference
+unknown upstream dependencies block the matrix
+unsafe live/non-paper inputs block and normalize to safe summary output
+runtime proof-pack artifacts are written as deterministic JSON
+artifact SHA-256 is recorded in a retention index
+retention index updates existing proof_pack_id entries without duplication
+missing proof-pack identity, observation window or summary blocks artifact writing
+live_trading_authorized must remain false
+broker_execution_mode must remain paper_only
+
+Guard tests:
+tests/test_fcm1_feature_connectivity_matrix_guard.py
+tests/test_rpw1_runtime_proof_pack_artifact_writer.py
+
+Closure doc:
+docs/operations/fcm1_rpw1_connectivity_proof_pack_retention_closure_2026_06_03.md
+
 ## Recommended Next Remediation Order
 
-1. Runtime proof-pack artifact writer / retention index
-2. Capacity / execution realism monthly aggregation
-3. Position-level attribution trend review
+1. Capacity / execution realism monthly aggregation
+2. Position-level attribution trend review
+3. Forward evidence drift dashboard
 
 ## Safety Boundary
 
