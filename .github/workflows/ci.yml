@@ -203,6 +203,12 @@ jobs:
         run: |
           pytest tests/test_position_risk_attribution.py -q
 
+      - name: PFA1 position forward evidence attribution tests
+        env:
+          POLYGON_API_KEY: test-key
+        run: |
+          pytest tests/test_pfa1_position_forward_evidence_attribution.py -q
+
       - name: Phase B6 Monte Carlo robustness tests
         env:
           POLYGON_API_KEY: test-key
@@ -377,6 +383,7 @@ jobs:
             --ignore=tests/test_sequential_edge_decay.py \
             --ignore=tests/test_regime_change_detection.py \
             --ignore=tests/test_position_risk_attribution.py \
+            --ignore=tests/test_pfa1_position_forward_evidence_attribution.py \
             --ignore=tests/test_monte_carlo_robustness.py \
             --ignore=tests/test_daily_evidence_report.py \
             --ignore=tests/test_run_daily_evidence_report_cli.py \
