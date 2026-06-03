@@ -2,7 +2,7 @@
 
 Status date: 2026-06-03
 
-Current state: TEST1 Evidence-Oriented TDD Policy is active as the default workflow for safety-relevant fixes and external review findings. EV1-EV12 evidence-integrity remediation is implemented, centrally documented and CI-green. CI runtime simplification is implemented and CI-green. Paper Observation evidence collection is active. Runtime governance proofing, evidence integrity, report boundaries, public-repository governance and external-review remediation are being handled through guard-test-first development. ER1-ER15 external review remediation is implemented and CI-green. PO14 Forward Evidence Quality Gate is implemented and CI-green. RGP13 Runtime Proof Pack Summary Builder is implemented and CI-green.
+Current state: TEST1 Evidence-Oriented TDD Policy is active as the default workflow for safety-relevant fixes and external review findings. EV1-EV12 evidence-integrity remediation is implemented, centrally documented and CI-green. CI runtime simplification is implemented and CI-green. Paper Observation evidence collection is active. Runtime governance proofing, evidence integrity, report boundaries, public-repository governance and external-review remediation are being handled through guard-test-first development. ER1-ER15 external review remediation is implemented and CI-green. PO14 Forward Evidence Quality Gate is implemented and CI-green. RGP13 Runtime Proof Pack Summary Builder is implemented and CI-green. CER1 Capacity / Execution Realism Evidence Review Summary is implemented and CI-green.
 
 The system remains research / decision-support / paper-observation only. Real-money execution is not authorized by code.
 
@@ -137,6 +137,14 @@ EV1-EV12 evidence-integrity remediation is complete and CI-green.
 | EV10 | Add report-output boundary guard so committed examples remain synthetic/public-safe and generated runtime reports stay outside committed output | P1 | High | Done / CI-green |
 | EV11 | Add full-suite flake review policy so ignored or unstable tests are tracked instead of silently accepted | P2 | Medium | Done / CI-green |
 | EV12 | Add drawdown-magnitude evidence guard so drawdown reporting is explicit and not confused with unrelated risk measures | P2 | Medium | Done / CI-green |
+
+## Phase CER — Capacity / Execution Realism Evidence Review
+
+| ID | Task | Priority | Impact | Status |
+|---|---|---:|---:|---|
+| CER1 | Capacity / Execution Realism Evidence Review Summary | P1 | High | Done / CI-green |
+
+CER is an execution-realism evidence review phase. It does not authorize broker execution or real-money trading.
 
 ## External Review Remediation Backlog
 
@@ -435,12 +443,40 @@ Closure doc:
 docs/operations/rgp13_runtime_proof_pack_summary_ci_green_closure_2026_06_03.md
 ```
 
+## CER1 Closure Summary
+
+CER1 Capacity / Execution Realism Evidence Review Summary is implemented and CI-green.
+
+Implemented behavior:
+
+```text
+passing BT7 report becomes REVIEW_READY
+failed BT7 gates block the review
+failed gate names are surfaced in failed_gates
+scale, liquidity, turnover and cost profiles are grouped for review
+artifact hashes and public-safe tags remain visible
+live_trading_authorized must remain false
+broker_execution_mode must remain paper_only
+```
+
+Guard test:
+
+```text
+tests/test_cer1_capacity_execution_realism_review.py
+```
+
+Closure doc:
+
+```text
+docs/operations/cer1_capacity_execution_realism_review_ci_green_closure_2026_06_03.md
+```
+
 ## Recommended Next Remediation Order
 
 ```text
-1. Capacity / execution realism evidence review
-2. Position-level forward-evidence attribution
-3. Runtime proof-pack artifact writer / retention index
+1. Position-level forward-evidence attribution
+2. Runtime proof-pack artifact writer / retention index
+3. Capacity / execution realism monthly aggregation
 ```
 
 ## Safety Boundary
