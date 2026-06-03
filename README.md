@@ -32,7 +32,7 @@ PO14: Forward Evidence Quality Gate implemented and CI-green
 Runtime Governance:
 GOV1-GOV10: runtime / pre-live governance hardening implemented and CI-green
 SR1-SR8: signal identity, ATR persistence, repo-write serialization, governance source enforcement, anomaly-state governance, threshold source of truth, completed-bar watcher semantics and dependency reproducibility implemented and CI-green
-PSR1-PSR4: runtime evidence manifest, fill-quality evidence and drift/regime evidence linkage implemented and CI-green
+PSR1-SR4: runtime evidence manifest, fill-quality evidence and drift/regime evidence linkage implemented and CI-green
 RGP1: missing/invalid PortfolioState fail-closed proof implemented and CI-green
 RGP2: runtime governance approval gate implemented and CI-green
 RGP3: stale PortfolioState approval blocking implemented and CI-green
@@ -53,6 +53,7 @@ BT3: Backtest reproducibility contract implemented
 BT5: Walk-Forward / Out-of-Sample Robustness Gate implemented and CI-green
 BT6: Evidence Baseline Regression Gate implemented and CI-green
 BT7: Capacity / Turnover / Realism Gate implemented and CI-green
+CER1: Capacity / Execution Realism Evidence Review Summary implemented and CI-green
 BT8: Backtesting Evidence Report generator implemented and CI-green
 EV1-EV12: evidence-integrity remediation implemented and CI-green
 
@@ -360,6 +361,8 @@ PO14 adds a forward-evidence quality gate for monthly Paper Observation packs. A
 Targeted remediation tests:
 
 ```bash
+pytest tests/test_cer1_capacity_execution_realism_review.py -q
+pytest tests/test_bt7_capacity_turnover_realism_gate.py -q
 pytest tests/test_rgp13_runtime_proof_pack_summary.py -q
 pytest tests/test_po14_forward_evidence_quality_gate.py -q
 pytest tests/test_er12_er13_evidence_accounting_precision_guard.py -q
