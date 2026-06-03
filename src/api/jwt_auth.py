@@ -11,6 +11,19 @@ JWT_ALGORITHM = "HS256"
 VALID_ROLES = {"admin", "analyst", "viewer"}
 
 
+class JWTSecretNotConfiguredError(RuntimeError):
+    """Raised when JWT auth is used without an explicit secret."""
+
+
+def _get_jwt_secret() -> str:
+    secret = os.getenv(JWT_SECRET_ENV)
+    if secret is None or secret.strip() == "":
+        raise JWTSecretNotConfiguredError(
+            f"{JWT_SECRET_ENV} must be set. Refusing to use an insecure default JWT secret."
+        )
+    return secret
+
+
 def create_access_token(
     subject: str,
     role: str = "viewer",
@@ -19,7 +32,7 @@ def create_access_token(
     if role not in VALID_ROLES:
         raise ValueError(f"Invalid role: {role}")
 
-    secret = os.getenv(JWT_SECRET_ENV, "development-secret")
+    secret = _get_jwt_secret()
 
     payload = {
         "sub": subject,
@@ -31,7 +44,7 @@ def create_access_token(
 
 
 def validate_access_token(token: str) -> dict:
-    secret = os.getenv(JWT_SECRET_ENV, "development-secret")
+    secret = _get_jwt_secret()
 
     try:
         payload = jwt.decode(token, secret, algorithms=[JWT_ALGORITHM])
