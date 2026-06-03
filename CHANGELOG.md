@@ -1,5 +1,30 @@
 # CHANGELOG
 
+## CER1 Capacity / Execution Realism Evidence Review Summary — 2026-06-03
+
+### Added
+- Added `src/validation/capacity_execution_realism_review.py`.
+- Added `tests/test_cer1_capacity_execution_realism_review.py`.
+- Added `docs/operations/cer1_capacity_execution_realism_review_ci_green_closure_2026_06_03.md`.
+
+### Changed
+- Added a review summary layer over the existing BT7 Capacity / Turnover / Realism Gate.
+- Grouped scale, liquidity, turnover, cost/slippage and artifact-hash evidence for faster execution-realism review.
+- Preserved the paper-only boundary by requiring `live_trading_authorized=false` and `broker_execution_mode=paper_only`.
+
+### Validated
+- Passing BT7 reports become review-ready.
+- Failed BT7 gates block execution review.
+- Failed gate names are surfaced in `failed_gates`.
+- Missing artifact hashes / public-safe tags / research footer failures remain visible.
+- Live/non-paper boundary violations block and normalize to safe output.
+
+### Status
+- CER1: Done / CI-green.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## RGP13 Runtime Proof Pack Summary Builder — 2026-06-03
 
 ### Added
