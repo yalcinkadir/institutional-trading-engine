@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from scripts.generate_module_inventory import build_inventory, discover_src_modules
 
+
+INVENTORY_ARTIFACT_PATH = Path("docs/architecture/module_inventory.generated.json")
 
 ALLOWED_INVENTORY_CLASSIFICATIONS = {
     "connected_runtime",
@@ -68,10 +71,25 @@ def test_arch106_inventory_records_classified_and_legacy_module_status() -> None
     )
 
 
+def test_arch106_committed_inventory_artifact_exists_and_has_schema() -> None:
+    assert INVENTORY_ARTIFACT_PATH.exists(), (
+        "ARCH106 requires a committed inventory artifact at "
+        "docs/architecture/module_inventory.generated.json"
+    )
+
+    artifact = json.loads(INVENTORY_ARTIFACT_PATH.read_text(encoding="utf-8"))
+    assert artifact["schema_version"] == 1
+    assert artifact["source"] == "scripts/generate_module_inventory.py"
+    assert artifact["classification_source"] == "docs/architecture/module_classification.json"
+    assert artifact["grandfather_existing_modules"] is True
+    assert isinstance(artifact["counters"], dict)
+    assert isinstance(artifact["modules"], list)
+
+
 def test_arch106_inventory_can_be_written_without_missing_paths(tmp_path) -> None:
     output_path = tmp_path / "module_inventory.generated.json"
     inventory = build_inventory()
-    output_path.write_text("{}\n", encoding="utf-8")
+    output_path.write_text(json.dumps(inventory, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
     assert output_path.exists()
     assert Path(inventory["classification_source"]).as_posix() == "docs/architecture/module_classification.json"
