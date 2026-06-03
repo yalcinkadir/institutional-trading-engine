@@ -14,6 +14,20 @@ import pytest
 
 from src.governance.kill_switch import evaluate_kill_switch
 from src.governance.risk_limits import validate_risk_limits
+from src.runtime.portfolio_state import PortfolioState
+
+
+class _ValidPortfolioStateStore:
+    def load(self) -> PortfolioState:
+        return PortfolioState(
+            equity_start=10000.0,
+            equity_current=10000.0,
+            drawdown_percent=0.0,
+            daily_loss_percent=0.0,
+            open_positions=[],
+            source="test_portfolio_state_store",
+            governance_valid=True,
+        )
 
 
 class TestKillSwitchVixNoneSafety:
@@ -35,7 +49,6 @@ class TestKillSwitchVixNoneSafety:
         assert "extreme_volatility" not in result["reasons"]
 
     def test_vix_zero_does_not_activate(self):
-        # 0.0 should NOT trigger — only >= 40 triggers
         result = evaluate_kill_switch(vix=0.0, drawdown_percent=0, severe_anomaly_count=0)
         assert result["kill_switch"] is False
 
@@ -140,7 +153,7 @@ class TestGovernanceLiveRuntimeIntegration:
         from unittest.mock import patch
         from src.runtime.live_runtime_cycle import GovernanceBlockedError, LiveRuntimeCycle
 
-        cycle = LiveRuntimeCycle()
+        cycle = LiveRuntimeCycle(portfolio_state_store=_ValidPortfolioStateStore())
         metrics = {
             "SPY": {"close": 500, "rsi14": 58, "trend": "Strong Uptrend",
                     "atr_pct": 1.2, "rvol": 1.1, "ret_20d": 4.0, "vol20": 75e6,
@@ -168,7 +181,7 @@ class TestGovernanceLiveRuntimeIntegration:
         from src.runtime.live_runtime_cycle import LiveRuntimeCycle
         from src.runtime.runtime_market_snapshot import RuntimeMarketSnapshot
 
-        cycle = LiveRuntimeCycle()
+        cycle = LiveRuntimeCycle(portfolio_state_store=_ValidPortfolioStateStore())
         metrics = {
             "SPY": {"close": 500, "rsi14": 58, "trend": "Strong Uptrend",
                     "atr_pct": 1.2, "rvol": 1.1, "ret_20d": 4.0, "vol20": 75e6,
@@ -194,9 +207,7 @@ class TestGovernanceLiveRuntimeIntegration:
              patch("src.runtime.live_runtime_cycle.runtime_state"), \
              patch("src.runtime.live_runtime_cycle.in_memory_state_cache"):
             store.append.return_value = None
-            # vix_data=None must NOT raise
             snapshot = cycle.run(metrics_map=metrics, vix_data=None)
 
         assert isinstance(snapshot, RuntimeMarketSnapshot)
-        # VIX warning must be present
         assert snapshot.bridge.data_quality_warnings
