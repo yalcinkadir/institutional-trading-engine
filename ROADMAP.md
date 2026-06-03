@@ -2,7 +2,7 @@
 
 Status date: 2026-06-03
 
-Current state: TEST1 Evidence-Oriented TDD Policy is active. EV1-EV12, ER1-ER15, PO14, RGP13, CER1 and PFA1 are implemented and CI-green.
+Current state: TEST1 Evidence-Oriented TDD Policy is active. EV1-EV12 evidence-integrity remediation is implemented and CI-green. CI runtime simplification is implemented and CI-green. ER1-ER15, PO14, RGP13, CER1 and PFA1 are implemented and CI-green.
 
 The system remains research / decision-support / paper-observation only. Real-money execution is not authorized by code.
 
