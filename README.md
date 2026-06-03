@@ -45,6 +45,7 @@ RGP9: signal lifecycle status source of truth implemented and CI-green
 RGP10: latest bar timestamp ordering guard implemented and CI-green
 RGP11: signal identity float quantization implemented and CI-green
 RGP12: partial-exit lifecycle persistence implemented and CI-green
+RGP13: Runtime Proof Pack Summary Builder implemented and CI-green
 
 Backtesting / Evidence:
 BT2: Strategy Test Matrix implemented
@@ -359,6 +360,7 @@ PO14 adds a forward-evidence quality gate for monthly Paper Observation packs. A
 Targeted remediation tests:
 
 ```bash
+pytest tests/test_rgp13_runtime_proof_pack_summary.py -q
 pytest tests/test_po14_forward_evidence_quality_gate.py -q
 pytest tests/test_er12_er13_evidence_accounting_precision_guard.py -q
 pytest tests/test_historical_edge_validation.py -q
