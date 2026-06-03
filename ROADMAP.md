@@ -1,8 +1,8 @@
 # Institutional Trading Engine Roadmap
 
-Status date: 2026-06-02
+Status date: 2026-06-03
 
-Current state: TEST1 Evidence-Oriented TDD Policy is active as the default workflow for safety-relevant fixes and external review findings. EV1-EV12 evidence-integrity remediation is implemented, centrally documented and CI-green. CI runtime simplification is implemented and CI-green. Paper Observation evidence collection is active. Runtime governance proofing, evidence integrity, report boundaries, public-repository governance and external-review remediation are being handled through guard-test-first development. ER1-ER15 external review remediation is implemented and CI-green.
+Current state: TEST1 Evidence-Oriented TDD Policy is active as the default workflow for safety-relevant fixes and external review findings. EV1-EV12 evidence-integrity remediation is implemented, centrally documented and CI-green. CI runtime simplification is implemented and CI-green. Paper Observation evidence collection is active. Runtime governance proofing, evidence integrity, report boundaries, public-repository governance and external-review remediation are being handled through guard-test-first development. ER1-ER15 external review remediation is implemented and CI-green. PO14 Forward Evidence Quality Gate is implemented and CI-green.
 
 The system remains research / decision-support / paper-observation only. Real-money execution is not authorized by code.
 
@@ -95,6 +95,7 @@ IP9/IP10 preserve public-repository safety. They do not authorize live trading.
 | PO11 | Scheduled Daily Observation Workflow | P0 | Critical | Done / CI-green |
 | PO12 | Daily Observation Artifact Retention & Review Index | P0 | Critical | Done / CI-green |
 | PO13 | Monthly Paper Observation Review Pack | P0 | Critical | Done / CI-green |
+| PO14 | Forward Evidence Quality Gate | P0 | Critical | Done / CI-green |
 
 PO status does not authorize live trading. It structures paper-observation evidence for future human review only.
 
@@ -373,12 +374,44 @@ Closure doc:
 docs/operations/er14_er15_stop_loss_quality_ci_green_closure_2026_06_02.md
 ```
 
+## PO14 Closure Summary
+
+PO14 Forward Evidence Quality Gate is implemented and CI-green.
+
+Implemented behavior:
+
+```text
+monthly pack must remain REVIEW_READY
+minimum total forward days must be met
+minimum review-ready ratio must be met
+blocked forward days block review quality
+gate failure days block review quality
+blocker_count must be zero
+error_count must be zero
+rejected_record_count must be zero
+needs_review_record_count must be zero
+live_trading_authorized must remain false
+broker_execution_mode must remain paper_only
+```
+
+Guard test:
+
+```text
+tests/test_po14_forward_evidence_quality_gate.py
+```
+
+Closure doc:
+
+```text
+docs/operations/po14_forward_evidence_quality_gate_ci_green_closure_2026_06_03.md
+```
+
 ## Recommended Next Remediation Order
 
 ```text
-1. Paper Observation / forward evidence quality gates
-2. Runtime proof-pack refinement
-3. Capacity / execution realism evidence review
+1. Runtime proof-pack refinement
+2. Capacity / execution realism evidence review
+3. Position-level forward-evidence attribution
 ```
 
 ## Safety Boundary
