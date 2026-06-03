@@ -1,12 +1,2519 @@
 {
-  "schema_version": 1,
-  "source": "scripts/generate_module_inventory.py",
   "classification_source": "docs/architecture/module_classification.json",
-  "grandfather_existing_modules": true,
   "counters": {
-    "total_src_modules": 0,
-    "classified_modules": 0,
-    "unclassified_legacy_modules": 0
+    "classified_modules": 5,
+    "connected_runtime": 5,
+    "total_src_modules": 313,
+    "unclassified_legacy": 308,
+    "unclassified_legacy_modules": 308
   },
-  "modules": []
+  "grandfather_existing_modules": true,
+  "modules": [
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/adaptive_expectancy.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/advanced_backtesting_v2.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/analytics/adaptive_weighting.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/analytics/alpha_tracker.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/analytics/backtesting.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/analytics/explainability.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/analytics/performance_attribution.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/analytics/performance_tracker.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/analytics/probabilistic_signals.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/analytics/recommendation_tracker.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/analytics/regime_performance.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/analytics/shadow_validation.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/analytics/signal_quality.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/analytics/trade_journal.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/analytics/walk_forward_validation.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/api/app.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/api/audit_log.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/api/auth.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/api/health_api.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/api/jwt_auth.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/api/metrics_api.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/api/rate_limit.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/api/rbac.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/api/security.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/api/server.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/autonomous_risk_reduction.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/autonomy/regime_forecasting.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/autonomy/risk_adaptation.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/autonomy/scenario_engine.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/autonomy/watchlist_planner.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/backtesting/__init__.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/backtesting/backtest_run_contract.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/backtesting/edge_evidence_backtest.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/backtesting/historical_entry_exit_backtest.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/backtesting/historical_models.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/backtesting/historical_report.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/backtesting/out_of_sample_validation.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/backtesting_framework.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/breadth_engine_v2.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/bridge/__init__.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/bridge/scanner_market_snapshot_builder.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/bridge/scanner_to_orchestrator.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/cache/redis_cache.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/config.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/config/__init__.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/config/external_edge_provider.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/config/paper_observation_universe.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/config/thresholds.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/core/conflict_resolution.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/core/conviction_engine.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/core/decision_fusion.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/core/final_recommendation.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/core/negative_override.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/cross_asset/cross_asset_intelligence.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/cross_asset_regime.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/data/__init__.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/data/data_validator.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/data/polygon_cache.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/data/polygon_client.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/data/survivorship_universe.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/data_integrity.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/data_quality_engine.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/decision/confidence_weighted_execution.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/decision/probabilistic_decision_engine.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/decision_confidence.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/decision_engine.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/dynamic_weighting_engine.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/event_risk_engine.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/execution/alpaca_paper_adapter.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/execution/broker_adapter.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/execution/entry_timing.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/execution/liquidity_engine.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/execution/liquidity_intelligence.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/execution/order_reconciliation.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/execution/order_slicing.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/execution/slippage_model.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/execution/volatility_filter.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/execution_intelligence.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/expectancy_feedback_summary.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/exposure_correlation_engine.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/failure_pattern_engine.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/feedback/adaptive_feedback_decay.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/feedback/entry_stop_exit_feedback.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/feedback/entry_stop_exit_report.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/fusion/multi_factor_fusion_engine.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/governance/compliance_engine.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/governance/exposure_policy.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/governance/governance_thresholds.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/governance/kill_switch.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/governance/risk_limits.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/historical/polygon_ingestion.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/historical_regime_memory.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/historical_validation.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/indicators/technical_indicators.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/liquidity_volatility_engine.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/macro/macro_regime_fusion.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/macro/vix_adapter.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/macro_cross_market_engine_v2.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/market_internal_quality.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/memory/anomaly_memory.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/memory/pattern_memory.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/memory/regime_memory.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/memory/trade_memory.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/meta/decision_audit.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/meta/model_drift.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/meta/self_evaluation.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/meta/system_health.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/meta_learning_engine.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/monitoring/anomaly_alerts.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/monitoring/telemetry.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/multi_timeframe_structure.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/network/agent_coordination.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/network/consensus_engine.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/network/distributed_analysis.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/network/intelligence_sharing.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/notifications.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/notifications/__init__.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/notifications/critical_runtime_alert.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/notifications/paper_observation_notification.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/notifications/telegram_report_dispatcher.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/observability/__init__.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/observability/alerts.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/observability/healthcheck.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/observability/json_logger.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/observability/runtime_monitor.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/observability/runtime_status.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/observability/structured_logging.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/operations/daily_evidence_run_record_schema.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/operations/daily_observation_artifact_review_index.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/operations/daily_observation_automation_runner.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/operations/daily_observation_record_artifact_contract.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/operations/daily_observation_record_index.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/operations/daily_observation_record_validator.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/operations/daily_observation_record_writer.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/operations/daily_observation_review_summary.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/operations/drift_regime_evidence.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/operations/e2e_dry_run.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/operations/entry_exit_watcher_health.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/operations/evidence_operation_discipline.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/operations/fill_quality_evidence.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/operations/forward_evidence_quality_gate.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/operations/manual_portfolio_sync.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/operations/monthly_paper_observation_review_pack.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/operations/operational_readiness_review.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/operations/paper_live_observation.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/operations/paper_observation_review_gate.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/operations/polygon_live_readiness.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/operations/report_archive.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/operations/runtime_evidence_manifest.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/operations/runtime_evidence_manifest_guard.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/operations/scheduled_decision_support_dry_run.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/operations/sqlite_persistence.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/operations/static_dashboard.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/optimization/adaptive_optimizer.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/optimization/capital_allocator.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/optimization/portfolio_optimizer.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/optimization/risk_reward_optimizer.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/orchestration/institutional_decision_orchestrator.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/os/orchestrator.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/os/priority_manager.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/os/task_router.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/os/workflow_engine.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/outcome_pipeline.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/outcome_tracking.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/outcomes/adaptive_weighting.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/outcomes/confidence_calibration.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/outcomes/feature_attribution.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/outcomes/forward_outcome_tracker.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/outcomes/historical_outcome_store.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/outcomes/outcome_summary.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/outcomes/outcome_tracker.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/outcomes/performance_attribution.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/outcomes/real_outcome_evaluator.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/outcomes/regime_outcome.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/outcomes/regime_outcome_analysis.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/outcomes/signal_decay_detection.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/outcomes/signal_outcome.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/persistence/atomic_write.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/portfolio/adaptive_portfolio_intelligence.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/portfolio/correlation_engine.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/portfolio/exposure_manager.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/portfolio/position_optimizer.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/portfolio/risk_memory.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/portfolio/sector_risk.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/portfolio_construction_optimizer.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/portfolio_intelligence_v2.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/portfolio_risk.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/quality/liquidity_filter.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/realtime_monitoring.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/regime/regime_memory.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/regime/regime_similarity_engine.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/regime_transition.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/relative_strength/relative_strength.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/report_output_boundary.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/reporting/cross_asset_report.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "connected_runtime",
+      "notes": "Decision report is exercised by the report/signal runtime path.",
+      "path": "src/reporting/decision_report.py",
+      "runtime_entrypoint": "scripts/generate_report.py",
+      "runtime_execution_proof": "tests/test_architecture_runtime_execution_guard.py::test_arch106_report_signal_path_has_runtime_execution_proof",
+      "status": "classified"
+    },
+    {
+      "classification": "connected_runtime",
+      "notes": "Market regime summary is exercised by the report/signal runtime path.",
+      "path": "src/reporting/market_regime.py",
+      "runtime_entrypoint": "scripts/generate_report.py",
+      "runtime_execution_proof": "tests/test_architecture_runtime_execution_guard.py::test_arch106_report_signal_path_has_runtime_execution_proof",
+      "status": "classified"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/reporting/report_formatter.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/reporting/report_quality.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "connected_runtime",
+      "notes": "Screener snapshot is exercised by the report/signal runtime path.",
+      "path": "src/reporting/screener_engine.py",
+      "runtime_entrypoint": "scripts/generate_report.py",
+      "runtime_execution_proof": "tests/test_architecture_runtime_execution_guard.py::test_arch106_report_signal_path_has_runtime_execution_proof",
+      "status": "classified"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/reporting/tg2_tg3_report_templates.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/reporting/trade_summary.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/reporting/weekly_summary.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/research/earnings_intelligence.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/research/event_risk.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/research/narrative_engine.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/research/news_sentiment.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/risk/portfolio_stress_testing.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/risk/tail_risk_engine.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/runtime/anomaly_state.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/runtime/async_queue.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/runtime/background_worker.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/runtime/dead_letter_queue.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/runtime/distributed_tasks.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/runtime/event_bus.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/runtime/governance_approval_gate.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/runtime/in_memory_state_cache.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/runtime/live_runtime_cycle.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/runtime/portfolio_state.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/runtime/retry.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/runtime/runtime_loop.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/runtime/runtime_market_snapshot.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/runtime/runtime_proof_pack_summary.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/runtime/runtime_state.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/scanner.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/scenario_engine.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/scoring/adjustment_history.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/scoring/asset_score.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/scoring/confidence_score.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/scoring/expectancy_adjuster.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/scoring/market_health_score.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/scoring/setup_readiness.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/scoring/setup_score_engine.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/screening/asset_ranker.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/screening/leader_detector.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/screening/weak_name_detector.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/sector_rotation.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/setup_scoring.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/signals/__init__.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/signals/entry_quality.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/signals/exit_target_quality.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/signals/intraday_vwap.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "connected_runtime",
+      "notes": "DATA1 diagnostics are normalized and passed into signal generation on the report path.",
+      "path": "src/signals/scanner_metrics_pipeline.py",
+      "runtime_entrypoint": "scripts/generate_report.py",
+      "runtime_execution_proof": "tests/test_architecture_runtime_execution_guard.py::test_arch106_report_signal_path_has_runtime_execution_proof",
+      "status": "classified"
+    },
+    {
+      "classification": "connected_runtime",
+      "notes": "Report/signal runtime path is CI-proven in ARCH106 Step 1.",
+      "path": "src/signals/signal_generator.py",
+      "runtime_entrypoint": "scripts/generate_report.py",
+      "runtime_execution_proof": "tests/test_architecture_runtime_execution_guard.py::test_arch106_report_signal_path_has_runtime_execution_proof",
+      "status": "classified"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/signals/signal_identity.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/signals/signal_status.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/signals/stop_loss_quality.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/signals/structure_levels.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/signals/trade_plan_validator.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/simulation/monte_carlo.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/simulation/portfolio_simulator.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/simulation/probability_engine.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/simulation/scenario_simulator.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/simulation/stress_testing.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/storage/decision_log_store.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/storage/postgres_store.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/storage/sqlite_runtime_store.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/storage/sqlite_store.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/strategy/global_risk_monitor.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/strategy/intermarket_analysis.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/strategy/macro_regime.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/strategy/regime_probability_engine.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/strategy/sector_rotation.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/structured_logging.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/trading/entry_engine.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/trading/risk_engine.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/atr_governance.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/backtest_result_quality_gate.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/backtest_run_contract.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/backtesting_evidence_report.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/capacity_execution_realism_review.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/capacity_turnover_realism_gate.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/daily_evidence_input_builder.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/daily_evidence_input_validation.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/daily_evidence_report.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/daily_evidence_source_bootstrap.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/daily_execution_reconciliation.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/daily_observation_cadence.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/daily_observation_runbook.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/daily_observation_source_feed.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/daily_paper_observation_source.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/evidence_baseline_regression_gate.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/execution_kill_switch.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/execution_realism.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/feature_connectivity_matrix_guard.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/fill_quality_report.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/final_live_readiness_gate.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/gov7_gov10_pre_live_hygiene.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/historical_edge_validation.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/ip_boundary.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/monte_carlo_robustness.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/out_of_sample_lockbox.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/paper_observation_asset_timeline.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/paper_observation_raw_contract.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/paper_observation_reconciliation.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/paper_trading_journal.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/performance_drift_detection.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/position_forward_evidence_attribution.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/position_risk_attribution.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/public_repo_policy.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/regime_change_detection.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/regime_phase_backtest_matrix.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/runtime_proof_pack_artifact_writer.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/scoring_audit.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/sequential_edge_decay.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/statistical_robustness.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/strategy_test_matrix.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/walk_forward_robustness_gate.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/walk_forward_validation.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/watchers/__init__.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/watchers/entry_exit_watcher.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/watchers/regime_invalidation.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/watchers/trailing_stop_manager.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    }
+  ],
+  "schema_version": 1,
+  "source": "scripts/generate_module_inventory.py"
 }
