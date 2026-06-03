@@ -64,6 +64,7 @@ def _write_portfolio_state(
                 "daily_loss_percent": daily_loss_percent,
                 "open_positions": [],
                 "updated_at": "2026-05-20T22:00:00+02:00",
+                "governance_valid": True,
             }
         ),
         encoding="utf-8",
