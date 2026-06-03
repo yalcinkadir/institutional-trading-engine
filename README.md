@@ -45,6 +45,8 @@ RGP10: latest bar timestamp ordering guard implemented and CI-green
 RGP11: signal identity float quantization implemented and CI-green
 RGP12: partial-exit lifecycle persistence implemented and CI-green
 RGP13: Runtime Proof Pack Summary Builder implemented and CI-green
+FCM1: Feature Connectivity Matrix Guard implemented and CI-wired
+RPW1: Runtime Proof-Pack Artifact Writer / Retention Index implemented and CI-wired
 
 Backtesting / Evidence:
 BT2: Strategy Test Matrix implemented
@@ -101,6 +103,8 @@ Live trading authorization: not granted by code
 PO14 adds a forward-evidence quality gate for monthly Paper Observation packs.
 CER1 adds capacity/execution realism review.
 PFA1 adds position-level forward-evidence attribution by joining risk attribution with 1D, 5D, 20D, MFE and MAE outcome evidence.
+FCM1 adds a feature connectivity matrix guard so implemented / CI-green features must declare runtime gates, guard tests, evidence artifacts, documentation references and upstream/downstream links.
+RPW1 adds a deterministic runtime proof-pack artifact writer and retention index for review-ready runtime proof evidence.
 
 ## Core Commands
 
@@ -112,6 +116,8 @@ pytest tests/test_cer1_capacity_execution_realism_review.py -q
 pytest tests/test_bt7_capacity_turnover_realism_gate.py -q
 pytest tests/test_rgp13_runtime_proof_pack_summary.py -q
 pytest tests/test_po14_forward_evidence_quality_gate.py -q
+pytest tests/test_fcm1_feature_connectivity_matrix_guard.py -q
+pytest tests/test_rpw1_runtime_proof_pack_artifact_writer.py -q
 
 Documentation/status guards:
 pytest tests/test_ip9_ip10_public_repo_governance.py -q
