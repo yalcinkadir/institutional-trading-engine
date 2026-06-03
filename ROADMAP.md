@@ -14,6 +14,19 @@ Safety-relevant fixes and external review findings require a guard test first.
 
 Committed public report examples must remain synthetic/public-safe.
 
+## Phase IP — Public Repository Governance
+
+| ID | Task | Priority | Impact | Status |
+|---|---|---:|---:|---|
+| IP1 | Define public/private edge separation boundary | P0 | Critical | Done / CI-green |
+| IP2 | Add public repository hygiene policy | P0 | Critical | Done / CI-green |
+| IP3 | Add public-demo defaults | P1 | High | Done / CI-green |
+| IP4 | Add optional external edge provider boundary | P1 | High | Done / CI-green |
+| IP5 | Add artifact hygiene controls | P1 | High | Done / CI-wired |
+| IP6 | Harden `.gitignore` for generated evidence artifacts | P1 | High | Done / CI-wired |
+| IP9 | Add PR public-edge review governance checklist | P1 | High | Done / CI-wired |
+| IP10 | Add license and research-only usage disclaimer | P1 | High | Done / CI-wired |
+
 ## Phase TEST — Evidence-Oriented Test Discipline
 
 | ID | Task | Priority | Impact | Status |
