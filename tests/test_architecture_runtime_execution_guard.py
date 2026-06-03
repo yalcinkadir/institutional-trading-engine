@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 
 import scripts.generate_report as generate_report
@@ -52,24 +53,39 @@ def test_arch106_report_signal_path_has_runtime_execution_proof(monkeypatch, tmp
                 "stale_symbols": {},
             }
 
+    @dataclass
     class FakeSignal:
-        symbol = "NVDA"
-        action = "BUY_WATCH"
-        signal_id = "sig_NVDA_arch106"
-        close = 100.0
-        entry_trigger = 101.0
-        entry_type = "breakout"
-        entry_reason = "runtime proof"
-        stop_loss = 95.0
-        stop_model = "atr_stop"
-        stop_reason = "runtime proof"
-        target_1 = 110.0
-        target_2 = 120.0
-        exit_model = "momentum_targets"
-        exit_reason = "runtime proof"
-        risk_reward = 1.8
-        atr_pct = 4.0
-        valid_until = "2026-06-06"
+        signal_id: str = "sig_NVDA_arch106"
+        symbol: str = "NVDA"
+        action: str = "BUY_WATCH"
+        setup_type: str = "momentum_breakout"
+        decision: str = "approved"
+        risk_tier: str = "tier_1"
+        position_size: float = 1.0
+        close: float = 100.0
+        entry_trigger: float = 101.0
+        entry_type: str = "breakout"
+        entry_reason: str = "runtime proof"
+        stop_loss: float = 95.0
+        stop_model: str = "atr_stop"
+        stop_reason: str = "runtime proof"
+        target_1: float = 110.0
+        target_2: float = 120.0
+        risk_reward: float = 1.8
+        atr_pct: float = 4.0
+        setup_score: float = 91.0
+        regime_alignment: float = 0.8
+        valid_until: str = "2026-06-06"
+        market_regime: str = "Bullish"
+        generated_at: str = "2026-06-03T14:30:00+00:00"
+        notes: str = "runtime execution proof"
+        exit_model: str = "momentum_targets"
+        exit_reason: str = "runtime proof"
+        atr14: float = 4.0
+        data_status: str = "OK"
+        source: str = "polygon"
+        source_timestamp: str = "2026-06-03T14:30:00+00:00"
+        fallback_level: str = "primary"
 
     def fake_market_regime(report_type: str) -> dict:
         execution_trace.append("market_regime_called")
@@ -89,6 +105,13 @@ def test_arch106_report_signal_path_has_runtime_execution_proof(monkeypatch, tmp
         assert market_regime["regime"] == "Bullish"
         assert screener["watchlist"] == ["NVDA"]
         return {
+            "market_state": "low_vol_bull",
+            "approved_count": 1,
+            "blocked_count": 0,
+            "hard_overrides": [],
+            "soft_overrides": [],
+            "portfolio_heat_limit": 1.0,
+            "scanner_data_quality": {},
             "decisions": [
                 {
                     "symbol": "NVDA",
@@ -96,12 +119,15 @@ def test_arch106_report_signal_path_has_runtime_execution_proof(monkeypatch, tmp
                     "setup_type": "momentum_breakout",
                     "risk_tier": "tier_1",
                     "position_size_multiplier": 1.0,
+                    "base_setup_score": 91.0,
                     "setup_score": 91.0,
                     "regime_alignment": 0.8,
+                    "asymmetry_score": 0.72,
+                    "data_confidence": 0.95,
                     "blocked_reasons": [],
                     "notes": [],
                 }
-            ]
+            ],
         }
 
     def fake_load_scanner_metrics(decision_report: dict) -> dict:
@@ -151,6 +177,7 @@ def test_arch106_report_signal_path_has_runtime_execution_proof(monkeypatch, tmp
     monkeypatch.setattr(signal_generator, "save_signals", fake_save_signals)
 
     report, decision_payload = generate_report.build_report("premarket")
+    assert "NVDA" in report
     assert decision_payload is not None
     generate_report.generate_signals(decision_payload)
 
