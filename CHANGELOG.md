@@ -1,5 +1,32 @@
 # CHANGELOG
 
+## ER12 / ER13 Evidence Caveats and Accounting Precision — 2026-06-02
+
+### Added
+- Added `tests/test_er12_er13_evidence_accounting_precision_guard.py`.
+- Added `docs/operations/er12_er13_evidence_accounting_precision_ci_green_closure_2026_06_02.md`.
+
+### Changed
+- Updated `src/validation/historical_edge_validation.py` so historical edge reports expose explicit Sharpe caveats in JSON and Markdown.
+- Added caveats for `population_std`, `iid_assumption=not_verified`, small-sample warning and `not_proof_of_edge`.
+- Updated `src/trading/risk_engine.py` with Decimal-based money calculations at position-risk accounting boundaries.
+- Preserved backward-compatible JSON-safe float outputs for `risk_amount`, `risk_per_share`, `notional` and `notional_cap`.
+- Restored `reports/postmarket-report.md` to a synthetic/public-safe committed example after artifact hygiene caught generated report content.
+
+### Validated
+- Historical edge JSON exposes `caveats`.
+- Historical edge Markdown contains `Sharpe caveats`.
+- Sharpe diagnostics are explicitly marked as research diagnostics, not proof of live edge.
+- Position-risk outputs are cent-stable.
+- Public committed postmarket report is synthetic/public-safe again.
+
+### Status
+- ER12: CLOSED_CI_GREEN.
+- ER13: CLOSED_CI_GREEN.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## ER14 / ER15 Stop-Loss Quality Guards — 2026-06-02
 
 ### Added
@@ -183,64 +210,3 @@
 
 ### Safety Boundary
 - TEST1 does not authorize live trading, broker execution, capital allocation or production deployment.
-
----
-
-## PO13 Monthly Paper Observation Review Pack — 2026-06-01
-
-### Added
-- Added `src/operations/monthly_paper_observation_review_pack.py` to build deterministic monthly Paper Observation review packs from the PO12 review index.
-- Added `tests/test_po13_monthly_paper_observation_review_pack.py`.
-- Added `docs/operations/po13_monthly_paper_observation_review_pack.md`.
-
-### Monthly Review Contract
-- Produces `reports/monthly_paper_observation_review/YYYY-MM.json`.
-- Produces `REVIEW_READY` or `BLOCKED` monthly review status.
-- Preserves `live_trading_authorized=false` and `broker_execution_mode=paper_only`.
-
-### Stabilization Result
-- PO13 implementation status: Done / CI-green.
-- Live trading authorization: unchanged; not granted by code.
-
----
-
-## PO12 Daily Observation Artifact Retention & Review Index — 2026-06-01
-
-### Added
-- Added `src/operations/daily_observation_artifact_review_index.py`.
-- Added `tests/test_po12_daily_observation_artifact_review_index.py`.
-- Added `docs/operations/po12_daily_observation_artifact_review_index.md`.
-
-### Stabilization Result
-- PO12 implementation status: Done / CI-green.
-- Live trading authorization: unchanged; not granted by code.
-
----
-
-## PO11 Scheduled Daily Observation Workflow — 2026-06-01
-
-### Added
-- Added `.github/workflows/po11_daily_observation.yml`.
-- Added `tests/test_po11_scheduled_daily_observation_workflow.py`.
-- Added `docs/operations/po11_scheduled_daily_observation_workflow.md`.
-
-### Workflow Contract
-- Runs Monday to Friday at 22:15 UTC via cron `15 22 * * 1-5`.
-- Supports manual dispatch with `observation_date` and `minimum_records`.
-- Uploads `po11-daily-observation-artifact`.
-- Uses read-only repository permissions.
-- Does not authorize live trading.
-
----
-
-## IP9/IP10 Public Repository Governance — 2026-06-01
-
-### Added
-- Added PR public-edge review governance for newly introduced edge constants.
-- Added license and research-only usage disclaimer documentation for the public decision-support research framework.
-- Added `docs/operations/ip9_ip10_public_repo_governance.md`.
-- Added `tests/test_ip9_ip10_public_repo_governance.py`.
-
-### Stabilization Result
-- IP9/IP10 implementation status: Done / CI-wired.
-- Live trading authorization: unchanged; not granted by code.
