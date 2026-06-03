@@ -61,6 +61,10 @@ class PortfolioState:
         open_positions_payload = payload.get("open_positions", [])
         if not isinstance(open_positions_payload, list):
             raise PortfolioStateError("open_positions must be a list")
+        if "governance_valid" not in payload:
+            raise PortfolioStateError("Missing required portfolio state field: governance_valid")
+        if not isinstance(payload.get("governance_valid"), bool):
+            raise PortfolioStateError("governance_valid must be a boolean")
 
         return cls(
             equity_start=_required_safe_float(payload, "equity_start"),
@@ -75,7 +79,7 @@ class PortfolioState:
             updated_at=str(payload.get("updated_at") or datetime.now(UTC).isoformat()),
             source=str(payload.get("source") or "portfolio_state_json"),
             warnings=[str(item) for item in payload.get("warnings", []) if item],
-            governance_valid=bool(payload.get("governance_valid", True)),
+            governance_valid=payload["governance_valid"],
         )
 
     @classmethod
