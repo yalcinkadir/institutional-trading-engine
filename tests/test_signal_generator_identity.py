@@ -6,6 +6,20 @@ from pathlib import Path
 from src.signals.signal_generator import build_signals, save_signals
 
 
+DATA_QUALITY_OK = {
+    "source": "polygon",
+    "source_timestamp": "2026-06-03T14:30:00+00:00",
+    "fallback_level": "primary",
+    "data_status": "OK",
+}
+
+
+def _with_data_quality(metrics: dict) -> dict:
+    enriched = dict(metrics)
+    enriched.update(DATA_QUALITY_OK)
+    return enriched
+
+
 def _decision_report(setup_type: str = "momentum_breakout") -> dict:
     return {
         "decisions": [
@@ -37,24 +51,24 @@ def _decision_report(setup_type: str = "momentum_breakout") -> dict:
 
 def _scanner_metrics() -> dict:
     return {
-        "NVDA": {
+        "NVDA": _with_data_quality({
             "close": 100.0,
             "atr14": 4.0,
             "atr_pct": 4.0,
-        }
+        })
     }
 
 
 def _breakout_context_metrics() -> dict:
     return {
-        "NVDA": {
+        "NVDA": _with_data_quality({
             "close": 100.0,
             "atr14": 4.0,
             "atr_pct": 4.0,
             "high": 101.0,
             "rvol": 1.2,
             "vwap": 99.0,
-        }
+        })
     }
 
 
@@ -84,6 +98,10 @@ def test_build_signals_produces_buy_watch_only_with_valid_trade_plan() -> None:
     assert nvda.risk_reward is not None
     assert nvda.risk_reward >= 1.2
     assert nvda.position_size == 1.0
+    assert nvda.data_status == "OK"
+    assert nvda.source == "polygon"
+    assert nvda.source_timestamp == "2026-06-03T14:30:00+00:00"
+    assert nvda.fallback_level == "primary"
 
 
 def test_build_signals_uses_high_trigger_for_breakout_context() -> None:
@@ -165,12 +183,12 @@ def test_build_signals_downgrades_approved_signal_without_executable_levels() ->
 
 def test_build_signals_downgrades_when_entry_stop_exist_but_atr_missing() -> None:
     partial_metrics = {
-        "NVDA": {
+        "NVDA": _with_data_quality({
             "close": 100.0,
             "atr_pct": 4.0,
             "entry": 101.0,
             "stop_loss": 95.0,
-        }
+        })
     }
 
     signals = build_signals(_decision_report(), partial_metrics, "Bullish")
@@ -178,7 +196,7 @@ def test_build_signals_downgrades_when_entry_stop_exist_but_atr_missing() -> Non
     nvda = signals[0]
     assert nvda.action == "NO_TRADE"
     assert nvda.position_size == 0.0
-    assert "missing_or_invalid_atr" in nvda.notes
+    assert "missing_atr" in nvda.notes
     assert "missing_entry_trigger" in nvda.notes
     assert "missing_stop_loss" in nvda.notes
     assert "missing_target_1" in nvda.notes
@@ -186,14 +204,14 @@ def test_build_signals_downgrades_when_entry_stop_exist_but_atr_missing() -> Non
 
 def test_build_signals_downgrades_low_risk_reward_trade_plan() -> None:
     low_rr_metrics = {
-        "NVDA": {
+        "NVDA": _with_data_quality({
             "close": 100.0,
             "atr14": 4.0,
             "atr_pct": 4.0,
             "entry": 100.0,
             "stop_loss": 96.0,
             "exit_1": 103.0,
-        }
+        })
     }
 
     signals = build_signals(_decision_report(), low_rr_metrics, "Bullish")
@@ -206,14 +224,14 @@ def test_build_signals_downgrades_low_risk_reward_trade_plan() -> None:
 
 def test_build_signals_downgrades_inverted_stop_trade_plan() -> None:
     inverted_stop_metrics = {
-        "NVDA": {
+        "NVDA": _with_data_quality({
             "close": 100.0,
             "atr14": 4.0,
             "atr_pct": 4.0,
             "entry": 100.0,
             "stop_loss": 101.0,
             "exit_1": 108.0,
-        }
+        })
     }
 
     signals = build_signals(_decision_report(), inverted_stop_metrics, "Bullish")
@@ -226,14 +244,14 @@ def test_build_signals_downgrades_inverted_stop_trade_plan() -> None:
 
 def test_build_signals_downgrades_invalid_scanner_target() -> None:
     invalid_target_metrics = {
-        "NVDA": {
+        "NVDA": _with_data_quality({
             "close": 100.0,
             "atr14": 4.0,
             "atr_pct": 4.0,
             "entry": 102.0,
             "stop_loss": 94.0,
             "exit_1": 101.0,
-        }
+        })
     }
 
     signals = build_signals(_decision_report(), invalid_target_metrics, "Bullish")
@@ -245,7 +263,7 @@ def test_build_signals_downgrades_invalid_scanner_target() -> None:
 
 def test_build_signals_downgrades_late_scanner_entry() -> None:
     late_metrics = {
-        "NVDA": {
+        "NVDA": _with_data_quality({
             "close": 110.0,
             "atr14": 4.0,
             "atr_pct": 3.6,
@@ -253,7 +271,7 @@ def test_build_signals_downgrades_late_scanner_entry() -> None:
             "entry_type": "breakout",
             "stop_loss": 96.0,
             "exit_1": 108.0,
-        }
+        })
     }
 
     signals = build_signals(_decision_report(), late_metrics, "Bullish")
@@ -292,10 +310,15 @@ def test_save_signals_writes_quality_fields_to_json_and_markdown(tmp_path: Path)
     assert all(item.get("stop_reason") for item in payload["signals"])
     assert all(item.get("exit_reason") for item in payload["signals"])
     assert all(item.get("signal_id") for item in latest_payload["signals"])
+    assert latest_payload["signals"][0]["source"] == "polygon"
+    assert latest_payload["signals"][0]["source_timestamp"] == "2026-06-03T14:30:00+00:00"
+    assert latest_payload["signals"][0]["fallback_level"] == "primary"
+    assert latest_payload["signals"][0]["data_status"] == "OK"
     assert "Signal ID" in markdown
     assert "Entry Reason:" in markdown
     assert "Stop Reason:" in markdown
     assert "Exit Reason:" in markdown
+    assert "Source: polygon" in markdown
     assert signals[0].signal_id in markdown
 
 
