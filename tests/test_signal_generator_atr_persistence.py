@@ -30,6 +30,10 @@ def _scanner_metrics() -> dict:
             "atr_pct": 0.0,
             "rvol": 1.2,
             "vwap": 99.0,
+            "source": "polygon",
+            "source_timestamp": "2026-06-03T14:30:00+00:00",
+            "fallback_level": "primary",
+            "data_status": "OK",
         }
     }
 
@@ -42,6 +46,10 @@ def test_build_signals_persists_atr14_for_watcher_trailing_stop_path() -> None:
     assert signal.action == "BUY_WATCH"
     assert signal.atr14 == 4.0
     assert signal.atr_pct == 0.0
+    assert signal.source == "polygon"
+    assert signal.source_timestamp == "2026-06-03T14:30:00+00:00"
+    assert signal.fallback_level == "primary"
+    assert signal.data_status == "OK"
 
 
 def test_save_signals_writes_atr14_to_json_and_markdown(tmp_path) -> None:
@@ -53,6 +61,10 @@ def test_save_signals_writes_atr14_to_json_and_markdown(tmp_path) -> None:
     persisted_signal = payload["signals"][0]
     assert persisted_signal["atr14"] == 4.0
     assert persisted_signal["atr_pct"] == 0.0
+    assert persisted_signal["source"] == "polygon"
+    assert persisted_signal["source_timestamp"] == "2026-06-03T14:30:00+00:00"
+    assert persisted_signal["fallback_level"] == "primary"
+    assert persisted_signal["data_status"] == "OK"
 
     latest_payload = json.loads((tmp_path / "latest-signals.json").read_text(encoding="utf-8"))
     assert latest_payload["signals"][0]["atr14"] == 4.0
@@ -60,3 +72,4 @@ def test_save_signals_writes_atr14_to_json_and_markdown(tmp_path) -> None:
     markdown = md_path.read_text(encoding="utf-8")
     assert "ATR14: 4.00" in markdown
     assert "ATR%: 0.00%" in markdown
+    assert "Source: polygon" in markdown
