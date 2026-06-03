@@ -1,5 +1,30 @@
 # CHANGELOG
 
+## RGP13 Runtime Proof Pack Summary Builder — 2026-06-03
+
+### Added
+- Added `src/runtime/runtime_proof_pack_summary.py`.
+- Added `tests/test_rgp13_runtime_proof_pack_summary.py`.
+- Added `docs/operations/rgp13_runtime_proof_pack_summary_ci_green_closure_2026_06_03.md`.
+
+### Changed
+- Added a deterministic runtime proof-pack summary builder for review-ready runtime governance evidence.
+- The summary surfaces missing runtime sections, fail-closed portfolio state, not-approved approval gates and runtime evidence manifest paths.
+- Preserved the paper-only boundary by requiring `live_trading_authorized=false` and `broker_execution_mode=paper_only`.
+
+### Validated
+- Review-ready runtime proof packs pass.
+- Missing required runtime sections block.
+- Fail-closed portfolio state is visible.
+- Not-approved approval gates block.
+- Live/non-paper boundary violations block and normalize to safe output.
+
+### Status
+- RGP13: Done / CI-green.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## PO14 Forward Evidence Quality Gate — 2026-06-03
 
 ### Added
