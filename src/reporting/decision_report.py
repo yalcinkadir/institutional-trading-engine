@@ -6,6 +6,7 @@ Builds the institutional decision report from market regime and screener data.
 Important integrations:
 - Data quality degradation reduces confidence instead of causing a hard override.
 - Historical expectancy profiles are fed back into setup scoring before ranking.
+- Runtime governance is evaluated on the scheduled report path before risk is approved.
 
 The expectancy integration closes the loop:
 
@@ -15,6 +16,7 @@ signals → lifecycle → outcomes → expectancy_r → future scoring
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from src.decision_engine import (
     Decision,
@@ -26,6 +28,9 @@ from src.decision_engine import (
     get_allowed_setups,
     rank_candidates,
 )
+from src.governance.governance_thresholds import DEFAULT_GOVERNANCE_THRESHOLDS
+from src.governance.kill_switch import evaluate_kill_switch_for_portfolio_state
+from src.runtime.portfolio_state import PortfolioStateStore
 from src.scoring.expectancy_adjuster import (
     DEFAULT_OUTCOME_HISTORY,
     apply_expectancy_to_score,
@@ -90,17 +95,7 @@ def _build_market_context(market_regime: dict) -> tuple[MarketContext, bool]:
 
     breadth_collapse = breadth_percent < 35
 
-    # Corrected liquidity_stress logic.
-    #
-    # OLD (buggy):
-    #   liquidity_stress = market_regime.get("data_status") != "LIVE"
-    #
-    # This fired on every run because the Free Polygon tier frequently
-    # operates in PARTIAL mode (e.g. VIX unavailable), causing permanent
-    # hard overrides and blocking all recommendations.
-    #
-    # NEW:
-    # liquidity_stress only reflects genuine market stress.
+    # Data quality must not be confused with liquidity stress.
     liquidity_stress = (vix_close >= 30) or (breadth_percent < 25)
 
     volatility_stress = vix_close >= 25
@@ -128,6 +123,43 @@ def _build_market_context(market_regime: dict) -> tuple[MarketContext, bool]:
     )
 
     return context, data_quality_ok
+
+
+def _extract_vix_close(market_regime: dict) -> float | None:
+    symbols = market_regime.get("symbols", {}) or {}
+    vix_snapshot = symbols.get("VIX", {}) or {}
+    close = vix_snapshot.get("close")
+    if close is None:
+        return None
+    try:
+        return float(close)
+    except (TypeError, ValueError):
+        return None
+
+
+def _build_report_governance(market_regime: dict, portfolio_state_store: Any | None = None) -> dict[str, Any]:
+    store = portfolio_state_store or PortfolioStateStore()
+    portfolio_state = store.load()
+    kill_result = evaluate_kill_switch_for_portfolio_state(
+        portfolio_state=portfolio_state,
+        vix=_extract_vix_close(market_regime),
+        severe_anomaly_count=0,
+        thresholds=DEFAULT_GOVERNANCE_THRESHOLDS,
+    )
+    blocked = bool(kill_result.get("kill_switch"))
+    reasons = [str(reason) for reason in kill_result.get("reasons", [])]
+
+    return {
+        "status": "BLOCKED" if blocked else "PASSED",
+        "blocked": blocked,
+        "reasons": reasons,
+        "portfolio_state_source": kill_result.get("portfolio_state_source"),
+        "portfolio_governance_valid": kill_result.get("portfolio_governance_valid") is True,
+        "portfolio_state_warnings": list(kill_result.get("portfolio_state_warnings", [])),
+        "vix_available": kill_result.get("vix_available") is True,
+        "live_trading_authorized": False,
+        "broker_execution_mode": "paper_only",
+    }
 
 
 def _candidate_for_symbol(
@@ -206,10 +238,14 @@ def build_decision_report(
     market_regime: dict,
     screener: dict,
     outcome_history_path: str | Path = DEFAULT_OUTCOME_HISTORY,
+    portfolio_state_store: Any | None = None,
 ) -> dict:
     context, data_quality_ok = _build_market_context(market_regime)
+    report_governance = _build_report_governance(market_regime, portfolio_state_store)
     allowed_setups = get_allowed_setups(context.market_state)
-    hard_overrides = detect_hard_overrides(context)
+    hard_overrides = list(detect_hard_overrides(context))
+    if report_governance["blocked"]:
+        hard_overrides.extend(report_governance["reasons"])
 
     candidate_pairs = [
         _candidate_for_symbol(
@@ -235,7 +271,16 @@ def build_decision_report(
             4,
         )
 
+        decision_value = result.decision.value
+        blocked_reasons = list(result.blocked_reasons)
         notes = list(result.notes)
+
+        if report_governance["blocked"]:
+            decision_value = Decision.BLOCKED.value
+            adjusted_size = 0.0
+            blocked_reasons = sorted(set(blocked_reasons + report_governance["reasons"]))
+            notes.append("report_governance_blocked_before_risk_approval")
+
         expectancy_delta = float(meta.get("expectancy_score_delta", 0.0))
         if expectancy_delta != 0:
             notes.append(
@@ -249,8 +294,8 @@ def build_decision_report(
             {
                 "symbol": candidate.symbol,
                 "setup_type": candidate.setup_type.value,
-                "decision": result.decision.value,
-                "risk_tier": result.risk_tier,
+                "decision": decision_value,
+                "risk_tier": "no_trade" if report_governance["blocked"] else result.risk_tier,
                 "position_size_multiplier": adjusted_size,
                 "base_position_size_multiplier": result.position_size_multiplier,
                 "setup_score": candidate.setup_score,
@@ -258,7 +303,7 @@ def build_decision_report(
                 "regime_alignment": round(candidate.regime_alignment, 2),
                 "asymmetry_score": round(candidate.asymmetry_score, 2),
                 "data_confidence": round(candidate.data_confidence, 2),
-                "blocked_reasons": list(result.blocked_reasons),
+                "blocked_reasons": blocked_reasons,
                 "notes": notes,
                 "expectancy": {
                     "profile_key": meta.get("expectancy_profile_key"),
@@ -286,7 +331,12 @@ def build_decision_report(
         if item["decision"] in {Decision.BLOCKED.value, Decision.NO_TRADE.value}
     )
 
-    if hard_overrides:
+    if report_governance["blocked"]:
+        summary = (
+            "Runtime governance blocked report-path risk approval. "
+            "The report is defensive only and must not create actionable exposure."
+        )
+    elif hard_overrides:
         summary = (
             "Hard risk override active. "
             "The report should prioritize defense and avoid new aggressive exposure."
@@ -322,8 +372,9 @@ def build_decision_report(
     return {
         "market_state": context.market_state.value,
         "allowed_setups": [setup.value for setup in allowed_setups],
-        "hard_overrides": list(hard_overrides),
-        "portfolio_heat_limit": context.max_portfolio_heat,
+        "hard_overrides": hard_overrides,
+        "report_governance": report_governance,
+        "portfolio_heat_limit": 0.0 if report_governance["blocked"] else context.max_portfolio_heat,
         "summary": summary,
         "data_quality_note": data_quality_note,
         "expectancy_adjustments_used": expectancy_adjustments_used,
