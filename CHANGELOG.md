@@ -47,3 +47,12 @@
 ### Status
 - PO14: Done / CI-green.
 - Live trading authorization: unchanged; not granted by code.
+
+---
+
+## IP9/IP10 Public Repository Governance — 2026-06-01
+
+### Status
+- IP9: Done / CI-wired.
+- IP10: Done / CI-wired.
+- Live trading authorization: unchanged; not granted by code.
