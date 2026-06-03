@@ -1,5 +1,30 @@
 # CHANGELOG
 
+## PO14 Forward Evidence Quality Gate — 2026-06-03
+
+### Added
+- Added `src/operations/forward_evidence_quality_gate.py`.
+- Added `tests/test_po14_forward_evidence_quality_gate.py`.
+- Added `docs/operations/po14_forward_evidence_quality_gate_ci_green_closure_2026_06_03.md`.
+
+### Changed
+- Added a monthly forward-evidence quality gate for Paper Observation review packs.
+- The gate requires sufficient total forward days, sufficient review-ready ratio and zero blocked days / gate failures / blocker counts / error counts / rejected records / needs-review records.
+- Preserved the paper-only boundary by requiring `live_trading_authorized=false` and `broker_execution_mode=paper_only`.
+
+### Validated
+- Quality monthly packs pass.
+- Insufficient forward sample size blocks.
+- Insufficient review-ready ratio blocks.
+- Quality defects block.
+- Live/non-paper boundary violations block and are normalized to safe output.
+
+### Status
+- PO14: Done / CI-green.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## ER12 / ER13 Evidence Caveats and Accounting Precision — 2026-06-02
 
 ### Added
