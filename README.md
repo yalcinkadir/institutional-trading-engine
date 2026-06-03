@@ -27,6 +27,7 @@ PO10: Daily Observation Automation Runner implemented and CI-green
 PO11: Scheduled Daily Observation Workflow implemented and CI-green
 PO12: Daily Observation Artifact Retention & Review Index implemented and CI-green
 PO13: Monthly Paper Observation Review Pack implemented and CI-green
+PO14: Forward Evidence Quality Gate implemented and CI-green
 
 Runtime Governance:
 GOV1-GOV10: runtime / pre-live governance hardening implemented and CI-green
@@ -351,11 +352,14 @@ REJECTED
 NEEDS_REVIEW
 ```
 
+PO14 adds a forward-evidence quality gate for monthly Paper Observation packs. A pack is suitable for forward review only when sample size, review-ready ratio, quality counters and paper-only boundaries pass.
+
 ## Core Commands
 
 Targeted remediation tests:
 
 ```bash
+pytest tests/test_po14_forward_evidence_quality_gate.py -q
 pytest tests/test_er12_er13_evidence_accounting_precision_guard.py -q
 pytest tests/test_historical_edge_validation.py -q
 pytest tests/test_artifact_hygiene.py -q
