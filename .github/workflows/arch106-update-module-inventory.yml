@@ -1,47 +1,56 @@
-name: ARCH106 Update Module Inventory
+steps:
+  - name: Checkout repository
+    uses: actions/checkout@v4
+    with:
+      fetch-depth: 0
 
-on:
-  workflow_dispatch:
+  - name: Set up Python
+    uses: actions/setup-python@v5
+    with:
+      python-version: "3.11"
 
-permissions:
-  contents: write
+  - name: Generate module inventory
+    run: python scripts/generate_module_inventory.py
 
-jobs:
-  update-module-inventory:
-    runs-on: ubuntu-latest
+  - name: Detect inventory changes
+    id: diff
+    run: |
+      if git diff --quiet -- docs/architecture/module_inventory.generated.json; then
+        echo "changed=false" >> "$GITHUB_OUTPUT"
+      else
+        echo "changed=true" >> "$GITHUB_OUTPUT"
+      fi
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+  - name: Write ARCH106 runtime evidence manifest
+    if: always()
+    run: |
+      mkdir -p artifacts/evidence/arch106-module-inventory
+      {
+        echo "workflow=ARCH106 Update Module Inventory"
+        echo "run_id=${GITHUB_RUN_ID}"
+        echo "run_attempt=${GITHUB_RUN_ATTEMPT}"
+        echo "sha=${GITHUB_SHA}"
+        echo "inventory_path=docs/architecture/module_inventory.generated.json"
+        echo "changed=${{ steps.diff.outputs.changed }}"
+      } > artifacts/evidence/arch106-module-inventory/manifest.txt
+      cp docs/architecture/module_inventory.generated.json artifacts/evidence/arch106-module-inventory/module_inventory.generated.json
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
+  - name: Upload ARCH106 runtime evidence artifact
+    if: always()
+    uses: actions/upload-artifact@v4
+    with:
+      name: arch106-module-inventory-runtime-evidence
+      path: artifacts/evidence/arch106-module-inventory/
 
-      - name: Generate module inventory
-        run: python scripts/generate_module_inventory.py
+  - name: Commit updated module inventory
+    if: steps.diff.outputs.changed == 'true'
+    run: |
+      git config user.name "github-actions[bot]"
+      git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      git add docs/architecture/module_inventory.generated.json
+      git commit -m "ARCH106 update generated module inventory artifact"
+      git push
 
-      - name: Detect inventory changes
-        id: diff
-        run: |
-          if git diff --quiet -- docs/architecture/module_inventory.generated.json; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Commit updated module inventory
-        if: steps.diff.outputs.changed == 'true'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/architecture/module_inventory.generated.json
-          git commit -m "ARCH106 update generated module inventory artifact"
-          git push
-
-      - name: No inventory changes
-        if: steps.diff.outputs.changed != 'true'
-        run: echo "module_inventory.generated.json is already up to date."
+  - name: No inventory changes
+    if: steps.diff.outputs.changed != 'true'
+    run: echo "module_inventory.generated.json is already up to date."
