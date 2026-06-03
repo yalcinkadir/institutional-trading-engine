@@ -2,7 +2,7 @@
 
 Status date: 2026-06-02
 
-Current state: TEST1 Evidence-Oriented TDD Policy is active as the default workflow for safety-relevant fixes and external review findings. EV1-EV12 evidence-integrity remediation is implemented, centrally documented and CI-green. CI runtime simplification is implemented and CI-green. Paper Observation evidence collection is active. Runtime governance proofing, evidence integrity, report boundaries, public-repository governance and external-review remediation are being handled through guard-test-first development. ER1/ER2 backtest-realism guards are implemented and CI-green. ER4 atomic persistence guard is implemented and CI-green. ER7/ER8 expectancy statistical discipline is implemented and CI-green. ER9 targeted portfolio-risk reduction evidence is implemented and CI-green. ER10 OOS purge / embargo lockbox guard is implemented and CI-green. ER14/ER15 stop-loss quality guards are implemented and CI-green.
+Current state: TEST1 Evidence-Oriented TDD Policy is active as the default workflow for safety-relevant fixes and external review findings. EV1-EV12 evidence-integrity remediation is implemented, centrally documented and CI-green. CI runtime simplification is implemented and CI-green. Paper Observation evidence collection is active. Runtime governance proofing, evidence integrity, report boundaries, public-repository governance and external-review remediation are being handled through guard-test-first development. ER1-ER15 external review remediation is implemented and CI-green.
 
 The system remains research / decision-support / paper-observation only. Real-money execution is not authorized by code.
 
@@ -151,8 +151,8 @@ EV1-EV12 evidence-integrity remediation is complete and CI-green.
 | ER9 | P1 | Portfolio risk | Portfolio-risk reduction too global | CLOSED_CI_GREEN |
 | ER10 | P1 | OOS methodology | No purge/embargo around OOS split | CLOSED_CI_GREEN |
 | ER11 | P2 | Metric semantics | Mixed expectancy naming / units | CLOSED_CI_GREEN |
-| ER12 | P2 | Sharpe evidence | Small-sample / IID assumptions need verification | LIKELY_CLOSED_BY_EXISTING_WORK_NEEDS_VERIFICATION |
-| ER13 | P2 | Accounting precision | Float money/PnL accounting | OPEN |
+| ER12 | P2 | Sharpe evidence | Small-sample / IID assumptions need verification | CLOSED_CI_GREEN |
+| ER13 | P2 | Accounting precision | Float money/PnL accounting | CLOSED_CI_GREEN |
 | ER14 | P2 | Stop quality | Long-only stop logic lacks explicit short guard | CLOSED_CI_GREEN |
 | ER15 | P2 | Stop quality | ATR fallback stop may lack max-distance cap | CLOSED_CI_GREEN |
 
@@ -315,6 +315,38 @@ Closure doc:
 docs/operations/er10_oos_purge_embargo_ci_green_closure_2026_06_02.md
 ```
 
+## ER12 / ER13 Closure Summary
+
+ER12/ER13 evidence caveat and accounting precision remediation is implemented and CI-green.
+
+Implemented behavior:
+
+```text
+historical edge JSON reports expose caveats
+historical edge Markdown reports include Sharpe caveats
+population standard deviation is explicitly documented
+IID assumption is explicitly marked not_verified
+small-sample warning is surfaced
+Sharpe diagnostics are not proof of live edge
+position-risk accounting uses Decimal at money boundaries
+position-risk output remains cent-stable and JSON-safe
+public postmarket report example restored to synthetic/public-safe content
+```
+
+Guard tests:
+
+```text
+tests/test_er12_er13_evidence_accounting_precision_guard.py
+tests/test_historical_edge_validation.py
+tests/test_artifact_hygiene.py
+```
+
+Closure doc:
+
+```text
+docs/operations/er12_er13_evidence_accounting_precision_ci_green_closure_2026_06_02.md
+```
+
 ## ER14 / ER15 Closure Summary
 
 ER14/ER15 stop-loss quality remediation is implemented and CI-green.
@@ -344,7 +376,9 @@ docs/operations/er14_er15_stop_loss_quality_ci_green_closure_2026_06_02.md
 ## Recommended Next Remediation Order
 
 ```text
-1. ER12 / ER13 — evidence caveats and accounting precision review
+1. Paper Observation / forward evidence quality gates
+2. Runtime proof-pack refinement
+3. Capacity / execution realism evidence review
 ```
 
 ## Safety Boundary
