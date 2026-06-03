@@ -187,6 +187,10 @@ class TestSignalGenerator:
                 "stop_loss": None,
                 "exit_1": None,
                 "exit_2": None,
+                "source": "polygon",
+                "source_timestamp": "2026-06-03T14:30:00+00:00",
+                "fallback_level": "primary",
+                "data_status": "OK",
             }
         }
 
