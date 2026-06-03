@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "source": "scripts/generate_module_inventory.py",
+  "classification_source": "docs/architecture/module_classification.json",
+  "grandfather_existing_modules": true,
+  "counters": {
+    "total_src_modules": 0,
+    "classified_modules": 0,
+    "unclassified_legacy_modules": 0
+  },
+  "modules": []
+}
