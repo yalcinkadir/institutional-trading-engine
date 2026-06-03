@@ -53,6 +53,10 @@ class Signal:
     exit_model: str = "n/a"
     exit_reason: str = "n/a"
     atr14: float | None = None
+    data_status: str = "UNKNOWN"
+    source: str | None = None
+    source_timestamp: str | None = None
+    fallback_level: str | None = None
 
 
 def _safe(v: Any, fallback: float | None = None) -> float | None:
@@ -63,6 +67,13 @@ def _safe(v: Any, fallback: float | None = None) -> float | None:
         return fallback if (math.isnan(f) or math.isinf(f)) else f
     except (TypeError, ValueError):
         return fallback
+
+
+def _safe_text(value: Any) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
 
 
 def _valid_until(days: int = 3) -> str:
@@ -122,6 +133,10 @@ def build_signals(
         close = _safe(scanner.get("close"))
         atr14 = _safe(scanner.get("atr14"))
         atr_pct = _safe(scanner.get("atr_pct"))
+        data_status = _safe_text(scanner.get("data_status")) or "UNKNOWN"
+        source = _safe_text(scanner.get("source"))
+        source_timestamp = _safe_text(scanner.get("source_timestamp"))
+        fallback_level = _safe_text(scanner.get("fallback_level"))
 
         entry = stop = t1 = t2 = rr = None
         entry_type = "n/a"
@@ -192,6 +207,11 @@ def build_signals(
             notes_parts.append(f"blocked: {', '.join(item['blocked_reasons'])}")
         if item.get("notes"):
             notes_parts.append(f"notes: {', '.join(item['notes'])}")
+        if original_action == "BUY_WATCH" and data_status == "BLOCKED":
+            quality_gate_failed = True
+            notes_parts.append("data_quality: blocked")
+        elif original_action == "BUY_WATCH" and data_status == "DEGRADED":
+            notes_parts.append("data_quality: degraded")
         if original_action == "BUY_WATCH" and entry_quality_reasons:
             notes_parts.append("entry_quality: " + ", ".join(entry_quality_reasons))
         if original_action == "BUY_WATCH" and stop_quality_reasons:
@@ -247,6 +267,10 @@ def build_signals(
             exit_model=exit_model,
             exit_reason=exit_reason,
             atr14=atr14,
+            data_status=data_status,
+            source=source,
+            source_timestamp=source_timestamp,
+            fallback_level=fallback_level,
         ))
 
     return signals
@@ -256,6 +280,7 @@ def save_signals(
     signals: list[Signal],
     date_str: str | None = None,
     signals_dir: Path | None = None,
+    data_quality: dict[str, Any] | None = None,
 ) -> tuple[Path, Path]:
     target_dir = signals_dir or SIGNALS_DIR
     target_dir.mkdir(parents=True, exist_ok=True)
@@ -267,11 +292,17 @@ def save_signals(
 
     buy_signals = [s for s in signals if s.action == "BUY_WATCH"]
     no_trade = [s for s in signals if s.action != "BUY_WATCH"]
+    data_quality_summary = data_quality or {
+        "data_quality_status": "UNKNOWN",
+        "total_symbols": len(signals),
+        "valid_symbols": sum(1 for signal in signals if signal.close is not None and signal.atr14 is not None),
+    }
 
     payload = {
         "generated_at": datetime.now(UTC).isoformat(),
         "date": date,
         "market_regime": signals[0].market_regime if signals else "Unknown",
+        "data_quality": data_quality_summary,
         "total_signals": len(signals),
         "actionable_count": len(buy_signals),
         "no_trade_count": len(no_trade),
@@ -282,6 +313,14 @@ def save_signals(
 
     now_str = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
     lines = [f"# Institutional Signals - {date}", "", f"Generated: {now_str}", ""]
+    lines += ["## Data Quality", "", f"- Status: {data_quality_summary.get('data_quality_status', 'UNKNOWN')}"]
+    if data_quality_summary.get("missing_required_fields"):
+        lines.append(f"- Missing required fields: {data_quality_summary['missing_required_fields']}")
+    if data_quality_summary.get("missing_provenance_fields"):
+        lines.append(f"- Missing provenance fields: {data_quality_summary['missing_provenance_fields']}")
+    if data_quality_summary.get("stale_symbols"):
+        lines.append(f"- Stale symbols: {data_quality_summary['stale_symbols']}")
+    lines.append("")
 
     if buy_signals:
         lines += ["## Actionable Setups", ""]
@@ -297,6 +336,7 @@ def save_signals(
                 f"### {s.symbol} - {s.action} ({s.risk_tier})",
                 f"- Signal ID: `{s.signal_id}`",
                 f"- Setup: {s.setup_type} | Score: {s.setup_score} | Decision: {s.decision} | Size: {s.position_size:.2f}x",
+                f"- Data: {s.data_status} | Source: {s.source or 'unknown'} | Fallback: {s.fallback_level or 'unknown'} | Timestamp: {s.source_timestamp or 'unknown'}",
                 f"- Entry: {s.entry_trigger} ({s.entry_type}) | Entry Reason: {s.entry_reason}",
                 f"- Stop: {s.stop_loss} ({s.stop_model}) | Stop Reason: {s.stop_reason}",
                 f"- T1: {s.target_1}" + (f" | T2: {s.target_2}" if s.target_2 else "") + f" | Exit: {s.exit_model} | Exit Reason: {s.exit_reason}" + rr_str,
