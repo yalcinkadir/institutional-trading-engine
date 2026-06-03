@@ -32,18 +32,7 @@ Runtime Governance:
 GOV1-GOV10: runtime / pre-live governance hardening implemented and CI-green
 SR1-SR8: signal identity, ATR persistence, repo-write serialization, governance source enforcement, anomaly-state governance, threshold source of truth, completed-bar watcher semantics and dependency reproducibility implemented and CI-green
 PSR1-PSR4: runtime evidence manifest, fill-quality evidence and drift/regime evidence linkage implemented and CI-green
-RGP1: missing/invalid PortfolioState fail-closed proof implemented and CI-green
-RGP2: runtime governance approval gate implemented and CI-green
-RGP3: stale PortfolioState approval blocking implemented and CI-green
-RGP4: actionable signal provider-fetch failure blocking implemented and CI-green
-RGP5: critical STOP/EXIT alert ordering guard implemented and CI-green
-RGP6: strict critical notification failure handling implemented and CI-green
-RGP7: repo-writing workflow serialization/retry guard implemented and CI-green
-RGP8: alert/evidence artifact upload-on-failure guard implemented and CI-green
-RGP9: signal lifecycle status source of truth implemented and CI-green
-RGP10: latest bar timestamp ordering guard implemented and CI-green
-RGP11: signal identity float quantization implemented and CI-green
-RGP12: partial-exit lifecycle persistence implemented and CI-green
+RGP1-RGP12: runtime governance proof pack implemented and CI-green
 
 Backtesting / Evidence:
 BT2: Strategy Test Matrix implemented
@@ -66,6 +55,8 @@ ER8: positive asymmetric expectancy handling implemented and CI-green
 ER9: targeted portfolio-risk reduction evidence implemented and CI-green
 ER10: OOS purge / embargo lockbox guard implemented and CI-green
 ER11: explicit expectancy_r unit naming implemented and CI-green
+ER12: Sharpe caveats and small-sample/IID assumption disclosure implemented and CI-green
+ER13: Decimal/cent-stable position-risk accounting implemented and CI-green
 ER14: unsupported short-side stop guard implemented and CI-green
 ER15: ATR max-distance stop quality guard implemented and CI-green
 
@@ -139,7 +130,7 @@ CLOSED_CI_GREEN
 
 ### ER3 — Notional-Capped Position Sizing
 
-`calculate_position_risk` now supports optional `buying_power` and `max_notional` caps.
+`calculate_position_risk` supports optional `buying_power` and `max_notional` caps.
 
 Status:
 
@@ -149,7 +140,7 @@ CLOSED_CI_GREEN
 
 ### ER4 — Atomic Persistence Guard
 
-A central atomic persistence helper now protects governance/evidence writes from direct destination truncation and failed replacement scenarios.
+A central atomic persistence helper protects governance/evidence writes from direct destination truncation and failed replacement scenarios.
 
 Files:
 
@@ -165,38 +156,16 @@ Status:
 CLOSED_CI_GREEN
 ```
 
-### ER5 — Falsy-Zero Outcome Guard
+### ER5 / ER6 / ER11 — Outcome and Expectancy Evidence Hygiene
 
-A true `0.0` result is preserved and is not replaced by fallback metrics such as `performance_percent`.
+True `0.0` outcomes are preserved, missing result evidence is surfaced instead of counted as breakeven, and ambiguous expectancy outputs are explicit as `expectancy_r`.
 
-Guard:
+Guards:
 
 ```text
 tests/test_er5_expectancy_zero_result_guard.py
-```
-
-Status:
-
-```text
-CLOSED_CI_GREEN
-```
-
-### ER6 — Missing Result Evidence Guard
-
-Missing `result_r` records are no longer counted as artificial `0.0` breakeven evidence.
-
-The diagnostics now expose:
-
-```text
-missing_result_count
-```
-
-A true `0.0` value remains a valid breakeven result.
-
-Guard:
-
-```text
 tests/test_er6_edge_evidence_missing_result_guard.py
+tests/test_er11_expectancy_units_guard.py
 ```
 
 Status:
@@ -207,7 +176,7 @@ CLOSED_CI_GREEN
 
 ### ER7 / ER8 — Expectancy Statistical Discipline
 
-The expectancy adjuster now separates score evidence from size evidence. Smaller samples may affect score, but the multiplier remains neutral until the stronger sample floor is met. Positive asymmetric expectancy is no longer blocked solely by low win rate.
+The expectancy adjuster separates score evidence from size evidence. Smaller samples may affect score, but the multiplier remains neutral until the stronger sample floor is met. Positive asymmetric expectancy is no longer blocked solely by low win rate.
 
 Guard:
 
@@ -229,9 +198,9 @@ CLOSED_CI_GREEN
 
 ### ER9 — Targeted Portfolio-Risk Reduction Evidence
 
-Portfolio-risk warnings now produce targeted evidence instead of reducing every tradable candidate by default. Correlation warnings affect involved pairs, sector-concentration warnings affect the involved sector, and true portfolio-heat warnings remain global.
+Portfolio-risk warnings now produce targeted evidence instead of reducing every tradable candidate by default.
 
-The result now exposes:
+The result exposes:
 
 ```text
 symbol_risk_multipliers
@@ -257,9 +226,9 @@ CLOSED_CI_GREEN
 
 ### ER10 — OOS Purge / Embargo Guard
 
-The fixed-date holdout lockbox now prevents train/test-boundary contamination from trades that overlap the OOS split or start inside the embargo window.
+The fixed-date holdout lockbox prevents train/test-boundary contamination from trades that overlap the OOS split or start inside the embargo window.
 
-The report now exposes:
+The report exposes:
 
 ```text
 purge_days
@@ -286,26 +255,30 @@ Status:
 CLOSED_CI_GREEN
 ```
 
-### ER11 — Explicit Expectancy Units
+### ER12 / ER13 — Evidence Caveats and Accounting Precision
 
-Ambiguous `expectancy` fields were replaced with explicit `expectancy_r`.
+Historical edge validation now exposes Sharpe caveats in JSON and Markdown, including population standard deviation, unverified IID assumptions, small-sample warnings and `not_proof_of_edge`. Position-risk accounting now uses Decimal at money boundaries and returns cent-stable outputs.
 
-Meaning:
-
-```text
-expectancy_r = average R-multiple per evaluated trade / outcome profile
-```
-
-Decision report payloads now expose:
+The report exposes:
 
 ```text
-expectancy.expectancy_r
+caveats.sharpe_std_method = population_std
+caveats.iid_assumption = not_verified
+caveats.small_sample_warning
+caveats.not_proof_of_edge
 ```
 
 Guard:
 
 ```text
-tests/test_er11_expectancy_units_guard.py
+tests/test_er12_er13_evidence_accounting_precision_guard.py
+```
+
+Related tests:
+
+```text
+tests/test_historical_edge_validation.py
+tests/test_artifact_hygiene.py
 ```
 
 Status:
@@ -316,9 +289,9 @@ CLOSED_CI_GREEN
 
 ### ER14 / ER15 — Stop-Loss Quality Guards
 
-The stop-loss quality engine now explicitly rejects unsupported short-side stop derivation and enforces max ATR-distance quality checks for scanner-provided and ATR fallback stops.
+The stop-loss quality engine explicitly rejects unsupported short-side stop derivation and enforces max ATR-distance quality checks for scanner-provided and ATR fallback stops.
 
-The engine now exposes:
+The engine exposes:
 
 ```text
 SUPPORTED_SIDE = "long"
@@ -372,6 +345,9 @@ NEEDS_REVIEW
 Targeted remediation tests:
 
 ```bash
+pytest tests/test_er12_er13_evidence_accounting_precision_guard.py -q
+pytest tests/test_historical_edge_validation.py -q
+pytest tests/test_artifact_hygiene.py -q
 pytest tests/test_er14_er15_stop_loss_quality_guard.py -q
 pytest tests/test_stop_loss_quality.py -q
 pytest tests/test_er10_oos_purge_embargo_guard.py -q
@@ -380,7 +356,6 @@ pytest tests/test_er9_targeted_portfolio_risk_reduction.py -q
 pytest tests/test_portfolio_risk.py -q
 pytest tests/test_er7_er8_expectancy_statistical_discipline.py -q
 pytest tests/test_expectancy_adjuster.py -q
-pytest tests/test_artifact_hygiene.py -q
 pytest tests/test_er4_atomic_persistence_guard.py -q
 pytest tests/test_portfolio_state.py -q
 pytest tests/test_er1_er2_backtest_realism_guard.py -q
