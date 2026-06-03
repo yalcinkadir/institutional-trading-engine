@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "policy": "New production modules under src/ must be explicitly classified before merge. Existing legacy modules are grandfathered until the full ARCH106 inventory pass is completed.",
+  "allowed_classifications": [
+    "connected_runtime",
+    "runtime_entrypoint",
+    "test_only",
+    "experimental",
+    "quarantine",
+    "delete_candidate"
+  ],
+  "grandfather_existing_modules": true,
+  "classified_modules": {
+    "src/signals/signal_generator.py": {
+      "classification": "connected_runtime",
+      "runtime_entrypoint": "scripts/generate_report.py",
+      "runtime_execution_proof": "tests/test_architecture_runtime_execution_guard.py::test_arch106_report_signal_path_has_runtime_execution_proof",
+      "notes": "Report/signal runtime path is CI-proven in ARCH106 Step 1."
+    },
+    "src/signals/scanner_metrics_pipeline.py": {
+      "classification": "connected_runtime",
+      "runtime_entrypoint": "scripts/generate_report.py",
+      "runtime_execution_proof": "tests/test_architecture_runtime_execution_guard.py::test_arch106_report_signal_path_has_runtime_execution_proof",
+      "notes": "DATA1 diagnostics are normalized and passed into signal generation on the report path."
+    },
+    "src/reporting/decision_report.py": {
+      "classification": "connected_runtime",
+      "runtime_entrypoint": "scripts/generate_report.py",
+      "runtime_execution_proof": "tests/test_architecture_runtime_execution_guard.py::test_arch106_report_signal_path_has_runtime_execution_proof",
+      "notes": "Decision report is exercised by the report/signal runtime path."
+    },
+    "src/reporting/market_regime.py": {
+      "classification": "connected_runtime",
+      "runtime_entrypoint": "scripts/generate_report.py",
+      "runtime_execution_proof": "tests/test_architecture_runtime_execution_guard.py::test_arch106_report_signal_path_has_runtime_execution_proof",
+      "notes": "Market regime summary is exercised by the report/signal runtime path."
+    },
+    "src/reporting/screener_engine.py": {
+      "classification": "connected_runtime",
+      "runtime_entrypoint": "scripts/generate_report.py",
+      "runtime_execution_proof": "tests/test_architecture_runtime_execution_guard.py::test_arch106_report_signal_path_has_runtime_execution_proof",
+      "notes": "Screener snapshot is exercised by the report/signal runtime path."
+    }
+  }
+}
