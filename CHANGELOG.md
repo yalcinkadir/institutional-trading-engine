@@ -1,5 +1,31 @@
 # CHANGELOG
 
+## W1 Entry/Exit Watcher Git Write Decoupling Guard — 2026-06-03
+
+### Added
+- Added `tests/test_w1_entry_exit_watcher_git_write_decoupling.py`.
+- Added `docs/operations/w1_entry_exit_watcher_git_write_decoupling_closure_2026_06_03.md`.
+
+### Changed
+- Updated `.github/workflows/entry-exit-watcher.yml` to run with read-only repository contents permission.
+- Removed scheduled watcher branch mutation from the workflow.
+- Removed watcher `git add`, `git commit`, `git pull --rebase` and `git push` behavior.
+- Changed watcher runtime output handling to artifact upload via `actions/upload-artifact@v4`.
+- Changed watcher checkout to `persist-credentials: false` and shallow checkout.
+- Changed watcher concurrency group from shared repo-write scope to isolated watcher scope.
+
+### Validated
+- Watcher workflow no longer requests repository write permission.
+- Watcher workflow no longer commits or pushes generated runtime files to the schedule branch.
+- Watcher workflow uploads runtime output artifacts.
+- Watcher workflow no longer shares the global repo-write concurrency group.
+
+### Status
+- W1: Done / CI-wired.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## FCM1 / RPW1 Connectivity and Proof-Pack Retention — 2026-06-03
 
 ### Added
