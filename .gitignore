@@ -41,10 +41,10 @@ setup_mappings.local.*
 # Generated market data, evidence and reports
 .cache/
 cache/
-data/raw/
-data/live/
-data/private/
-data/vendor/
+data*/raw/
+data*/live/
+data*/private/
+data*/vendor/
 evidence/
 lockbox/
 artifacts/
