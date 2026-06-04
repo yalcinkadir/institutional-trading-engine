@@ -27,6 +27,11 @@ from src.signals.structure_levels import latest_confirmed_swing_low_3bar
 
 VALID_REPORT_TYPES = {"premarket", "intraday", "postmarket", "weekly"}
 MARKET_REPORT_TYPES = {"premarket", "intraday", "postmarket"}
+BLOCKING_SCANNER_DATA_QUALITY_STATUSES = {"BLOCKED", "UNKNOWN"}
+
+
+class ReportDataQualityBlockedError(RuntimeError):
+    """Raised when scanner data quality is too poor for a green report run."""
 
 
 def parse_args() -> argparse.Namespace:
@@ -139,6 +144,21 @@ def _load_scanner_metrics(decision_report: dict) -> dict[str, Any] | None:
         return None
 
 
+def _enforce_scanner_data_quality(scanner_diagnostics: Any) -> None:
+    status = str(getattr(scanner_diagnostics, "data_quality_status", "UNKNOWN") or "UNKNOWN").upper()
+    if status not in BLOCKING_SCANNER_DATA_QUALITY_STATUSES:
+        return
+
+    warning_lines = []
+    if hasattr(scanner_diagnostics, "warning_lines"):
+        warning_lines = [str(line) for line in scanner_diagnostics.warning_lines()]
+
+    detail = "; ".join(warning_lines) if warning_lines else "no diagnostic detail available"
+    raise ReportDataQualityBlockedError(
+        f"Scanner data quality status {status} blocks report generation: {detail}"
+    )
+
+
 def _merge_signal_levels_into_decisions(decision_report: dict, signals: list[Any]) -> None:
     signals_by_symbol = {signal.symbol: signal for signal in signals}
     for item in decision_report.get("decisions", []):
@@ -181,9 +201,12 @@ def _build_market_payload(report_type: str) -> tuple[dict, dict | None]:
     )
     decision_payload["scanner_metrics_diagnostics"] = scanner_diagnostics
     decision_payload["scanner_data_quality"] = scanner_diagnostics.as_summary()
+    decision_report["scanner_data_quality"] = scanner_diagnostics.as_summary()
     if scanner_diagnostics.has_warnings:
         for warning in scanner_diagnostics.warning_lines():
             print(f"WARNING: {warning}")
+
+    _enforce_scanner_data_quality(scanner_diagnostics)
 
     try:
         from src.signals.signal_generator import build_signals
@@ -198,7 +221,6 @@ def _build_market_payload(report_type: str) -> tuple[dict, dict | None]:
         print(f"WARNING: Signal level preparation failed (non-fatal): {type(exc).__name__}: {exc}")
         decision_payload["signals"] = []
 
-    decision_report["scanner_data_quality"] = scanner_diagnostics.as_summary()
     payload = {
         "report_type": report_type,
         "market_regime": market_regime,
@@ -231,6 +253,9 @@ def generate_signals(decision_payload: dict) -> None:
         from src.signals.signal_generator import build_signals, save_signals
         signals = decision_payload.get("signals")
         if signals is None:
+            diagnostics = decision_payload.get("scanner_metrics_diagnostics")
+            if diagnostics is not None:
+                _enforce_scanner_data_quality(diagnostics)
             signals = build_signals(
                 decision_report=decision_payload["decision_report"],
                 scanner_metrics_map=None,
@@ -243,21 +268,27 @@ def generate_signals(decision_payload: dict) -> None:
         )
         print(f"Signals written: {json_path}, {md_path}")
         print(f"  {sum(1 for signal in signals if signal.action == 'BUY_WATCH')} actionable, {sum(1 for signal in signals if signal.action != 'BUY_WATCH')} no-trade")
+    except ReportDataQualityBlockedError:
+        raise
     except Exception as exc:
         print(f"WARNING: Signal generation failed (non-fatal): {type(exc).__name__}: {exc}")
 
 
 def main() -> int:
     args = parse_args()
-    report, decision_payload = build_report(args.type)
-    if args.output:
-        output_path = write_report_text_guarded(args.output, report, repo_root=ROOT_DIR)
-        print(f"Report written to {output_path}")
-    else:
-        print(report)
-    if args.type in MARKET_REPORT_TYPES and decision_payload is not None:
-        generate_signals(decision_payload)
-    return 0
+    try:
+        report, decision_payload = build_report(args.type)
+        if args.output:
+            output_path = write_report_text_guarded(args.output, report, repo_root=ROOT_DIR)
+            print(f"Report written to {output_path}")
+        else:
+            print(report)
+        if args.type in MARKET_REPORT_TYPES and decision_payload is not None:
+            generate_signals(decision_payload)
+        return 0
+    except ReportDataQualityBlockedError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":
