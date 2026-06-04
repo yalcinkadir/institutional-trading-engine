@@ -128,6 +128,14 @@ jobs:
             --file "$REPORT_FILE" \
             --min-score 75
 
+      - name: Validate paper observation health
+        if: env.REPORT_TYPE != 'weekly'
+        shell: bash
+        run: |
+          python scripts/validate_paper_observation_health.py \
+            --signals-file reports/signals/latest-signals.json \
+            --report-dir reports/validation
+
       - name: Commit all outputs to repository
         shell: bash
         run: |
@@ -159,6 +167,15 @@ jobs:
         with:
           name: signals-${{ steps.report_type.outputs.run_timestamp }}
           path: reports/signals/
+          retention-days: 90
+
+      - name: Upload paper observation health artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: paper-observation-health-${{ steps.report_type.outputs.run_timestamp }}
+          path: reports/validation/
+          if-no-files-found: ignore
           retention-days: 90
 
       - name: Upload full reports archive artifact
