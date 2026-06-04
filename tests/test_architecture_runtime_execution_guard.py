@@ -38,6 +38,7 @@ def test_arch106_report_signal_path_has_runtime_execution_proof(monkeypatch, tmp
 
     class FakeDiagnostics:
         has_warnings = False
+        data_quality_status = "OK"
 
         def warning_lines(self) -> list[str]:
             return []
