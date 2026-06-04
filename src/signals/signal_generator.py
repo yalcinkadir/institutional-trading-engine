@@ -22,6 +22,9 @@ from src.signals.trade_plan_validator import validate_long_trade_plan
 
 
 SIGNALS_DIR = Path("reports/signals")
+BLOCKED_SCORE_SOURCES = {"demo", "fixture", "demo_arithmetic_sequence", "public_demo"}
+BLOCKED_DATA_SOURCES = {"demo", "fixture", "public_demo"}
+BLOCKED_THRESHOLDS_VERSIONS = {"public_demo", "demo", "fixture"}
 
 
 @dataclass
@@ -57,6 +60,9 @@ class Signal:
     source: str | None = None
     source_timestamp: str | None = None
     fallback_level: str | None = None
+    score_source: str = "unknown"
+    data_source: str = "unknown"
+    thresholds_version: str = "unknown"
 
 
 def _safe(v: Any, fallback: float | None = None) -> float | None:
@@ -139,6 +145,22 @@ def _actionable_data_quality_reasons(
     return reasons
 
 
+def _demo_provenance_reasons(
+    *,
+    score_source: str,
+    data_source: str,
+    thresholds_version: str,
+) -> list[str]:
+    reasons: list[str] = []
+    if score_source.lower() in BLOCKED_SCORE_SOURCES:
+        reasons.append("demo_score_provenance")
+    if data_source.lower() in BLOCKED_DATA_SOURCES:
+        reasons.append("demo_data_source")
+    if thresholds_version.lower() in BLOCKED_THRESHOLDS_VERSIONS:
+        reasons.append("demo_thresholds_version")
+    return reasons
+
+
 def build_signals(
     decision_report: dict,
     scanner_metrics_map: dict[str, Any] | None = None,
@@ -162,6 +184,9 @@ def build_signals(
         source = _safe_text(scanner.get("source"))
         source_timestamp = _safe_text(scanner.get("source_timestamp"))
         fallback_level = _safe_text(scanner.get("fallback_level"))
+        score_source = _safe_text(item.get("score_source")) or "unknown"
+        data_source = _safe_text(item.get("data_source")) or "unknown"
+        thresholds_version = _safe_text(item.get("thresholds_version")) or "unknown"
 
         entry = stop = t1 = t2 = rr = None
         entry_type = "n/a"
@@ -182,8 +207,13 @@ def build_signals(
             source_timestamp=source_timestamp,
             fallback_level=fallback_level,
         )
+        demo_provenance_reasons = _demo_provenance_reasons(
+            score_source=score_source,
+            data_source=data_source,
+            thresholds_version=thresholds_version,
+        )
 
-        if action == "BUY_WATCH" and not actionable_data_reasons:
+        if action == "BUY_WATCH" and not actionable_data_reasons and not demo_provenance_reasons:
             entry_quality = derive_entry_quality(
                 setup_type=setup_type,
                 close=close,
@@ -240,6 +270,9 @@ def build_signals(
             notes_parts.append(f"blocked: {', '.join(item['blocked_reasons'])}")
         if item.get("notes"):
             notes_parts.append(f"notes: {', '.join(item['notes'])}")
+        if original_action == "BUY_WATCH" and demo_provenance_reasons:
+            quality_gate_failed = True
+            notes_parts.append("provenance_contract: " + ", ".join(demo_provenance_reasons))
         if original_action == "BUY_WATCH" and actionable_data_reasons:
             quality_gate_failed = True
             if data_status == "BLOCKED":
@@ -308,6 +341,9 @@ def build_signals(
             source=source,
             source_timestamp=source_timestamp,
             fallback_level=fallback_level,
+            score_source=score_source,
+            data_source=data_source,
+            thresholds_version=thresholds_version,
         ))
 
     return signals
@@ -373,6 +409,7 @@ def save_signals(
                 f"### {s.symbol} - {s.action} ({s.risk_tier})",
                 f"- Signal ID: `{s.signal_id}`",
                 f"- Setup: {s.setup_type} | Score: {s.setup_score} | Decision: {s.decision} | Size: {s.position_size:.2f}x",
+                f"- Score Source: {s.score_source} | Data Source: {s.data_source} | Thresholds: {s.thresholds_version}",
                 f"- Data: {s.data_status} | Source: {s.source or 'unknown'} | Fallback: {s.fallback_level or 'unknown'} | Timestamp: {s.source_timestamp or 'unknown'}",
                 f"- Entry: {s.entry_trigger} ({s.entry_type}) | Entry Reason: {s.entry_reason}",
                 f"- Stop: {s.stop_loss} ({s.stop_model}) | Stop Reason: {s.stop_reason}",
