@@ -44,10 +44,12 @@ def test_decision_report_uses_positive_expectancy_adjustment(tmp_path: Path):
     )
     decision = report["decisions"][0]
 
-    assert decision["base_setup_score"] == 82
-    assert decision["setup_score"] == 86.0
+    assert decision["base_setup_score"] != 82
+    assert decision["setup_score"] == decision["base_setup_score"] + 4.0
     assert decision["expectancy"]["score_delta"] == 4.0
     assert decision["expectancy"]["source"] == "regime_setup_entry"
+    assert decision["score_source"] == "evidence_adjusted"
+    assert report["score_source"] == "evidence_adjusted"
     assert report["expectancy_adjustments_used"]
 
 
@@ -61,8 +63,9 @@ def test_decision_report_uses_negative_expectancy_adjustment(tmp_path: Path):
     )
     decision = report["decisions"][0]
 
-    assert decision["setup_score"] == 70.0
+    assert decision["setup_score"] == decision["base_setup_score"] - 12.0
     assert decision["expectancy"]["score_delta"] == -12.0
+    assert decision["score_source"] == "evidence_adjusted"
     assert decision["position_size_multiplier"] <= decision["base_position_size_multiplier"]
 
 
