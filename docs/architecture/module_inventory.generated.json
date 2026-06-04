@@ -4,9 +4,9 @@
     "classified_modules": 11,
     "connected_runtime": 5,
     "experimental": 6,
-    "total_src_modules": 313,
-    "unclassified_legacy": 302,
-    "unclassified_legacy_modules": 302
+    "total_src_modules": 314,
+    "unclassified_legacy": 303,
+    "unclassified_legacy_modules": 303
   },
   "grandfather_existing_modules": true,
   "modules": [
@@ -2350,6 +2350,14 @@
       "classification": "unclassified_legacy",
       "notes": "Legacy module not yet classified in ARCH106 Step 3.",
       "path": "src/validation/paper_observation_asset_timeline.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "status": "unclassified_legacy"
+    },
+    {
+      "classification": "unclassified_legacy",
+      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "path": "src/validation/paper_observation_health_gate.py",
       "runtime_entrypoint": null,
       "runtime_execution_proof": null,
       "status": "unclassified_legacy"
