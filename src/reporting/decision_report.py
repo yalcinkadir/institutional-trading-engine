@@ -149,6 +149,11 @@ def _build_report_governance(market_regime: dict, portfolio_state_store: Any | N
     blocked = bool(kill_result.get("kill_switch"))
     reasons = [str(reason) for reason in kill_result.get("reasons", [])]
 
+    if portfolio_state.daily_loss_percent >= DEFAULT_GOVERNANCE_THRESHOLDS.max_daily_loss_percent:
+        blocked = True
+        if "max_daily_loss_breached" not in reasons:
+            reasons.append("max_daily_loss_breached")
+
     return {
         "status": "BLOCKED" if blocked else "PASSED",
         "blocked": blocked,
