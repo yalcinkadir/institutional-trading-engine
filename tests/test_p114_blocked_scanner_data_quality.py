@@ -71,9 +71,15 @@ def _patch_market_report_dependencies(monkeypatch: pytest.MonkeyPatch) -> None:
             "market_health_score": 78,
             "data_status": "LIVE",
             "symbols": {
+                "SPY": {"close": 500.0},
+                "QQQ": {"close": 420.0},
                 "VIX": {"close": 16.0},
             },
-            "breadth": {"breadth_percent": 68.0},
+            "breadth": {
+                "universe_size": 100,
+                "above_sma50": 68,
+                "breadth_percent": 68.0,
+            },
             "focus_areas": [],
             "notes": [],
             "errors": [],
@@ -87,7 +93,15 @@ def _patch_market_report_dependencies(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         generate_report,
         "build_cross_asset_report",
-        lambda: {"data_status": "OK", "regime": "risk_on", "risk_score": 10},
+        lambda: {
+            "data_status": "OK",
+            "regime": "risk_on",
+            "risk_score": 10,
+            "risk_on_score": 80,
+            "risk_off_score": 20,
+            "warnings": [],
+            "confirmations": [],
+        },
     )
     monkeypatch.setattr(
         generate_report,
