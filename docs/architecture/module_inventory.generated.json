@@ -1,12 +1,12 @@
 {
   "classification_source": "docs/architecture/module_classification.json",
   "counters": {
-    "classified_modules": 7,
+    "classified_modules": 11,
     "connected_runtime": 5,
-    "experimental": 2,
+    "experimental": 6,
     "total_src_modules": 313,
-    "unclassified_legacy": 306,
-    "unclassified_legacy_modules": 306
+    "unclassified_legacy": 302,
+    "unclassified_legacy_modules": 302
   },
   "grandfather_existing_modules": true,
   "modules": [
@@ -43,12 +43,12 @@
       "status": "unclassified_legacy"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "experimental",
+      "notes": "ARCH106 Step 4b: simple analytics/backtesting helper. Not marked connected_runtime until a live runtime execution proof exists.",
       "path": "src/analytics/backtesting.py",
       "runtime_entrypoint": null,
       "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "status": "classified"
     },
     {
       "classification": "unclassified_legacy",
@@ -67,12 +67,12 @@
       "status": "unclassified_legacy"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "experimental",
+      "notes": "ARCH106 Step 4b: analytics performance statistics helper. Not marked connected_runtime until a live runtime execution proof exists.",
       "path": "src/analytics/performance_tracker.py",
       "runtime_entrypoint": null,
       "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "status": "classified"
     },
     {
       "classification": "unclassified_legacy",
@@ -107,12 +107,12 @@
       "status": "unclassified_legacy"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "experimental",
+      "notes": "ARCH106 Step 4b: analytics signal quality helper. Not marked connected_runtime until a live runtime execution proof exists.",
       "path": "src/analytics/signal_quality.py",
       "runtime_entrypoint": null,
       "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "status": "classified"
     },
     {
       "classification": "unclassified_legacy",
@@ -123,12 +123,12 @@
       "status": "unclassified_legacy"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "experimental",
+      "notes": "ARCH106 Step 4b: analytics walk-forward validation helper. Not marked connected_runtime until a live runtime execution proof exists.",
       "path": "src/analytics/walk_forward_validation.py",
       "runtime_entrypoint": null,
       "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "status": "classified"
     },
     {
       "classification": "unclassified_legacy",
