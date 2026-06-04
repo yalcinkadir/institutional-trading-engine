@@ -84,7 +84,7 @@ jobs:
             REPORT_FILE="${REPORT_DIR}/${RUN_DATE}-${REPORT_TYPE}.md"
           fi
 
-          LATEST_FILE="reports/${REPORT_TYPE}-report.md"
+          LATEST_FILE="reports/generated/${REPORT_TYPE}-report.md"
 
           echo "report_type=${REPORT_TYPE}" >> "$GITHUB_OUTPUT"
           echo "report_file=${REPORT_FILE}" >> "$GITHUB_OUTPUT"
@@ -100,6 +100,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p "$(dirname "$REPORT_FILE")"
+          mkdir -p "$(dirname "$LATEST_FILE")"
           mkdir -p reports/signals
           mkdir -p data
 
