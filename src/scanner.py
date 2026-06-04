@@ -6,7 +6,7 @@ from pathlib import Path
 import pandas as pd
 import requests
 
-from config import SYMBOLS, BENCHMARK_MAP
+from src.config import SYMBOLS, BENCHMARK_MAP
 from src.signals.structure_levels import latest_confirmed_swing_low_3bar
 
 API_KEY = os.getenv("POLYGON_API_KEY")
@@ -520,299 +520,58 @@ def build_leaders_section(metrics_map):
         if not metrics or symbol in ["QQQ", "SPY"]:
             continue
 
-        is_leader = (
-            metrics["trend"] in ["Strong Uptrend", "Uptrend"]
-            and metrics["rs_label"] == "Leader"
-        )
-
-        if not is_leader:
-            continue
-
-        is_clean = (
-            metrics["rvol"] >= 1.0
-            and metrics["setup_readiness"] not in ["Extended - Avoid Chase", "High Volatility Caution"]
-            and len(metrics["warnings"]) == 0
-            and pd.notna(metrics["atr_pct"]) and metrics["atr_pct"] <= 4.0
-        )
-
-        if is_clean:
+        if metrics["setup_readiness"] == "Pullback Candidate":
             clean_rows.append(metrics)
-        else:
+        elif metrics["setup_readiness"] in ["Breakout Watch", "Trend Strong, Entry Unclear"]:
             aggressive_rows.append(metrics)
 
-    clean_rows = sorted(
-        clean_rows,
-        key=lambda x: (
-            float("-inf") if pd.isna(x["rs_spread"]) else x["rs_spread"],
-            float("-inf") if pd.isna(x["rvol"]) else x["rvol"],
-        ),
-        reverse=True,
-    )
+    lines = ["## Leaders & Setups"]
 
-    aggressive_rows = sorted(
-        aggressive_rows,
-        key=lambda x: (
-            float("-inf") if pd.isna(x["rs_spread"]) else x["rs_spread"],
-            float("-inf") if pd.isna(x["rvol"]) else x["rvol"],
-        ),
-        reverse=True,
-    )
-
-    lines = ["## Leaders", "### Clean Leaders"]
-
-    if not clean_rows:
-        lines.append("- None")
+    if clean_rows:
+        lines.append("### Clean Pullback Candidates")
+        for m in clean_rows[:8]:
+            lines.append(f"- {m['symbol']}: Pullback near SMA | Close {fmt_number(m['close'])} | RSI {fmt_number(m['rsi14'])} | RS {fmt_signed_percent(m['rs_spread'])}")
     else:
-        for m in clean_rows:
-            lines.append(
-                f"- {m['symbol']}: RS Spread {fmt_signed_percent(m['rs_spread'])} vs {m['benchmark']} | "
-                f"RVOL {fmt_number(m['rvol'])} | RSI14 {fmt_number(m['rsi14'])} | "
-                f"Trend {m['trend']} | Setup {m['setup_readiness']}"
-            )
-
-    lines.append("")
-    lines.append("### Aggressive Leaders")
-
-    if not aggressive_rows:
+        lines.append("### Clean Pullback Candidates")
         lines.append("- None")
+
+    if aggressive_rows:
+        lines.append("### Aggressive / Extended Watch")
+        for m in aggressive_rows[:8]:
+            lines.append(f"- {m['symbol']}: {m['setup_readiness']} | Close {fmt_number(m['close'])} | RSI {fmt_number(m['rsi14'])} | RS {fmt_signed_percent(m['rs_spread'])}")
     else:
-        for m in aggressive_rows:
-            lines.append(
-                f"- {m['symbol']}: RS Spread {fmt_signed_percent(m['rs_spread'])} vs {m['benchmark']} | "
-                f"RVOL {fmt_number(m['rvol'])} | RSI14 {fmt_number(m['rsi14'])} | "
-                f"ATR% {fmt_number(m['atr_pct'])} | Setup {m['setup_readiness']}"
-            )
-
-    return lines
-
-def build_weak_names_section(metrics_map):
-    rows = []
-    for symbol, metrics in metrics_map.items():
-        if not metrics or symbol in ["QQQ", "SPY"]:
-            continue
-
-        if (
-            metrics["rs_label"] == "Weak"
-            or metrics["trend"] in ["Mixed", "Downtrend"]
-        ):
-            rows.append(metrics)
-
-    rows = sorted(
-        rows,
-        key=lambda x: (
-            float("inf") if pd.isna(x["rs_spread"]) else x["rs_spread"],
-            float("inf") if pd.isna(x["rvol"]) else x["rvol"],
-        ),
-    )
-
-    lines = ["## Weak Names"]
-    if not rows:
-        lines.append("- None")
-        return lines
-
-    for m in rows:
-        lines.append(
-            f"- {m['symbol']}: RS Spread {fmt_signed_percent(m['rs_spread'])} vs {m['benchmark']} | "
-            f"RVOL {fmt_number(m['rvol'])} | RSI14 {fmt_number(m['rsi14'])} | Trend {m['trend']} | "
-            f"Setup {m['setup_readiness']}"
-        )
-    return lines
-
-def build_watchlist_section(metrics_map):
-    rows = []
-
-    allowed_labels = {
-        "Pullback Candidate": 1,
-        "Breakout Watch": 2,
-        "Trend Strong, Entry Unclear": 3,
-    }
-
-    for symbol, metrics in metrics_map.items():
-        if not metrics or symbol in ["QQQ", "SPY"]:
-            continue
-
-        if metrics["setup_readiness"] in allowed_labels:
-            rows.append(metrics)
-
-    rows = sorted(
-        rows,
-        key=lambda m: (
-            allowed_labels.get(m["setup_readiness"], 99),
-            -(float("-inf") if pd.isna(m["rs_spread"]) else m["rs_spread"]),
-        ),
-    )
-
-    lines = ["## Watchlist Candidates"]
-
-    if not rows:
-        lines.append("- None")
-        return lines
-
-    for m in rows:
-        lines.append(
-            f"- {m['symbol']}: {m['setup_readiness']} | "
-            f"RS Spread {fmt_signed_percent(m['rs_spread'])} vs {m['benchmark']} | "
-            f"RVOL {fmt_number(m['rvol'])} | "
-            f"RSI14 {fmt_number(m['rsi14'])} | "
-            f"Trend {m['trend']}"
-        )
-
-    return lines
-
-def build_setup_readiness_section(metrics_map):
-    lines = ["## Setup Readiness"]
-
-    priority = {
-        "Pullback Candidate": 1,
-        "Breakout Watch": 2,
-        "Trend Strong, Entry Unclear": 3,
-        "Extended - Avoid Chase": 4,
-        "High Volatility Caution": 5,
-        "Weak - Avoid": 6,
-        "Not Ready": 7,
-        "N/A": 8,
-    }
-
-    rows = []
-    for symbol, metrics in metrics_map.items():
-        if not metrics or symbol in ["QQQ", "SPY"]:
-            continue
-        rows.append(metrics)
-
-    if not rows:
-        lines.append("- None")
-        return lines
-
-    rows = sorted(
-        rows,
-        key=lambda m: (priority.get(m["setup_readiness"], 99), m["symbol"])
-    )
-
-    for m in rows:
-        lines.append(f"- {m['symbol']}: {m['setup_readiness']}")
-
-    return lines
-
-
-def build_data_warnings_section(metrics_map):
-    lines = ["## Data / Risk Warnings"]
-    has_warning = False
-
-    for symbol, metrics in metrics_map.items():
-        if not metrics:
-            continue
-        if metrics["warnings"]:
-            has_warning = True
-            lines.append(f"- {symbol}: {', '.join(metrics['warnings'])}")
-
-    if not has_warning:
+        lines.append("### Aggressive / Extended Watch")
         lines.append("- None")
 
     return lines
 
 
-
-def build_setup_score_section(metrics_map: dict, top_n: int = 5) -> list[str]:
-    """Phase 3: Institutional setup score ranking — top N highest-conviction setups."""
-    try:
-        from src.scoring.setup_score_engine import rank_universe
-        ranked = rank_universe(metrics_map, min_score=50.0)
-        if not ranked:
-            return ["## Top Institutional Setups", "", "- No setups above threshold.", ""]
-        lines = ["## Top Institutional Setups (Score ≥ 50)", ""]
-        for r in ranked[:top_n]:
-            lines.append(
-                f"- **{r.symbol}** — {r.label} ({r.score:.0f}/100) | "
-                f"RS: {r.contributions.get('relative_strength', 0):.0f}pt | "
-                f"Trend: {r.contributions.get('trend_quality', 0):.0f}pt"
-            )
-        return lines + [""]
-    except Exception as e:
-        return ["## Top Institutional Setups", "", f"- Score engine error: {e}", ""]
-def main():
-    if not API_KEY:
-        raise RuntimeError("POLYGON_API_KEY fehlt.")
-
-    now_utc = datetime.now(timezone.utc)
-    report_timestamp = now_utc.strftime("%Y-%m-%d_%H-%M-%S")
-
-    Path("reports").mkdir(exist_ok=True)
-
-    lines = [f"# Market Report {report_timestamp} UTC\n"]
-
+def build_report():
     benchmark_returns = {}
-
-    for benchmark_symbol in ["QQQ", "SPY", "GLD"]:        
-        df = get_daily_bars(benchmark_symbol)
-        if df is not None and not df.empty:
-            benchmark_returns[benchmark_symbol] = calculate_20d_return(df["close"])
-        else:
-            benchmark_returns[benchmark_symbol] = pd.NA
-        time.sleep(12)
+    for bench in ["SPY", "QQQ", "GLD"]:
+        df = get_daily_bars(bench)
+        benchmark_returns[bench] = calculate_20d_return(df["close"]) if df is not None else pd.NA
+        time.sleep(2)
 
     vix_data = get_vix_value()
-    time.sleep(12)
 
     metrics_map = {}
-
     for symbol in SYMBOLS:
-        try:
-            metrics = build_symbol_metrics(symbol, benchmark_returns)
-            metrics_map[symbol] = metrics
-        except Exception as e:
-            metrics_map[symbol] = None
-            print(f"Build metrics failed for {symbol}: {e}")
+        print(f"Fetching {symbol}...")
+        metrics_map[symbol] = build_symbol_metrics(symbol, benchmark_returns)
+        time.sleep(2)
 
-        time.sleep(12)
-
+    lines = []
     lines.extend(build_market_regime_summary(metrics_map, vix_data))
-    lines.append("")
-    lines.extend(build_watchlist_section(metrics_map))
-    lines.append("")
-    lines.extend(build_setup_score_section(metrics_map))
     lines.append("")
     lines.extend(build_leaders_section(metrics_map))
     lines.append("")
-    lines.extend(build_weak_names_section(metrics_map))
-    lines.append("")
-    lines.extend(build_setup_readiness_section(metrics_map))
-    lines.append("")
-    lines.extend(build_data_warnings_section(metrics_map))
-    lines.append("")
-    lines.append("## Full Asset Report")
-
+    lines.append("## Full Scanner Snapshot")
     for symbol in SYMBOLS:
-        metrics = metrics_map.get(symbol)
-        if metrics:
-            lines.append(format_symbol_report(metrics))
-        else:
-            lines.append(f"- {symbol}: ERROR - No data")
+        lines.append(format_symbol_report(metrics_map.get(symbol)))
 
-    report_path = f"reports/{report_timestamp}-market-report.md"
-    Path(report_path).write_text("\n".join(lines), encoding="utf-8")
-
-    print(f"Report created: {report_path}")
-
-    # ── Phase 1: Institutional Runtime Cycle ────────────────────────────────
-    # Runs AFTER report is written — report is never blocked by cycle errors.
-    # VIX is passed as-is; if None (Free Polygon tier), bridge uses fallback.
-    try:
-        from src.runtime.live_runtime_cycle import (
-            GovernanceBlockedError,
-            live_runtime_cycle,
-        )
-        snapshot = live_runtime_cycle.run(
-            metrics_map=metrics_map,
-            vix_data=vix_data,
-        )
-        print(f"[Runtime] {snapshot.snapshot_id} | {snapshot.regime_summary}")
-    except GovernanceBlockedError as e:
-        print(f"[Runtime] GOVERNANCE BLOCK: {e.reasons}")
-    except Exception as e:
-        print(f"[Runtime] cycle error (non-fatal): {type(e).__name__}: {e}")
-    # ─────────────────────────────────────────────────────────────────────────
-
+    return "\n".join(lines)
 
 
 if __name__ == "__main__":
-    main()
+    print(build_report())
