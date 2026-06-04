@@ -19,6 +19,22 @@
       "classification": "experimental",
       "notes": "ARCH106 Step 4a: research validation/backtesting layer. Not marked connected_runtime until a live runtime execution proof exists."
     },
+    "src/analytics/backtesting.py": {
+      "classification": "experimental",
+      "notes": "ARCH106 Step 4b: simple analytics/backtesting helper. Not marked connected_runtime until a live runtime execution proof exists."
+    },
+    "src/analytics/walk_forward_validation.py": {
+      "classification": "experimental",
+      "notes": "ARCH106 Step 4b: analytics walk-forward validation helper. Not marked connected_runtime until a live runtime execution proof exists."
+    },
+    "src/analytics/performance_tracker.py": {
+      "classification": "experimental",
+      "notes": "ARCH106 Step 4b: analytics performance statistics helper. Not marked connected_runtime until a live runtime execution proof exists."
+    },
+    "src/analytics/signal_quality.py": {
+      "classification": "experimental",
+      "notes": "ARCH106 Step 4b: analytics signal quality helper. Not marked connected_runtime until a live runtime execution proof exists."
+    },
     "src/signals/signal_generator.py": {
       "classification": "connected_runtime",
       "runtime_entrypoint": "scripts/generate_report.py",
