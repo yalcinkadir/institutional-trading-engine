@@ -1,29 +1,30 @@
 {
   "classification_source": "docs/architecture/module_classification.json",
   "counters": {
-    "classified_modules": 5,
+    "classified_modules": 7,
     "connected_runtime": 5,
+    "experimental": 2,
     "total_src_modules": 313,
-    "unclassified_legacy": 308,
-    "unclassified_legacy_modules": 308
+    "unclassified_legacy": 306,
+    "unclassified_legacy_modules": 306
   },
   "grandfather_existing_modules": true,
   "modules": [
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "experimental",
+      "notes": "ARCH106 Step 4a: adaptive expectancy research layer. Not marked connected_runtime until a live runtime execution proof exists.",
       "path": "src/adaptive_expectancy.py",
       "runtime_entrypoint": null,
       "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "status": "classified"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "experimental",
+      "notes": "ARCH106 Step 4a: research validation/backtesting layer. Not marked connected_runtime until a live runtime execution proof exists.",
       "path": "src/advanced_backtesting_v2.py",
       "runtime_entrypoint": null,
       "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "status": "classified"
     },
     {
       "classification": "unclassified_legacy",
