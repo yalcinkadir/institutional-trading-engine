@@ -124,7 +124,7 @@ def test_p123_invalid_portfolio_state_fails_closed_on_report_path() -> None:
     )
 
     _assert_all_decisions_blocked(report)
-    assert "portfolio_state_invalid" in report["hard_overrides"]
+    assert "invalid_portfolio_governance_state" in report["hard_overrides"]
     assert report["report_governance"]["portfolio_governance_valid"] is False
 
 
