@@ -345,6 +345,8 @@ jobs:
         env:
           POLYGON_API_KEY: test-key
         run: |
+          mkdir -p artifacts/evidence/p109-residual-pytest
+          set +e
           pytest -q \
             --ignore=tests/test_artifact_hygiene.py \
             --ignore=tests/test_live_runtime_cycle.py \
@@ -408,4 +410,15 @@ jobs:
             --ignore=tests/test_report_output_boundary.py \
             --ignore=tests/test_generate_report_output_boundary.py \
             --ignore=tests/test_bt7_capacity_turnover_realism_gate.py \
-            -k "not test_decision_log_path_not_in_gitignore"
+            -k "not test_decision_log_path_not_in_gitignore" \
+            2>&1 | tee artifacts/evidence/p109-residual-pytest/residual-pytest.log
+          status=${PIPESTATUS[0]}
+          echo "exit_code=${status}" > artifacts/evidence/p109-residual-pytest/manifest.txt
+          exit "$status"
+
+      - name: Upload P109 residual pytest evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p109-residual-pytest-evidence
+          path: artifacts/evidence/p109-residual-pytest/
