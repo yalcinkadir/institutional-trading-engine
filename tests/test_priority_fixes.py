@@ -380,6 +380,6 @@ class TestDataPersistence:
         if not gitignore.exists():
             return
         content = gitignore.read_text()
-        assert "data/" not in content, (
-            "data/ is in .gitignore — decision log will be lost on every run"
+        assert "\ndata/\n" not in content and not content.startswith("data/\n"), (
+            "root-level data/ is in .gitignore — decision log will be lost on every run"
         )
