@@ -3,7 +3,14 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from scripts.generate_module_inventory import build_inventory, discover_src_modules
+from scripts.generate_module_inventory import (
+    build_inventory,
+    check_inventory,
+    discover_src_modules,
+    format_inventory_diff,
+    inventory_diff,
+    render_inventory,
+)
 
 
 INVENTORY_ARTIFACT_PATH = Path("docs/architecture/module_inventory.generated.json")
@@ -87,20 +94,102 @@ def test_arch106_committed_inventory_artifact_exists_and_has_schema() -> None:
 
 
 def test_arch106_committed_inventory_artifact_matches_generator_output() -> None:
-    expected = build_inventory()
-    actual = json.loads(INVENTORY_ARTIFACT_PATH.read_text(encoding="utf-8"))
+    is_current, message = check_inventory(INVENTORY_ARTIFACT_PATH)
 
-    assert actual == expected, (
-        "ARCH106 inventory artifact is stale. Regenerate it with: "
-        "python scripts/generate_module_inventory.py && "
-        "git add docs/architecture/module_inventory.generated.json"
+    assert is_current, message
+
+
+def test_arch106_inventory_diff_reports_added_removed_and_changed_modules() -> None:
+    expected = {
+        "counters": {"total_src_modules": 2, "classified_modules": 1},
+        "modules": [
+            {
+                "path": "src/a.py",
+                "classification": "connected_runtime",
+                "status": "classified",
+                "runtime_entrypoint": "scripts/a.py",
+                "runtime_execution_proof": "tests/test_a.py",
+            },
+            {
+                "path": "src/b.py",
+                "classification": "unclassified_legacy",
+                "status": "unclassified_legacy",
+                "runtime_entrypoint": None,
+                "runtime_execution_proof": None,
+            },
+        ],
+    }
+    actual = {
+        "counters": {"total_src_modules": 2, "classified_modules": 2},
+        "modules": [
+            {
+                "path": "src/a.py",
+                "classification": "experimental",
+                "status": "classified",
+                "runtime_entrypoint": None,
+                "runtime_execution_proof": None,
+            },
+            {
+                "path": "src/c.py",
+                "classification": "unclassified_legacy",
+                "status": "unclassified_legacy",
+                "runtime_entrypoint": None,
+                "runtime_execution_proof": None,
+            },
+        ],
+    }
+
+    diff = inventory_diff(expected, actual)
+    rendered = format_inventory_diff(diff)
+
+    assert diff["added_modules"] == ["src/b.py"]
+    assert diff["removed_modules"] == ["src/c.py"]
+    assert diff["changed_modules"] == [
+        {
+            "path": "src/a.py",
+            "changes": {
+                "classification": {"expected": "connected_runtime", "actual": "experimental"},
+                "runtime_entrypoint": {"expected": "scripts/a.py", "actual": None},
+                "runtime_execution_proof": {"expected": "tests/test_a.py", "actual": None},
+            },
+        }
+    ]
+    assert "Added src modules missing from committed inventory" in rendered
+    assert "Removed src modules still present in committed inventory" in rendered
+    assert "Changed module classifications/status" in rendered
+    assert "python scripts/generate_module_inventory.py" in rendered
+
+
+def test_arch106_inventory_check_reports_stale_artifact(tmp_path) -> None:
+    stale_path = tmp_path / "module_inventory.generated.json"
+    stale_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "source": "scripts/generate_module_inventory.py",
+                "classification_source": "docs/architecture/module_classification.json",
+                "grandfather_existing_modules": True,
+                "counters": {"total_src_modules": 0},
+                "modules": [],
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
     )
+
+    is_current, message = check_inventory(stale_path)
+
+    assert is_current is False
+    assert "ARCH106 module inventory artifact is stale" in message
+    assert "Added src modules missing from committed inventory" in message
 
 
 def test_arch106_inventory_can_be_written_without_missing_paths(tmp_path) -> None:
     output_path = tmp_path / "module_inventory.generated.json"
     inventory = build_inventory()
-    output_path.write_text(json.dumps(inventory, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    output_path.write_text(render_inventory(inventory), encoding="utf-8")
 
     assert output_path.exists()
     assert Path(inventory["classification_source"]).as_posix() == "docs/architecture/module_classification.json"
