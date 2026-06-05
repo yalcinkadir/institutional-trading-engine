@@ -170,7 +170,8 @@ def merge_and_save_bars(df: pd.DataFrame, output_path: Path) -> int:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     existing = _read_existing_bars(output_path)
     frames = [frame for frame in (existing, df) if not frame.empty]
-    combined = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame(columns=df.columns or existing.columns)
+    columns = list(df.columns) or list(existing.columns)
+    combined = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame(columns=columns)
     if combined.empty:
         combined.to_csv(output_path, index=False)
         return 0
