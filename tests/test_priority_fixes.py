@@ -14,6 +14,13 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from src.data_path_policy import (
+    REQUIRED_IGNORED_DATA_PATTERNS,
+    TRACKABLE_AUDIT_DATA_PATHS,
+    missing_required_ignored_data_patterns,
+    normalize_gitignore_lines,
+    prohibited_global_data_ignore_patterns,
+)
 from src.runtime.portfolio_state import PortfolioState
 
 
@@ -171,6 +178,9 @@ class TestSignalGenerator:
                     "regime_alignment": 0.82,
                     "asymmetry_score": 0.72,
                     "data_confidence": 0.85,
+                    "score_source": "scanner_derived",
+                    "data_source": "live",
+                    "thresholds_version": "report_scoring_v2",
                     "blocked_reasons": [],
                     "notes": [],
                 }
@@ -317,6 +327,8 @@ class TestGenerateOutcomesReal:
         client.get_daily_bars.side_effect = Exception("no key")
         result = fetch_real_outcomes("2026-05-15", "NVDA", 100.0, client)
         assert result["classification"] == "PENDING"
+        assert result["result_5d"] is None
+        assert "reason" in result
 
     def test_no_mock_performance_in_script(self):
         """Ensure build_mock_outcomes is no longer called in main()."""
@@ -375,11 +387,29 @@ class TestDataPersistence:
         if not gitkeep.exists():
             pytest.skip("data/.gitkeep not yet committed — add it")
 
-    def test_decision_log_path_not_in_gitignore(self):
+    def test_data_path_policy_does_not_ignore_audit_root(self):
         gitignore = Path(".gitignore")
         if not gitignore.exists():
             return
-        content = gitignore.read_text()
-        assert "\ndata/\n" not in content and not content.startswith("data/\n"), (
-            "root-level data/ is in .gitignore — decision log will be lost on every run"
+        content = gitignore.read_text(encoding="utf-8")
+        assert prohibited_global_data_ignore_patterns(content) == [], (
+            "root-level data/ is in .gitignore — decision logs/evidence would be lost"
         )
+
+    def test_data_path_policy_ignores_sensitive_operational_feeds(self):
+        gitignore = Path(".gitignore")
+        if not gitignore.exists():
+            return
+        content = gitignore.read_text(encoding="utf-8")
+        assert missing_required_ignored_data_patterns(content) == []
+        entries = normalize_gitignore_lines(content)
+        for pattern in REQUIRED_IGNORED_DATA_PATTERNS:
+            assert pattern in entries
+
+    def test_trackable_audit_data_paths_are_not_explicitly_ignored(self):
+        gitignore = Path(".gitignore")
+        if not gitignore.exists():
+            return
+        entries = normalize_gitignore_lines(gitignore.read_text(encoding="utf-8"))
+        for path in TRACKABLE_AUDIT_DATA_PATHS:
+            assert path not in entries
