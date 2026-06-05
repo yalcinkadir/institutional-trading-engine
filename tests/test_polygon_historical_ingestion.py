@@ -256,7 +256,11 @@ def test_hist1_output_is_compatible_with_bt9_input_pack(tmp_path: Path) -> None:
         http_client=client,
     )
     universe = tmp_path / "survivorship_universe.csv"
-    universe.write_text("symbol,effective_from,effective_to,active\nSPY,2020-01-01,,true\n", encoding="utf-8")
+    universe.write_text(
+        "symbol,effective_from,effective_to,active,asset_class,exchange,source,status,reason\n"
+        "SPY,2020-01-01,,true,etf,NYSEARCA,initial_universe,active,initial test universe\n",
+        encoding="utf-8",
+    )
     plans = tmp_path / "historical_trade_plans.json"
     plans.write_text(
         json.dumps(
