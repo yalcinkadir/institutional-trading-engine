@@ -59,6 +59,7 @@ CER1: Capacity / Execution Realism Evidence Review Summary implemented and CI-gr
 PFA1: Position-level Forward Evidence Attribution implemented and CI-green
 BT8: Backtesting Evidence Report generator implemented and CI-green
 BT9: Real historical backtesting remains fail-closed unless the input pack gate passes universe, bars, trade-plan and demo-data checks.
+HIST1: Polygon historical bars ingestion writes canonical CSV bars plus coverage manifest for BT9 compatibility.
 P121: Real historical-data backtest evidence is only claimable after a valid `real_data` evidence artifact passes the P121 schema gate.
 EV1-EV12: evidence-integrity remediation implemented and CI-green
 
@@ -110,6 +111,20 @@ PFA1 adds position-level forward-evidence attribution by joining risk attributio
 FCM1 adds a feature connectivity matrix guard so implemented / CI-green features must declare runtime gates, guard tests, evidence artifacts, documentation references and upstream/downstream links.
 RPW1 adds a deterministic runtime proof-pack artifact writer and retention index for review-ready runtime proof evidence.
 
+## Historical Bars Ingestion Boundary
+
+HIST1 uses Polygon daily aggregate bars and writes generated data under ignored local paths:
+
+- data/historical/bars/1day/<SYMBOL>.csv
+- data/historical/metadata/ingestion_status.json
+- data/historical/metadata/coverage_manifest.json
+
+Manual ingestion example:
+
+python scripts/ingest_historical_polygon.py --symbols NVDA,AAPL,SPY --start-date 2024-01-01 --end-date 2026-01-01 --coverage-manifest-path data/historical/metadata/coverage_manifest.json
+
+The Polygon API key must be supplied through POLYGON_API_KEY. Generated historical datasets and metadata are evidence artifacts and must not be committed to the public repository.
+
 ## Core Commands
 
 Targeted remediation tests:
@@ -125,6 +140,7 @@ pytest tests/test_rpw1_runtime_proof_pack_artifact_writer.py -q
 pytest tests/test_p120_paper_observation_evidence_gate.py -q
 pytest tests/test_p121_real_data_backtest_evidence_gate.py -q
 pytest tests/test_bt9_real_historical_input_pack_gate.py -q
+pytest tests/test_polygon_historical_ingestion.py -q
 
 Architecture inventory:
 python scripts/generate_module_inventory.py
