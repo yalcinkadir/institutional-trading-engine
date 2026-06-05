@@ -1,0 +1,9 @@
+symbol,effective_from,effective_to,active,asset_class,exchange,source,status,reason
+SPY,2020-01-01,,true,etf,NYSEARCA,initial_universe,active,initial broad market proxy
+QQQ,2020-01-01,,true,etf,NASDAQ,initial_universe,active,initial growth index proxy
+AAPL,2020-01-01,,true,equity,NASDAQ,initial_universe,active,initial mega-cap technology constituent
+MSFT,2020-01-01,,true,equity,NASDAQ,initial_universe,active,initial mega-cap technology constituent
+NVDA,2020-01-01,,true,equity,NASDAQ,initial_universe,active,initial semiconductor leader
+GOOGL,2020-01-01,,true,equity,NASDAQ,initial_universe,active,initial communication-services constituent
+META,2020-01-01,,true,equity,NASDAQ,initial_universe,active,initial communication-services constituent
+GLD,2020-01-01,,true,etf,NYSEARCA,initial_universe,active,initial gold proxy
