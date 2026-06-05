@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from src.data_path_policy import (
+from tests.support.data_path_policy import (
     DATA_PATH_POLICY_VERSION,
     REQUIRED_IGNORED_DATA_PATTERNS,
     missing_required_ignored_data_patterns,
