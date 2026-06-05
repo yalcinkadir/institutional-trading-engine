@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -20,6 +21,8 @@ TERMINAL_EVENTS = {
     "CANCELLED_BY_REGIME_CHANGE",
     "REGIME_INVALIDATION_EXIT",
 }
+
+DATA_QUALITY_ORDER = {"OK": 0, "DEGRADED": 1, "UNKNOWN": 2, "BLOCKED": 3}
 
 
 @dataclass(frozen=True)
@@ -40,18 +43,30 @@ class PaperLiveObservationReport:
     lifecycle_event_count: int
     terminal_event_count: int
     alert_count: int
+    timestamp_utc: str
+    universe: list[str]
+    signal_ids: list[str]
+    decision_status: dict[str, int]
+    data_quality_status: str
+    provenance: list[dict[str, Any]]
     gates: list[PaperLiveGate] = field(default_factory=list)
     lifecycle_event_types: dict[str, int] = field(default_factory=dict)
     notes: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return {
+            "timestamp_utc": self.timestamp_utc,
             "ready_for_review": self.ready_for_review,
             "signal_count": self.signal_count,
             "buy_watch_count": self.buy_watch_count,
             "lifecycle_event_count": self.lifecycle_event_count,
             "terminal_event_count": self.terminal_event_count,
             "alert_count": self.alert_count,
+            "universe": self.universe,
+            "signal_ids": self.signal_ids,
+            "decision_status": self.decision_status,
+            "data_quality_status": self.data_quality_status,
+            "provenance": self.provenance,
             "gates": [gate.to_dict() for gate in self.gates],
             "lifecycle_event_types": self.lifecycle_event_types,
             "notes": self.notes,
@@ -104,6 +119,40 @@ def _event_type(event: dict[str, Any]) -> str:
     return str(event.get("event_type") or event.get("type") or event.get("status") or "UNKNOWN")
 
 
+def _signal_id(signal: dict[str, Any]) -> str:
+    return str(signal.get("signal_id") or signal.get("id") or signal.get("symbol") or "UNKNOWN")
+
+
+def _decision_status(signal: dict[str, Any]) -> str:
+    return str(signal.get("decision") or signal.get("status") or signal.get("action") or "UNKNOWN")
+
+
+def _data_quality_status(signals: list[dict[str, Any]]) -> str:
+    if not signals:
+        return "BLOCKED"
+    worst = "OK"
+    for signal in signals:
+        status = str(signal.get("data_status") or signal.get("data_quality_status") or "UNKNOWN")
+        status = status if status in DATA_QUALITY_ORDER else "UNKNOWN"
+        if DATA_QUALITY_ORDER[status] > DATA_QUALITY_ORDER[worst]:
+            worst = status
+    return worst
+
+
+def _build_provenance(signals: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        {
+            "signal_id": _signal_id(signal),
+            "symbol": str(signal.get("symbol") or "UNKNOWN"),
+            "source": str(signal.get("source") or "UNKNOWN"),
+            "source_timestamp": str(signal.get("source_timestamp") or signal.get("generated_at") or "UNKNOWN"),
+            "fallback_level": str(signal.get("fallback_level") or "UNKNOWN"),
+            "data_status": str(signal.get("data_status") or signal.get("data_quality_status") or "UNKNOWN"),
+        }
+        for signal in signals
+    ]
+
+
 def observe_paper_live(
     *,
     signals_file: Path = Path("reports/signals/latest-signals.json"),
@@ -123,56 +172,51 @@ def observe_paper_live(
 
     terminal_count = sum(count for event, count in event_counts.items() if event in TERMINAL_EVENTS)
     buy_watch_count = sum(1 for signal in signals if signal.get("action") == "BUY_WATCH")
+    universe = sorted({str(signal.get("symbol")) for signal in signals if signal.get("symbol")})
+    signal_ids = sorted(_signal_id(signal) for signal in signals)
+    decision_status: dict[str, int] = {}
+    for signal in signals:
+        decision = _decision_status(signal)
+        decision_status[decision] = decision_status.get(decision, 0) + 1
+    provenance = _build_provenance(signals)
 
     gates = [
+        PaperLiveGate("signals_file_present", signals_file.exists(), f"signals file: {signals_file}"),
+        PaperLiveGate("signals_loaded", len(signals) > 0, f"signals loaded: {len(signals)}"),
         PaperLiveGate(
-            name="signals_file_present",
-            passed=signals_file.exists(),
-            message=f"signals file: {signals_file}",
+            "observation_evidence_schema",
+            bool(universe and signal_ids and decision_status and provenance),
+            "observation artifact includes universe, signal ids, decision status and provenance",
         ),
+        PaperLiveGate("lifecycle_file_readable", lifecycle_file.exists(), f"lifecycle file: {lifecycle_file}"),
         PaperLiveGate(
-            name="signals_loaded",
-            passed=len(signals) > 0,
-            message=f"signals loaded: {len(signals)}",
+            "minimum_lifecycle_events",
+            len(lifecycle_events) >= min_lifecycle_events,
+            f"lifecycle events: {len(lifecycle_events)} / required: {min_lifecycle_events}",
         ),
-        PaperLiveGate(
-            name="lifecycle_file_readable",
-            passed=lifecycle_file.exists(),
-            message=f"lifecycle file: {lifecycle_file}",
-        ),
-        PaperLiveGate(
-            name="minimum_lifecycle_events",
-            passed=len(lifecycle_events) >= min_lifecycle_events,
-            message=f"lifecycle events: {len(lifecycle_events)} / required: {min_lifecycle_events}",
-        ),
-        PaperLiveGate(
-            name="terminal_events_observed",
-            passed=terminal_count > 0,
-            message=f"terminal events observed: {terminal_count}",
-        ),
+        PaperLiveGate("terminal_events_observed", terminal_count > 0, f"terminal events observed: {terminal_count}"),
     ]
 
     if require_alerts:
-        gates.append(
-            PaperLiveGate(
-                name="alerts_observed",
-                passed=len(alerts) > 0,
-                message=f"alerts observed: {len(alerts)}",
-            )
-        )
+        gates.append(PaperLiveGate("alerts_observed", len(alerts) > 0, f"alerts observed: {len(alerts)}"))
 
-    ready = all(gate.passed for gate in gates)
     notes = [
         "Paper-live observation is decision-support evidence only.",
         "This report does not authorize trading or broker execution.",
     ]
     return PaperLiveObservationReport(
-        ready_for_review=ready,
+        ready_for_review=all(gate.passed for gate in gates),
         signal_count=len(signals),
         buy_watch_count=buy_watch_count,
         lifecycle_event_count=len(lifecycle_events),
         terminal_event_count=terminal_count,
         alert_count=len(alerts),
+        timestamp_utc=datetime.now(UTC).isoformat(),
+        universe=universe,
+        signal_ids=signal_ids,
+        decision_status=dict(sorted(decision_status.items())),
+        data_quality_status=_data_quality_status(signals),
+        provenance=provenance,
         gates=gates,
         lifecycle_event_types=dict(sorted(event_counts.items())),
         notes=notes,
@@ -192,6 +236,7 @@ def render_paper_live_markdown(report: PaperLiveObservationReport) -> str:
         f"- Lifecycle events: {report.lifecycle_event_count}",
         f"- Terminal events: {report.terminal_event_count}",
         f"- Alerts: {report.alert_count}",
+        f"- Data quality status: {report.data_quality_status}",
         "",
         "## Gates",
         "",
