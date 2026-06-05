@@ -85,10 +85,13 @@ def _has_demo_marker(row: dict[str, str]) -> bool:
 def _row_active_for_date_range(row: UniverseRow, start_date: str, end_date: str) -> bool:
     if not row.active:
         return False
-    row_start = date.fromisoformat(row.effective_from)
-    row_end = date.fromisoformat(row.effective_to) if row.effective_to else date.max
-    requested_start = date.fromisoformat(start_date)
-    requested_end = date.fromisoformat(end_date)
+    try:
+        row_start = date.fromisoformat(row.effective_from)
+        row_end = date.fromisoformat(row.effective_to) if row.effective_to else date.max
+        requested_start = date.fromisoformat(start_date)
+        requested_end = date.fromisoformat(end_date)
+    except ValueError:
+        return False
     return row_start <= requested_end and row_end >= requested_start
 
 
