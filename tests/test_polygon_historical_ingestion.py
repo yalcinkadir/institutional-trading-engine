@@ -5,7 +5,9 @@ from pathlib import Path
 
 import pandas as pd
 
+from scripts.validate_bt9_real_historical_input_pack import validate_bt9_input_pack
 from src.historical.polygon_ingestion import (
+    build_coverage_manifest,
     ingest_historical_symbol,
     ingest_historical_symbols,
     normalize_polygon_aggregate_bars,
@@ -172,9 +174,110 @@ def test_ingest_historical_symbols_batch_counts_results(tmp_path: Path) -> None:
         api_key="test-key",
         output_root=tmp_path,
         metadata_path=tmp_path / "metadata.json",
+        coverage_manifest_path=tmp_path / "coverage_manifest.json",
         http_client=client,
     )
 
     assert batch.success_count == 2
     assert batch.warning_count == 0
     assert len(batch.to_dict()["results"]) == 2
+    assert batch.coverage_manifest_path == str(tmp_path / "coverage_manifest.json")
+
+
+def test_historical_coverage_manifest_contains_vendor_timestamp_and_missing_summary(tmp_path: Path) -> None:
+    client = MockHttpClient({"results": [_polygon_bar(1_609_459_200_000, 101.0)]})
+    manifest_path = tmp_path / "metadata" / "coverage_manifest.json"
+
+    ingest_historical_symbols(
+        symbols=["NVDA", "AAPL"],
+        start_date="2021-01-01",
+        end_date="2021-01-02",
+        api_key="test-key",
+        output_root=tmp_path,
+        metadata_path=tmp_path / "metadata" / "ingestion_status.json",
+        coverage_manifest_path=manifest_path,
+        http_client=client,
+    )
+
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["vendor"] == "polygon"
+    assert manifest["generated_at"]
+    assert manifest["requested_start_date"] == "2021-01-01"
+    assert manifest["requested_end_date"] == "2021-01-02"
+    assert manifest["symbol_count"] == 2
+    assert manifest["ok_symbol_count"] == 2
+    assert manifest["status"] == "ok"
+    assert {item["symbol"] for item in manifest["symbols"]} == {"NVDA", "AAPL"}
+    assert all(item["bar_count"] == 1 for item in manifest["symbols"])
+
+
+def test_historical_coverage_manifest_marks_partial_payload_as_degraded() -> None:
+    ok = ingest_historical_symbol(
+        symbol="NVDA",
+        start_date="2021-01-01",
+        end_date="2021-01-02",
+        api_key="test-key",
+        output_root=Path("unused"),
+        metadata_path=Path("unused.json"),
+        http_client=MockHttpClient({"results": [_polygon_bar(1_609_459_200_000, 101.0)]}),
+    )
+    empty = ok.__class__(
+        symbol="MSFT",
+        timespan="day",
+        multiplier=1,
+        start_date="2021-01-01",
+        end_date="2021-01-02",
+        rows_fetched=0,
+        rows_written=0,
+        output_path="data/historical/bars/1day/MSFT.csv",
+        status="empty",
+        message="Polygon returned no usable bars",
+    )
+
+    manifest = build_coverage_manifest([ok, empty]).to_dict()
+    assert manifest["status"] == "degraded"
+    assert "MSFT:empty" in manifest["missing_data_summary"]
+    assert "MSFT:no_canonical_bars_written" in manifest["missing_data_summary"]
+
+
+def test_hist1_output_is_compatible_with_bt9_input_pack(tmp_path: Path) -> None:
+    client = MockHttpClient({"results": [_polygon_bar(1_609_459_200_000, 101.0), _polygon_bar(1_609_545_600_000, 102.0)]})
+    ingest_historical_symbols(
+        symbols=["SPY"],
+        start_date="2021-01-01",
+        end_date="2021-01-02",
+        api_key="test-key",
+        output_root=tmp_path / "historical",
+        metadata_path=tmp_path / "historical" / "metadata" / "ingestion_status.json",
+        coverage_manifest_path=tmp_path / "historical" / "metadata" / "coverage_manifest.json",
+        http_client=client,
+    )
+    universe = tmp_path / "survivorship_universe.csv"
+    universe.write_text("symbol,effective_from,effective_to,active\nSPY,2020-01-01,,true\n", encoding="utf-8")
+    plans = tmp_path / "historical_trade_plans.json"
+    plans.write_text(
+        json.dumps(
+            {
+                "plans": [
+                    {
+                        "signal_id": "sig_spy_1",
+                        "symbol": "SPY",
+                        "signal_date": "2021-01-01",
+                        "entry_trigger": 101.0,
+                        "stop_loss": 99.0,
+                        "target_1": 105.0,
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    report = validate_bt9_input_pack(
+        universe_path=universe,
+        bars_root=tmp_path / "historical" / "bars" / "1day",
+        trade_plans_path=plans,
+    )
+
+    assert report.passed
+    assert report.symbols == ["SPY"]
