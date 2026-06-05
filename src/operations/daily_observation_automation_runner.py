@@ -43,6 +43,8 @@ def build_daily_observation_automation_artifact(
     review_notes: str = "",
     minimum_records: int = 1,
     created_at: str | None = None,
+    require_artifact_paths_exist: bool = True,
+    artifact_root: str | Path | None = None,
 ) -> DailyObservationAutomationRunnerResult:
     """Build the deterministic PO10 daily observation automation artifact.
 
@@ -65,6 +67,8 @@ def build_daily_observation_automation_artifact(
         artifact_paths=artifact_paths,
         review_notes=review_notes,
         created_at=created_at,
+        require_artifact_paths_exist=require_artifact_paths_exist,
+        artifact_root=artifact_root,
     )
 
     records = [dict(record) for record in existing_records or []]
@@ -98,7 +102,7 @@ def build_daily_observation_automation_artifact(
         "broker_execution_mode": "paper_only",
     }
 
-    valid = not errors and gate_result.valid
+    valid = not errors and gate_result.valid and automation_status == AUTOMATION_STATUS_PASSED
 
     return DailyObservationAutomationRunnerResult(
         valid=valid,
