@@ -58,6 +58,7 @@ BT7: Capacity / Turnover / Realism Gate implemented and CI-green
 CER1: Capacity / Execution Realism Evidence Review Summary implemented and CI-green
 PFA1: Position-level Forward Evidence Attribution implemented and CI-green
 BT8: Backtesting Evidence Report generator implemented and CI-green
+BT9: Real historical backtesting remains fail-closed unless the input pack gate passes universe, bars, trade-plan and demo-data checks.
 P121: Real historical-data backtest evidence is only claimable after a valid `real_data` evidence artifact passes the P121 schema gate.
 EV1-EV12: evidence-integrity remediation implemented and CI-green
 
@@ -123,6 +124,7 @@ pytest tests/test_fcm1_feature_connectivity_matrix_guard.py -q
 pytest tests/test_rpw1_runtime_proof_pack_artifact_writer.py -q
 pytest tests/test_p120_paper_observation_evidence_gate.py -q
 pytest tests/test_p121_real_data_backtest_evidence_gate.py -q
+pytest tests/test_bt9_real_historical_input_pack_gate.py -q
 
 Architecture inventory:
 python scripts/generate_module_inventory.py
