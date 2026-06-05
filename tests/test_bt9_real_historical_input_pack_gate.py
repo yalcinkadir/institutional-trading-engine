@@ -8,6 +8,7 @@ from pathlib import Path
 from scripts.validate_bt9_real_historical_input_pack import validate_bt9_input_pack
 
 VALIDATOR_SCRIPT = Path("scripts/validate_bt9_real_historical_input_pack.py")
+RUNNER_SCRIPT = Path("scripts/run_historical_entry_exit_backtest.py")
 
 
 def _write_universe(path: Path, *, demo_marker: bool = False) -> None:
@@ -149,3 +150,34 @@ def test_bt9_cli_fails_closed_when_pack_is_missing(tmp_path: Path) -> None:
     assert "BT9 real historical input pack gate status: FAIL" in result.stdout
     assert "missing_universe_file" in result.stdout
     assert "missing_trade_plans_file" in result.stdout
+
+
+def test_bt9_runner_fails_closed_before_real_backtest_execution_when_pack_missing(tmp_path: Path) -> None:
+    plans = tmp_path / "plans.json"
+    _write_trade_plans(plans)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(RUNNER_SCRIPT),
+            "--plans-file",
+            str(plans),
+            "--bars-root",
+            str(tmp_path / "missing-bars"),
+            "--universe",
+            str(tmp_path / "missing-universe.csv"),
+            "--real-data",
+            "--json-output",
+            str(tmp_path / "should-not-exist.json"),
+            "--markdown-output",
+            str(tmp_path / "should-not-exist.md"),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "BT9 real historical input pack gate status: FAIL" in result.stdout
+    assert not (tmp_path / "should-not-exist.json").exists()
+    assert not (tmp_path / "should-not-exist.md").exists()
