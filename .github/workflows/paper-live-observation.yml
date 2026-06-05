@@ -69,6 +69,12 @@ jobs:
             --json-output reports/paper-live/paper-live-observation.json \
             --markdown-output reports/paper-live/paper-live-observation.md
 
+      - name: Validate paper observation evidence artifact
+        run: |
+          python scripts/validate_paper_observation_evidence_gate.py \
+            --artifact reports/paper-live/paper-live-observation.json \
+            --report-output reports/paper-live/paper-observation-evidence-gate.json
+
       - name: Show paper-live markdown summary
         if: always()
         run: |
@@ -83,9 +89,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: paper-live-observation-artifacts
-          path: |
-            reports/paper-live/**
-            reports/signals/latest-signals.json
-            reports/alerts/latest-alerts.json
-            data/signal_lifecycle.jsonl
-          if-no-files-found: ignore
+          path: reports/paper-live/**
+          if-no-files-found: error
