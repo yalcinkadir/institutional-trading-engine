@@ -11,6 +11,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
+from scripts.validate_bt9_real_historical_input_pack import validate_bt9_input_pack
 from src.backtesting.historical_entry_exit_backtest import load_trade_plans, run_backtest
 from src.backtesting.historical_report import write_report
 
@@ -19,6 +20,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run historical Entry / Stop / Exit backtest.")
     parser.add_argument("--plans-file", required=True, help="JSON list, plans[] or signals[] with trade plans.")
     parser.add_argument("--bars-root", default="data/historical/bars/1day")
+    parser.add_argument("--universe", default="data/universe/survivorship_universe.csv")
     parser.add_argument("--max-bars", type=int, default=20)
     parser.add_argument("--run-id", default="historical-demo-run")
     parser.add_argument("--data-source", default="historical_demo", choices=["historical_demo", "real_data"])
@@ -29,8 +31,30 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _fail_closed_if_real_data_requested(args: argparse.Namespace) -> int | None:
+    if not args.real_data and args.data_source != "real_data":
+        return None
+
+    gate = validate_bt9_input_pack(
+        universe_path=Path(args.universe),
+        bars_root=Path(args.bars_root),
+        trade_plans_path=Path(args.plans_file),
+    )
+    if gate.passed:
+        return None
+
+    print("BT9 real historical input pack gate status: FAIL")
+    for failure in gate.failures:
+        print(f"- {failure}")
+    return 1
+
+
 def main() -> int:
     args = parse_args()
+    gate_exit = _fail_closed_if_real_data_requested(args)
+    if gate_exit is not None:
+        return gate_exit
+
     plans = load_trade_plans(Path(args.plans_file))
     data_source = "real_data" if args.real_data else args.data_source
     is_demo = data_source != "real_data"
