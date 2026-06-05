@@ -1,0 +1,44 @@
+name: Module Inventory Freshness
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/**"
+      - "scripts/generate_module_inventory.py"
+      - "docs/architecture/module_classification.json"
+      - "docs/architecture/module_inventory.generated.json"
+      - ".github/workflows/module-inventory.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "src/**"
+      - "scripts/generate_module_inventory.py"
+      - "docs/architecture/module_classification.json"
+      - "docs/architecture/module_inventory.generated.json"
+      - ".github/workflows/module-inventory.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  module-inventory:
+    name: Check ARCH106 module inventory freshness
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Check committed module inventory
+        run: |
+          python scripts/generate_module_inventory.py --check
