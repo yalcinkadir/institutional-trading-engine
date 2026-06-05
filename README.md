@@ -119,6 +119,13 @@ pytest tests/test_po14_forward_evidence_quality_gate.py -q
 pytest tests/test_fcm1_feature_connectivity_matrix_guard.py -q
 pytest tests/test_rpw1_runtime_proof_pack_artifact_writer.py -q
 
+Architecture inventory:
+python scripts/generate_module_inventory.py
+python scripts/generate_module_inventory.py --check
+
+after regeneration:
+git add docs/architecture/module_inventory.generated.json
+
 Documentation/status guards:
 pytest tests/test_ip9_ip10_public_repo_governance.py -q
 pytest tests/test_post_rgp_status_consistency.py -q
