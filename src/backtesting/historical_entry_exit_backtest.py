@@ -230,11 +230,39 @@ def calculate_metrics(results: list[HistoricalBacktestResult]) -> HistoricalBack
     return HistoricalBacktestMetrics(total=total, entry_hit_rate=rate(lambda item: item.entry_hit), expired_without_entry_rate=rate(lambda item: not item.entry_hit), stop_hit_rate=rate(lambda item: item.stop_hit), target_1_hit_rate=rate(lambda item: item.target_1_hit), target_2_hit_rate=rate(lambda item: item.target_2_hit), false_breakout_rate=rate(lambda item: item.false_breakout), average_r=avg_r, expectancy_r=avg_r)
 
 
-def run_backtest(plans: list[HistoricalTradePlan], *, bars_root: Path, max_bars: int = 20, cfg: BacktestExecutionConfig = BacktestExecutionConfig()) -> HistoricalBacktestReport:
+def _date_range(results: list[HistoricalBacktestResult], plans: list[HistoricalTradePlan]) -> dict[str, str]:
+    dates = [plan.signal_date for plan in plans]
+    dates.extend(result.exit_date for result in results if result.exit_date)
+    dates = sorted(date for date in dates if date)
+    return {"start": dates[0], "end": dates[-1]} if dates else {}
+
+
+def run_backtest(
+    plans: list[HistoricalTradePlan],
+    *,
+    bars_root: Path,
+    max_bars: int = 20,
+    cfg: BacktestExecutionConfig = BacktestExecutionConfig(),
+    run_id: str = "historical-demo-run",
+    data_source: str = "historical_demo",
+    is_demo: bool = True,
+    strategy_version: str = "historical-entry-exit-v1",
+    tags: list[str] | None = None,
+) -> HistoricalBacktestReport:
     cache: dict[str, pd.DataFrame] = {}
     results: list[HistoricalBacktestResult] = []
     for plan in plans:
         if plan.symbol not in cache:
             cache[plan.symbol] = load_historical_bars(bars_root / f"{plan.symbol}.csv")
         results.append(simulate_plan(plan, cache[plan.symbol], max_bars=max_bars, cfg=cfg))
-    return HistoricalBacktestReport(metrics=calculate_metrics(results), results=results)
+    return HistoricalBacktestReport(
+        metrics=calculate_metrics(results),
+        results=results,
+        run_id=run_id,
+        data_source=data_source,
+        is_demo=is_demo,
+        symbol_universe=sorted({plan.symbol for plan in plans}),
+        date_range=_date_range(results, plans),
+        strategy_version=strategy_version,
+        tags=tags or (["demo", "public_safe", "research_only"] if is_demo else ["real_data", "research_only"]),
+    )
