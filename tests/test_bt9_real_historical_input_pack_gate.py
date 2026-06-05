@@ -11,13 +11,13 @@ VALIDATOR_SCRIPT = Path("scripts/validate_bt9_real_historical_input_pack.py")
 RUNNER_SCRIPT = Path("scripts/run_historical_entry_exit_backtest.py")
 
 
-def _write_universe(path: Path, *, demo_marker: bool = False) -> None:
+def _write_universe(path: Path, *, demo_marker: bool = False, effective_to: str = "") -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     source = "demo_vendor" if demo_marker else "initial_universe"
     reason = "demo placeholder" if demo_marker else "initial test universe"
     path.write_text(
         "symbol,effective_from,effective_to,active,asset_class,exchange,source,status,reason\n"
-        f"SPY,2024-01-01,,true,etf,NYSEARCA,{source},active,{reason}\n",
+        f"SPY,2024-01-01,{effective_to},true,etf,NYSEARCA,{source},active,{reason}\n",
         encoding="utf-8",
     )
 
@@ -128,6 +128,20 @@ def test_bt9_rejects_demo_markers_in_input_pack(tmp_path: Path) -> None:
 
     assert report.passed is False
     assert any("demo_marker" in failure for failure in report.failures)
+
+
+def test_bt9_blocks_symbol_outside_universe_lifecycle(tmp_path: Path) -> None:
+    universe = tmp_path / "data/universe/survivorship_universe.csv"
+    bars_root = tmp_path / "data/historical/bars/1day"
+    trade_plans = tmp_path / "data/trade_plans/historical_trade_plans.json"
+    _write_universe(universe, effective_to="2025-12-31")
+    _write_bars(bars_root)
+    _write_trade_plans(trade_plans)
+
+    report = validate_bt9_input_pack(universe_path=universe, bars_root=bars_root, trade_plans_path=trade_plans)
+
+    assert report.passed is False
+    assert "requested_symbol_not_active:SPY" in report.failures
 
 
 def test_bt9_cli_fails_closed_when_pack_is_missing(tmp_path: Path) -> None:
