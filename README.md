@@ -59,6 +59,7 @@ CER1: Capacity / Execution Realism Evidence Review Summary implemented and CI-gr
 PFA1: Position-level Forward Evidence Attribution implemented and CI-green
 BT8: Backtesting Evidence Report generator implemented and CI-green
 BT9: Real historical backtesting remains fail-closed unless the input pack gate passes universe, bars, trade-plan and demo-data checks.
+UNI1: Initial survivorship universe contract defines point-in-time symbol lifecycle validation for real backtesting.
 HIST1: Polygon historical bars ingestion writes canonical CSV bars plus coverage manifest for BT9 compatibility.
 P121: Real historical-data backtest evidence is only claimable after a valid `real_data` evidence artifact passes the P121 schema gate.
 EV1-EV12: evidence-integrity remediation implemented and CI-green
@@ -111,6 +112,24 @@ PFA1 adds position-level forward-evidence attribution by joining risk attributio
 FCM1 adds a feature connectivity matrix guard so implemented / CI-green features must declare runtime gates, guard tests, evidence artifacts, documentation references and upstream/downstream links.
 RPW1 adds a deterministic runtime proof-pack artifact writer and retention index for review-ready runtime proof evidence.
 
+## Survivorship Universe Boundary
+
+UNI1 defines the first controlled survivorship-aware universe contract for real historical backtesting.
+
+Required canonical file:
+
+data/universe/survivorship_universe.csv
+
+Required columns:
+
+symbol, effective_from, effective_to, active, asset_class, exchange, source, status, reason
+
+The initial universe is intentionally small and auditable. It is not a full institutional survivorship database. It is the first point-in-time lifecycle source that blocks real backtests when a requested symbol is missing, malformed or inactive for the tested date range.
+
+Manual validation example:
+
+python scripts/validate_survivorship_universe.py --universe data/universe/survivorship_universe.csv --symbols SPY,QQQ,AAPL,MSFT,NVDA,GOOGL,META,GLD --start-date 2021-01-01 --end-date 2021-01-02
+
 ## Historical Bars Ingestion Boundary
 
 HIST1 uses Polygon daily aggregate bars and writes generated data under ignored local paths:
@@ -140,6 +159,7 @@ pytest tests/test_rpw1_runtime_proof_pack_artifact_writer.py -q
 pytest tests/test_p120_paper_observation_evidence_gate.py -q
 pytest tests/test_p121_real_data_backtest_evidence_gate.py -q
 pytest tests/test_bt9_real_historical_input_pack_gate.py -q
+pytest tests/test_uni1_survivorship_universe_contract.py -q
 pytest tests/test_polygon_historical_ingestion.py -q
 
 Architecture inventory:
