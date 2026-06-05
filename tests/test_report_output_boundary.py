@@ -5,10 +5,12 @@ from pathlib import Path
 import pytest
 
 from src.report_output_boundary import (
+    ALLOWED_GENERATED_REPORT_ROOTS,
     PROTECTED_PUBLIC_REPORTS,
     PUBLIC_REPORT_OUTPUT_BOUNDARY_VERSION,
     ReportOutputBoundaryError,
     assert_report_output_path_allowed,
+    is_generated_report_output_path,
     is_protected_public_report_path,
     normalize_report_output_path,
     write_report_text_guarded,
@@ -23,21 +25,44 @@ def test_protected_public_report_paths_are_blocked(protected_path: str) -> None:
     message = str(exc_info.value)
     assert protected_path in message
     assert PUBLIC_REPORT_OUTPUT_BOUNDARY_VERSION in message
+    assert "Allowed generated report roots" in message
 
 
 @pytest.mark.parametrize(
     "allowed_path",
     [
         "reports/generated/premarket-report.md",
+        "reports/premarket/2026-06-05-premarket.md",
+        "reports/intraday/2026-06-05-intraday.md",
+        "reports/postmarket/2026-06-05-postmarket.md",
+        "reports/weekly/2026-W23-weekly.md",
+        "reports/signals/latest-signals.json",
+        "reports/validation/paper-observation-health.md",
+    ],
+)
+def test_generated_report_policy_paths_are_allowed(allowed_path: str) -> None:
+    assert_report_output_path_allowed(allowed_path)
+    assert is_generated_report_output_path(allowed_path) is True
+    assert is_protected_public_report_path(allowed_path) is False
+
+
+@pytest.mark.parametrize(
+    "invalid_path",
+    [
         "reports/live/premarket-report-live.md",
         "reports/private/postmarket-report-private.md",
         "outputs/weekly-report.md",
         "tmp/premarket-report.md",
+        "reports/random.md",
     ],
 )
-def test_non_committed_generated_report_paths_are_allowed(allowed_path: str) -> None:
-    assert_report_output_path_allowed(allowed_path)
-    assert is_protected_public_report_path(allowed_path) is False
+def test_unapproved_generated_report_paths_are_rejected(invalid_path: str) -> None:
+    with pytest.raises(ReportOutputBoundaryError) as exc_info:
+        assert_report_output_path_allowed(invalid_path)
+
+    message = str(exc_info.value)
+    assert invalid_path in message
+    assert "Allowed generated report roots" in message
 
 
 def test_absolute_path_inside_repo_is_normalized_for_boundary_check(tmp_path: Path) -> None:
@@ -78,3 +103,17 @@ def test_guarded_writer_allows_generated_output(tmp_path: Path) -> None:
 
     assert written == output
     assert output.read_text(encoding="utf-8") == "generated content"
+
+
+def test_allowed_roots_are_single_source_of_truth() -> None:
+    assert ALLOWED_GENERATED_REPORT_ROOTS == frozenset(
+        {
+            "reports/generated",
+            "reports/premarket",
+            "reports/intraday",
+            "reports/postmarket",
+            "reports/weekly",
+            "reports/signals",
+            "reports/validation",
+        }
+    )
