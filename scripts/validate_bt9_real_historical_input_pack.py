@@ -8,6 +8,8 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
+from scripts.validate_survivorship_universe import validate_survivorship_universe
+
 DEMO_MARKERS = {"demo", "synthetic", "public_safe", "historical_demo", "placeholder"}
 REQUIRED_BAR_COLUMNS = {"date", "open", "high", "low", "close", "volume"}
 REQUIRED_TRADE_PLAN_FIELDS = {"signal_id", "symbol", "signal_date", "entry_trigger", "stop_loss", "target_1"}
@@ -36,26 +38,6 @@ def _has_demo_marker(value: Any) -> bool:
     if isinstance(value, dict):
         return any(_has_demo_marker(item) for item in value.values())
     return False
-
-
-def _read_universe(path: Path) -> tuple[list[str], list[str]]:
-    if not path.exists():
-        return [], ["missing_universe_file"]
-    with path.open(newline="", encoding="utf-8") as handle:
-        rows = list(csv.DictReader(handle))
-    if not rows:
-        return [], ["empty_universe_file"]
-    failures: list[str] = []
-    symbols: list[str] = []
-    for index, row in enumerate(rows, start=2):
-        symbol = str(row.get("symbol") or "").strip().upper()
-        if not symbol:
-            failures.append(f"universe_row_{index}_missing_symbol")
-            continue
-        if _has_demo_marker(row):
-            failures.append(f"universe_row_{index}_demo_marker")
-        symbols.append(symbol)
-    return sorted(set(symbols)), failures
 
 
 def _read_trade_plans(path: Path) -> tuple[list[dict[str, Any]], list[str]]:
@@ -114,15 +96,20 @@ def _validate_bars(bars_root: Path, symbols: list[str]) -> tuple[dict[str, str],
 
 
 def validate_bt9_input_pack(*, universe_path: Path, bars_root: Path, trade_plans_path: Path) -> BT9RealHistoricalInputPackReport:
-    symbols, universe_failures = _read_universe(universe_path)
     plans, trade_plan_failures = _read_trade_plans(trade_plans_path)
     plan_symbols = sorted({str(plan.get("symbol") or "").upper() for plan in plans if plan.get("symbol")})
-    requested_symbols = sorted(set(symbols) | set(plan_symbols))
+    signal_dates = sorted(str(plan.get("signal_date")) for plan in plans if plan.get("signal_date"))
+    requested_start = signal_dates[0] if signal_dates else None
+    requested_end = signal_dates[-1] if signal_dates else None
+    universe_report = validate_survivorship_universe(
+        universe_path=universe_path,
+        requested_symbols=plan_symbols,
+        start_date=requested_start,
+        end_date=requested_end,
+    )
+    requested_symbols = sorted(set(universe_report.active_symbols) | set(plan_symbols))
     date_range, bar_failures = _validate_bars(bars_root, requested_symbols)
-    failures = universe_failures + trade_plan_failures + bar_failures
-    for symbol in plan_symbols:
-        if symbol not in symbols:
-            failures.append(f"trade_plan_symbol_not_in_universe:{symbol}")
+    failures = universe_report.failures + trade_plan_failures + bar_failures
     return BT9RealHistoricalInputPackReport(
         passed=not failures,
         universe_path=universe_path.as_posix(),
