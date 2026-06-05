@@ -24,6 +24,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--timespan", default="day")
     parser.add_argument("--output-root", default="data/historical")
     parser.add_argument("--metadata-path", default="data/historical/metadata/ingestion_status.json")
+    parser.add_argument("--coverage-manifest-path", default="data/historical/metadata/coverage_manifest.json")
     parser.add_argument("--json", action="store_true")
     return parser.parse_args()
 
@@ -43,17 +44,20 @@ def main() -> int:
         timespan=args.timespan,
         output_root=Path(args.output_root),
         metadata_path=Path(args.metadata_path),
+        coverage_manifest_path=Path(args.coverage_manifest_path),
     )
 
     if args.json:
         print(json.dumps(result.to_dict(), indent=2))
     else:
         print(f"Historical ingestion completed: {result.success_count} ok, {result.warning_count} warnings/errors")
+        if result.coverage_manifest_path:
+            print(f"Coverage manifest: {result.coverage_manifest_path}")
         for item in result.results:
-            mark = "✅" if item.status == "ok" else "⚠️"
+            mark = "OK" if item.status == "ok" else "WARN"
             print(
                 f"{mark} {item.symbol} {item.multiplier}{item.timespan} "
-                f"{item.start_date}→{item.end_date}: {item.status} | "
+                f"{item.start_date}->{item.end_date}: {item.status} | "
                 f"fetched={item.rows_fetched} written={item.rows_written} | {item.output_path}"
             )
             if item.message:
