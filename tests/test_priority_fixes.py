@@ -14,7 +14,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src.data_path_policy import (
+from tests.support.data_path_policy import (
     REQUIRED_IGNORED_DATA_PATTERNS,
     TRACKABLE_AUDIT_DATA_PATHS,
     missing_required_ignored_data_patterns,
@@ -328,7 +328,7 @@ class TestGenerateOutcomesReal:
         result = fetch_real_outcomes("2026-05-15", "NVDA", 100.0, client)
         assert result["classification"] == "PENDING"
         assert result["result_5d"] is None
-        assert "reason" in result
+        assert "error" in result
 
     def test_no_mock_performance_in_script(self):
         """Ensure build_mock_outcomes is no longer called in main()."""
