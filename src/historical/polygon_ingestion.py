@@ -22,6 +22,8 @@ import requests
 
 DEFAULT_HISTORICAL_ROOT = Path("data/historical")
 DEFAULT_METADATA_PATH = DEFAULT_HISTORICAL_ROOT / "metadata" / "ingestion_status.json"
+DEFAULT_COVERAGE_MANIFEST_PATH = DEFAULT_HISTORICAL_ROOT / "metadata" / "coverage_manifest.json"
+HISTORICAL_DATA_VENDOR = "polygon"
 
 
 class HttpClient(Protocol):
@@ -46,8 +48,52 @@ class HistoricalIngestionResult:
 
 
 @dataclass(frozen=True)
+class HistoricalCoverageSymbol:
+    symbol: str
+    start_date: str
+    end_date: str
+    bar_count: int
+    rows_fetched: int
+    status: str
+    output_path: str
+    missing_data_summary: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
+class HistoricalCoverageManifest:
+    vendor: str
+    generated_at: str
+    multiplier: int
+    timespan: str
+    requested_start_date: str
+    requested_end_date: str
+    symbols: list[HistoricalCoverageSymbol]
+    status: str
+    missing_data_summary: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "vendor": self.vendor,
+            "generated_at": self.generated_at,
+            "multiplier": self.multiplier,
+            "timespan": self.timespan,
+            "requested_start_date": self.requested_start_date,
+            "requested_end_date": self.requested_end_date,
+            "symbol_count": len(self.symbols),
+            "ok_symbol_count": sum(1 for symbol in self.symbols if symbol.status == "ok"),
+            "status": self.status,
+            "missing_data_summary": list(self.missing_data_summary),
+            "symbols": [symbol.to_dict() for symbol in self.symbols],
+        }
+
+
+@dataclass(frozen=True)
 class HistoricalIngestionBatchResult:
     results: list[HistoricalIngestionResult] = field(default_factory=list)
+    coverage_manifest_path: str | None = None
 
     @property
     def success_count(self) -> int:
@@ -61,6 +107,7 @@ class HistoricalIngestionBatchResult:
         return {
             "success_count": self.success_count,
             "warning_count": self.warning_count,
+            "coverage_manifest_path": self.coverage_manifest_path,
             "results": [result.to_dict() for result in self.results],
         }
 
@@ -122,7 +169,8 @@ def merge_and_save_bars(df: pd.DataFrame, output_path: Path) -> int:
     """Merge new bars with existing CSV storage and remove duplicates."""
     output_path.parent.mkdir(parents=True, exist_ok=True)
     existing = _read_existing_bars(output_path)
-    combined = pd.concat([existing, df], ignore_index=True)
+    frames = [frame for frame in (existing, df) if not frame.empty]
+    combined = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame(columns=df.columns or existing.columns)
     if combined.empty:
         combined.to_csv(output_path, index=False)
         return 0
@@ -151,6 +199,57 @@ def update_ingestion_metadata(metadata_path: Path, result: HistoricalIngestionRe
     key = f"{result.symbol}:{result.multiplier}:{result.timespan}"
     metadata["symbols"][key] = result.to_dict() | {"last_updated_at": metadata["updated_at"]}
     metadata_path.write_text(json.dumps(metadata, indent=2, sort_keys=True), encoding="utf-8")
+
+
+def _coverage_symbol_from_result(result: HistoricalIngestionResult) -> HistoricalCoverageSymbol:
+    missing: list[str] = []
+    if result.status != "ok":
+        missing.append(result.status)
+    if result.rows_written <= 0:
+        missing.append("no_canonical_bars_written")
+    if result.message:
+        missing.append(result.message)
+    return HistoricalCoverageSymbol(
+        symbol=result.symbol,
+        start_date=result.start_date,
+        end_date=result.end_date,
+        bar_count=result.rows_written,
+        rows_fetched=result.rows_fetched,
+        status=result.status,
+        output_path=result.output_path,
+        missing_data_summary=missing,
+    )
+
+
+def build_coverage_manifest(results: list[HistoricalIngestionResult]) -> HistoricalCoverageManifest:
+    symbols = [_coverage_symbol_from_result(result) for result in results]
+    requested_start_date = min((result.start_date for result in results), default="")
+    requested_end_date = max((result.end_date for result in results), default="")
+    multiplier = results[0].multiplier if results else 1
+    timespan = results[0].timespan if results else "day"
+    missing_data_summary: list[str] = []
+    for symbol in symbols:
+        for item in symbol.missing_data_summary:
+            missing_data_summary.append(f"{symbol.symbol}:{item}")
+    status = "ok" if symbols and all(symbol.status == "ok" for symbol in symbols) else "degraded"
+    return HistoricalCoverageManifest(
+        vendor=HISTORICAL_DATA_VENDOR,
+        generated_at=utc_now_iso(),
+        multiplier=multiplier,
+        timespan=timespan,
+        requested_start_date=requested_start_date,
+        requested_end_date=requested_end_date,
+        symbols=symbols,
+        status=status,
+        missing_data_summary=missing_data_summary,
+    )
+
+
+def write_coverage_manifest(path: Path, results: list[HistoricalIngestionResult]) -> HistoricalCoverageManifest:
+    manifest = build_coverage_manifest(results)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(manifest.to_dict(), indent=2, sort_keys=True), encoding="utf-8")
+    return manifest
 
 
 def fetch_polygon_aggregate_bars(
@@ -278,6 +377,7 @@ def ingest_historical_symbols(
     timespan: str = "day",
     output_root: Path = DEFAULT_HISTORICAL_ROOT,
     metadata_path: Path = DEFAULT_METADATA_PATH,
+    coverage_manifest_path: Path | None = DEFAULT_COVERAGE_MANIFEST_PATH,
     http_client: HttpClient = requests,
 ) -> HistoricalIngestionBatchResult:
     results = [
@@ -294,4 +394,8 @@ def ingest_historical_symbols(
         )
         for symbol in symbols
     ]
-    return HistoricalIngestionBatchResult(results=results)
+    manifest_path = None
+    if coverage_manifest_path is not None:
+        write_coverage_manifest(coverage_manifest_path, results)
+        manifest_path = str(coverage_manifest_path)
+    return HistoricalIngestionBatchResult(results=results, coverage_manifest_path=manifest_path)
