@@ -13,10 +13,11 @@ RUNNER_SCRIPT = Path("scripts/run_historical_entry_exit_backtest.py")
 
 def _write_universe(path: Path, *, demo_marker: bool = False) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    source = "demo_vendor" if demo_marker else "polygon"
+    source = "demo_vendor" if demo_marker else "initial_universe"
+    reason = "demo placeholder" if demo_marker else "initial test universe"
     path.write_text(
-        "symbol,effective_from,effective_to,asset_class,exchange,source,status\n"
-        f"SPY,2024-01-01,,ETF,NYSEARCA,{source},active\n",
+        "symbol,effective_from,effective_to,active,asset_class,exchange,source,status,reason\n"
+        f"SPY,2024-01-01,,true,etf,NYSEARCA,{source},active,{reason}\n",
         encoding="utf-8",
     )
 
