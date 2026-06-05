@@ -41,6 +41,7 @@ def _write_plan(path: Path) -> None:
                         "valid_until": "2026-06-04",
                         "entry_type": "breakout",
                         "setup_type": "momentum_breakout",
+                        "source": "paper_observation_validated",
                     }
                 ]
             }
@@ -56,6 +57,14 @@ def _write_bars(root: Path) -> None:
         "2026-06-01,100,100,99,100,1000000\n"
         "2026-06-02,101,105,100,104,1100000\n"
         "2026-06-03,104,106,103,105,1200000\n",
+        encoding="utf-8",
+    )
+
+
+def _write_universe(path: Path) -> None:
+    path.write_text(
+        "symbol,effective_from,effective_to,asset_class,exchange,source,status\n"
+        "SPY,2024-01-01,,ETF,NYSEARCA,polygon,active\n",
         encoding="utf-8",
     )
 
@@ -102,10 +111,12 @@ def test_p121_missing_date_range_fails_schema(tmp_path: Path) -> None:
 def test_p121_real_data_runner_writes_valid_evidence_artifact(tmp_path: Path) -> None:
     plans = tmp_path / "plans.json"
     bars_root = tmp_path / "bars"
+    universe = tmp_path / "universe.csv"
     output_json = tmp_path / "real-data-backtest-evidence.json"
     output_md = tmp_path / "real-data-backtest-evidence.md"
     _write_plan(plans)
     _write_bars(bars_root)
+    _write_universe(universe)
 
     result = subprocess.run(
         [
@@ -115,6 +126,8 @@ def test_p121_real_data_runner_writes_valid_evidence_artifact(tmp_path: Path) ->
             str(plans),
             "--bars-root",
             str(bars_root),
+            "--universe",
+            str(universe),
             "--run-id",
             "real-bt-runner-001",
             "--real-data",
