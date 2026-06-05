@@ -27,6 +27,7 @@ PO11: Scheduled Daily Observation Workflow implemented and CI-green
 PO12: Daily Observation Artifact Retention & Review Index implemented and CI-green
 PO13: Monthly Paper Observation Review Pack implemented and CI-green
 PO14: Forward Evidence Quality Gate implemented and CI-green
+P120: Productive Paper Observation evidence remains gated until schema-valid observation artifacts are produced and CI-green.
 
 Runtime Governance:
 GOV1-GOV10: runtime / pre-live governance hardening implemented and CI-green
@@ -99,6 +100,7 @@ First review date: 2026-07-01
 Major evidence review date: 2026-09-01
 Extended review date: 2026-12-01
 Live trading authorization: not granted by code
+Productive Paper Observation evidence is not claimed until P120 validates schema-valid durable observation artifacts in CI.
 
 PO14 adds a forward-evidence quality gate for monthly Paper Observation packs.
 CER1 adds capacity/execution realism review.
@@ -118,6 +120,7 @@ pytest tests/test_rgp13_runtime_proof_pack_summary.py -q
 pytest tests/test_po14_forward_evidence_quality_gate.py -q
 pytest tests/test_fcm1_feature_connectivity_matrix_guard.py -q
 pytest tests/test_rpw1_runtime_proof_pack_artifact_writer.py -q
+pytest tests/test_p120_paper_observation_evidence_gate.py -q
 
 Architecture inventory:
 python scripts/generate_module_inventory.py
