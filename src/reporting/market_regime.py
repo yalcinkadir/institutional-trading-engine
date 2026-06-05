@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from statistics import mean
+from typing import Any
 
 from src.data.polygon_client import PolygonClient
 from src.indicators.technical_indicators import calculate_atr, sma
@@ -9,6 +10,7 @@ from src.scoring.market_health_score import MarketHealthScore
 
 INDEX_TICKERS = ["SPY", "QQQ"]
 VIX_TICKER = "I:VIX"
+NEUTRAL_FALLBACK_VIX = 20.0
 BREADTH_UNIVERSE = [
     "MSFT",
     "NVDA",
@@ -125,10 +127,68 @@ def _fallback_snapshot(ticker: str) -> dict:
     }
 
 
+def _vix_regime_input(
+    *,
+    vix: dict | None,
+    vix_error: str | None,
+    timestamp_utc: str,
+) -> dict[str, Any]:
+    if vix and vix.get("close") is not None:
+        return {
+            "symbol": VIX_TICKER,
+            "source": "polygon",
+            "timestamp": timestamp_utc,
+            "status": "LIVE",
+            "value": float(vix["close"]),
+            "fallback_used": False,
+            "fallback_value": None,
+            "error": None,
+        }
+
+    return {
+        "symbol": VIX_TICKER,
+        "source": "polygon",
+        "timestamp": timestamp_utc,
+        "status": "DEGRADED",
+        "value": NEUTRAL_FALLBACK_VIX,
+        "fallback_used": True,
+        "fallback_value": NEUTRAL_FALLBACK_VIX,
+        "error": vix_error or "VIX input unavailable",
+    }
+
+
+def _index_trend_regime_input(
+    *,
+    spy: dict | None,
+    qqq: dict | None,
+    timestamp_utc: str,
+) -> dict[str, Any]:
+    symbols = []
+    if spy is not None:
+        symbols.append("SPY")
+    if qqq is not None:
+        symbols.append("QQQ")
+
+    if not symbols:
+        status = "BLOCKED"
+    elif len(symbols) < 2:
+        status = "DEGRADED"
+    else:
+        status = "LIVE"
+
+    return {
+        "symbols": symbols,
+        "source": "polygon",
+        "timestamp": timestamp_utc,
+        "status": status,
+        "required_symbols": INDEX_TICKERS,
+    }
+
+
 def _calculate_partial_market_score(
     spy: dict | None,
     qqq: dict | None,
-    vix: dict | None,
+    vix_input: dict[str, Any],
     breadth: dict,
 ) -> dict:
     if spy is None and qqq is None:
@@ -137,7 +197,7 @@ def _calculate_partial_market_score(
             "regime": "Unknown",
         }
 
-    vix_value = float(vix["close"]) if vix and vix.get("close") is not None else 20.0
+    vix_value = float(vix_input.get("value", NEUTRAL_FALLBACK_VIX))
 
     score = MarketHealthScore(
         spy_above_sma50=bool(spy and spy["above_sma50"]),
@@ -148,21 +208,45 @@ def _calculate_partial_market_score(
         breadth_percent=float(breadth.get("breadth_percent", 0)),
     ).calculate()
 
-    if vix is None:
-        score["regime"] = f"{score['regime']} (VIX missing)"
+    if vix_input.get("fallback_used"):
+        score["regime"] = f"{score['regime']} (VIX degraded)"
 
     return score
 
 
+def _blocked_client_regime_input(timestamp_utc: str, error: str) -> dict[str, Any]:
+    return {
+        "vix": {
+            "symbol": VIX_TICKER,
+            "source": "polygon",
+            "timestamp": timestamp_utc,
+            "status": "BLOCKED",
+            "value": None,
+            "fallback_used": False,
+            "fallback_value": None,
+            "error": error,
+        },
+        "index_trend": {
+            "symbols": [],
+            "source": "polygon",
+            "timestamp": timestamp_utc,
+            "status": "BLOCKED",
+            "required_symbols": INDEX_TICKERS,
+        },
+    }
+
+
 def build_market_regime_summary(report_type: str) -> dict:
     now = datetime.now(UTC)
+    timestamp_utc = now.isoformat()
     errors: list[str] = []
 
     try:
         client = PolygonClient()
     except Exception as exc:
+        error = f"PolygonClient: {type(exc).__name__}: {exc}"
         return {
-            "timestamp_utc": now.isoformat(),
+            "timestamp_utc": timestamp_utc,
             "market_health_score": "DATA_UNAVAILABLE",
             "regime": "Unknown",
             "focus_areas": _focus_areas(report_type),
@@ -173,7 +257,8 @@ def build_market_regime_summary(report_type: str) -> dict:
                 f"Error: {type(exc).__name__}: {exc}",
             ],
             "data_status": "FALLBACK",
-            "errors": [f"PolygonClient: {type(exc).__name__}: {exc}"],
+            "errors": [error],
+            "regime_input": _blocked_client_regime_input(timestamp_utc, error),
         }
 
     spy, spy_error = _try_symbol_snapshot(client, "SPY")
@@ -197,7 +282,11 @@ def build_market_regime_summary(report_type: str) -> dict:
 
     errors.extend(breadth.get("failed_symbols", []))
 
-    score = _calculate_partial_market_score(spy, qqq, vix, breadth)
+    regime_input = {
+        "vix": _vix_regime_input(vix=vix, vix_error=vix_error, timestamp_utc=timestamp_utc),
+        "index_trend": _index_trend_regime_input(spy=spy, qqq=qqq, timestamp_utc=timestamp_utc),
+    }
+    score = _calculate_partial_market_score(spy, qqq, regime_input["vix"], breadth)
 
     symbols: dict[str, dict] = {}
     if spy is not None:
@@ -207,9 +296,9 @@ def build_market_regime_summary(report_type: str) -> dict:
     if vix is not None:
         symbols["VIX"] = vix
 
-    if spy is None and qqq is None and vix is None and breadth.get("universe_size", 0) == 0:
+    if regime_input["index_trend"]["status"] == "BLOCKED":
         data_status = "FALLBACK"
-    elif errors:
+    elif errors or regime_input["vix"]["status"] != "LIVE" or regime_input["index_trend"]["status"] != "LIVE":
         data_status = "PARTIAL"
     else:
         data_status = "LIVE"
@@ -219,14 +308,16 @@ def build_market_regime_summary(report_type: str) -> dict:
         "Breadth currently uses the configured leader universe, not the full S&P 500 universe.",
     ]
 
-    if vix is None:
-        notes.append("VIX data unavailable; scoring used a neutral fallback VIX value of 20.0.")
+    if regime_input["vix"].get("fallback_used"):
+        notes.append(
+            f"VIX data unavailable; scoring used a neutral fallback VIX value of {NEUTRAL_FALLBACK_VIX}."
+        )
 
     if errors:
         notes.append("Some market data feeds failed; report is running in degraded mode.")
 
     return {
-        "timestamp_utc": now.isoformat(),
+        "timestamp_utc": timestamp_utc,
         "market_health_score": score["score"],
         "regime": score["regime"],
         "focus_areas": _focus_areas(report_type),
@@ -235,4 +326,5 @@ def build_market_regime_summary(report_type: str) -> dict:
         "notes": notes,
         "data_status": data_status,
         "errors": errors[:20],
+        "regime_input": regime_input,
     }
