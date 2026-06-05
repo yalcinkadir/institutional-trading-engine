@@ -7,6 +7,7 @@ import pandas as pd
 
 from scripts.validate_bt9_real_historical_input_pack import validate_bt9_input_pack
 from src.historical.polygon_ingestion import (
+    HistoricalIngestionResult,
     build_coverage_manifest,
     ingest_historical_symbol,
     ingest_historical_symbols,
@@ -212,16 +213,18 @@ def test_historical_coverage_manifest_contains_vendor_timestamp_and_missing_summ
 
 
 def test_historical_coverage_manifest_marks_partial_payload_as_degraded() -> None:
-    ok = ingest_historical_symbol(
+    ok = HistoricalIngestionResult(
         symbol="NVDA",
+        timespan="day",
+        multiplier=1,
         start_date="2021-01-01",
         end_date="2021-01-02",
-        api_key="test-key",
-        output_root=Path("unused"),
-        metadata_path=Path("unused.json"),
-        http_client=MockHttpClient({"results": [_polygon_bar(1_609_459_200_000, 101.0)]}),
+        rows_fetched=1,
+        rows_written=1,
+        output_path="data/historical/bars/1day/NVDA.csv",
+        status="ok",
     )
-    empty = ok.__class__(
+    empty = HistoricalIngestionResult(
         symbol="MSFT",
         timespan="day",
         multiplier=1,
