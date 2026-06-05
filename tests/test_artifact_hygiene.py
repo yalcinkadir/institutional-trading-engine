@@ -2,6 +2,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from src.data_path_policy import (
+    DATA_PATH_POLICY_VERSION,
+    REQUIRED_IGNORED_DATA_PATTERNS,
+    missing_required_ignored_data_patterns,
+    prohibited_global_data_ignore_patterns,
+)
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 REPORTS_DIR = REPO_ROOT / "reports"
 GITIGNORE = REPO_ROOT / ".gitignore"
@@ -11,7 +18,7 @@ PUBLIC_REPORTS = [
     REPORTS_DIR / "postmarket-report.md",
 ]
 
-REQUIRED_GITIGNORE_PATTERNS = [
+REQUIRED_NON_DATA_GITIGNORE_PATTERNS = [
     ".env.*",
     "private_edge/",
     "external_edge/",
@@ -22,9 +29,6 @@ REQUIRED_GITIGNORE_PATTERNS = [
     "exit_profiles.local.*",
     "setup_mappings.local.*",
     ".cache/",
-    "data/raw/",
-    "data/live/",
-    "data/private/",
     "evidence/",
     "lockbox/",
     "artifacts/",
@@ -71,9 +75,20 @@ PROHIBITED_RANKED_SYMBOL_HEADINGS = [
 def test_gitignore_blocks_private_edge_and_generated_artifacts() -> None:
     content = GITIGNORE.read_text(encoding="utf-8")
 
-    missing = [pattern for pattern in REQUIRED_GITIGNORE_PATTERNS if pattern not in content]
+    missing = [pattern for pattern in REQUIRED_NON_DATA_GITIGNORE_PATTERNS if pattern not in content]
+    missing.extend(missing_required_ignored_data_patterns(content))
 
     assert missing == []
+
+
+def test_gitignore_uses_canonical_data_path_policy() -> None:
+    content = GITIGNORE.read_text(encoding="utf-8")
+
+    assert DATA_PATH_POLICY_VERSION == "data-path-policy-v1"
+    assert missing_required_ignored_data_patterns(content) == []
+    assert prohibited_global_data_ignore_patterns(content) == []
+    for pattern in REQUIRED_IGNORED_DATA_PATTERNS:
+        assert pattern in content
 
 
 def test_public_reports_are_synthetic_examples_only() -> None:
