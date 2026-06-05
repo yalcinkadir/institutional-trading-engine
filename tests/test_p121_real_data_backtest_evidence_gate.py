@@ -63,8 +63,8 @@ def _write_bars(root: Path) -> None:
 
 def _write_universe(path: Path) -> None:
     path.write_text(
-        "symbol,effective_from,effective_to,asset_class,exchange,source,status\n"
-        "SPY,2024-01-01,,ETF,NYSEARCA,polygon,active\n",
+        "symbol,effective_from,effective_to,active,asset_class,exchange,source,status,reason\n"
+        "SPY,2024-01-01,,true,etf,NYSEARCA,initial_universe,active,initial test universe\n",
         encoding="utf-8",
     )
 
