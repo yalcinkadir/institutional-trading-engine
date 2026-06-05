@@ -79,9 +79,23 @@ class HistoricalBacktestMetrics:
 class HistoricalBacktestReport:
     metrics: HistoricalBacktestMetrics
     results: list[HistoricalBacktestResult] = field(default_factory=list)
+    run_id: str = "historical-demo-run"
+    data_source: str = "historical_demo"
+    is_demo: bool = True
+    symbol_universe: list[str] = field(default_factory=list)
+    date_range: dict[str, str] = field(default_factory=dict)
+    strategy_version: str = "historical-entry-exit-v1"
+    tags: list[str] = field(default_factory=lambda: ["demo", "public_safe", "research_only"])
 
     def to_dict(self) -> dict[str, Any]:
         return {
+            "run_id": self.run_id,
+            "data_source": self.data_source,
+            "is_demo": self.is_demo,
+            "symbol_universe": self.symbol_universe,
+            "date_range": self.date_range,
+            "strategy_version": self.strategy_version,
+            "tags": self.tags,
             "metrics": self.metrics.to_dict(),
             "results": [result.to_dict() for result in self.results],
         }
