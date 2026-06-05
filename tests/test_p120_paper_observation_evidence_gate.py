@@ -5,8 +5,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from scripts.validate_paper_observation_evidence_gate import validate_paper_observation_evidence_artifact
 from src.operations.paper_live_observation import observe_paper_live, write_paper_live_report
-from src.operations.paper_observation_evidence_gate import validate_paper_observation_evidence_artifact
 
 VALIDATOR_SCRIPT = Path("scripts/validate_paper_observation_evidence_gate.py")
 
