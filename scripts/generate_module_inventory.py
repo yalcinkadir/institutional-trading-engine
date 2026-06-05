@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate an ARCH106 module inventory from the current checkout.
+"""Generate and validate an ARCH106 module inventory from the current checkout.
 
 This script intentionally scans the repository at runtime instead of relying on a
 manually maintained list. It is a tooling entry point, not a production trading
@@ -93,19 +93,126 @@ def build_inventory(
     }
 
 
+def render_inventory(inventory: dict[str, Any]) -> str:
+    return json.dumps(inventory, indent=2, sort_keys=True) + "\n"
+
+
+def _records_by_path(inventory: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    return {record["path"]: record for record in inventory.get("modules", [])}
+
+
+def inventory_diff(expected: dict[str, Any], actual: dict[str, Any]) -> dict[str, Any]:
+    expected_records = _records_by_path(expected)
+    actual_records = _records_by_path(actual)
+    expected_paths = set(expected_records)
+    actual_paths = set(actual_records)
+
+    added = sorted(expected_paths - actual_paths)
+    removed = sorted(actual_paths - expected_paths)
+    changed: list[dict[str, Any]] = []
+
+    for path in sorted(expected_paths & actual_paths):
+        expected_record = expected_records[path]
+        actual_record = actual_records[path]
+        changes: dict[str, Any] = {}
+        for key in ["classification", "status", "runtime_entrypoint", "runtime_execution_proof"]:
+            if expected_record.get(key) != actual_record.get(key):
+                changes[key] = {
+                    "expected": expected_record.get(key),
+                    "actual": actual_record.get(key),
+                }
+        if changes:
+            changed.append({"path": path, "changes": changes})
+
+    counter_changes = {
+        key: {"expected": expected["counters"].get(key), "actual": actual["counters"].get(key)}
+        for key in sorted(set(expected.get("counters", {})) | set(actual.get("counters", {})))
+        if expected.get("counters", {}).get(key) != actual.get("counters", {}).get(key)
+    }
+
+    return {
+        "added_modules": added,
+        "removed_modules": removed,
+        "changed_modules": changed,
+        "counter_changes": counter_changes,
+    }
+
+
+def format_inventory_diff(diff: dict[str, Any]) -> str:
+    lines = [
+        "ARCH106 module inventory artifact is stale.",
+        "Regenerate it with:",
+        "  python scripts/generate_module_inventory.py",
+        "  git add docs/architecture/module_inventory.generated.json",
+        "",
+    ]
+
+    if diff["added_modules"]:
+        lines.append("Added src modules missing from committed inventory:")
+        lines.extend(f"  + {module}" for module in diff["added_modules"])
+        lines.append("")
+
+    if diff["removed_modules"]:
+        lines.append("Removed src modules still present in committed inventory:")
+        lines.extend(f"  - {module}" for module in diff["removed_modules"])
+        lines.append("")
+
+    if diff["changed_modules"]:
+        lines.append("Changed module classifications/status:")
+        for item in diff["changed_modules"]:
+            lines.append(f"  * {item['path']}")
+            for key, values in item["changes"].items():
+                lines.append(f"    - {key}: actual={values['actual']!r}, expected={values['expected']!r}")
+        lines.append("")
+
+    if diff["counter_changes"]:
+        lines.append("Counter changes:")
+        for key, values in diff["counter_changes"].items():
+            lines.append(f"  * {key}: actual={values['actual']!r}, expected={values['expected']!r}")
+        lines.append("")
+
+    return "\n".join(lines).rstrip() + "\n"
+
+
 def write_inventory(output_path: Path = DEFAULT_OUTPUT_PATH) -> Path:
     inventory = build_inventory()
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(json.dumps(inventory, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    output_path.write_text(render_inventory(inventory), encoding="utf-8")
     return output_path
 
 
+def check_inventory(output_path: Path = DEFAULT_OUTPUT_PATH) -> tuple[bool, str]:
+    expected = build_inventory()
+    if not output_path.exists():
+        return False, (
+            "ARCH106 module inventory artifact is missing.\n"
+            "Generate it with:\n"
+            "  python scripts/generate_module_inventory.py\n"
+            "  git add docs/architecture/module_inventory.generated.json\n"
+        )
+
+    try:
+        actual = json.loads(output_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        return False, f"ARCH106 module inventory artifact is invalid JSON: {exc}\n"
+
+    if actual == expected:
+        return True, "ARCH106 module inventory artifact is current.\n"
+
+    return False, format_inventory_diff(inventory_diff(expected, actual))
+
+
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Generate ARCH106 module inventory JSON.")
+    parser = argparse.ArgumentParser(description="Generate or validate ARCH106 module inventory JSON.")
     parser.add_argument(
         "--output",
         default=str(DEFAULT_OUTPUT_PATH),
         help="Output JSON path. Defaults to docs/architecture/module_inventory.generated.json",
+    )
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Validate that the committed inventory matches the generator output without writing files.",
     )
     return parser.parse_args()
 
@@ -115,6 +222,12 @@ def main() -> int:
     output_path = Path(args.output)
     if not output_path.is_absolute():
         output_path = REPO_ROOT / output_path
+
+    if args.check:
+        is_current, message = check_inventory(output_path)
+        print(message, end="")
+        return 0 if is_current else 1
+
     written = write_inventory(output_path)
     print(f"Module inventory written: {_repo_relative(written)}")
     return 0
