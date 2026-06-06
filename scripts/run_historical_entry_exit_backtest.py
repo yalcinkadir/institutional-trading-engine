@@ -12,8 +12,10 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from scripts.validate_bt9_real_historical_input_pack import validate_bt9_input_pack
-from src.backtesting.historical_entry_exit_backtest import load_trade_plans, run_backtest
+from src.backtesting.historical_entry_exit_backtest import load_trade_plans_with_report, run_backtest
 from src.backtesting.historical_report import write_report
+
+DEFAULT_COVERAGE_MANIFEST = "data/historical/metadata/coverage_manifest.json"
 
 
 def parse_args() -> argparse.Namespace:
@@ -21,6 +23,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--plans-file", required=True, help="JSON list, plans[] or signals[] with trade plans.")
     parser.add_argument("--bars-root", default="data/historical/bars/1day")
     parser.add_argument("--universe", default="data/universe/survivorship_universe.csv")
+    parser.add_argument("--coverage-manifest", default=DEFAULT_COVERAGE_MANIFEST)
     parser.add_argument("--max-bars", type=int, default=20)
     parser.add_argument("--run-id", default="historical-demo-run")
     parser.add_argument("--data-source", default="historical_demo", choices=["historical_demo", "real_data"])
@@ -31,41 +34,51 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _fail_closed_if_real_data_requested(args: argparse.Namespace) -> int | None:
+def _fail_closed_if_real_data_requested(args: argparse.Namespace) -> tuple[int | None, str]:
     if not args.real_data and args.data_source != "real_data":
-        return None
+        return None, "NOT_RUN"
 
     gate = validate_bt9_input_pack(
         universe_path=Path(args.universe),
         bars_root=Path(args.bars_root),
         trade_plans_path=Path(args.plans_file),
+        coverage_manifest_path=Path(args.coverage_manifest),
     )
     if gate.passed:
-        return None
+        return None, "PASSED"
 
     print("BT9 real historical input pack gate status: FAIL")
     for failure in gate.failures:
         print(f"- {failure}")
-    return 1
+    return 1, "FAILED"
 
 
 def main() -> int:
     args = parse_args()
-    gate_exit = _fail_closed_if_real_data_requested(args)
+    gate_exit, input_pack_gate_status = _fail_closed_if_real_data_requested(args)
     if gate_exit is not None:
         return gate_exit
 
-    plans = load_trade_plans(Path(args.plans_file))
+    plan_load = load_trade_plans_with_report(Path(args.plans_file))
+    if (args.real_data or args.data_source == "real_data") and plan_load.report.accepted_plan_count == 0:
+        print("Real-data backtest blocked: accepted_plan_count=0")
+        return 1
+
     data_source = "real_data" if args.real_data else args.data_source
     is_demo = data_source != "real_data"
     report = run_backtest(
-        plans,
+        plan_load.plans,
         bars_root=Path(args.bars_root),
         max_bars=args.max_bars,
         run_id=args.run_id,
         data_source=data_source,
         is_demo=is_demo,
         strategy_version=args.strategy_version,
+        input_pack_gate_status=input_pack_gate_status,
+        coverage_manifest_path=str(Path(args.coverage_manifest)),
+        survivorship_universe_path=str(Path(args.universe)),
+        trade_plans_path=str(Path(args.plans_file)),
+        plan_load_report=plan_load.report,
     )
     write_report(report, json_path=Path(args.json_output), markdown_path=Path(args.markdown_output))
 
@@ -73,6 +86,10 @@ def main() -> int:
     print(f"Run ID: {report.run_id}")
     print(f"Data source: {report.data_source}")
     print(f"Is demo: {report.is_demo}")
+    print(f"Input pack gate: {report.input_pack_gate_status}")
+    print(f"Input plans: {report.input_plan_count}")
+    print(f"Accepted plans: {report.accepted_plan_count}")
+    print(f"Rejected plans: {report.rejected_plan_count}")
     print(f"Plans: {report.metrics.total}")
     print(f"Entry hit rate: {report.metrics.entry_hit_rate:.2%}")
     print(f"Target 1 hit rate: {report.metrics.target_1_hit_rate:.2%}")
