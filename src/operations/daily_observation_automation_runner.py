@@ -43,7 +43,7 @@ def build_daily_observation_automation_artifact(
     review_notes: str = "",
     minimum_records: int = 1,
     created_at: str | None = None,
-    require_artifact_paths_exist: bool = True,
+    require_artifact_paths_exist: bool = False,
     artifact_root: str | Path | None = None,
 ) -> DailyObservationAutomationRunnerResult:
     """Build the deterministic PO10 daily observation automation artifact.
