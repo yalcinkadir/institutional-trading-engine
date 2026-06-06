@@ -19,9 +19,19 @@ def _valid_real_payload() -> dict:
         "symbol_universe": ["SPY", "QQQ"],
         "date_range": {"start": "2024-06-01", "end": "2026-06-01"},
         "strategy_version": "historical-entry-exit-v1",
-        "metrics": {"total": 2, "expectancy_r": 0.42},
+        "input_pack_gate_status": "PASSED",
+        "coverage_manifest_path": "coverage_manifest.json",
+        "survivorship_universe_path": "survivorship_universe.csv",
+        "trade_plans_path": "historical_trade_plans.json",
+        "input_plan_count": 1,
+        "accepted_plan_count": 1,
+        "rejected_plan_count": 0,
+        "rejection_reasons": [],
+        "metrics": {"total": 1, "expectancy_r": 0.42},
         "results": [{"signal_id": "sig_1", "symbol": "SPY", "r_multiple": 1.0}],
         "tags": ["real_data", "research_only"],
+        "live_trading_authorized": False,
+        "broker_execution_mode": "paper_only",
     }
 
 
@@ -69,6 +79,10 @@ def _write_universe(path: Path) -> None:
     )
 
 
+def _write_coverage_manifest(path: Path) -> None:
+    path.write_text(json.dumps({"source": "polygon", "symbols": ["SPY"]}), encoding="utf-8")
+
+
 def test_p121_valid_real_data_backtest_evidence_passes(tmp_path: Path) -> None:
     artifact = tmp_path / "real-data-backtest-evidence.json"
     artifact.write_text(json.dumps(_valid_real_payload()), encoding="utf-8")
@@ -112,11 +126,13 @@ def test_p121_real_data_runner_writes_valid_evidence_artifact(tmp_path: Path) ->
     plans = tmp_path / "plans.json"
     bars_root = tmp_path / "bars"
     universe = tmp_path / "universe.csv"
+    coverage_manifest = tmp_path / "coverage_manifest.json"
     output_json = tmp_path / "real-data-backtest-evidence.json"
     output_md = tmp_path / "real-data-backtest-evidence.md"
     _write_plan(plans)
     _write_bars(bars_root)
     _write_universe(universe)
+    _write_coverage_manifest(coverage_manifest)
 
     result = subprocess.run(
         [
@@ -128,6 +144,8 @@ def test_p121_real_data_runner_writes_valid_evidence_artifact(tmp_path: Path) ->
             str(bars_root),
             "--universe",
             str(universe),
+            "--coverage-manifest",
+            str(coverage_manifest),
             "--run-id",
             "real-bt-runner-001",
             "--real-data",
@@ -150,6 +168,13 @@ def test_p121_real_data_runner_writes_valid_evidence_artifact(tmp_path: Path) ->
     assert payload["is_demo"] is False
     assert payload["symbol_universe"] == ["SPY"]
     assert payload["strategy_version"] == "historical-entry-exit-v1"
+    assert payload["input_pack_gate_status"] == "PASSED"
+    assert payload["coverage_manifest_path"] == str(coverage_manifest)
+    assert payload["input_plan_count"] == 1
+    assert payload["accepted_plan_count"] == 1
+    assert payload["rejected_plan_count"] == 0
+    assert payload["live_trading_authorized"] is False
+    assert payload["broker_execution_mode"] == "paper_only"
     assert validate_real_data_backtest_evidence_artifact(output_json).passed is True
 
 
