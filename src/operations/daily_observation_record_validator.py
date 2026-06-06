@@ -5,6 +5,7 @@ from datetime import date, datetime
 from typing import Any, Mapping
 
 VALID_STATUSES = frozenset({"ACCEPTED", "REJECTED", "NEEDS_REVIEW"})
+VALID_SIGNAL_GENERATION_STATUSES = frozenset({"PASSED", "FAILED", "BLOCKED_DATA_QUALITY"})
 BROKER_EXECUTION_MODE = "paper_only"
 REQUIRED_FIELDS = (
     "date",
@@ -14,6 +15,8 @@ REQUIRED_FIELDS = (
     "artifact_paths",
     "review_required",
     "review_notes",
+    "signal_generation_status",
+    "signal_generation_health",
     "live_trading_authorized",
     "broker_execution_mode",
     "created_at",
@@ -51,6 +54,33 @@ def _is_string_list(value: Any) -> bool:
     return isinstance(value, list) and all(isinstance(item, str) for item in value)
 
 
+def _validate_signal_generation_health(record: Mapping[str, Any], errors: list[str]) -> None:
+    signal_status = record.get("signal_generation_status")
+    signal_health = record.get("signal_generation_health")
+
+    if signal_status not in VALID_SIGNAL_GENERATION_STATUSES:
+        errors.append("invalid_signal_generation_status")
+
+    if not isinstance(signal_health, Mapping):
+        errors.append("invalid_signal_generation_health")
+        return
+
+    if signal_health.get("stage") != "signal_generation":
+        errors.append("signal_generation_health_stage_must_be_signal_generation")
+    if signal_health.get("status") != signal_status:
+        errors.append("signal_generation_health_status_mismatch")
+    if signal_health.get("live_trading_authorized") is not False:
+        errors.append("signal_generation_health_live_trading_must_remain_false")
+    if signal_health.get("broker_execution_mode") != BROKER_EXECUTION_MODE:
+        errors.append("signal_generation_health_broker_execution_mode_must_be_paper_only")
+
+    if signal_status == "FAILED":
+        if not isinstance(signal_health.get("exception_type"), str) or not signal_health.get("exception_type"):
+            errors.append("signal_generation_failure_requires_exception_type")
+        if not isinstance(signal_health.get("exception_message"), str) or not signal_health.get("exception_message"):
+            errors.append("signal_generation_failure_requires_exception_message")
+
+
 def validate_daily_observation_record(record: Mapping[str, Any]) -> DailyObservationRecordValidationResult:
     errors: list[str] = []
 
@@ -75,6 +105,8 @@ def validate_daily_observation_record(record: Mapping[str, Any]) -> DailyObserva
     if "review_notes" in record and not isinstance(record["review_notes"], str):
         errors.append("invalid_review_notes")
 
+    _validate_signal_generation_health(record, errors)
+
     if record.get("live_trading_authorized") is not False:
         errors.append("live_trading_must_remain_false")
 
@@ -87,6 +119,7 @@ def validate_daily_observation_record(record: Mapping[str, Any]) -> DailyObserva
     missing_evidence = record.get("missing_evidence")
     incidents = record.get("incidents")
     review_required = record.get("review_required")
+    signal_generation_status = record.get("signal_generation_status")
 
     if status == "ACCEPTED":
         if missing_evidence:
@@ -95,6 +128,8 @@ def validate_daily_observation_record(record: Mapping[str, Any]) -> DailyObserva
             errors.append("accepted_record_cannot_have_unresolved_incidents")
         if review_required is not False:
             errors.append("accepted_record_review_required_must_be_false")
+        if signal_generation_status != "PASSED":
+            errors.append("accepted_record_requires_signal_generation_passed")
 
     if status == "REJECTED":
         if not missing_evidence:
