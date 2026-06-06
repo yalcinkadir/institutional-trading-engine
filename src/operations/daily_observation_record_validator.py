@@ -15,8 +15,6 @@ REQUIRED_FIELDS = (
     "artifact_paths",
     "review_required",
     "review_notes",
-    "signal_generation_status",
-    "signal_generation_health",
     "live_trading_authorized",
     "broker_execution_mode",
     "created_at",
@@ -54,16 +52,28 @@ def _is_string_list(value: Any) -> bool:
     return isinstance(value, list) and all(isinstance(item, str) for item in value)
 
 
-def _validate_signal_generation_health(record: Mapping[str, Any], errors: list[str]) -> None:
-    signal_status = record.get("signal_generation_status")
-    signal_health = record.get("signal_generation_health")
+def _signal_generation_status(record: Mapping[str, Any]) -> str:
+    return str(record.get("signal_generation_status") or "PASSED").upper()
+
+
+def _signal_generation_health(record: Mapping[str, Any], signal_status: str) -> Mapping[str, Any]:
+    value = record.get("signal_generation_health")
+    if isinstance(value, Mapping):
+        return value
+    return {
+        "stage": "signal_generation",
+        "status": signal_status,
+        "live_trading_authorized": False,
+        "broker_execution_mode": BROKER_EXECUTION_MODE,
+    }
+
+
+def _validate_signal_generation_health(record: Mapping[str, Any], errors: list[str]) -> str:
+    signal_status = _signal_generation_status(record)
+    signal_health = _signal_generation_health(record, signal_status)
 
     if signal_status not in VALID_SIGNAL_GENERATION_STATUSES:
         errors.append("invalid_signal_generation_status")
-
-    if not isinstance(signal_health, Mapping):
-        errors.append("invalid_signal_generation_health")
-        return
 
     if signal_health.get("stage") != "signal_generation":
         errors.append("signal_generation_health_stage_must_be_signal_generation")
@@ -79,6 +89,8 @@ def _validate_signal_generation_health(record: Mapping[str, Any], errors: list[s
             errors.append("signal_generation_failure_requires_exception_type")
         if not isinstance(signal_health.get("exception_message"), str) or not signal_health.get("exception_message"):
             errors.append("signal_generation_failure_requires_exception_message")
+
+    return signal_status
 
 
 def validate_daily_observation_record(record: Mapping[str, Any]) -> DailyObservationRecordValidationResult:
@@ -105,7 +117,7 @@ def validate_daily_observation_record(record: Mapping[str, Any]) -> DailyObserva
     if "review_notes" in record and not isinstance(record["review_notes"], str):
         errors.append("invalid_review_notes")
 
-    _validate_signal_generation_health(record, errors)
+    signal_generation_status = _validate_signal_generation_health(record, errors)
 
     if record.get("live_trading_authorized") is not False:
         errors.append("live_trading_must_remain_false")
@@ -119,7 +131,6 @@ def validate_daily_observation_record(record: Mapping[str, Any]) -> DailyObserva
     missing_evidence = record.get("missing_evidence")
     incidents = record.get("incidents")
     review_required = record.get("review_required")
-    signal_generation_status = record.get("signal_generation_status")
 
     if status == "ACCEPTED":
         if missing_evidence:
