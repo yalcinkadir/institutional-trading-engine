@@ -34,6 +34,39 @@ class HistoricalTradePlan:
 
 
 @dataclass(frozen=True)
+class HistoricalTradePlanRejection:
+    plan_index: int
+    signal_id: str | None
+    symbol: str | None
+    reasons: list[str]
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
+class HistoricalTradePlanLoadReport:
+    input_plan_count: int
+    accepted_plan_count: int
+    rejected_plan_count: int
+    rejection_reasons: list[HistoricalTradePlanRejection] = field(default_factory=list)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "input_plan_count": self.input_plan_count,
+            "accepted_plan_count": self.accepted_plan_count,
+            "rejected_plan_count": self.rejected_plan_count,
+            "rejection_reasons": [rejection.to_dict() for rejection in self.rejection_reasons],
+        }
+
+
+@dataclass(frozen=True)
+class HistoricalTradePlanLoadResult:
+    plans: list[HistoricalTradePlan]
+    report: HistoricalTradePlanLoadReport
+
+
+@dataclass(frozen=True)
 class HistoricalBacktestResult:
     signal_id: str
     symbol: str
@@ -86,6 +119,16 @@ class HistoricalBacktestReport:
     date_range: dict[str, str] = field(default_factory=dict)
     strategy_version: str = "historical-entry-exit-v1"
     tags: list[str] = field(default_factory=lambda: ["demo", "public_safe", "research_only"])
+    input_pack_gate_status: str = "NOT_RUN"
+    coverage_manifest_path: str = ""
+    survivorship_universe_path: str = ""
+    trade_plans_path: str = ""
+    input_plan_count: int = 0
+    accepted_plan_count: int = 0
+    rejected_plan_count: int = 0
+    rejection_reasons: list[dict[str, Any]] = field(default_factory=list)
+    live_trading_authorized: bool = False
+    broker_execution_mode: str = "paper_only"
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -96,6 +139,16 @@ class HistoricalBacktestReport:
             "date_range": self.date_range,
             "strategy_version": self.strategy_version,
             "tags": self.tags,
+            "input_pack_gate_status": self.input_pack_gate_status,
+            "coverage_manifest_path": self.coverage_manifest_path,
+            "survivorship_universe_path": self.survivorship_universe_path,
+            "trade_plans_path": self.trade_plans_path,
+            "input_plan_count": self.input_plan_count,
+            "accepted_plan_count": self.accepted_plan_count,
+            "rejected_plan_count": self.rejected_plan_count,
+            "rejection_reasons": self.rejection_reasons,
             "metrics": self.metrics.to_dict(),
             "results": [result.to_dict() for result in self.results],
+            "live_trading_authorized": self.live_trading_authorized,
+            "broker_execution_mode": self.broker_execution_mode,
         }
