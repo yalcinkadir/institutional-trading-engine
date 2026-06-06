@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from datetime import date, datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Mapping
 
 from src.operations.daily_observation_record_validator import (
     DailyObservationRecordValidationResult,
@@ -13,6 +13,7 @@ from src.operations.daily_observation_record_validator import (
 STATUS_ACCEPTED = "ACCEPTED"
 STATUS_REJECTED = "REJECTED"
 STATUS_NEEDS_REVIEW = "NEEDS_REVIEW"
+SIGNAL_GENERATION_STATUS_PASSED = "PASSED"
 
 
 def _as_string_list(values: Iterable[str] | None) -> list[str]:
@@ -36,6 +37,15 @@ def _missing_artifact_evidence(
             missing.append(f"missing_artifact:{artifact_path}")
 
     return missing
+
+
+def _default_signal_generation_health(signal_generation_status: str) -> dict[str, Any]:
+    return {
+        "stage": "signal_generation",
+        "status": signal_generation_status,
+        "live_trading_authorized": False,
+        "broker_execution_mode": "paper_only",
+    }
 
 
 def determine_daily_observation_status(
@@ -63,11 +73,16 @@ def build_daily_observation_record(
     created_at: str | None = None,
     require_artifact_paths_exist: bool = False,
     artifact_root: str | Path | None = None,
+    signal_generation_status: str = SIGNAL_GENERATION_STATUS_PASSED,
+    signal_generation_health: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     if isinstance(observation_date, date):
         observation_date_value = observation_date.isoformat()
     else:
         observation_date_value = observation_date
+
+    signal_status = str(signal_generation_status or SIGNAL_GENERATION_STATUS_PASSED).upper()
+    signal_health = dict(signal_generation_health or _default_signal_generation_health(signal_status))
 
     artifact_path_list = _as_string_list(artifact_paths)
     missing = _as_string_list(missing_evidence)
@@ -78,6 +93,8 @@ def build_daily_observation_record(
                 artifact_root=artifact_root,
             )
         )
+    if signal_status != SIGNAL_GENERATION_STATUS_PASSED:
+        missing.append(f"signal_generation_status:{signal_status}")
     incident_list = _as_string_list(incidents)
     status, review_required = determine_daily_observation_status(
         missing_evidence=missing,
@@ -92,6 +109,8 @@ def build_daily_observation_record(
         "artifact_paths": artifact_path_list,
         "review_required": review_required,
         "review_notes": review_notes,
+        "signal_generation_status": signal_status,
+        "signal_generation_health": signal_health,
         "live_trading_authorized": False,
         "broker_execution_mode": "paper_only",
         "created_at": created_at or datetime.now(timezone.utc).isoformat(),
