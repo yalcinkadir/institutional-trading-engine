@@ -42,22 +42,22 @@ def _fail_closed_if_real_data_requested(args: argparse.Namespace) -> tuple[int |
     if not _real_data_requested(args):
         return None, "NOT_RUN"
 
-    if not Path(args.coverage_manifest).exists():
-        print("Real-data backtest blocked: missing_coverage_manifest")
-        return 1, "FAILED"
-
     gate = validate_bt9_input_pack(
         universe_path=Path(args.universe),
         bars_root=Path(args.bars_root),
         trade_plans_path=Path(args.plans_file),
     )
-    if gate.passed:
-        return None, "PASSED"
+    if not gate.passed:
+        print("BT9 real historical input pack gate status: FAIL")
+        for failure in gate.failures:
+            print(f"- {failure}")
+        return 1, "FAILED"
 
-    print("BT9 real historical input pack gate status: FAIL")
-    for failure in gate.failures:
-        print(f"- {failure}")
-    return 1, "FAILED"
+    if not Path(args.coverage_manifest).exists():
+        print("Real-data backtest blocked: missing_coverage_manifest")
+        return 1, "FAILED"
+
+    return None, "PASSED"
 
 
 def main() -> int:
