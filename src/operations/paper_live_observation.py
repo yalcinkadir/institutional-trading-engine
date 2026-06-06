@@ -77,13 +77,20 @@ def _read_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _read_signals(path: Path) -> list[dict[str, Any]]:
+def _read_signal_payload(path: Path) -> dict[str, Any]:
     if not path.exists():
-        return []
+        return {}
     payload = _read_json(path)
+    if isinstance(payload, dict):
+        return payload
     if isinstance(payload, list):
-        return [item for item in payload if isinstance(item, dict)]
-    if isinstance(payload, dict) and isinstance(payload.get("signals"), list):
+        return {"signals": [item for item in payload if isinstance(item, dict)]}
+    return {}
+
+
+def _read_signals(path: Path) -> list[dict[str, Any]]:
+    payload = _read_signal_payload(path)
+    if isinstance(payload.get("signals"), list):
         return [item for item in payload["signals"] if isinstance(item, dict)]
     return []
 
@@ -153,6 +160,41 @@ def _build_provenance(signals: list[dict[str, Any]]) -> list[dict[str, Any]]:
     ]
 
 
+def _paper_observation_health_gate(payload: dict[str, Any], signals: list[dict[str, Any]]) -> PaperLiveGate:
+    reasons: list[str] = []
+    total = len(signals)
+    if total == 0:
+        return PaperLiveGate("paper_observation_health", False, "no_signals_loaded")
+
+    close_missing = sum(1 for signal in signals if signal.get("close") is None)
+    atr_missing = sum(1 for signal in signals if signal.get("atr14") is None)
+    if close_missing == total or close_missing / total >= 0.8:
+        reasons.append("all_or_most_close_missing")
+    if atr_missing == total or atr_missing / total >= 0.8:
+        reasons.append("all_or_most_atr_missing")
+
+    market_regime = str(payload.get("market_regime") or "Unknown")
+    has_available_data = close_missing < total and atr_missing < total
+    if market_regime == "Unknown" and has_available_data:
+        reasons.append("unknown_market_regime_with_available_data")
+
+    data_quality = payload.get("data_quality") if isinstance(payload.get("data_quality"), dict) else {}
+    missing_symbols = data_quality.get("missing_symbols") or []
+    missing_required_fields = data_quality.get("missing_required_fields") or {}
+    if missing_symbols:
+        reasons.append("scanner_metrics_missing_for_core_symbols")
+    if missing_required_fields:
+        reasons.append("scanner_metrics_missing_required_fields")
+
+    actionable_count = int(payload.get("actionable_count") or 0)
+    if actionable_count == 0 and (missing_required_fields or close_missing > 0 or atr_missing > 0):
+        reasons.append("zero_actionable_due_to_missing_required_data")
+
+    if reasons:
+        return PaperLiveGate("paper_observation_health", False, ",".join(sorted(set(reasons))))
+    return PaperLiveGate("paper_observation_health", True, "paper observation sees complete market data or valid no-trade conditions")
+
+
 def observe_paper_live(
     *,
     signals_file: Path = Path("reports/signals/latest-signals.json"),
@@ -161,6 +203,7 @@ def observe_paper_live(
     min_lifecycle_events: int = 5,
     require_alerts: bool = False,
 ) -> PaperLiveObservationReport:
+    signal_payload = _read_signal_payload(signals_file)
     signals = _read_signals(signals_file)
     lifecycle_events = _read_lifecycle_events(lifecycle_file)
     alerts = _read_alerts(alerts_file)
@@ -188,6 +231,7 @@ def observe_paper_live(
             bool(universe and signal_ids and decision_status and provenance),
             "observation artifact includes universe, signal ids, decision status and provenance",
         ),
+        _paper_observation_health_gate(signal_payload, signals),
         PaperLiveGate("lifecycle_file_readable", lifecycle_file.exists(), f"lifecycle file: {lifecycle_file}"),
         PaperLiveGate(
             "minimum_lifecycle_events",
@@ -246,7 +290,7 @@ def render_paper_live_markdown(report: PaperLiveObservationReport) -> str:
     for gate in report.gates:
         status = "PASS" if gate.passed else "FAIL"
         lines.append(f"| {gate.name} | {status} | {gate.message} |")
-    lines.extend(["", "## Lifecycle Event Types", "", "| Event | Count |", "|---|---:|"])
+    lines.extend(["", "## Lifecycle Event Types", "", "| Event | Count |", "|---|---:"])
     for event, count in report.lifecycle_event_types.items():
         lines.append(f"| {event} | {count} |")
     lines.extend(["", "## Guardrail", ""])
