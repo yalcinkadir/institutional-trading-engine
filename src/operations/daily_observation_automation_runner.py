@@ -45,18 +45,10 @@ def build_daily_observation_automation_artifact(
     created_at: str | None = None,
     require_artifact_paths_exist: bool = False,
     artifact_root: str | Path | None = None,
+    signal_generation_status: str = "PASSED",
+    signal_generation_health: Mapping[str, Any] | None = None,
 ) -> DailyObservationAutomationRunnerResult:
-    """Build the deterministic PO10 daily observation automation artifact.
-
-    PO10 connects the already validated Paper Observation chain:
-
-    PO5 Daily Observation Record Writer
-    PO7 Daily Observation Record Index
-    PO8 Daily Observation Review Summary
-    PO9 Paper Observation Review Gate
-
-    The runner never authorizes live trading or broker execution.
-    """
+    """Build the deterministic PO10 daily observation automation artifact."""
 
     errors: list[str] = []
 
@@ -69,6 +61,8 @@ def build_daily_observation_automation_artifact(
         created_at=created_at,
         require_artifact_paths_exist=require_artifact_paths_exist,
         artifact_root=artifact_root,
+        signal_generation_status=signal_generation_status,
+        signal_generation_health=signal_generation_health,
     )
 
     records = [dict(record) for record in existing_records or []]
@@ -97,6 +91,8 @@ def build_daily_observation_automation_artifact(
         "index_path": index_result.index.get("index_path"),
         "summary": summary_result.summary,
         "gate": gate_result.gate,
+        "signal_generation_status": record["signal_generation_status"],
+        "signal_generation_health": record["signal_generation_health"],
         "errors": tuple(errors),
         "live_trading_authorized": False,
         "broker_execution_mode": "paper_only",
