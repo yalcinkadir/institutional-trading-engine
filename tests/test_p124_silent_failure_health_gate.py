@@ -3,6 +3,8 @@ from __future__ import annotations
 import importlib
 from types import SimpleNamespace
 
+from src.reporting.report_formatter import format_report
+
 
 def test_p124_run_health_marks_valid_no_trade_day() -> None:
     generate_report = importlib.import_module("scripts.generate_report")
@@ -107,3 +109,31 @@ def test_p124_failed_signal_generation_is_failed() -> None:
     assert health["run_health_status"] == "FAILED"
     assert health["success_status"] == "FAILED"
     assert "signal_generation_failed" in health["reasons"]
+
+
+def test_p124_report_contains_health_block() -> None:
+    report = format_report(
+        {
+            "report_type": "premarket",
+            "market_regime": {"data_status": "ok", "regime": "Neutral", "market_health_score": 50, "symbols": {}, "focus_areas": [], "notes": []},
+            "cross_asset": {"data_status": "ok", "regime": "Neutral", "risk_score": 0, "risk_on_score": 0, "risk_off_score": 0},
+            "screener": {"title": "Screener", "watchlist": [], "objectives": [], "warnings": []},
+            "decision_report": {
+                "market_state": "Neutral",
+                "portfolio_heat_limit": 0,
+                "approved_count": 0,
+                "blocked_count": 1,
+                "run_health": {"run_health_status": "NO_TRADE_VALID", "success_status": "SUCCESS", "reasons": ["no_actionable_signals_with_complete_data"]},
+                "scanner_data_quality": {"data_quality_status": "OK", "valid_symbols": 1, "total_symbols": 1},
+                "signal_generation_status": "PASSED",
+                "decisions": [],
+                "allowed_setups": [],
+                "summary": "No trade.",
+            },
+        }
+    )
+
+    assert "## Run Health / Silent-Failure Gate" in report
+    assert "Run Health: NO_TRADE_VALID" in report
+    assert "Success Status: SUCCESS" in report
+    assert "Scanner Data Quality: OK" in report
