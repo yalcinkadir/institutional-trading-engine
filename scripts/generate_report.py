@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from dataclasses import asdict
 from datetime import UTC, datetime, timedelta
@@ -28,10 +29,21 @@ from src.signals.structure_levels import latest_confirmed_swing_low_3bar
 VALID_REPORT_TYPES = {"premarket", "intraday", "postmarket", "weekly"}
 MARKET_REPORT_TYPES = {"premarket", "intraday", "postmarket"}
 BLOCKING_SCANNER_DATA_QUALITY_STATUSES = {"BLOCKED", "UNKNOWN"}
+SIGNAL_GENERATION_STATUS_PASSED = "PASSED"
+SIGNAL_GENERATION_STATUS_FAILED = "FAILED"
+SIGNAL_GENERATION_STATUS_BLOCKED_DATA_QUALITY = "BLOCKED_DATA_QUALITY"
 
 
 class ReportDataQualityBlockedError(RuntimeError):
     """Raised when scanner data quality is too poor for a green report run."""
+
+
+class SignalGenerationFailedError(RuntimeError):
+    """Raised when signal generation fails and must not be treated as no-trade."""
+
+    def __init__(self, message: str, *, evidence: dict[str, Any]) -> None:
+        super().__init__(message)
+        self.evidence = evidence
 
 
 def parse_args() -> argparse.Namespace:
@@ -47,6 +59,42 @@ def _decision_symbols(decision_report: dict) -> list[str]:
         for item in decision_report.get("decisions", [])
         if item.get("symbol")
     ]
+
+
+def _signal_generation_failure_evidence(
+    exc: Exception,
+    *,
+    stage: str = "signal_generation",
+) -> dict[str, Any]:
+    return {
+        "stage": stage,
+        "status": SIGNAL_GENERATION_STATUS_FAILED,
+        "exception_type": type(exc).__name__,
+        "exception_message": str(exc),
+        "live_trading_authorized": False,
+        "broker_execution_mode": "paper_only",
+    }
+
+
+def _raise_signal_generation_failed(
+    exc: Exception,
+    *,
+    stage: str = "signal_generation",
+) -> None:
+    evidence = _signal_generation_failure_evidence(exc, stage=stage)
+    raise SignalGenerationFailedError(
+        f"{stage} failed: {type(exc).__name__}: {exc}",
+        evidence=evidence,
+    ) from exc
+
+
+def _signal_generation_success_evidence(stage: str = "signal_generation") -> dict[str, Any]:
+    return {
+        "stage": stage,
+        "status": SIGNAL_GENERATION_STATUS_PASSED,
+        "live_trading_authorized": False,
+        "broker_execution_mode": "paper_only",
+    }
 
 
 def _enrich_metrics_with_structure(metrics: dict[str, Any] | None, bars_df: Any) -> dict[str, Any] | None:
@@ -187,6 +235,19 @@ def _merge_signal_levels_into_decisions(decision_report: dict, signals: list[Any
             item[key] = signal_payload.get(key)
 
 
+def _set_signal_generation_status(
+    decision_payload: dict[str, Any],
+    decision_report: dict[str, Any],
+    *,
+    status: str,
+    evidence: dict[str, Any],
+) -> None:
+    decision_payload["signal_generation_status"] = status
+    decision_payload["signal_generation_health"] = evidence
+    decision_report["signal_generation_status"] = status
+    decision_report["signal_generation_health"] = evidence
+
+
 def _build_market_payload(report_type: str) -> tuple[dict, dict | None]:
     market_regime = build_market_regime_summary(report_type)
     screener = build_screener_snapshot(report_type)
@@ -206,7 +267,22 @@ def _build_market_payload(report_type: str) -> tuple[dict, dict | None]:
         for warning in scanner_diagnostics.warning_lines():
             print(f"WARNING: {warning}")
 
-    _enforce_scanner_data_quality(scanner_diagnostics)
+    try:
+        _enforce_scanner_data_quality(scanner_diagnostics)
+    except ReportDataQualityBlockedError:
+        evidence = {
+            "stage": "signal_generation",
+            "status": SIGNAL_GENERATION_STATUS_BLOCKED_DATA_QUALITY,
+            "live_trading_authorized": False,
+            "broker_execution_mode": "paper_only",
+        }
+        _set_signal_generation_status(
+            decision_payload,
+            decision_report,
+            status=SIGNAL_GENERATION_STATUS_BLOCKED_DATA_QUALITY,
+            evidence=evidence,
+        )
+        raise
 
     try:
         from src.signals.signal_generator import build_signals
@@ -217,9 +293,21 @@ def _build_market_payload(report_type: str) -> tuple[dict, dict | None]:
         )
         _merge_signal_levels_into_decisions(decision_report, signals)
         decision_payload["signals"] = signals
+        _set_signal_generation_status(
+            decision_payload,
+            decision_report,
+            status=SIGNAL_GENERATION_STATUS_PASSED,
+            evidence=_signal_generation_success_evidence(),
+        )
     except Exception as exc:
-        print(f"WARNING: Signal level preparation failed (non-fatal): {type(exc).__name__}: {exc}")
-        decision_payload["signals"] = []
+        evidence = _signal_generation_failure_evidence(exc)
+        _set_signal_generation_status(
+            decision_payload,
+            decision_report,
+            status=SIGNAL_GENERATION_STATUS_FAILED,
+            evidence=evidence,
+        )
+        _raise_signal_generation_failed(exc)
 
     payload = {
         "report_type": report_type,
@@ -266,12 +354,16 @@ def generate_signals(decision_payload: dict) -> None:
             date_str=datetime.now(UTC).strftime("%Y-%m-%d"),
             data_quality=decision_payload.get("scanner_data_quality"),
         )
+        decision_payload["signal_generation_status"] = SIGNAL_GENERATION_STATUS_PASSED
+        decision_payload["signal_generation_health"] = _signal_generation_success_evidence()
         print(f"Signals written: {json_path}, {md_path}")
         print(f"  {sum(1 for signal in signals if signal.action == 'BUY_WATCH')} actionable, {sum(1 for signal in signals if signal.action != 'BUY_WATCH')} no-trade")
     except ReportDataQualityBlockedError:
         raise
+    except SignalGenerationFailedError:
+        raise
     except Exception as exc:
-        print(f"WARNING: Signal generation failed (non-fatal): {type(exc).__name__}: {exc}")
+        _raise_signal_generation_failed(exc)
 
 
 def main() -> int:
@@ -289,6 +381,10 @@ def main() -> int:
     except ReportDataQualityBlockedError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2
+    except SignalGenerationFailedError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        print(json.dumps(exc.evidence, sort_keys=True), file=sys.stderr)
+        return 3
 
 
 if __name__ == "__main__":
