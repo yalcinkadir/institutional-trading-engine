@@ -27,7 +27,8 @@ PO11: Scheduled Daily Observation Workflow implemented and CI-green
 PO12: Daily Observation Artifact Retention & Review Index implemented and CI-green
 PO13: Monthly Paper Observation Review Pack implemented and CI-green
 PO14: Forward Evidence Quality Gate implemented and CI-green
-P120: Productive Paper Observation evidence remains gated until schema-valid observation artifacts are produced and CI-green.
+P120: Productive Paper Observation evidence remains gated until schema-valid durable observation artifacts are produced and CI-green.
+P122: Paper Observation health gate blocks blind observation output when close/ATR/regime/scanner metrics indicate infrastructure failure.
 
 Runtime Governance:
 GOV1-GOV10: runtime / pre-live governance hardening implemented and CI-green
@@ -114,6 +115,20 @@ CER1 adds capacity/execution realism review.
 PFA1 adds position-level forward-evidence attribution by joining risk attribution with 1D, 5D, 20D, MFE and MAE outcome evidence.
 FCM1 adds a feature connectivity matrix guard so implemented / CI-green features must declare runtime gates, guard tests, evidence artifacts, documentation references and upstream/downstream links.
 RPW1 adds a deterministic runtime proof-pack artifact writer and retention index for review-ready runtime proof evidence.
+
+## Paper Observation Health Gate
+
+P122 prevents silent blind Paper Observation output after DATA1 and CLOSE1 are restored.
+
+A Paper Observation report is unhealthy when:
+
+- all or most symbol close values are missing
+- all or most ATR values are missing
+- market_regime remains Unknown despite available close/ATR data
+- scanner metrics are missing for core symbols
+- actionable_count is zero because required market-data fields are missing
+
+A zero-actionable day is still allowed when close values, ATR values, market regime and scanner metrics are present. P122 does not loosen signal thresholds and does not create trades artificially.
 
 ## Market Data Quality Boundary
 
