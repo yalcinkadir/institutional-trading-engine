@@ -58,8 +58,9 @@ def test_daily_observation_automation_blocks_missing_daily_evidence_artifact(tmp
 
     assert result.valid is False
     assert result.artifact["automation_status"] == AUTOMATION_STATUS_BLOCKED
-    assert result.artifact["summary"]["accepted_records"] == 0
-    assert result.artifact["summary"]["rejected_records"] == 1
+    assert result.artifact["summary"]["accepted_count"] == 0
+    assert result.artifact["summary"]["rejected_dates"] == [OBSERVATION_DATE]
+    assert "rejected_observation_days_present" in result.artifact["gate"]["blockers"]
 
 
 def test_daily_observation_automation_passes_when_daily_evidence_artifact_exists(tmp_path: Path) -> None:
@@ -78,5 +79,5 @@ def test_daily_observation_automation_passes_when_daily_evidence_artifact_exists
 
     assert result.valid is True
     assert result.artifact["automation_status"] == AUTOMATION_STATUS_PASSED
-    assert result.artifact["summary"]["accepted_records"] == 1
-    assert result.artifact["summary"]["rejected_records"] == 0
+    assert result.artifact["summary"]["accepted_count"] == 1
+    assert result.artifact["summary"]["rejected_dates"] == []
