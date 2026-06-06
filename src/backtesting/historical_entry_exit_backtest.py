@@ -19,10 +19,14 @@ from src.backtesting.historical_models import (
     HistoricalBacktestReport,
     HistoricalBacktestResult,
     HistoricalTradePlan,
+    HistoricalTradePlanLoadReport,
+    HistoricalTradePlanLoadResult,
+    HistoricalTradePlanRejection,
 )
 
 SUPPORTED_STOP_MODELS = {None, "fixed", "percentage_stop", "breakeven_after_t1"}
 SUPPORTED_EXIT_MODELS = {None, "t1_t2", "r_multiple_targets", "t1_only"}
+DEMO_MARKERS = {"demo", "synthetic", "public_safe", "historical_demo", "placeholder"}
 
 
 @dataclass(frozen=True)
@@ -59,35 +63,84 @@ def _float_or_none(value: Any) -> float | None:
         return None
 
 
-def load_trade_plans(path: Path) -> list[HistoricalTradePlan]:
+def _has_demo_marker(value: Any) -> bool:
+    if isinstance(value, str):
+        lower = value.lower()
+        return any(marker in lower for marker in DEMO_MARKERS)
+    if isinstance(value, list):
+        return any(_has_demo_marker(item) for item in value)
+    if isinstance(value, dict):
+        return any(_has_demo_marker(item) for item in value.values())
+    return False
+
+
+def _extract_raw_trade_plans(path: Path) -> list[Any]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     raw = payload if isinstance(payload, list) else payload.get("plans") or payload.get("signals")
     if not isinstance(raw, list):
         raise ValueError("expected list, plans[] or signals[]")
+    return raw
+
+
+def _reject(index: int, item: Any, reasons: list[str]) -> HistoricalTradePlanRejection:
+    signal_id = item.get("signal_id") if isinstance(item, dict) else None
+    symbol = item.get("symbol") if isinstance(item, dict) else None
+    return HistoricalTradePlanRejection(
+        plan_index=index,
+        signal_id=str(signal_id) if signal_id not in (None, "") else None,
+        symbol=str(symbol).upper() if symbol not in (None, "") else None,
+        reasons=reasons,
+    )
+
+
+def load_trade_plans_with_report(path: Path) -> HistoricalTradePlanLoadResult:
+    raw = _extract_raw_trade_plans(path)
     plans: list[HistoricalTradePlan] = []
+    rejections: list[HistoricalTradePlanRejection] = []
+
     for index, item in enumerate(raw):
         if not isinstance(item, dict):
+            rejections.append(_reject(index, item, ["trade_plan_not_object"]))
             continue
+
+        reasons: list[str] = []
         if item.get("action") not in (None, "BUY_WATCH"):
-            continue
+            reasons.append("non_buy_watch_action")
+        if _has_demo_marker(item):
+            reasons.append("demo_marker_detected")
+
         symbol = str(item.get("symbol") or "").upper()
         signal_date = item.get("signal_date") or item.get("date") or item.get("created_at")
         entry = _float_or_none(item.get("entry_trigger"))
         stop = _float_or_none(item.get("stop_loss"))
         target_1 = _float_or_none(item.get("target_1"))
         target_2 = _float_or_none(item.get("target_2"))
-        if not symbol or not signal_date or entry is None or stop is None or target_1 is None:
+
+        if not symbol:
+            reasons.append("missing_symbol")
+        if not signal_date:
+            reasons.append("missing_signal_date")
+        if entry is None:
+            reasons.append("missing_entry_trigger")
+        if stop is None:
+            reasons.append("missing_stop_loss")
+        if target_1 is None:
+            reasons.append("missing_target_1")
+        if entry is not None and stop is not None and target_1 is not None and not stop < entry < target_1:
+            reasons.append("invalid_entry_stop_target_order")
+
+        if reasons:
+            rejections.append(_reject(index, item, reasons))
             continue
-        if not stop < entry < target_1:
-            continue
+
         plans.append(
             HistoricalTradePlan(
                 signal_id=str(item.get("signal_id") or f"historical_plan_{index}"),
                 symbol=symbol,
                 signal_date=str(signal_date)[:10],
-                entry_trigger=entry,
-                stop_loss=stop,
-                target_1=target_1,
+                entry_trigger=float(entry),
+                stop_loss=float(stop),
+                target_1=float(target_1),
                 target_2=target_2,
                 valid_until=str(item.get("valid_until"))[:10] if item.get("valid_until") else None,
                 entry_type=item.get("entry_type"),
@@ -96,7 +149,18 @@ def load_trade_plans(path: Path) -> list[HistoricalTradePlan]:
                 exit_model=item.get("exit_model"),
             )
         )
-    return plans
+
+    report = HistoricalTradePlanLoadReport(
+        input_plan_count=len(raw),
+        accepted_plan_count=len(plans),
+        rejected_plan_count=len(rejections),
+        rejection_reasons=rejections,
+    )
+    return HistoricalTradePlanLoadResult(plans=plans, report=report)
+
+
+def load_trade_plans(path: Path) -> list[HistoricalTradePlan]:
+    return load_trade_plans_with_report(path).plans
 
 
 def _result(plan: HistoricalTradePlan, **kwargs: Any) -> HistoricalBacktestResult:
@@ -248,6 +312,11 @@ def run_backtest(
     is_demo: bool = True,
     strategy_version: str = "historical-entry-exit-v1",
     tags: list[str] | None = None,
+    input_pack_gate_status: str = "NOT_RUN",
+    coverage_manifest_path: str = "",
+    survivorship_universe_path: str = "",
+    trade_plans_path: str = "",
+    plan_load_report: HistoricalTradePlanLoadReport | None = None,
 ) -> HistoricalBacktestReport:
     cache: dict[str, pd.DataFrame] = {}
     results: list[HistoricalBacktestResult] = []
@@ -255,6 +324,14 @@ def run_backtest(
         if plan.symbol not in cache:
             cache[plan.symbol] = load_historical_bars(bars_root / f"{plan.symbol}.csv")
         results.append(simulate_plan(plan, cache[plan.symbol], max_bars=max_bars, cfg=cfg))
+
+    load_report = plan_load_report or HistoricalTradePlanLoadReport(
+        input_plan_count=len(plans),
+        accepted_plan_count=len(plans),
+        rejected_plan_count=0,
+        rejection_reasons=[],
+    )
+
     return HistoricalBacktestReport(
         metrics=calculate_metrics(results),
         results=results,
@@ -265,4 +342,12 @@ def run_backtest(
         date_range=_date_range(results, plans),
         strategy_version=strategy_version,
         tags=tags or (["demo", "public_safe", "research_only"] if is_demo else ["real_data", "research_only"]),
+        input_pack_gate_status=input_pack_gate_status,
+        coverage_manifest_path=coverage_manifest_path,
+        survivorship_universe_path=survivorship_universe_path,
+        trade_plans_path=trade_plans_path,
+        input_plan_count=load_report.input_plan_count,
+        accepted_plan_count=load_report.accepted_plan_count,
+        rejected_plan_count=load_report.rejected_plan_count,
+        rejection_reasons=[rejection.to_dict() for rejection in load_report.rejection_reasons],
     )

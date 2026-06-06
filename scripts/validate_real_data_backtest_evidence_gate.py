@@ -14,12 +14,23 @@ REQUIRED_FIELDS = [
     "symbol_universe",
     "date_range",
     "strategy_version",
+    "input_pack_gate_status",
+    "coverage_manifest_path",
+    "survivorship_universe_path",
+    "trade_plans_path",
+    "input_plan_count",
+    "accepted_plan_count",
+    "rejected_plan_count",
+    "rejection_reasons",
     "metrics",
     "results",
+    "live_trading_authorized",
+    "broker_execution_mode",
 ]
 
 DEMO_MARKERS = {"demo", "synthetic", "public_safe", "historical_demo"}
 REAL_DATA_SOURCE = "real_data"
+BROKER_EXECUTION_MODE = "paper_only"
 
 
 @dataclass(frozen=True)
@@ -71,6 +82,10 @@ def _has_demo_marker(payload: dict[str, Any]) -> bool:
     return bool(payload.get("is_demo"))
 
 
+def _valid_non_negative_int(value: Any) -> bool:
+    return isinstance(value, int) and value >= 0
+
+
 def validate_real_data_backtest_evidence_artifact(path: Path) -> RealDataBacktestEvidenceGateReport:
     payload, errors = _load_payload(path)
     if payload is None:
@@ -91,10 +106,36 @@ def validate_real_data_backtest_evidence_artifact(path: Path) -> RealDataBacktes
         invalid_fields.append("date_range")
     if "strategy_version" in payload and not _non_empty_string(payload.get("strategy_version")):
         invalid_fields.append("strategy_version")
+    if "input_pack_gate_status" in payload and payload.get("input_pack_gate_status") != "PASSED":
+        invalid_fields.append("input_pack_gate_status")
+    for field_name in ("coverage_manifest_path", "survivorship_universe_path", "trade_plans_path"):
+        if field_name in payload and not _non_empty_string(payload.get(field_name)):
+            invalid_fields.append(field_name)
+    for field_name in ("input_plan_count", "accepted_plan_count", "rejected_plan_count"):
+        if field_name in payload and not _valid_non_negative_int(payload.get(field_name)):
+            invalid_fields.append(field_name)
+    if "input_plan_count" in payload and "accepted_plan_count" in payload and "rejected_plan_count" in payload:
+        if payload.get("input_plan_count") != payload.get("accepted_plan_count") + payload.get("rejected_plan_count"):
+            invalid_fields.append("plan_count_mismatch")
+        if payload.get("input_plan_count") <= 0:
+            invalid_fields.append("input_plan_count_empty")
+        if payload.get("accepted_plan_count") <= 0:
+            invalid_fields.append("accepted_plan_count_empty")
+    if "rejection_reasons" in payload and not isinstance(payload.get("rejection_reasons"), list):
+        invalid_fields.append("rejection_reasons")
+    if "rejected_plan_count" in payload and "rejection_reasons" in payload and isinstance(payload.get("rejection_reasons"), list):
+        if payload.get("rejected_plan_count") != len(payload.get("rejection_reasons")):
+            invalid_fields.append("rejection_reason_count_mismatch")
     if "metrics" in payload and not isinstance(payload.get("metrics"), dict):
         invalid_fields.append("metrics")
     if "results" in payload and not isinstance(payload.get("results"), list):
         invalid_fields.append("results")
+    if "results" in payload and isinstance(payload.get("results"), list) and not payload.get("results"):
+        invalid_fields.append("results_empty")
+    if payload.get("live_trading_authorized") is not False:
+        invalid_fields.append("live_trading_authorized")
+    if payload.get("broker_execution_mode") != BROKER_EXECUTION_MODE:
+        invalid_fields.append("broker_execution_mode")
     if _has_demo_marker(payload):
         invalid_fields.append("demo_marker")
 

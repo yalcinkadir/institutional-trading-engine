@@ -55,6 +55,7 @@ BT3: Backtest reproducibility contract implemented
 BT5: Walk-Forward / Out-of-Sample Robustness Gate implemented and CI-green
 BT6: Evidence Baseline Regression Gate implemented and CI-green
 BT7: Capacity / Turnover / Realism Gate implemented and CI-green
+BT130: Real Historical Backtest Evidence Pack Gate implemented / CI-pending
 CER1: Capacity / Execution Realism Evidence Review Summary implemented and CI-green
 PFA1: Position-level Forward Evidence Attribution implemented and CI-green
 BT8: Backtesting Evidence Report generator implemented and CI-green
@@ -144,6 +145,20 @@ python scripts/ingest_historical_polygon.py --symbols NVDA,AAPL,SPY --start-date
 
 The Polygon API key must be supplied through POLYGON_API_KEY. Generated historical datasets and metadata are evidence artifacts and must not be committed to the public repository.
 
+## Real Historical Backtest Evidence Pack Gate
+
+BT130 requires any real-data backtest claim to write a complete evidence pack. The JSON artifact must include run identity, `data_source=real_data`, `is_demo=false`, symbol universe, date range, strategy version, BT9 input-pack gate status, coverage manifest path, survivorship universe path, trade-plan path, input/accepted/rejected plan counts, rejection reasons, metrics, results, and paper-only execution boundaries.
+
+Real-data backtests fail closed when the coverage manifest is missing or when all trade plans are rejected. Invalid trade plans are counted with explicit rejection reasons instead of being silently skipped.
+
+Manual real-data evidence example:
+
+python scripts/run_historical_entry_exit_backtest.py --plans-file data/trade_plans/historical_trade_plans.json --bars-root data/historical/bars/1day --universe data/universe/survivorship_universe.csv --coverage-manifest data/historical/metadata/coverage_manifest.json --run-id real-bt-manual-001 --real-data --json-output reports/backtests/real-data-backtest-evidence.json --markdown-output reports/backtests/real-data-backtest-evidence.md
+
+Validation example:
+
+python scripts/validate_real_data_backtest_evidence_gate.py --artifact reports/backtests/real-data-backtest-evidence.json
+
 ## Core Commands
 
 Targeted remediation tests:
@@ -158,6 +173,7 @@ pytest tests/test_fcm1_feature_connectivity_matrix_guard.py -q
 pytest tests/test_rpw1_runtime_proof_pack_artifact_writer.py -q
 pytest tests/test_p120_paper_observation_evidence_gate.py -q
 pytest tests/test_p121_real_data_backtest_evidence_gate.py -q
+pytest tests/test_bt130_real_historical_evidence_pack_gate.py -q
 pytest tests/test_bt9_real_historical_input_pack_gate.py -q
 pytest tests/test_uni1_survivorship_universe_contract.py -q
 pytest tests/test_polygon_historical_ingestion.py -q
