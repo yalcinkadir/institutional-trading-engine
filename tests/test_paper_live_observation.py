@@ -15,10 +15,41 @@ def _write_signals(path: Path) -> None:
     path.write_text(
         json.dumps(
             {
+                "market_regime": "Bullish",
+                "actionable_count": 1,
+                "data_quality": {
+                    "data_quality_status": "OK",
+                    "total_symbols": 2,
+                    "valid_symbols": 2,
+                    "missing_symbols": [],
+                    "missing_required_fields": {},
+                },
                 "signals": [
-                    {"signal_id": "s1", "symbol": "SPY", "action": "BUY_WATCH"},
-                    {"signal_id": "s2", "symbol": "QQQ", "action": "NO_TRADE"},
-                ]
+                    {
+                        "signal_id": "s1",
+                        "symbol": "SPY",
+                        "action": "BUY_WATCH",
+                        "decision": "approved",
+                        "close": 101.2,
+                        "atr14": 1.4,
+                        "data_status": "OK",
+                        "source": "polygon",
+                        "source_timestamp": "2026-06-05T13:30:00+00:00",
+                        "fallback_level": "primary",
+                    },
+                    {
+                        "signal_id": "s2",
+                        "symbol": "QQQ",
+                        "action": "NO_TRADE",
+                        "decision": "blocked",
+                        "close": 420.1,
+                        "atr14": 4.2,
+                        "data_status": "OK",
+                        "source": "polygon",
+                        "source_timestamp": "2026-06-05T13:30:00+00:00",
+                        "fallback_level": "primary",
+                    },
+                ],
             }
         ),
         encoding="utf-8",
