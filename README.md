@@ -48,6 +48,7 @@ RGP12: partial-exit lifecycle persistence implemented and CI-green
 RGP13: Runtime Proof Pack Summary Builder implemented and CI-green
 FCM1: Feature Connectivity Matrix Guard implemented and CI-wired
 RPW1: Runtime Proof-Pack Artifact Writer / Retention Index implemented and CI-wired
+DATA1: Market data quality contract blocks missing close/ATR, stale timestamps and missing source metadata before signals or reports consume them.
 
 Backtesting / Evidence:
 BT2: Strategy Test Matrix implemented
@@ -113,6 +114,27 @@ CER1 adds capacity/execution realism review.
 PFA1 adds position-level forward-evidence attribution by joining risk attribution with 1D, 5D, 20D, MFE and MAE outcome evidence.
 FCM1 adds a feature connectivity matrix guard so implemented / CI-green features must declare runtime gates, guard tests, evidence artifacts, documentation references and upstream/downstream links.
 RPW1 adds a deterministic runtime proof-pack artifact writer and retention index for review-ready runtime proof evidence.
+
+## Market Data Quality Boundary
+
+DATA1 defines the central market-data quality contract used before report, signal, paper-observation or decision paths consume symbol metrics.
+
+Required per-symbol fields:
+
+- close
+- ATR
+- source / vendor
+- source timestamp
+- fallback level
+- fallback status
+
+The DATA1 contract returns one of three statuses:
+
+- ok: all required data is present, fresh and provenance-aware
+- degraded: non-blocking provenance gaps are recorded explicitly, such as missing fallback metadata
+- blocked: missing close, missing ATR, missing source, invalid timestamp or stale source timestamp blocks downstream use
+
+Signals consuming DATA1 receive the same data_status, provenance and structured data_quality_events as report paths. This prevents missing close/ATR from becoming a silent zero-actionable no-op.
 
 ## Survivorship Universe Boundary
 
@@ -196,6 +218,7 @@ pytest tests/test_bt9_real_historical_input_pack_gate.py -q
 pytest tests/test_uni1_survivorship_universe_contract.py -q
 pytest tests/test_polygon_historical_ingestion.py -q
 pytest tests/test_htp1_historical_trade_plan_export.py -q
+pytest tests/test_data1_market_data_quality_contract.py -q
 
 Architecture inventory:
 python scripts/generate_module_inventory.py
