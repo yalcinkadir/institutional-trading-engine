@@ -1,8 +1,8 @@
 # Institutional Trading Engine Roadmap
 
-Status date: 2026-06-03
+Status date: 2026-06-06
 
-Current state: TEST1 Evidence-Oriented TDD Policy is active. EV1-EV12 evidence-integrity remediation is implemented and CI-green. CI runtime simplification is implemented and CI-green. ER1-ER15, PO14, RGP13, CER1 and PFA1 are implemented and CI-green. FCM1 and RPW1 are implemented and CI-wired.
+Current state: TEST1 Evidence-Oriented TDD Policy is active. EV1-EV12 evidence-integrity remediation is implemented and CI-green. PO128 and PO129 silent-failure/dataflow guards are implemented and CI-green. BT130 Real Historical Backtest Evidence Pack Gate is implemented and CI-pending.
 
 The system remains research / decision-support / paper-observation only. Real-money execution is not authorized by code.
 
@@ -13,6 +13,16 @@ No real-money execution before forward evidence, drift detection, regime-change 
 Safety-relevant fixes and external review findings require a guard test first.
 
 Committed public report examples must remain synthetic/public-safe.
+
+No real-data backtest claim without a complete, validated evidence pack.
+
+## Phase BT — Backtesting Evidence Gates
+
+| ID | Task | Priority | Impact | Status |
+|---|---|---:|---:|---|
+| BT130 | Real Historical Backtest Evidence Pack Gate | P1 | High | Implemented / CI-pending |
+
+BT130 requires real-data backtest evidence packs to include run identity, real-data source declaration, `is_demo=false`, symbol universe, date range, strategy version, input-pack gate status, coverage manifest path, survivorship universe path, trade-plan path, plan input/accepted/rejected counts, rejection reasons, metrics, results, and paper-only execution boundaries.
 
 ## Phase IP — Public Repository Governance
 
@@ -113,51 +123,6 @@ EV1-EV12 evidence-integrity remediation is complete and CI-green.
 | PFA1 | Position-level Forward Evidence Attribution | P1 | High | Done / CI-green |
 
 PFA joins position-level risk attribution with forward outcome evidence. It does not authorize live trading.
-
-## PFA1 Closure Summary
-
-PFA1 Position-level Forward Evidence Attribution is implemented and CI-green.
-
-Implemented behavior:
-position risk attribution is joined with forward outcome records by symbol
-risk contribution is exposed per position
-1D, 5D, 20D, MFE and MAE forward outcomes are exposed per position
-portfolio-level 1D, 5D and 20D forward outcome totals are summarized
-missing outcome records block forward review
-failed position-risk attribution reports block forward review
-missing observation window blocks forward review
-missing evidence manifest path blocks forward review
-live_trading_authorized must remain false
-broker_execution_mode must remain paper_only
-
-Guard test:
-tests/test_pfa1_position_forward_evidence_attribution.py
-
-Closure doc:
-docs/operations/pfa1_position_forward_evidence_attribution_ci_green_closure_2026_06_03.md
-
-## FCM1 / RPW1 Closure Summary
-
-FCM1 Feature Connectivity Matrix Guard and RPW1 Runtime Proof-Pack Artifact Writer / Retention Index are implemented and CI-wired.
-
-Implemented behavior:
-feature connectivity matrix validates required feature identity fields
-implemented / CI-green features require runtime gate, guard test, evidence artifact and documentation reference
-unknown upstream dependencies block the matrix
-unsafe live/non-paper inputs block and normalize to safe summary output
-runtime proof-pack artifacts are written as deterministic JSON
-artifact SHA-256 is recorded in a retention index
-retention index updates existing proof_pack_id entries without duplication
-missing proof-pack identity, observation window or summary blocks artifact writing
-live_trading_authorized must remain false
-broker_execution_mode must remain paper_only
-
-Guard tests:
-tests/test_fcm1_feature_connectivity_matrix_guard.py
-tests/test_rpw1_runtime_proof_pack_artifact_writer.py
-
-Closure doc:
-docs/operations/fcm1_rpw1_connectivity_proof_pack_retention_closure_2026_06_03.md
 
 ## Recommended Next Remediation Order
 
