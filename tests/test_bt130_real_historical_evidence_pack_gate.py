@@ -11,7 +11,7 @@ from src.backtesting.historical_entry_exit_backtest import load_trade_plans_with
 RUNNER_SCRIPT = Path("scripts/run_historical_entry_exit_backtest.py")
 
 
-def _write_plan(path: Path, *, valid: bool = True) -> None:
+def _write_plan(path: Path, *, valid: bool = True, unsupported_action: bool = False) -> None:
     plan = {
         "signal_id": "sig_SPY_bt130",
         "symbol": "SPY",
@@ -20,8 +20,10 @@ def _write_plan(path: Path, *, valid: bool = True) -> None:
         "target_1": 104.0,
         "source": "paper_observation_validated",
     }
-    if valid:
+    if valid or unsupported_action:
         plan["stop_loss"] = 99.0
+    if unsupported_action:
+        plan["action"] = "SELL"
     path.write_text(json.dumps({"plans": [plan]}), encoding="utf-8")
 
 
@@ -95,7 +97,7 @@ def test_bt130_real_data_runner_blocks_fully_rejected_plans(tmp_path: Path) -> N
     universe = tmp_path / "universe.csv"
     coverage = tmp_path / "coverage.json"
     out = tmp_path / "evidence.json"
-    _write_plan(plans, valid=False)
+    _write_plan(plans, unsupported_action=True)
     _write_bars(bars)
     _write_universe(universe)
     _write_coverage(coverage)
