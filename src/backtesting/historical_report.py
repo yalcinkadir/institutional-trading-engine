@@ -13,6 +13,22 @@ def render_markdown(report: HistoricalBacktestReport) -> str:
     lines = [
         "# Historical Entry / Stop / Exit Backtest",
         "",
+        "## Evidence Pack",
+        "",
+        f"- Run ID: {report.run_id}",
+        f"- Data source: {report.data_source}",
+        f"- Is demo: {report.is_demo}",
+        f"- Strategy version: {report.strategy_version}",
+        f"- Input pack gate status: {report.input_pack_gate_status}",
+        f"- Coverage manifest: {report.coverage_manifest_path}",
+        f"- Survivorship universe: {report.survivorship_universe_path}",
+        f"- Trade plans: {report.trade_plans_path}",
+        f"- Input plans: {report.input_plan_count}",
+        f"- Accepted plans: {report.accepted_plan_count}",
+        f"- Rejected plans: {report.rejected_plan_count}",
+        f"- Live trading authorized: {report.live_trading_authorized}",
+        f"- Broker execution mode: {report.broker_execution_mode}",
+        "",
         "## Metrics",
         "",
         f"- Total plans: {metrics.total}",
@@ -25,11 +41,27 @@ def render_markdown(report: HistoricalBacktestReport) -> str:
         f"- Average R: {metrics.average_r:.4f}",
         f"- Expectancy R: {metrics.expectancy_r:.4f}",
         "",
-        "## Results",
+        "## Rejected Trade Plans",
         "",
-        "| Signal | Symbol | Date | Outcome | R | Reason |",
-        "|---|---|---:|---|---:|---|",
     ]
+    if report.rejection_reasons:
+        lines.extend(["| Index | Signal | Symbol | Reasons |", "|---:|---|---|---|"])
+        for rejection in report.rejection_reasons:
+            lines.append(
+                f"| {rejection.get('plan_index')} | {rejection.get('signal_id') or ''} | "
+                f"{rejection.get('symbol') or ''} | {', '.join(rejection.get('reasons', []))} |"
+            )
+    else:
+        lines.append("No rejected trade plans.")
+    lines.extend(
+        [
+            "",
+            "## Results",
+            "",
+            "| Signal | Symbol | Date | Outcome | R | Reason |",
+            "|---|---|---:|---|---:|---|",
+        ]
+    )
     for result in report.results:
         lines.append(
             f"| {result.signal_id} | {result.symbol} | {result.signal_date} | "
