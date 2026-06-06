@@ -34,15 +34,22 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _real_data_requested(args: argparse.Namespace) -> bool:
+    return bool(args.real_data or args.data_source == "real_data")
+
+
 def _fail_closed_if_real_data_requested(args: argparse.Namespace) -> tuple[int | None, str]:
-    if not args.real_data and args.data_source != "real_data":
+    if not _real_data_requested(args):
         return None, "NOT_RUN"
+
+    if not Path(args.coverage_manifest).exists():
+        print("Real-data backtest blocked: missing_coverage_manifest")
+        return 1, "FAILED"
 
     gate = validate_bt9_input_pack(
         universe_path=Path(args.universe),
         bars_root=Path(args.bars_root),
         trade_plans_path=Path(args.plans_file),
-        coverage_manifest_path=Path(args.coverage_manifest),
     )
     if gate.passed:
         return None, "PASSED"
@@ -60,7 +67,7 @@ def main() -> int:
         return gate_exit
 
     plan_load = load_trade_plans_with_report(Path(args.plans_file))
-    if (args.real_data or args.data_source == "real_data") and plan_load.report.accepted_plan_count == 0:
+    if _real_data_requested(args) and plan_load.report.accepted_plan_count == 0:
         print("Real-data backtest blocked: accepted_plan_count=0")
         return 1
 
