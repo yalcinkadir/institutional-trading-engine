@@ -62,6 +62,7 @@ BT8: Backtesting Evidence Report generator implemented and CI-green
 BT9: Real historical backtesting remains fail-closed unless the input pack gate passes universe, bars, trade-plan and demo-data checks.
 UNI1: Initial survivorship universe contract defines point-in-time symbol lifecycle validation for real backtesting.
 HIST1: Polygon historical bars ingestion writes canonical CSV bars plus coverage manifest for BT9 compatibility.
+HTP1: Validated Paper Observation records can be exported into deterministic historical trade plans plus manifest for BT9 compatibility.
 P121: Real historical-data backtest evidence is only claimable after a valid `real_data` evidence artifact passes the P121 schema gate.
 EV1-EV12: evidence-integrity remediation implemented and CI-green
 
@@ -145,6 +146,23 @@ python scripts/ingest_historical_polygon.py --symbols NVDA,AAPL,SPY --start-date
 
 The Polygon API key must be supplied through POLYGON_API_KEY. Generated historical datasets and metadata are evidence artifacts and must not be committed to the public repository.
 
+## Historical Trade Plans Export Boundary
+
+HTP1 converts validated Paper Observation records into deterministic historical trade plans.
+
+Required canonical outputs:
+
+- data/trade_plans/historical_trade_plans.json
+- data/trade_plans/historical_trade_plans_manifest.json
+
+The exporter accepts JSON or CSV observation records. It fails closed when a record is missing close, entry, stop, target, timestamp, symbol, data status or provenance. It also rejects demo, synthetic, placeholder and public-safe markers for real historical trade-plan evidence.
+
+Manual export example:
+
+python scripts/export_historical_trade_plans.py --source artifacts/evidence/paper-observation/latest-observations.json --output data/trade_plans/historical_trade_plans.json --manifest data/trade_plans/historical_trade_plans_manifest.json
+
+The exported plans remain paper-only / research-only evidence. They are inputs for historical backtesting and do not authorize live trading.
+
 ## Real Historical Backtest Evidence Pack Gate
 
 BT130 requires any real-data backtest claim to write a complete evidence pack. The JSON artifact must include run identity, `data_source=real_data`, `is_demo=false`, symbol universe, date range, strategy version, BT9 input-pack gate status, coverage manifest path, survivorship universe path, trade-plan path, input/accepted/rejected plan counts, rejection reasons, metrics, results, and paper-only execution boundaries.
@@ -177,6 +195,7 @@ pytest tests/test_bt130_real_historical_evidence_pack_gate.py -q
 pytest tests/test_bt9_real_historical_input_pack_gate.py -q
 pytest tests/test_uni1_survivorship_universe_contract.py -q
 pytest tests/test_polygon_historical_ingestion.py -q
+pytest tests/test_htp1_historical_trade_plan_export.py -q
 
 Architecture inventory:
 python scripts/generate_module_inventory.py
