@@ -16,12 +16,23 @@ def _write_signals(path: Path) -> None:
     path.write_text(
         json.dumps(
             {
+                "market_regime": "Bullish",
+                "actionable_count": 1,
+                "data_quality": {
+                    "data_quality_status": "DEGRADED",
+                    "total_symbols": 2,
+                    "valid_symbols": 2,
+                    "missing_symbols": [],
+                    "missing_required_fields": {},
+                },
                 "signals": [
                     {
                         "signal_id": "sig_NVDA_001",
                         "symbol": "NVDA",
                         "action": "BUY_WATCH",
                         "decision": "approved",
+                        "close": 120.25,
+                        "atr14": 3.4,
                         "data_status": "OK",
                         "source": "polygon",
                         "source_timestamp": "2026-06-05T13:30:00+00:00",
@@ -32,12 +43,14 @@ def _write_signals(path: Path) -> None:
                         "symbol": "QQQ",
                         "action": "NO_TRADE",
                         "decision": "blocked",
+                        "close": 420.1,
+                        "atr14": 4.2,
                         "data_status": "DEGRADED",
                         "source": "polygon",
                         "source_timestamp": "2026-06-05T13:30:00+00:00",
                         "fallback_level": "degraded",
                     },
-                ]
+                ],
             }
         ),
         encoding="utf-8",
@@ -83,6 +96,7 @@ def test_p120_observation_report_contains_durable_evidence_schema(tmp_path: Path
     assert payload["decision_status"] == {"approved": 1, "blocked": 1}
     assert payload["data_quality_status"] == "DEGRADED"
     assert len(payload["provenance"]) == 2
+    assert any(gate["name"] == "paper_observation_health" and gate["passed"] for gate in payload["gates"])
 
 
 def test_p120_evidence_gate_validates_written_observation_artifact(tmp_path: Path) -> None:
@@ -132,6 +146,99 @@ def test_p120_evidence_gate_rejects_missing_provenance(tmp_path: Path) -> None:
 
     assert gate.passed is False
     assert "provenance" in gate.invalid_fields
+
+
+def test_p122_health_gate_rejects_blind_observation_with_missing_close(tmp_path: Path) -> None:
+    signals = tmp_path / "signals.json"
+    lifecycle = tmp_path / "life.jsonl"
+    alerts = tmp_path / "alerts.json"
+    _write_lifecycle(lifecycle)
+    _write_alerts(alerts)
+    signals.write_text(
+        json.dumps(
+            {
+                "market_regime": "Bullish",
+                "actionable_count": 0,
+                "data_quality": {
+                    "data_quality_status": "BLOCKED",
+                    "total_symbols": 2,
+                    "valid_symbols": 0,
+                    "missing_symbols": [],
+                    "missing_required_fields": {"NVDA": ["close"], "QQQ": ["close"]},
+                },
+                "signals": [
+                    {"signal_id": "sig_NVDA_001", "symbol": "NVDA", "action": "NO_TRADE", "decision": "blocked", "close": None, "atr14": 3.1, "data_status": "BLOCKED", "source": "polygon", "source_timestamp": "2026-06-05T13:30:00+00:00", "fallback_level": "primary"},
+                    {"signal_id": "sig_QQQ_001", "symbol": "QQQ", "action": "NO_TRADE", "decision": "blocked", "close": None, "atr14": 4.2, "data_status": "BLOCKED", "source": "polygon", "source_timestamp": "2026-06-05T13:30:00+00:00", "fallback_level": "primary"},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    report = observe_paper_live(signals_file=signals, lifecycle_file=lifecycle, alerts_file=alerts, min_lifecycle_events=2, require_alerts=True)
+    payload = report.to_dict()
+
+    health_gate = next(gate for gate in payload["gates"] if gate["name"] == "paper_observation_health")
+    assert health_gate["passed"] is False
+    assert "all_or_most_close_missing" in health_gate["message"]
+    assert "zero_actionable_due_to_missing_required_data" in health_gate["message"]
+    assert payload["ready_for_review"] is False
+
+
+def test_p122_health_gate_rejects_unknown_regime_despite_available_data(tmp_path: Path) -> None:
+    signals = tmp_path / "signals.json"
+    lifecycle = tmp_path / "life.jsonl"
+    alerts = tmp_path / "alerts.json"
+    _write_lifecycle(lifecycle)
+    _write_alerts(alerts)
+    signals.write_text(
+        json.dumps(
+            {
+                "market_regime": "Unknown",
+                "actionable_count": 0,
+                "data_quality": {"data_quality_status": "OK", "total_symbols": 1, "valid_symbols": 1, "missing_symbols": [], "missing_required_fields": {}},
+                "signals": [
+                    {"signal_id": "sig_NVDA_001", "symbol": "NVDA", "action": "NO_TRADE", "decision": "blocked", "close": 120.25, "atr14": 3.1, "data_status": "OK", "source": "polygon", "source_timestamp": "2026-06-05T13:30:00+00:00", "fallback_level": "primary"}
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    report = observe_paper_live(signals_file=signals, lifecycle_file=lifecycle, alerts_file=alerts, min_lifecycle_events=2, require_alerts=True)
+    health_gate = next(gate for gate in report.to_dict()["gates"] if gate["name"] == "paper_observation_health")
+
+    assert health_gate["passed"] is False
+    assert "unknown_market_regime_with_available_data" in health_gate["message"]
+
+
+def test_p122_valid_no_trade_day_is_allowed_when_data_is_complete(tmp_path: Path) -> None:
+    signals = tmp_path / "signals.json"
+    lifecycle = tmp_path / "life.jsonl"
+    alerts = tmp_path / "alerts.json"
+    _write_lifecycle(lifecycle)
+    _write_alerts(alerts)
+    signals.write_text(
+        json.dumps(
+            {
+                "market_regime": "Neutral",
+                "actionable_count": 0,
+                "data_quality": {"data_quality_status": "OK", "total_symbols": 2, "valid_symbols": 2, "missing_symbols": [], "missing_required_fields": {}},
+                "signals": [
+                    {"signal_id": "sig_NVDA_001", "symbol": "NVDA", "action": "NO_TRADE", "decision": "blocked", "close": 120.25, "atr14": 3.1, "data_status": "OK", "source": "polygon", "source_timestamp": "2026-06-05T13:30:00+00:00", "fallback_level": "primary"},
+                    {"signal_id": "sig_QQQ_001", "symbol": "QQQ", "action": "NO_TRADE", "decision": "blocked", "close": 420.1, "atr14": 4.2, "data_status": "OK", "source": "polygon", "source_timestamp": "2026-06-05T13:30:00+00:00", "fallback_level": "primary"},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    report = observe_paper_live(signals_file=signals, lifecycle_file=lifecycle, alerts_file=alerts, min_lifecycle_events=2, require_alerts=True)
+    payload = report.to_dict()
+    health_gate = next(gate for gate in payload["gates"] if gate["name"] == "paper_observation_health")
+
+    assert health_gate["passed"] is True
+    assert payload["ready_for_review"] is True
 
 
 def test_p120_validator_cli_fails_when_artifact_missing(tmp_path: Path) -> None:
