@@ -21,6 +21,23 @@ def _as_string_list(values: Iterable[str] | None) -> list[str]:
     return [str(value) for value in values]
 
 
+def _missing_artifact_evidence(
+    artifact_paths: Iterable[str] | None,
+    *,
+    artifact_root: str | Path | None = None,
+) -> list[str]:
+    root = Path(artifact_root) if artifact_root is not None else Path.cwd()
+    missing: list[str] = []
+
+    for artifact_path in _as_string_list(artifact_paths):
+        path = Path(artifact_path)
+        candidate = path if path.is_absolute() else root / path
+        if not candidate.exists():
+            missing.append(f"missing_artifact:{artifact_path}")
+
+    return missing
+
+
 def determine_daily_observation_status(
     *,
     missing_evidence: Iterable[str] | None = None,
@@ -44,13 +61,23 @@ def build_daily_observation_record(
     artifact_paths: Iterable[str] | None = None,
     review_notes: str = "",
     created_at: str | None = None,
+    require_artifact_paths_exist: bool = False,
+    artifact_root: str | Path | None = None,
 ) -> dict[str, Any]:
     if isinstance(observation_date, date):
         observation_date_value = observation_date.isoformat()
     else:
         observation_date_value = observation_date
 
+    artifact_path_list = _as_string_list(artifact_paths)
     missing = _as_string_list(missing_evidence)
+    if require_artifact_paths_exist:
+        missing.extend(
+            _missing_artifact_evidence(
+                artifact_path_list,
+                artifact_root=artifact_root,
+            )
+        )
     incident_list = _as_string_list(incidents)
     status, review_required = determine_daily_observation_status(
         missing_evidence=missing,
@@ -62,7 +89,7 @@ def build_daily_observation_record(
         "status": status,
         "missing_evidence": missing,
         "incidents": incident_list,
-        "artifact_paths": _as_string_list(artifact_paths),
+        "artifact_paths": artifact_path_list,
         "review_required": review_required,
         "review_notes": review_notes,
         "live_trading_authorized": False,

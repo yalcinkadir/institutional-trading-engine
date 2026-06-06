@@ -68,6 +68,7 @@ jobs:
               artifact_paths=[f"reports/daily_evidence/{observation_date}.json"],
               minimum_records=minimum_records,
               created_at=created_at,
+              require_artifact_paths_exist=True,
           )
           write_result = write_daily_observation_automation_artifact(result=result)
 
@@ -84,9 +85,12 @@ jobs:
               raise SystemExit("PO11 must not authorize live trading")
           if write_result.artifact["broker_execution_mode"] != "paper_only":
               raise SystemExit("PO11 must remain paper_only")
+          if write_result.artifact["automation_status"] != "PASSED":
+              raise SystemExit("PO11 blocked: referenced daily evidence artifact is missing or invalid")
           PY
 
       - name: Upload PO11 automation artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: po11-daily-observation-artifact
