@@ -2,7 +2,7 @@
 
 Status date: 2026-06-06
 
-Current state: TEST1 Evidence-Oriented TDD Policy is active. EV1-EV12 evidence-integrity remediation is implemented and CI-green. PO128 and PO129 silent-failure/dataflow guards are implemented and CI-green. BT130 Real Historical Backtest Evidence Pack Gate is implemented and CI-pending.
+Current state: TEST1 Evidence-Oriented TDD Policy is active. EV1-EV12 evidence-integrity remediation is implemented and CI-green. CI runtime simplification is implemented and CI-green. PO128 and PO129 silent-failure/dataflow guards are implemented and CI-green. BT130 Real Historical Backtest Evidence Pack Gate is implemented and CI-pending.
 
 The system remains research / decision-support / paper-observation only. Real-money execution is not authorized by code.
 
