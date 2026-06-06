@@ -1,5 +1,31 @@
 # CHANGELOG
 
+## BT130 Real Historical Backtest Evidence Pack Gate — 2026-06-06
+
+### Added
+- Added complete real-data backtest evidence-pack fields to historical backtest JSON output.
+- Added explicit trade-plan load reporting with `input_plan_count`, `accepted_plan_count`, `rejected_plan_count` and `rejection_reasons`.
+- Added `tests/test_bt130_real_historical_evidence_pack_gate.py`.
+
+### Changed
+- Real-data backtest runner now blocks when the coverage manifest is missing.
+- Real-data backtest runner now blocks when all trade plans are rejected.
+- P121 real-data evidence gate now validates plan counts, rejection reasons, input-pack gate status, artifact paths, results, and paper-only execution boundaries.
+- Historical backtest Markdown output now includes evidence-pack metadata and rejected trade-plan details.
+
+### Validated
+- Demo backtests cannot pass as real-data evidence.
+- Missing coverage manifest blocks real-data evidence creation.
+- Fully rejected trade-plan input blocks real-data evidence creation.
+- Rejected trade plans are counted and reasoned instead of silently skipped.
+- `live_trading_authorized=false` and `broker_execution_mode=paper_only` remain required.
+
+### Status
+- BT130: Implemented / CI-pending.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## W1 Entry/Exit Watcher Git Write Decoupling Guard — 2026-06-03
 
 ### Added
