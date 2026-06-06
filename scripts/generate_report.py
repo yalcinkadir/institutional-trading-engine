@@ -32,6 +32,12 @@ BLOCKING_SCANNER_DATA_QUALITY_STATUSES = {"BLOCKED", "UNKNOWN"}
 SIGNAL_GENERATION_STATUS_PASSED = "PASSED"
 SIGNAL_GENERATION_STATUS_FAILED = "FAILED"
 SIGNAL_GENERATION_STATUS_BLOCKED_DATA_QUALITY = "BLOCKED_DATA_QUALITY"
+RUN_HEALTH_OK = "OK"
+RUN_HEALTH_NO_TRADE_VALID = "NO_TRADE_VALID"
+RUN_HEALTH_DEGRADED_DATA = "DEGRADED_DATA"
+RUN_HEALTH_EMPTY_INPUT = "EMPTY_INPUT"
+RUN_HEALTH_FALLBACK_ACTIVE = "FALLBACK_ACTIVE"
+RUN_HEALTH_FAILED = "FAILED"
 
 
 class ReportDataQualityBlockedError(RuntimeError):
@@ -95,6 +101,94 @@ def _signal_generation_success_evidence(stage: str = "signal_generation") -> dic
         "live_trading_authorized": False,
         "broker_execution_mode": "paper_only",
     }
+
+
+def _signal_attr(signal: Any, field_name: str, default: Any = None) -> Any:
+    if isinstance(signal, dict):
+        return signal.get(field_name, default)
+    return getattr(signal, field_name, default)
+
+
+def _derive_market_run_health(decision_payload: dict[str, Any]) -> dict[str, Any]:
+    """Classify a market report run so silent failures cannot look like success."""
+    reasons: list[str] = []
+    scanner_status = str(
+        (decision_payload.get("scanner_data_quality") or {}).get("data_quality_status") or "UNKNOWN"
+    ).upper()
+    signal_status = str(decision_payload.get("signal_generation_status") or "UNKNOWN").upper()
+    signals = list(decision_payload.get("signals") or [])
+
+    if signal_status in {SIGNAL_GENERATION_STATUS_FAILED, SIGNAL_GENERATION_STATUS_BLOCKED_DATA_QUALITY}:
+        reasons.append("signal_generation_failed")
+        return {
+            "run_health_status": RUN_HEALTH_FAILED,
+            "success_status": "FAILED",
+            "reasons": reasons,
+        }
+
+    if scanner_status in {"BLOCKED", "UNKNOWN"}:
+        reasons.append(f"scanner_data_quality_{scanner_status.lower()}")
+        return {
+            "run_health_status": RUN_HEALTH_FAILED,
+            "success_status": "FAILED",
+            "reasons": reasons,
+        }
+
+    if not signals:
+        reasons.append("signals_empty")
+        return {
+            "run_health_status": RUN_HEALTH_EMPTY_INPUT,
+            "success_status": "FAILED",
+            "reasons": reasons,
+        }
+
+    if scanner_status == "DEGRADED":
+        reasons.append("scanner_data_quality_degraded")
+
+    demo_or_fixture = any(
+        str(_signal_attr(signal, "data_source", "")).lower() in {"demo", "fixture", "public_demo", "historical_demo"}
+        or str(_signal_attr(signal, "score_source", "")).lower() in {"demo", "fixture", "public_demo", "demo_arithmetic_sequence"}
+        or str(_signal_attr(signal, "thresholds_version", "")).lower() in {"demo", "fixture", "public_demo"}
+        for signal in signals
+    )
+    if demo_or_fixture:
+        reasons.append("demo_or_fixture_data_used")
+
+    non_primary_fallback = any(
+        str(_signal_attr(signal, "fallback_level", "primary")).lower() not in {"", "primary"}
+        for signal in signals
+    )
+    if non_primary_fallback:
+        reasons.append("non_primary_fallback_active")
+
+    actionable_count = sum(1 for signal in signals if _signal_attr(signal, "action") == "BUY_WATCH")
+    if reasons:
+        status = RUN_HEALTH_DEGRADED_DATA if "scanner_data_quality_degraded" in reasons else RUN_HEALTH_FALLBACK_ACTIVE
+        return {
+            "run_health_status": status,
+            "success_status": "DEGRADED",
+            "reasons": sorted(set(reasons)),
+        }
+
+    if actionable_count == 0:
+        return {
+            "run_health_status": RUN_HEALTH_NO_TRADE_VALID,
+            "success_status": "SUCCESS",
+            "reasons": ["no_actionable_signals_with_complete_data"],
+        }
+
+    return {
+        "run_health_status": RUN_HEALTH_OK,
+        "success_status": "SUCCESS",
+        "reasons": ["actionable_signals_generated"],
+    }
+
+
+def _is_empty_report_text(report: str) -> bool:
+    lines = [line.strip() for line in report.splitlines() if line.strip()]
+    if not lines:
+        return True
+    return len(lines) == 1 and lines[0].startswith("#")
 
 
 def _enrich_metrics_with_structure(metrics: dict[str, Any] | None, bars_df: Any) -> dict[str, Any] | None:
@@ -299,6 +393,9 @@ def _build_market_payload(report_type: str) -> tuple[dict, dict | None]:
             status=SIGNAL_GENERATION_STATUS_PASSED,
             evidence=_signal_generation_success_evidence(),
         )
+        run_health = _derive_market_run_health(decision_payload)
+        decision_payload["run_health"] = run_health
+        decision_report["run_health"] = run_health
     except Exception as exc:
         evidence = _signal_generation_failure_evidence(exc)
         _set_signal_generation_status(
@@ -370,6 +467,9 @@ def main() -> int:
     args = parse_args()
     try:
         report, decision_payload = build_report(args.type)
+        if _is_empty_report_text(report):
+            print("ERROR: silent failure detected: empty report", file=sys.stderr)
+            return 4
         if args.output:
             output_path = write_report_text_guarded(args.output, report, repo_root=ROOT_DIR)
             print(f"Report written to {output_path}")
