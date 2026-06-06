@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from src.data_quality.market_data_quality import (
+from src.analytics.signal_quality import (
     DATA_STATUS_BLOCKED,
     DATA_STATUS_DEGRADED,
     DATA_STATUS_OK,
