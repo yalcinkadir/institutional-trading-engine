@@ -301,6 +301,24 @@ def _date_range(results: list[HistoricalBacktestResult], plans: list[HistoricalT
     return {"start": dates[0], "end": dates[-1]} if dates else {}
 
 
+def _derive_backtest_input_health(
+    *,
+    load_report: HistoricalTradePlanLoadReport,
+    results: list[HistoricalBacktestResult],
+    input_pack_gate_status: str,
+    is_demo: bool,
+) -> tuple[str, str]:
+    if input_pack_gate_status == "FAILED":
+        return "FAILED", "FAILED"
+    if load_report.input_plan_count <= 0 or load_report.accepted_plan_count <= 0 or not results:
+        return "EMPTY_INPUT", "EMPTY_INPUT"
+    if is_demo:
+        return "OK", "FALLBACK_ACTIVE"
+    if load_report.rejected_plan_count > 0:
+        return "DEGRADED_DATA", "DEGRADED_DATA"
+    return "OK", "OK"
+
+
 def run_backtest(
     plans: list[HistoricalTradePlan],
     *,
@@ -331,6 +349,12 @@ def run_backtest(
         rejected_plan_count=0,
         rejection_reasons=[],
     )
+    input_completeness_status, run_health_status = _derive_backtest_input_health(
+        load_report=load_report,
+        results=results,
+        input_pack_gate_status=input_pack_gate_status,
+        is_demo=is_demo,
+    )
 
     return HistoricalBacktestReport(
         metrics=calculate_metrics(results),
@@ -343,6 +367,8 @@ def run_backtest(
         strategy_version=strategy_version,
         tags=tags or (["demo", "public_safe", "research_only"] if is_demo else ["real_data", "research_only"]),
         input_pack_gate_status=input_pack_gate_status,
+        input_completeness_status=input_completeness_status,
+        run_health_status=run_health_status,
         coverage_manifest_path=coverage_manifest_path,
         survivorship_universe_path=survivorship_universe_path,
         trade_plans_path=trade_plans_path,
