@@ -42,6 +42,7 @@ RGP4: actionable signal provider-fetch failure blocking implemented and CI-green
 RGP5: critical STOP/EXIT alert ordering guard implemented and CI-green
 RGP6: strict critical notification failure handling implemented and CI-green
 RGP7: repo-writing workflow serialization/retry guard implemented and CI-green
+W1: Entry/Exit Watcher Git-Write Decoupling implemented and CI-green
 RGP8: alert/evidence artifact upload-on-failure guard implemented and CI-green
 RGP9: signal lifecycle status source of truth implemented and CI-green
 RGP10: latest bar timestamp ordering guard implemented and CI-green
@@ -154,6 +155,20 @@ Supported health outcomes include:
 
 Reports render a dedicated Run Health / Silent-Failure Gate block. Real-data backtest evidence also includes input_completeness_status and run_health_status.
 
+## Entry/Exit Watcher Runtime Output Boundary
+
+W1 keeps the scheduled Entry/Exit Watcher read-only against the repository. Runtime outputs are uploaded as GitHub Actions artifacts instead of being committed back to the schedule branch.
+
+The watcher workflow must keep:
+
+- repository contents permission at read-only scope
+- checkout credentials non-persistent
+- no scheduled `git add`, `git commit`, `git pull --rebase` or `git push`
+- runtime output upload through `actions/upload-artifact@v4`
+- isolated watcher concurrency instead of the shared repo-write group
+
+This protects main from scheduled runtime artifact mutation while preserving reviewable watcher evidence.
+
 ## Market Data Quality Boundary
 
 DATA1 defines the central market-data quality contract used before report, signal, paper-observation or decision paths consume symbol metrics.
@@ -249,6 +264,7 @@ pytest tests/test_cer1_capacity_execution_realism_review.py -q
 pytest tests/test_bt7_capacity_turnover_realism_gate.py -q
 pytest tests/test_rgp13_runtime_proof_pack_summary.py -q
 pytest tests/test_po14_forward_evidence_quality_gate.py -q
+pytest tests/test_w1_entry_exit_watcher_git_write_decoupling.py -q
 pytest tests/test_fcm1_feature_connectivity_matrix_guard.py -q
 pytest tests/test_rpw1_runtime_proof_pack_artifact_writer.py -q
 pytest tests/test_p120_paper_observation_evidence_gate.py -q
