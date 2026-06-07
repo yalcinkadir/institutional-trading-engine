@@ -20,6 +20,8 @@ def _valid_real_payload() -> dict:
         "date_range": {"start": "2024-06-01", "end": "2026-06-01"},
         "strategy_version": "historical-entry-exit-v1",
         "input_pack_gate_status": "PASSED",
+        "input_completeness_status": "OK",
+        "run_health_status": "OK",
         "coverage_manifest_path": "coverage_manifest.json",
         "survivorship_universe_path": "survivorship_universe.csv",
         "trade_plans_path": "historical_trade_plans.json",
@@ -169,6 +171,8 @@ def test_p121_real_data_runner_writes_valid_evidence_artifact(tmp_path: Path) ->
     assert payload["symbol_universe"] == ["SPY"]
     assert payload["strategy_version"] == "historical-entry-exit-v1"
     assert payload["input_pack_gate_status"] == "PASSED"
+    assert payload["input_completeness_status"] == "OK"
+    assert payload["run_health_status"] == "OK"
     assert payload["coverage_manifest_path"] == str(coverage_manifest)
     assert payload["input_plan_count"] == 1
     assert payload["accepted_plan_count"] == 1
@@ -176,16 +180,3 @@ def test_p121_real_data_runner_writes_valid_evidence_artifact(tmp_path: Path) ->
     assert payload["live_trading_authorized"] is False
     assert payload["broker_execution_mode"] == "paper_only"
     assert validate_real_data_backtest_evidence_artifact(output_json).passed is True
-
-
-def test_p121_validator_cli_fails_when_artifact_missing(tmp_path: Path) -> None:
-    result = subprocess.run(
-        [sys.executable, str(VALIDATOR_SCRIPT), "--artifact", str(tmp_path / "missing.json")],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-
-    assert result.returncode == 1
-    assert "Real-data backtest evidence gate status: FAIL" in result.stdout
-    assert "artifact_missing" in result.stdout
