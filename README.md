@@ -29,6 +29,7 @@ PO13: Monthly Paper Observation Review Pack implemented and CI-green
 PO14: Forward Evidence Quality Gate implemented and CI-green
 P120: Productive Paper Observation evidence remains gated until schema-valid durable observation artifacts are produced and CI-green.
 P122: Paper Observation health gate blocks blind observation output when close/ATR/regime/scanner metrics indicate infrastructure failure.
+P124: Silent-failure run health gate distinguishes valid no-trade, degraded data, fallback/demo and failed runs before reports, Paper Observation or backtests are treated as successful.
 
 Runtime Governance:
 GOV1-GOV10: runtime / pre-live governance hardening implemented and CI-green
@@ -130,6 +131,29 @@ A Paper Observation report is unhealthy when:
 
 A zero-actionable day is still allowed when close values, ATR values, market regime and scanner metrics are present. P122 does not loosen signal thresholds and does not create trades artificially.
 
+## Silent-Failure Run Health Gate
+
+P124 introduces an explicit run-health classification so empty or degraded outputs cannot be mistaken for successful no-trade days.
+
+Market reports and signal generation expose:
+
+- run_health_status
+- success_status
+- signal_generation_status
+- scanner_data_quality
+- reasons
+
+Supported health outcomes include:
+
+- OK
+- NO_TRADE_VALID
+- DEGRADED_DATA
+- EMPTY_INPUT
+- FALLBACK_ACTIVE
+- FAILED
+
+Reports render a dedicated Run Health / Silent-Failure Gate block. Real-data backtest evidence also includes input_completeness_status and run_health_status.
+
 ## Market Data Quality Boundary
 
 DATA1 defines the central market-data quality contract used before report, signal, paper-observation or decision paths consume symbol metrics.
@@ -202,7 +226,7 @@ The exported plans remain paper-only / research-only evidence. They are inputs f
 
 ## Real Historical Backtest Evidence Pack Gate
 
-BT130 requires any real-data backtest claim to write a complete evidence pack. The JSON artifact must include run identity, `data_source=real_data`, `is_demo=false`, symbol universe, date range, strategy version, BT9 input-pack gate status, coverage manifest path, survivorship universe path, trade-plan path, input/accepted/rejected plan counts, rejection reasons, metrics, results, and paper-only execution boundaries.
+BT130 requires any real-data backtest claim to write a complete evidence pack. The JSON artifact must include run identity, `data_source=real_data`, `is_demo=false`, symbol universe, date range, strategy version, BT9 input-pack gate status, input completeness status, run health status, coverage manifest path, survivorship universe path, trade-plan path, input/accepted/rejected plan counts, rejection reasons, metrics, results, and paper-only execution boundaries.
 
 Real-data backtests fail closed when the coverage manifest is missing or when all trade plans are rejected. Invalid trade plans are counted with explicit rejection reasons instead of being silently skipped.
 
@@ -217,6 +241,7 @@ python scripts/validate_real_data_backtest_evidence_gate.py --artifact reports/b
 ## Core Commands
 
 Targeted remediation tests:
+pytest tests/test_p124_silent_failure_health_gate.py -q
 pytest tests/test_pfa1_position_forward_evidence_attribution.py -q
 pytest tests/test_position_risk_attribution.py -q
 pytest tests/test_outcome_tracking.py -q
