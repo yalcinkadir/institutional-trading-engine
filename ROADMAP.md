@@ -2,7 +2,7 @@
 
 Status date: 2026-06-07
 
-Current state: TEST1 Evidence-Oriented TDD Policy is active. EV1-EV12 evidence-integrity remediation is implemented and CI-green. CI runtime simplification is implemented and CI-green. PO128 and PO129 silent-failure/dataflow guards are implemented and CI-green. W1 Entry/Exit Watcher Git-Write Decoupling is implemented and CI-green. BT130 Real Historical Backtest Evidence Pack Gate is implemented and CI-pending.
+Current state: TEST1 Evidence-Oriented TDD Policy is active. EV1-EV12 evidence-integrity remediation is implemented and CI-green. CI runtime simplification is implemented and CI-green. PO128 and PO129 silent-failure/dataflow guards are implemented and CI-green. W1 Entry/Exit Watcher Git-Write Decoupling is implemented and CI-green. BT130 Real Historical Backtest Evidence Pack Gate is implemented and CI-pending. PortfolioState fail-closed fixture migration (#102) is validated and closed.
 
 The system remains research / decision-support / paper-observation only. Real-money execution is not authorized by code.
 
@@ -129,12 +129,15 @@ EV1-EV12 evidence-integrity remediation is complete and CI-green.
 
 PFA joins position-level risk attribution with forward outcome evidence. It does not authorize live trading.
 
+## Closed Remediation Items
+
+- #102: PortfolioState fail-closed fixture migration validated and closed. Runtime remains fail-closed for missing or non-boolean `governance_valid`; test fixtures that need a valid state set `governance_valid=true`; committed default `data/portfolio_state.json` remains `governance_valid=false` until real paper/broker state exists.
+
 ## Recommended Next Remediation Order
 
-1. Validate PortfolioState fail-closed fixture migration (#102)
-2. Validate JWT fail-closed migration (#103)
-3. Close FCM1/RPW1 CI-wired backlog status (#104)
-4. Architecture reachability + runtime execution guard (#106)
+1. Validate JWT fail-closed migration (#103)
+2. Close FCM1/RPW1 CI-wired backlog status (#104)
+3. Architecture reachability + runtime execution guard (#106)
 
 ## Safety Boundary
 
