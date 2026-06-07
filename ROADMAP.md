@@ -1,8 +1,8 @@
 # Institutional Trading Engine Roadmap
 
-Status date: 2026-06-06
+Status date: 2026-06-07
 
-Current state: TEST1 Evidence-Oriented TDD Policy is active. EV1-EV12 evidence-integrity remediation is implemented and CI-green. CI runtime simplification is implemented and CI-green. PO128 and PO129 silent-failure/dataflow guards are implemented and CI-green. BT130 Real Historical Backtest Evidence Pack Gate is implemented and CI-pending.
+Current state: TEST1 Evidence-Oriented TDD Policy is active. EV1-EV12 evidence-integrity remediation is implemented and CI-green. CI runtime simplification is implemented and CI-green. PO128 and PO129 silent-failure/dataflow guards are implemented and CI-green. W1 Entry/Exit Watcher Git-Write Decoupling is implemented and CI-green. BT130 Real Historical Backtest Evidence Pack Gate is implemented and CI-pending.
 
 The system remains research / decision-support / paper-observation only. Real-money execution is not authorized by code.
 
@@ -15,6 +15,8 @@ Safety-relevant fixes and external review findings require a guard test first.
 Committed public report examples must remain synthetic/public-safe.
 
 No real-data backtest claim without a complete, validated evidence pack.
+
+Scheduled runtime workflows must not mutate the main branch with generated artifacts. Runtime evidence belongs in CI artifacts, retention indexes or explicitly governed evidence stores.
 
 ## Phase BT — Backtesting Evidence Gates
 
@@ -73,12 +75,15 @@ BT130 requires real-data backtest evidence packs to include run identity, real-d
 | RGP5 | Critical STOP/EXIT alert ordering guard | P0 | Critical | Done / CI-green |
 | RGP6 | Strict critical notification failure handling | P1 | High | Done / CI-green |
 | RGP7 | Repo-writing workflow serialization/retry guard | P1 | High | Done / CI-green |
+| W1 | Entry/Exit Watcher Git-Write Decoupling | P0 | Critical | Done / CI-green |
 | RGP8 | Alert/evidence artifact upload-on-failure guard | P1 | High | Done / CI-green |
 | RGP9 | Signal lifecycle status source of truth | P2 | Medium | Done / CI-green |
 | RGP10 | Latest bar timestamp ordering guard | P2 | Medium | Done / CI-green |
 | RGP11 | Signal identity float quantization | P2 | Medium | Done / CI-green |
 | RGP12 | Partial-exit lifecycle persistence | P2 | Medium | Done / CI-green |
 | RGP13 | Runtime Proof Pack Summary Builder | P1 | High | Done / CI-green |
+
+W1 keeps scheduled watcher runtime output out of the repository. The Entry/Exit Watcher workflow uses read-only contents permission, non-persistent checkout credentials, isolated watcher concurrency and `actions/upload-artifact@v4` for runtime evidence.
 
 ## Phase FCM/RPW — Connectivity and Proof-Pack Retention
 
@@ -126,9 +131,10 @@ PFA joins position-level risk attribution with forward outcome evidence. It does
 
 ## Recommended Next Remediation Order
 
-1. Capacity / execution realism monthly aggregation
-2. Position-level attribution trend review
-3. Forward evidence drift dashboard
+1. Validate PortfolioState fail-closed fixture migration (#102)
+2. Validate JWT fail-closed migration (#103)
+3. Close FCM1/RPW1 CI-wired backlog status (#104)
+4. Architecture reachability + runtime execution guard (#106)
 
 ## Safety Boundary
 
