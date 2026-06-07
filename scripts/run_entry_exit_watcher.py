@@ -32,17 +32,15 @@ from src.data.polygon_client import PolygonClient
 from src.signals.signal_status import ACTIONABLE_SIGNAL_ACTIONS, is_terminal_signal_status
 from src.structured_logging import emit_structured_log
 from src.watchers.entry_exit_watcher import (
+    BLOCKED,
+    DEFAULT_HEALTH_ARTIFACT,
     append_lifecycle_updates,
+    build_watcher_market_data_health,
     evaluate_signals,
     latest_bars_to_price_map,
     load_signal_file,
     save_alerts,
     save_updated_signal_file,
-)
-from src.watchers.market_data_health import (
-    BLOCKED,
-    DEFAULT_HEALTH_ARTIFACT,
-    build_watcher_market_data_health,
     write_watcher_market_data_health_artifact,
 )
 
