@@ -2,7 +2,7 @@
 
 Status date: 2026-06-07
 
-Current state: TEST1 Evidence-Oriented TDD Policy is active. EV1-EV12 evidence-integrity remediation is implemented and CI-green. CI runtime simplification is implemented and CI-green. PO128 and PO129 silent-failure/dataflow guards are implemented and CI-green. W1 Entry/Exit Watcher Git-Write Decoupling is implemented and CI-green. BT130 Real Historical Backtest Evidence Pack Gate is implemented and CI-pending. PortfolioState fail-closed fixture migration (#102) is validated and closed.
+Current state: TEST1 Evidence-Oriented TDD Policy is active. EV1-EV12 evidence-integrity remediation is implemented and CI-green. CI runtime simplification is implemented and CI-green. PO128 and PO129 silent-failure/dataflow guards are implemented and CI-green. W1 Entry/Exit Watcher Git-Write Decoupling is implemented and CI-green. P132 Scanner Runtime Boundary is implemented. BT130 Real Historical Backtest Evidence Pack Gate is implemented and CI-pending. PortfolioState fail-closed fixture migration (#102) is validated and closed.
 
 The system remains research / decision-support / paper-observation only. Real-money execution is not authorized by code.
 
@@ -17,6 +17,8 @@ Committed public report examples must remain synthetic/public-safe.
 No real-data backtest claim without a complete, validated evidence pack.
 
 Scheduled runtime workflows must not mutate the main branch with generated artifacts. Runtime evidence belongs in CI artifacts, retention indexes or explicitly governed evidence stores.
+
+Static Paper Observation watchlists must be labelled with `selection_mode=static_watchlist` and must not be represented as dynamic scanner evidence or trading-edge proof.
 
 ## Phase BT — Backtesting Evidence Gates
 
@@ -63,6 +65,14 @@ BT130 requires real-data backtest evidence packs to include run identity, real-d
 | PO12 | Daily Observation Artifact Retention & Review Index | P0 | Critical | Done / CI-green |
 | PO13 | Monthly Paper Observation Review Pack | P0 | Critical | Done / CI-green |
 | PO14 | Forward Evidence Quality Gate | P0 | Critical | Done / CI-green |
+
+## Phase P132 — Scanner Runtime Boundary
+
+| ID | Task | Priority | Impact | Status |
+|---|---|---:|---:|---|
+| P132 | Scanner Runtime Boundary: Static Watchlist vs Real Screener | P1 | High | Implemented |
+
+P132 requires runtime reports and Paper Observation evidence to expose `selection_mode`, selected symbols and selection reason. Static watchlists are allowed as research setup only and must not claim dynamic scanner breadth or trading-edge proof. Dynamic scanner claims require a documented scanner contract reference.
 
 ## Phase RGP — Runtime Governance Proof Pack
 
