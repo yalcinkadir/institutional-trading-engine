@@ -88,6 +88,25 @@ def _format_unavailable_market_snapshot(ticker: str) -> list[str]:
     ]
 
 
+def _format_run_health(decision_report: dict) -> list[str]:
+    run_health = decision_report.get("run_health") or {}
+    scanner_quality = decision_report.get("scanner_data_quality") or {}
+    lines = ["## Run Health / Silent-Failure Gate", ""]
+    lines.append(f"- Run Health: {run_health.get('run_health_status', 'UNKNOWN')}")
+    lines.append(f"- Success Status: {run_health.get('success_status', 'UNKNOWN')}")
+    lines.append(f"- Signal Generation: {decision_report.get('signal_generation_status', 'UNKNOWN')}")
+    lines.append(f"- Scanner Data Quality: {scanner_quality.get('data_quality_status', 'UNKNOWN')}")
+    if "valid_symbols" in scanner_quality or "total_symbols" in scanner_quality:
+        lines.append(f"- Scanner Valid Symbols: {scanner_quality.get('valid_symbols', 'n/a')} / {scanner_quality.get('total_symbols', 'n/a')}")
+    reasons = run_health.get("reasons") or []
+    if reasons:
+        lines.append(f"- Reasons: {', '.join(str(reason) for reason in reasons)}")
+    else:
+        lines.append("- Reasons: none")
+    lines.append("")
+    return lines
+
+
 def format_report(payload: dict) -> str:
     report_type = payload["report_type"].upper()
     now = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
@@ -183,6 +202,8 @@ def format_report(payload: dict) -> str:
     for item in market.get("focus_areas", ["Monitor institutional risk conditions and trend quality."]):
         lines.append(f"- {item}")
     lines.append("")
+
+    lines.extend(_format_run_health(decision_report))
 
     lines.append("## Decision Engine")
     lines.append("")
