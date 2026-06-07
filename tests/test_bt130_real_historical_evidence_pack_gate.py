@@ -135,6 +135,8 @@ def test_bt130_evidence_gate_rejects_plan_count_mismatch(tmp_path: Path) -> None
                 "date_range": {"start": "2026-06-01", "end": "2026-06-02"},
                 "strategy_version": "historical-entry-exit-v1",
                 "input_pack_gate_status": "PASSED",
+                "input_completeness_status": "OK",
+                "run_health_status": "OK",
                 "coverage_manifest_path": "coverage.json",
                 "survivorship_universe_path": "universe.csv",
                 "trade_plans_path": "plans.json",
