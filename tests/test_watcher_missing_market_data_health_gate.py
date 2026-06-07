@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from src.watchers.market_data_health import (
+from src.watchers.entry_exit_watcher import (
     BLOCKED,
     DEGRADED,
     PASSED,
