@@ -53,9 +53,9 @@ Until that contract is implemented and CI-green, static-watchlist output remains
 
 ## Runtime guard
 
-Implementation:
+Implementation is folded into the existing validation guard module to avoid introducing a new ARCH106 source-module inventory entry without runtime classification:
 
-- `src/validation/scanner_runtime_boundary.py`
+- `src/validation/feature_connectivity_matrix_guard.py`
 
 Tests:
 
