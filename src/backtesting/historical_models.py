@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
-
 OUTCOME_ENTRY_NOT_HIT = "ENTRY_NOT_HIT"
 OUTCOME_EXPIRED = "EXPIRED"
 OUTCOME_STOP_HIT = "STOP_HIT"
@@ -120,6 +119,8 @@ class HistoricalBacktestReport:
     strategy_version: str = "historical-entry-exit-v1"
     tags: list[str] = field(default_factory=lambda: ["demo", "public_safe", "research_only"])
     input_pack_gate_status: str = "NOT_RUN"
+    input_completeness_status: str = "UNKNOWN"
+    run_health_status: str = "UNKNOWN"
     coverage_manifest_path: str = ""
     survivorship_universe_path: str = ""
     trade_plans_path: str = ""
@@ -140,6 +141,8 @@ class HistoricalBacktestReport:
             "strategy_version": self.strategy_version,
             "tags": self.tags,
             "input_pack_gate_status": self.input_pack_gate_status,
+            "input_completeness_status": self.input_completeness_status,
+            "run_health_status": self.run_health_status,
             "coverage_manifest_path": self.coverage_manifest_path,
             "survivorship_universe_path": self.survivorship_universe_path,
             "trade_plans_path": self.trade_plans_path,
