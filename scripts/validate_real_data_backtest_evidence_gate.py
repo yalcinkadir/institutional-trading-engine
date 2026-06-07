@@ -15,6 +15,8 @@ REQUIRED_FIELDS = [
     "date_range",
     "strategy_version",
     "input_pack_gate_status",
+    "input_completeness_status",
+    "run_health_status",
     "coverage_manifest_path",
     "survivorship_universe_path",
     "trade_plans_path",
@@ -31,6 +33,8 @@ REQUIRED_FIELDS = [
 DEMO_MARKERS = {"demo", "synthetic", "public_safe", "historical_demo"}
 REAL_DATA_SOURCE = "real_data"
 BROKER_EXECUTION_MODE = "paper_only"
+VALID_INPUT_COMPLETENESS_STATUSES = {"OK", "DEGRADED_DATA"}
+VALID_RUN_HEALTH_STATUSES = {"OK", "NO_TRADE_VALID", "DEGRADED_DATA"}
 
 
 @dataclass(frozen=True)
@@ -108,6 +112,10 @@ def validate_real_data_backtest_evidence_artifact(path: Path) -> RealDataBacktes
         invalid_fields.append("strategy_version")
     if "input_pack_gate_status" in payload and payload.get("input_pack_gate_status") != "PASSED":
         invalid_fields.append("input_pack_gate_status")
+    if "input_completeness_status" in payload and payload.get("input_completeness_status") not in VALID_INPUT_COMPLETENESS_STATUSES:
+        invalid_fields.append("input_completeness_status")
+    if "run_health_status" in payload and payload.get("run_health_status") not in VALID_RUN_HEALTH_STATUSES:
+        invalid_fields.append("run_health_status")
     for field_name in ("coverage_manifest_path", "survivorship_universe_path", "trade_plans_path"):
         if field_name in payload and not _non_empty_string(payload.get(field_name)):
             invalid_fields.append(field_name)
