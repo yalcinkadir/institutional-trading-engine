@@ -6,6 +6,7 @@ Polygon for actionable signals, evaluates lifecycle events and persists:
 
 - reports/alerts/YYYY-MM-DD-alerts.json
 - reports/alerts/latest-alerts.json
+- reports/runtime/entry_exit_watcher_market_data_health.json
 - data/signal_lifecycle.jsonl
 - updated reports/signals/latest-signals.json
 
@@ -38,6 +39,12 @@ from src.watchers.entry_exit_watcher import (
     save_alerts,
     save_updated_signal_file,
 )
+from src.watchers.market_data_health import (
+    BLOCKED,
+    DEFAULT_HEALTH_ARTIFACT,
+    build_watcher_market_data_health,
+    write_watcher_market_data_health_artifact,
+)
 
 
 class WatcherRuntimeConfigurationError(RuntimeError):
@@ -56,6 +63,11 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=5,
         help="Number of recent daily bars to load per symbol.",
+    )
+    parser.add_argument(
+        "--health-artifact",
+        default=str(DEFAULT_HEALTH_ARTIFACT),
+        help="Watcher market-data health artifact path.",
     )
     return parser.parse_args()
 
@@ -151,17 +163,23 @@ def _validate_runtime(signals_file: Path, days: int) -> None:
 def main() -> int:
     args = parse_args()
     signals_file = Path(args.signals_file)
+    health_artifact = Path(args.health_artifact)
     cycle_id = _build_cycle_id()
 
     print(f"WATCHER_CYCLE_ID={cycle_id}")
     print(f"Using signals file: {signals_file}")
     print(f"Using lookback days: {args.days}")
+    print(f"Using health artifact: {health_artifact}")
     _log(
         level="INFO",
         event_type="watcher_runner_started",
         message="Entry/exit watcher runner started.",
         cycle_id=cycle_id,
-        context={"signals_file": str(signals_file), "days": args.days},
+        context={
+            "signals_file": str(signals_file),
+            "days": args.days,
+            "health_artifact": str(health_artifact),
+        },
     )
 
     try:
@@ -201,12 +219,23 @@ def main() -> int:
 
     if not actionable:
         print("No actionable open signals found.")
+        health = build_watcher_market_data_health(
+            signals,
+            evaluated_symbols=set(),
+            cycle_id=cycle_id,
+            artifact_path=health_artifact,
+        )
+        written_health_artifact = write_watcher_market_data_health_artifact(
+            health,
+            artifact_path=health_artifact,
+        )
+        print(f"Watcher market-data health: {health.status} ({written_health_artifact})")
         _log(
             level="INFO",
             event_type="watcher_no_actionable_signals",
             message="No actionable open signals found.",
             cycle_id=cycle_id,
-            context={"signals": len(signals)},
+            context={"signals": len(signals), "health_artifact": str(written_health_artifact)},
         )
         return 0
 
@@ -231,6 +260,31 @@ def main() -> int:
             bars_by_symbol[symbol] = []
 
     price_map = latest_bars_to_price_map(bars_by_symbol)
+    health = build_watcher_market_data_health(
+        signals,
+        evaluated_symbols=price_map.keys(),
+        cycle_id=cycle_id,
+        artifact_path=health_artifact,
+    )
+    written_health_artifact = write_watcher_market_data_health_artifact(
+        health,
+        artifact_path=health_artifact,
+    )
+    print(f"Watcher market-data health: {health.status} ({written_health_artifact})")
+    _log(
+        level="ERROR" if health.status == BLOCKED else "WARNING" if health.missing_market_data_count else "INFO",
+        event_type="watcher_market_data_health_evaluated",
+        message="Watcher market-data health evaluated.",
+        cycle_id=cycle_id,
+        context={
+            "status": health.status,
+            "checked_signal_count": health.checked_signal_count,
+            "evaluated_symbol_count": health.evaluated_symbol_count,
+            "missing_market_data_count": health.missing_market_data_count,
+            "health_artifact": str(written_health_artifact),
+        },
+    )
+
     alerts, updates, updated_signals = evaluate_signals(signals, price_map)
     _log(
         level="INFO",
@@ -274,12 +328,23 @@ def main() -> int:
             context={"updated_signals": len(updated_signals)},
         )
 
+    if health.status == BLOCKED:
+        print("WATCHER_MARKET_DATA_HEALTH_BLOCKED: missing data for active stop/exit risk", file=sys.stderr)
+        _log(
+            level="ERROR",
+            event_type="watcher_market_data_health_blocked",
+            message="Watcher blocked because active stop/exit risk could not be evaluated.",
+            cycle_id=cycle_id,
+            context={"health_artifact": str(written_health_artifact)},
+        )
+        return 3
+
     _log(
         level="INFO",
         event_type="watcher_runner_completed",
         message="Entry/exit watcher runner completed.",
         cycle_id=cycle_id,
-        context={"alerts": len(alerts), "updates": len(updates)},
+        context={"alerts": len(alerts), "updates": len(updates), "health_status": health.status},
     )
     return 0
 
