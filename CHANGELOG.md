@@ -1,5 +1,31 @@
 # CHANGELOG
 
+## P132 Scanner Runtime Boundary — 2026-06-07
+
+### Added
+- Added `src/validation/scanner_runtime_boundary.py`.
+- Added `tests/test_p132_scanner_runtime_boundary.py`.
+- Added `docs/operations/p132_scanner_runtime_boundary.md`.
+
+### Changed
+- Added a scanner runtime boundary guard that requires explicit `selection_mode`, selected symbols and selection reason in runtime-report and Paper Observation evidence payloads.
+- Static watchlists are now labelled as research setup only and cannot claim dynamic scanner breadth or trading-edge proof.
+- Dynamic scanner claims require a documented `scanner_contract_ref`.
+- Updated ROADMAP with P132 status and hard rule.
+
+### Validated
+- Static watchlist payloads pass only when the boundary is explicit.
+- Missing or invalid `selection_mode` blocks runtime reports.
+- Static watchlists cannot claim dynamic scanner behavior or trading edge.
+- Dynamic scanner mode requires a scanner contract reference.
+- Paper-only safety boundary remains enforced.
+
+### Status
+- P132: Implemented.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## PortfolioState Fail-Closed Fixture Migration Closure — 2026-06-07
 
 ### Validated
