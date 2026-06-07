@@ -85,8 +85,10 @@ def validate_paper_observation_contract(payload: dict[str, Any]) -> ContractRepo
     report = _validate(
         "paper_observation",
         payload,
-        ["timestamp_utc", "ready_for_review", "universe", "signal_ids", "decision_status", "data_quality_status", "provenance", "gates"],
+        ["timestamp_utc", "ready_for_review", "universe", "signal_ids", "decision_status", "data_quality_status", "provenance"],
     )
+    if not _has(payload, "gates"):
+        raise ContractViolation(ContractReport("paper_observation", False, ["gates"], []))
     gates = payload.get("gates") or []
     if not any(isinstance(gate, dict) and gate.get("name") == "paper_observation_health" for gate in gates):
         raise ContractViolation(ContractReport("paper_observation", False, [], ["paper_observation_health_gate"]))
