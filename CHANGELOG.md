@@ -1,5 +1,26 @@
 # CHANGELOG
 
+## W1 Entry/Exit Watcher Git-Write Decoupling CI-Green Closure — 2026-06-07
+
+### Changed
+- Promoted W1 Entry/Exit Watcher Git-Write Decoupling status from CI-wired to CI-green in documentation.
+- Added README runtime-output boundary documentation for the scheduled Entry/Exit Watcher.
+- Added W1 to the runtime governance roadmap as a completed CI-green safety control.
+- Added W1 targeted test command to README core commands.
+
+### Validated
+- `.github/workflows/entry-exit-watcher.yml` uses read-only repository contents permission.
+- Checkout credentials are non-persistent.
+- Scheduled watcher runtime output is uploaded through `actions/upload-artifact@v4`.
+- Scheduled watcher no longer performs `git add`, `git commit`, `git pull --rebase` or `git push`.
+- Watcher concurrency is isolated from the shared repo-write group.
+
+### Status
+- W1: Done / CI-green.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## BT130 Real Historical Backtest Evidence Pack Gate — 2026-06-06
 
 ### Added
