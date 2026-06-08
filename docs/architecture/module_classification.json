@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "policy": "New production modules under src/ must be explicitly classified before merge. Existing legacy modules are grandfathered until the full ARCH106 inventory pass is completed.",
+  "policy": "New production modules under src/ must be explicitly classified before merge. Existing legacy modules are grandfathered until the full ARCH106 inventory pass is completed. The unclassified legacy baseline must not grow.",
   "allowed_classifications": [
     "connected_runtime",
     "runtime_entrypoint",
@@ -10,6 +10,7 @@
     "delete_candidate"
   ],
   "grandfather_existing_modules": true,
+  "unclassified_legacy_baseline_limit": 303,
   "classified_modules": {
     "src/adaptive_expectancy.py": {
       "classification": "experimental",
