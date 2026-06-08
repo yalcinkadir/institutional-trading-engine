@@ -245,9 +245,17 @@ BT130 requires any real-data backtest claim to write a complete evidence pack. T
 
 Real-data backtests fail closed when the coverage manifest is missing or when all trade plans are rejected. Invalid trade plans are counted with explicit rejection reasons instead of being silently skipped.
 
+Demo, synthetic, placeholder and public-safe backtests are never trading-edge evidence. They may be used only for parser, workflow and guard validation.
+
+P151 adds an orchestrated real-data evidence-pack builder that either writes a `BLOCKED` package with explicit reasons or a `VALID` package after the real-data BT130 gate passes.
+
 Manual real-data evidence example:
 
 python scripts/run_historical_entry_exit_backtest.py --plans-file data/trade_plans/historical_trade_plans.json --bars-root data/historical/bars/1day --universe data/universe/survivorship_universe.csv --coverage-manifest data/historical/metadata/coverage_manifest.json --run-id real-bt-manual-001 --real-data --json-output reports/backtests/real-data-backtest-evidence.json --markdown-output reports/backtests/real-data-backtest-evidence.md
+
+P151 evidence package example:
+
+python scripts/build_real_data_backtest_evidence_pack.py --symbols SPY,QQQ,AAPL --start-date 2024-01-01 --end-date 2026-01-01 --run-id real-bt-manual-001 --plans-file data/trade_plans/historical_trade_plans.json --bars-root data/historical/bars/1day --universe data/universe/survivorship_universe.csv --coverage-manifest data/historical/metadata/coverage_manifest.json --output-dir reports/backtests/real-data-evidence-pack
 
 Validation example:
 
@@ -271,6 +279,7 @@ pytest tests/test_p120_paper_observation_evidence_gate.py -q
 pytest tests/test_p121_real_data_backtest_evidence_gate.py -q
 pytest tests/test_bt130_real_historical_evidence_pack_gate.py -q
 pytest tests/test_bt9_real_historical_input_pack_gate.py -q
+pytest tests/test_p151_real_data_backtest_evidence_pack.py -q
 pytest tests/test_uni1_survivorship_universe_contract.py -q
 pytest tests/test_polygon_historical_ingestion.py -q
 pytest tests/test_htp1_historical_trade_plan_export.py -q
