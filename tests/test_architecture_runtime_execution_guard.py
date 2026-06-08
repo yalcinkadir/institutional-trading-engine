@@ -13,6 +13,7 @@ CRITICAL_RUNTIME_IMPORTS = [
     "from src.reporting.screener_engine import build_screener_snapshot",
     "from src.reporting.decision_report import build_decision_report",
     "from src.reporting.cross_asset_report import build_cross_asset_report",
+    "from src.reporting.report_formatter import format_report",
     "from src.signals.scanner_metrics_pipeline import normalize_scanner_metrics_map",
     "from src.signals.signal_generator import build_signals, save_signals",
 ]
@@ -24,6 +25,7 @@ CRITICAL_RUNTIME_CALLS = [
     "decision_report_called",
     "scanner_metrics_normalized",
     "signals_built",
+    "format_report_called",
     "signals_saved",
 ]
 
@@ -180,6 +182,13 @@ def test_arch106_report_signal_path_has_runtime_execution_proof(monkeypatch, tmp
         assert scanner_metrics_map["NVDA"]["data_status"] == "OK"
         return [FakeSignal()]
 
+    def fake_format_report(payload: dict) -> str:
+        execution_trace.append("format_report_called")
+        assert payload["report_type"] == "premarket"
+        assert payload["cross_asset"]["regime"] == "risk_on"
+        assert payload["decision_report"]["decisions"][0]["symbol"] == "NVDA"
+        return "# ARCH106 Runtime Screener\nNVDA"
+
     def fake_save_signals(signals, date_str=None, data_quality=None):
         execution_trace.append("signals_saved")
         assert signals[0].action == "BUY_WATCH"
@@ -196,6 +205,7 @@ def test_arch106_report_signal_path_has_runtime_execution_proof(monkeypatch, tmp
     monkeypatch.setattr(generate_report, "build_decision_report", fake_decision_report)
     monkeypatch.setattr(generate_report, "_load_scanner_metrics", fake_load_scanner_metrics)
     monkeypatch.setattr(generate_report, "normalize_scanner_metrics_map", fake_normalize_scanner_metrics_map)
+    monkeypatch.setattr(generate_report, "format_report", fake_format_report)
 
     import src.signals.signal_generator as signal_generator
 
@@ -215,4 +225,5 @@ def test_arch106_report_signal_path_has_runtime_execution_proof(monkeypatch, tmp
     assert execution_trace.index("screener_called") < execution_trace.index("decision_report_called")
     assert execution_trace.index("cross_asset_called") < execution_trace.index("scanner_metrics_normalized")
     assert execution_trace.index("scanner_metrics_normalized") < execution_trace.index("signals_built")
-    assert execution_trace.index("signals_built") < execution_trace.index("signals_saved")
+    assert execution_trace.index("signals_built") < execution_trace.index("format_report_called")
+    assert execution_trace.index("format_report_called") < execution_trace.index("signals_saved")
