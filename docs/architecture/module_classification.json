@@ -86,6 +86,12 @@
       "runtime_entrypoint": null,
       "runtime_execution_proof": null
     },
+    "src/runtime/distributed_tasks.py": {
+      "classification": "delete_candidate",
+      "notes": "ARCH106 strict triage: generic in-memory distributed task stub has no current code-search references and no proven runtime path. Candidate only; deletion requires a separate CI-proven removal PR.",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null
+    },
     "src/signals/entry_quality.py": {
       "classification": "connected_runtime",
       "notes": "Entry trigger quality is executed by build_signals on the ARCH106 BUY_WATCH signal runtime path.",

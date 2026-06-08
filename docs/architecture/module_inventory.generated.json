@@ -1,12 +1,13 @@
 {
   "classification_source": "docs/architecture/module_classification.json",
   "counters": {
-    "classified_modules": 22,
+    "classified_modules": 23,
     "connected_runtime": 12,
+    "delete_candidate": 1,
     "experimental": 10,
     "total_src_modules": 314,
-    "unclassified_legacy": 292,
-    "unclassified_legacy_modules": 292
+    "unclassified_legacy": 291,
+    "unclassified_legacy_modules": 291
   },
   "grandfather_existing_modules": true,
   "modules": [
@@ -1715,12 +1716,12 @@
       "status": "unclassified_legacy"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "delete_candidate",
+      "notes": "ARCH106 strict triage: generic in-memory distributed task stub has no current code-search references and no proven runtime path. Candidate only; deletion requires a separate CI-proven removal PR.",
       "path": "src/runtime/distributed_tasks.py",
       "runtime_entrypoint": null,
       "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "status": "classified"
     },
     {
       "classification": "unclassified_legacy",
