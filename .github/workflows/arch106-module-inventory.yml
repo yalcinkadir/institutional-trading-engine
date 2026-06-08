@@ -12,6 +12,7 @@ on:
       - "docs/architecture/arch106_reporting_runtime_candidates.md"
       - "tests/test_arch106_module_inventory_guard.py"
       - "tests/test_arch106_reporting_runtime_candidates.py"
+      - "tests/test_arch106_signal_runtime_helper_proof.py"
       - "tests/test_architecture_runtime_execution_guard.py"
       - ".github/workflows/arch106-module-inventory.yml"
   pull_request:
@@ -25,6 +26,7 @@ on:
       - "docs/architecture/arch106_reporting_runtime_candidates.md"
       - "tests/test_arch106_module_inventory_guard.py"
       - "tests/test_arch106_reporting_runtime_candidates.py"
+      - "tests/test_arch106_signal_runtime_helper_proof.py"
       - "tests/test_architecture_runtime_execution_guard.py"
       - ".github/workflows/arch106-module-inventory.yml"
   workflow_dispatch:
@@ -67,6 +69,12 @@ jobs:
           POLYGON_API_KEY: test-key
         run: |
           pytest tests/test_arch106_reporting_runtime_candidates.py -q
+
+      - name: ARCH106 signal helper runtime proof tests
+        env:
+          POLYGON_API_KEY: test-key
+        run: |
+          pytest tests/test_arch106_signal_runtime_helper_proof.py -q
 
       - name: ARCH106 runtime execution proof tests
         env:
