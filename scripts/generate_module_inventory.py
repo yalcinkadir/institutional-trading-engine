@@ -24,6 +24,13 @@ def _repo_relative(path: Path) -> str:
     return path.relative_to(REPO_ROOT).as_posix()
 
 
+def _classification_source_label(classification_path: Path) -> str:
+    try:
+        return _repo_relative(classification_path)
+    except ValueError:
+        return classification_path.as_posix()
+
+
 def discover_src_modules(repo_root: Path = REPO_ROOT) -> list[str]:
     src_dir = repo_root / "src"
     if not src_dir.exists():
@@ -86,7 +93,7 @@ def build_inventory(
     return {
         "schema_version": 1,
         "source": "scripts/generate_module_inventory.py",
-        "classification_source": _repo_relative(classification_path) if classification_path.is_relative_to(REPO_ROOT) else classification_path.as_posix(),
+        "classification_source": _classification_source_label(classification_path),
         "grandfather_existing_modules": bool(classification.get("grandfather_existing_modules")),
         "counters": counters,
         "modules": modules,
@@ -206,8 +213,13 @@ def _check_unclassified_legacy_baseline(
     )
 
 
-def write_inventory(output_path: Path = DEFAULT_OUTPUT_PATH) -> Path:
-    inventory = build_inventory()
+def write_inventory(
+    output_path: Path = DEFAULT_OUTPUT_PATH,
+    *,
+    repo_root: Path = REPO_ROOT,
+    classification_path: Path = DEFAULT_CLASSIFICATION_PATH,
+) -> Path:
+    inventory = build_inventory(repo_root=repo_root, classification_path=classification_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(render_inventory(inventory), encoding="utf-8")
     return output_path
