@@ -182,16 +182,17 @@ def fetch_real_outcomes(
     }
 
 
-def load_signal_files(days: int = 7) -> list[tuple[str, list[dict]]]:
+def load_signal_files(days: int = 7, signals_dir: Path | None = None) -> list[tuple[str, list[dict]]]:
     """
     Load signal JSON files from the last N days.
 
     Returns: list of (date_str, signals_list)
     """
+    src = signals_dir or SIGNALS_DIR
     cutoff = (datetime.now(UTC).date() - timedelta(days=days)).isoformat()
     result = []
 
-    for json_file in sorted(SIGNALS_DIR.glob("*-signals.json")):
+    for json_file in sorted(src.glob("*-signals.json")):
         if json_file.stem == "latest-signals":
             continue
         date_str = json_file.stem.replace("-signals", "")
@@ -229,8 +230,9 @@ def _outcome_for_non_trade_signal(date_str: str, sig: dict, lifecycle_status: st
     }
 
 
-def write_outcome_reports(outcomes: list[dict], date_str: str) -> None:
-    OUTCOMES_DIR.mkdir(parents=True, exist_ok=True)
+def write_outcome_reports(outcomes: list[dict], date_str: str, *, outcomes_dir: Path | None = None) -> None:
+    out = outcomes_dir or OUTCOMES_DIR
+    out.mkdir(parents=True, exist_ok=True)
 
     evaluated = [
         outcome for outcome in outcomes
@@ -282,10 +284,10 @@ def write_outcome_reports(outcomes: list[dict], date_str: str) -> None:
 
     markdown = "\n".join(lines)
 
-    dated_md = OUTCOMES_DIR / f"{date_str}-outcomes.md"
-    dated_json = OUTCOMES_DIR / f"{date_str}-outcomes.json"
-    latest_md = OUTCOMES_DIR / "latest-outcomes.md"
-    history_json = OUTCOMES_DIR / "outcome-history.json"
+    dated_md = out / f"{date_str}-outcomes.md"
+    dated_json = out / f"{date_str}-outcomes.json"
+    latest_md = out / "latest-outcomes.md"
+    history_json = out / "outcome-history.json"
 
     dated_md.write_text(markdown, encoding="utf-8")
     latest_md.write_text(markdown, encoding="utf-8")
@@ -304,6 +306,33 @@ def write_outcome_reports(outcomes: list[dict], date_str: str) -> None:
     history_json.write_text(json.dumps(history, indent=2), encoding="utf-8")
 
 
+def _write_run_manifest(
+    *,
+    run_status: str,
+    days_evaluated: int,
+    signal_batch_count: int,
+    total_input_signals: int,
+    total_evaluated: int,
+    skip_reasons: list[str],
+    outcomes_dir: Path | None = None,
+) -> Path:
+    """Write a run-level manifest so CI can distinguish empty/blocked runs from no-run."""
+    out = outcomes_dir or OUTCOMES_DIR
+    out.mkdir(parents=True, exist_ok=True)
+    manifest = {
+        "run_status": run_status,
+        "run_timestamp_utc": datetime.now(UTC).isoformat(),
+        "days_evaluated": days_evaluated,
+        "signal_batch_count": signal_batch_count,
+        "total_input_signals": total_input_signals,
+        "total_evaluated": total_evaluated,
+        "skip_reasons": skip_reasons,
+    }
+    path = out / "outcome-run-manifest.json"
+    path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    return path
+
+
 def main() -> int:
     import argparse
 
@@ -312,17 +341,46 @@ def main() -> int:
     )
     parser.add_argument("--days", type=int, default=7,
                         help="Number of past days to evaluate signals for.")
+    parser.add_argument("--signals-dir", type=Path, default=None,
+                        help="Override signals input directory (default: reports/signals).")
+    parser.add_argument("--outcomes-dir", type=Path, default=None,
+                        help="Override outcomes output directory (default: reports/outcomes).")
     args = parser.parse_args()
+
+    signals_dir = args.signals_dir or SIGNALS_DIR
+    outcomes_dir = args.outcomes_dir or OUTCOMES_DIR
 
     api_key = os.getenv("POLYGON_API_KEY")
     if not api_key:
         print("WARNING: POLYGON_API_KEY not set. Cannot fetch real outcomes.")
         print("Outcome files will contain PENDING status for triggered signals.")
 
-    signal_batches = load_signal_files(days=args.days)
+    if not signals_dir.exists():
+        print(f"BLOCKED_MISSING_INPUTS: signals directory not found: {signals_dir}")
+        _write_run_manifest(
+            run_status="BLOCKED_MISSING_INPUTS",
+            days_evaluated=args.days,
+            signal_batch_count=0,
+            total_input_signals=0,
+            total_evaluated=0,
+            skip_reasons=["signals_directory_missing"],
+            outcomes_dir=outcomes_dir,
+        )
+        return 1
+
+    signal_batches = load_signal_files(days=args.days, signals_dir=signals_dir)
 
     if not signal_batches:
-        print(f"No signal files found in the last {args.days} days.")
+        print(f"NO_ELIGIBLE_SIGNALS: no signal files found in the last {args.days} days.")
+        _write_run_manifest(
+            run_status="NO_ELIGIBLE_SIGNALS",
+            days_evaluated=args.days,
+            signal_batch_count=0,
+            total_input_signals=0,
+            total_evaluated=0,
+            skip_reasons=["no_signal_files_in_window"],
+            outcomes_dir=outcomes_dir,
+        )
         return 0
 
     client = None
@@ -379,10 +437,20 @@ def main() -> int:
             })
             total_processed += 1
 
-        write_outcome_reports(outcomes, date_str)
+        write_outcome_reports(outcomes, date_str, outcomes_dir=outcomes_dir)
         print(f"  → outcomes written for {date_str}")
 
+    total_input = sum(len(sigs) for _, sigs in signal_batches)
     print(f"Done. Processed {total_processed} signals across {len(signal_batches)} days.")
+    _write_run_manifest(
+        run_status="OK",
+        days_evaluated=args.days,
+        signal_batch_count=len(signal_batches),
+        total_input_signals=total_input,
+        total_evaluated=total_processed,
+        skip_reasons=[],
+        outcomes_dir=outcomes_dir,
+    )
     return 0
 
 
