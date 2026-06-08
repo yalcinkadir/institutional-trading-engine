@@ -1,14 +1,14 @@
 {
   "classification_source": "docs/architecture/module_classification.json",
   "counters": {
-    "classified_modules": 25,
+    "classified_modules": 27,
     "connected_runtime": 12,
     "delete_candidate": 1,
     "experimental": 10,
-    "quarantine": 2,
+    "quarantine": 4,
     "total_src_modules": 314,
-    "unclassified_legacy": 289,
-    "unclassified_legacy_modules": 289
+    "unclassified_legacy": 287,
+    "unclassified_legacy_modules": 287
   },
   "grandfather_existing_modules": true,
   "modules": [
@@ -1197,20 +1197,20 @@
       "status": "unclassified_legacy"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "quarantine",
+      "notes": "ARCH106 strict triage: audit/evidence manifest logic is valuable and fail-safe oriented, but has no current proven runtime execution path. Keep isolated until an operations runtime proof exists.",
       "path": "src/operations/runtime_evidence_manifest.py",
       "runtime_entrypoint": null,
       "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "status": "classified"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "quarantine",
+      "notes": "ARCH106 strict triage: manifest guard is fail-closed operational safety logic, but has no current proven runtime execution path. Keep isolated until an operations runtime proof exists.",
       "path": "src/operations/runtime_evidence_manifest_guard.py",
       "runtime_entrypoint": null,
       "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "status": "classified"
     },
     {
       "classification": "unclassified_legacy",

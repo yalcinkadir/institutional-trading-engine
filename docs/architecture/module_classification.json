@@ -32,6 +32,18 @@
       "classification": "experimental",
       "notes": "ARCH106 Step 4b: analytics walk-forward validation helper. Not marked connected_runtime until a live runtime execution proof exists."
     },
+    "src/operations/runtime_evidence_manifest.py": {
+      "classification": "quarantine",
+      "notes": "ARCH106 strict triage: audit/evidence manifest logic is valuable and fail-safe oriented, but has no current proven runtime execution path. Keep isolated until an operations runtime proof exists.",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null
+    },
+    "src/operations/runtime_evidence_manifest_guard.py": {
+      "classification": "quarantine",
+      "notes": "ARCH106 strict triage: manifest guard is fail-closed operational safety logic, but has no current proven runtime execution path. Keep isolated until an operations runtime proof exists.",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null
+    },
     "src/reporting/cross_asset_report.py": {
       "classification": "connected_runtime",
       "notes": "Cross-asset report payload is exercised by the report/signal runtime path in ARCH106.",
