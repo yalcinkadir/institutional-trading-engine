@@ -37,11 +37,40 @@ def _failure_stub_metrics(symbol: str) -> dict:
     return {
         "symbol": symbol,
         "close": None,
+        "high": None,
+        "low": None,
+        "volume": 0,
+        "sma20": None,
+        "sma50": None,
+        "sma200": None,
+        "rsi14": None,
         "atr14": None,
+        "atr_pct": None,
+        "vol20": None,
+        "rvol": None,
+        "swing_low_3bar": None,
+        "ret_20d": None,
+        "benchmark": benchmark_for_symbol(symbol),
+        "benchmark_ret_20d": None,
+        "rs_spread": None,
+        "trend": "N/A",
+        "momentum": "N/A",
+        "volatility": "N/A",
+        "rvol_label": "N/A",
+        "rs_label": "N/A",
+        "setup_readiness": "Data Blocked",
+        "entry": None,
+        "stop_loss": None,
+        "exit_1": None,
+        "exit_2": None,
         "warnings": [failure.message],
         **failure.as_metrics_fields(),
         "source_timestamp": datetime.now(timezone.utc).isoformat(),
     }
+
+
+def _is_blocked_metrics(metrics: dict | None) -> bool:
+    return not metrics or str(metrics.get("data_status", "")).upper() == "BLOCKED"
 
 
 def get_daily_bars(symbol, days=500, retries=3):
@@ -521,7 +550,7 @@ def build_market_regime_summary(metrics_map, vix_data):
     spy = metrics_map.get("SPY")
     qqq = metrics_map.get("QQQ")
 
-    if not spy or not qqq:
+    if _is_blocked_metrics(spy) or _is_blocked_metrics(qqq):
         return [
             "## Market Regime Summary",
             "- Market Regime: N/A",
@@ -529,7 +558,7 @@ def build_market_regime_summary(metrics_map, vix_data):
             "- Risk State: N/A",
             "- Fresh Longs: N/A",
             "- VIX: N/A",
-            "- Comment: Missing SPY/QQQ data",
+            "- Comment: Missing or blocked SPY/QQQ data",
         ]
 
     score = 0
@@ -633,7 +662,7 @@ def build_leaders_section(metrics_map):
     aggressive_rows = []
 
     for symbol, metrics in metrics_map.items():
-        if not metrics or symbol in ["QQQ", "SPY"]:
+        if _is_blocked_metrics(metrics) or symbol in ["QQQ", "SPY"]:
             continue
 
         if metrics["setup_readiness"] == "Pullback Candidate":
