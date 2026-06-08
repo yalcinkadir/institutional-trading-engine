@@ -56,11 +56,35 @@
       "runtime_entrypoint": "scripts/generate_report.py",
       "runtime_execution_proof": "tests/test_architecture_runtime_execution_guard.py::test_arch106_report_signal_path_has_runtime_execution_proof"
     },
+    "src/reporting/report_quality.py": {
+      "classification": "experimental",
+      "notes": "Report quality validator is available as a reporting support helper but has no ARCH106 runtime execution proof yet.",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null
+    },
     "src/reporting/screener_engine.py": {
       "classification": "connected_runtime",
       "notes": "Screener snapshot is exercised by the report/signal runtime path.",
       "runtime_entrypoint": "scripts/generate_report.py",
       "runtime_execution_proof": "tests/test_architecture_runtime_execution_guard.py::test_arch106_report_signal_path_has_runtime_execution_proof"
+    },
+    "src/reporting/tg2_tg3_report_templates.py": {
+      "classification": "experimental",
+      "notes": "TG2/TG3 Telegram report templates are reporting support helpers; promote to connected_runtime only after a delivery-path proof exists.",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null
+    },
+    "src/reporting/trade_summary.py": {
+      "classification": "experimental",
+      "notes": "Trade summary builder is a lightweight reporting support helper without ARCH106 runtime proof yet.",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null
+    },
+    "src/reporting/weekly_summary.py": {
+      "classification": "experimental",
+      "notes": "Weekly summary builder is a reporting support helper without ARCH106 runtime proof yet.",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null
     },
     "src/signals/entry_quality.py": {
       "classification": "connected_runtime",

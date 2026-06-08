@@ -1,12 +1,12 @@
 {
   "classification_source": "docs/architecture/module_classification.json",
   "counters": {
-    "classified_modules": 18,
+    "classified_modules": 22,
     "connected_runtime": 12,
-    "experimental": 6,
+    "experimental": 10,
     "total_src_modules": 314,
-    "unclassified_legacy": 296,
-    "unclassified_legacy_modules": 296
+    "unclassified_legacy": 292,
+    "unclassified_legacy_modules": 292
   },
   "grandfather_existing_modules": true,
   "modules": [
@@ -1595,12 +1595,12 @@
       "status": "classified"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "experimental",
+      "notes": "Report quality validator is available as a reporting support helper but has no ARCH106 runtime execution proof yet.",
       "path": "src/reporting/report_quality.py",
       "runtime_entrypoint": null,
       "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "status": "classified"
     },
     {
       "classification": "connected_runtime",
@@ -1611,28 +1611,28 @@
       "status": "classified"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "experimental",
+      "notes": "TG2/TG3 Telegram report templates are reporting support helpers; promote to connected_runtime only after a delivery-path proof exists.",
       "path": "src/reporting/tg2_tg3_report_templates.py",
       "runtime_entrypoint": null,
       "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "status": "classified"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "experimental",
+      "notes": "Trade summary builder is a lightweight reporting support helper without ARCH106 runtime proof yet.",
       "path": "src/reporting/trade_summary.py",
       "runtime_entrypoint": null,
       "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "status": "classified"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "experimental",
+      "notes": "Weekly summary builder is a reporting support helper without ARCH106 runtime proof yet.",
       "path": "src/reporting/weekly_summary.py",
       "runtime_entrypoint": null,
       "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "status": "classified"
     },
     {
       "classification": "unclassified_legacy",
