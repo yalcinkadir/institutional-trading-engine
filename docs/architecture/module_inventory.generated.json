@@ -1,12 +1,12 @@
 {
   "classification_source": "docs/architecture/module_classification.json",
   "counters": {
-    "classified_modules": 13,
-    "connected_runtime": 7,
+    "classified_modules": 18,
+    "connected_runtime": 12,
     "experimental": 6,
     "total_src_modules": 314,
-    "unclassified_legacy": 301,
-    "unclassified_legacy_modules": 301
+    "unclassified_legacy": 296,
+    "unclassified_legacy_modules": 296
   },
   "grandfather_existing_modules": true,
   "modules": [
@@ -1923,20 +1923,20 @@
       "status": "unclassified_legacy"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "connected_runtime",
+      "notes": "Entry trigger quality is executed by build_signals on the ARCH106 BUY_WATCH signal runtime path.",
       "path": "src/signals/entry_quality.py",
-      "runtime_entrypoint": null,
-      "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "runtime_entrypoint": "src/signals/signal_generator.py",
+      "runtime_execution_proof": "tests/test_arch106_signal_runtime_helper_proof.py::test_arch106_signal_runtime_helpers_execute_on_buy_watch_path",
+      "status": "classified"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "connected_runtime",
+      "notes": "Exit target quality is executed by build_signals on the ARCH106 BUY_WATCH signal runtime path.",
       "path": "src/signals/exit_target_quality.py",
-      "runtime_entrypoint": null,
-      "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "runtime_entrypoint": "src/signals/signal_generator.py",
+      "runtime_execution_proof": "tests/test_arch106_signal_runtime_helper_proof.py::test_arch106_signal_runtime_helpers_execute_on_buy_watch_path",
+      "status": "classified"
     },
     {
       "classification": "unclassified_legacy",
@@ -1963,12 +1963,12 @@
       "status": "classified"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "connected_runtime",
+      "notes": "Deterministic signal identity generation is executed by build_signals on the ARCH106 BUY_WATCH signal runtime path.",
       "path": "src/signals/signal_identity.py",
-      "runtime_entrypoint": null,
-      "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "runtime_entrypoint": "src/signals/signal_generator.py",
+      "runtime_execution_proof": "tests/test_arch106_signal_runtime_helper_proof.py::test_arch106_signal_runtime_helpers_execute_on_buy_watch_path",
+      "status": "classified"
     },
     {
       "classification": "unclassified_legacy",
@@ -1979,12 +1979,12 @@
       "status": "unclassified_legacy"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "connected_runtime",
+      "notes": "Stop-loss quality is executed by build_signals on the ARCH106 BUY_WATCH signal runtime path.",
       "path": "src/signals/stop_loss_quality.py",
-      "runtime_entrypoint": null,
-      "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "runtime_entrypoint": "src/signals/signal_generator.py",
+      "runtime_execution_proof": "tests/test_arch106_signal_runtime_helper_proof.py::test_arch106_signal_runtime_helpers_execute_on_buy_watch_path",
+      "status": "classified"
     },
     {
       "classification": "unclassified_legacy",
@@ -1995,12 +1995,12 @@
       "status": "unclassified_legacy"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "connected_runtime",
+      "notes": "Trade-plan validation is executed by build_signals as the final executable signal gate on the ARCH106 BUY_WATCH runtime path.",
       "path": "src/signals/trade_plan_validator.py",
-      "runtime_entrypoint": null,
-      "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "runtime_entrypoint": "src/signals/signal_generator.py",
+      "runtime_execution_proof": "tests/test_arch106_signal_runtime_helper_proof.py::test_arch106_signal_runtime_helpers_execute_on_buy_watch_path",
+      "status": "classified"
     },
     {
       "classification": "unclassified_legacy",

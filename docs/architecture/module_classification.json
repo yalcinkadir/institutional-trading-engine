@@ -62,6 +62,18 @@
       "runtime_entrypoint": "scripts/generate_report.py",
       "runtime_execution_proof": "tests/test_architecture_runtime_execution_guard.py::test_arch106_report_signal_path_has_runtime_execution_proof"
     },
+    "src/signals/entry_quality.py": {
+      "classification": "connected_runtime",
+      "notes": "Entry trigger quality is executed by build_signals on the ARCH106 BUY_WATCH signal runtime path.",
+      "runtime_entrypoint": "src/signals/signal_generator.py",
+      "runtime_execution_proof": "tests/test_arch106_signal_runtime_helper_proof.py::test_arch106_signal_runtime_helpers_execute_on_buy_watch_path"
+    },
+    "src/signals/exit_target_quality.py": {
+      "classification": "connected_runtime",
+      "notes": "Exit target quality is executed by build_signals on the ARCH106 BUY_WATCH signal runtime path.",
+      "runtime_entrypoint": "src/signals/signal_generator.py",
+      "runtime_execution_proof": "tests/test_arch106_signal_runtime_helper_proof.py::test_arch106_signal_runtime_helpers_execute_on_buy_watch_path"
+    },
     "src/signals/scanner_metrics_pipeline.py": {
       "classification": "connected_runtime",
       "notes": "DATA1 diagnostics are normalized and passed into signal generation on the report path.",
@@ -73,6 +85,24 @@
       "notes": "Report/signal runtime path is CI-proven in ARCH106 Step 1.",
       "runtime_entrypoint": "scripts/generate_report.py",
       "runtime_execution_proof": "tests/test_architecture_runtime_execution_guard.py::test_arch106_report_signal_path_has_runtime_execution_proof"
+    },
+    "src/signals/signal_identity.py": {
+      "classification": "connected_runtime",
+      "notes": "Deterministic signal identity generation is executed by build_signals on the ARCH106 BUY_WATCH signal runtime path.",
+      "runtime_entrypoint": "src/signals/signal_generator.py",
+      "runtime_execution_proof": "tests/test_arch106_signal_runtime_helper_proof.py::test_arch106_signal_runtime_helpers_execute_on_buy_watch_path"
+    },
+    "src/signals/stop_loss_quality.py": {
+      "classification": "connected_runtime",
+      "notes": "Stop-loss quality is executed by build_signals on the ARCH106 BUY_WATCH signal runtime path.",
+      "runtime_entrypoint": "src/signals/signal_generator.py",
+      "runtime_execution_proof": "tests/test_arch106_signal_runtime_helper_proof.py::test_arch106_signal_runtime_helpers_execute_on_buy_watch_path"
+    },
+    "src/signals/trade_plan_validator.py": {
+      "classification": "connected_runtime",
+      "notes": "Trade-plan validation is executed by build_signals as the final executable signal gate on the ARCH106 BUY_WATCH runtime path.",
+      "runtime_entrypoint": "src/signals/signal_generator.py",
+      "runtime_execution_proof": "tests/test_arch106_signal_runtime_helper_proof.py::test_arch106_signal_runtime_helpers_execute_on_buy_watch_path"
     }
   },
   "grandfather_existing_modules": true,
