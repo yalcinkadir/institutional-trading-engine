@@ -37,7 +37,11 @@ def test_arch106_inventory_check_blocks_growth_of_unclassified_legacy_modules(tm
     output_path = repo / "docs" / "architecture" / "module_inventory.generated.json"
     _write_classification(classification_path, baseline_limit=1)
 
-    write_inventory(output_path=output_path)
+    write_inventory(
+        output_path=output_path,
+        repo_root=repo,
+        classification_path=classification_path,
+    )
 
     is_current, message = check_inventory(
         output_path,
@@ -72,7 +76,11 @@ def test_arch106_inventory_check_allows_new_module_when_explicitly_classified(tm
         },
     )
 
-    write_inventory(output_path=output_path)
+    write_inventory(
+        output_path=output_path,
+        repo_root=repo,
+        classification_path=classification_path,
+    )
 
     is_current, message = check_inventory(
         output_path,
