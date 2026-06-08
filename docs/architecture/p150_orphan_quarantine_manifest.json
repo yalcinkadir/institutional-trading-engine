@@ -1,0 +1,75 @@
+{
+  "issue": 150,
+  "status": "quarantine_manifest",
+  "principle": "Static reachability is necessary but not sufficient. Only modules with no script reachability and no test reachability may enter this manifest.",
+  "source_tool": "tools/module_reachability.py",
+  "quarantine_scope": "true_orphans_only",
+  "excluded_scope": "test_or_dispatch_only_modules",
+  "actions": [
+    {
+      "path": "src/api/auth.py",
+      "classification": "quarantine_candidate",
+      "decision": "parked_pending_full_regression_after_removal"
+    },
+    {
+      "path": "src/api/server.py",
+      "classification": "quarantine_candidate",
+      "decision": "parked_pending_full_regression_after_removal"
+    },
+    {
+      "path": "src/execution_intelligence.py",
+      "classification": "quarantine_candidate",
+      "decision": "parked_pending_full_regression_after_removal"
+    },
+    {
+      "path": "src/historical_regime_memory.py",
+      "classification": "quarantine_candidate",
+      "decision": "parked_pending_full_regression_after_removal"
+    },
+    {
+      "path": "src/market_internal_quality.py",
+      "classification": "quarantine_candidate",
+      "decision": "parked_pending_full_regression_after_removal"
+    },
+    {
+      "path": "src/multi_timeframe_structure.py",
+      "classification": "quarantine_candidate",
+      "decision": "parked_pending_full_regression_after_removal"
+    },
+    {
+      "path": "src/observability/json_logger.py",
+      "classification": "quarantine_candidate",
+      "decision": "parked_pending_full_regression_after_removal"
+    },
+    {
+      "path": "src/outcomes/outcome_tracker.py",
+      "classification": "quarantine_candidate",
+      "decision": "parked_pending_full_regression_after_removal"
+    },
+    {
+      "path": "src/portfolio/risk_memory.py",
+      "classification": "quarantine_candidate",
+      "decision": "parked_pending_full_regression_after_removal"
+    },
+    {
+      "path": "src/portfolio_intelligence_v2.py",
+      "classification": "quarantine_candidate",
+      "decision": "parked_pending_full_regression_after_removal"
+    },
+    {
+      "path": "src/portfolio_risk.py",
+      "classification": "quarantine_candidate",
+      "decision": "parked_pending_full_regression_after_removal"
+    },
+    {
+      "path": "src/regime/regime_memory.py",
+      "classification": "quarantine_candidate",
+      "decision": "parked_pending_full_regression_after_removal"
+    },
+    {
+      "path": "src/runtime/async_queue.py",
+      "classification": "quarantine_candidate",
+      "decision": "parked_pending_full_regression_after_removal"
+    }
+  ]
+}
