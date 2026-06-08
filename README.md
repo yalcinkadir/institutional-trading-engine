@@ -1,4 +1,4 @@
-# Institutional Trading Engine
+# Institutional Trading Engine README
 
 ![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
 ![CI](https://img.shields.io/badge/CI-pytest-brightgreen.svg)
