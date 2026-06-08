@@ -1,0 +1,29 @@
+{
+  "bt130_gate_status": "NOT_RUN",
+  "block_reasons": [
+    "missing_POLYGON_API_KEY"
+  ],
+  "command_log": [
+    "ingestion blocked: POLYGON_API_KEY not set — free-tier Polygon does not provide real historical bars"
+  ],
+  "coverage_manifest_path": "data/historical/metadata/coverage_manifest.json",
+  "data_source": "polygon",
+  "date_range": {
+    "end": "2026-01-01",
+    "start": "2024-01-01"
+  },
+  "evidence_gate_report": null,
+  "evidence_json_path": "reports/backtests/real-data-evidence-pack/real-data-backtest-evidence.json",
+  "evidence_markdown_path": "reports/backtests/real-data-evidence-pack/real-data-backtest-evidence.md",
+  "is_demo": false,
+  "output_dir": "reports/backtests/real-data-evidence-pack",
+  "run_id": "ci-initial-blocked",
+  "status": "BLOCKED",
+  "survivorship_universe_path": "data/universe/survivorship_universe.csv",
+  "symbols": [
+    "SPY",
+    "QQQ",
+    "AAPL"
+  ],
+  "trade_plans_path": "data/trade_plans/historical_trade_plans.json"
+}
