@@ -2,7 +2,7 @@
 
 Status date: 2026-06-07
 
-Current state: TEST1 Evidence-Oriented TDD Policy is active. EV1-EV12 evidence-integrity remediation is implemented and CI-green. CI runtime simplification is implemented and CI-green. PO128 and PO129 silent-failure/dataflow guards are implemented and CI-green. W1 Entry/Exit Watcher Git-Write Decoupling is implemented and CI-green. P132 Scanner Runtime Boundary is implemented. BT130 Real Historical Backtest Evidence Pack Gate is implemented and CI-pending. PortfolioState fail-closed fixture migration (#102) is validated and closed.
+Current state: TEST1 Evidence-Oriented TDD Policy is active. EV1-EV12 evidence-integrity remediation is implemented and CI-green. CI runtime simplification is implemented and CI-green. PO128 and PO129 silent-failure/dataflow guards are implemented and CI-green. W1 Entry/Exit Watcher Git-Write Decoupling is implemented and CI-green. P132 Scanner Runtime Boundary is implemented and CI-green. BT130 Real Historical Backtest Evidence Pack Gate is implemented and CI-pending. PortfolioState fail-closed fixture migration (#102) is validated and closed.
 
 The system remains research / decision-support / paper-observation only. Real-money execution is not authorized by code.
 
@@ -70,7 +70,7 @@ BT130 requires real-data backtest evidence packs to include run identity, real-d
 
 | ID | Task | Priority | Impact | Status |
 |---|---|---:|---:|---|
-| P132 | Scanner Runtime Boundary: Static Watchlist vs Real Screener | P1 | High | Implemented |
+| P132 | Scanner Runtime Boundary: Static Watchlist vs Real Screener | P1 | High | Done / CI-green |
 
 P132 requires runtime reports and Paper Observation evidence to expose `selection_mode`, selected symbols and selection reason. Static watchlists are allowed as research setup only and must not claim dynamic scanner breadth or trading-edge proof. Dynamic scanner claims require a documented scanner contract reference.
 
@@ -142,6 +142,7 @@ PFA joins position-level risk attribution with forward outcome evidence. It does
 ## Closed Remediation Items
 
 - #102: PortfolioState fail-closed fixture migration validated and closed. Runtime remains fail-closed for missing or non-boolean `governance_valid`; test fixtures that need a valid state set `governance_valid=true`; committed default `data/portfolio_state.json` remains `governance_valid=false` until real paper/broker state exists.
+- #132: Scanner Runtime Boundary validated and closed. Runtime reports and Paper Observation evidence must expose `selection_mode`; static watchlists remain research setup only and cannot claim dynamic scanner breadth or trading-edge proof.
 
 ## Recommended Next Remediation Order
 
