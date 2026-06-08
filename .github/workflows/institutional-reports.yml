@@ -142,7 +142,7 @@ jobs:
             --workflow-name "${GITHUB_WORKFLOW}" \
             --commit-sha "${GITHUB_SHA}"
 
-      - name: Commit allowed report outputs to repository
+      - name: Commit all outputs to repository
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
