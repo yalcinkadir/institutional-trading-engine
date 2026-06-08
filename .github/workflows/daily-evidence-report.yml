@@ -11,4 +11,187 @@ on:
         description: "Create observation-only Day-0 incoming seed when no real incoming sources are present"
         required: true
         default: "false"
-      use_real_paper_ob
+      use_real_paper_observation_source:
+        description: "Build incoming sources from real daily paper observation raw files"
+        required: true
+        default: "false"
+      real_paper_observation_source_dir:
+        description: "Directory containing real daily paper observation raw source files"
+        required: true
+        default: "reports/daily_paper_observation_raw"
+  schedule:
+    - cron: "30 22 * * 1-5"
+
+permissions:
+  contents: read
+
+jobs:
+  daily-evidence-report:
+    name: Build daily evidence report
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Resolve report date
+        id: report-date
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "value=${{ github.event.inputs.report_date }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=$(date -u +%F)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Validate observation source mode
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          if [ "${{ github.event.inputs.bootstrap_observation_only_sources }}" = "true" ] && [ "${{ github.event.inputs.use_real_paper_observation_source }}" = "true" ]; then
+            echo "Choose either bootstrap_observation_only_sources or use_real_paper_observation_source, not both."
+            exit 1
+          fi
+
+      - name: Build real paper observation incoming sources
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.use_real_paper_observation_source == 'true' }}
+        run: |
+          python scripts/build_daily_paper_observation_sources.py \
+            --source-dir "${{ github.event.inputs.real_paper_observation_source_dir }}" \
+            --output-dir reports/daily_observation_incoming \
+            --report-dir reports/daily_paper_observation_source
+
+      - name: Bootstrap observation-only incoming sources
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.bootstrap_observation_only_sources == 'true' }}
+        run: |
+          python scripts/bootstrap_daily_evidence_sources.py \
+            --output-dir reports/daily_observation_incoming \
+            --report-dir reports/daily_evidence_source_bootstrap \
+            --report-date "${{ steps.report-date.outputs.value }}"
+
+      - name: Persist daily observation sources
+        run: |
+          python scripts/persist_daily_observation_sources.py \
+            --incoming-dir reports/daily_observation_incoming \
+            --feed-dir reports/daily_observation_feed \
+            --report-dir reports/daily_observation_source_feed \
+            --report-date "${{ steps.report-date.outputs.value }}"
+
+      - name: Build daily evidence inputs
+        run: |
+          python scripts/build_daily_evidence_inputs.py \
+            --source-dir reports/daily_observation_feed \
+            --output-dir reports/daily_evidence_inputs \
+            --report-dir reports/daily_evidence_input_build
+
+      - name: Validate daily evidence inputs
+        run: |
+          python scripts/validate_daily_evidence_inputs.py \
+            --input-dir reports/daily_evidence_inputs \
+            --output-dir reports/daily_evidence_input_validation
+
+      - name: Generate B1-B6 evidence component reports
+        id: components
+        continue-on-error: true
+        run: |
+          mkdir -p reports/daily_evidence_components
+          EXTRA_ARGS=""
+          OBSERVATION_MODE="false"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && { [ "${{ github.event.inputs.bootstrap_observation_only_sources }}" = "true" ] || [ "${{ github.event.inputs.use_real_paper_observation_source }}" = "true" ]; }; then
+            EXTRA_ARGS="--observation-only"
+            OBSERVATION_MODE="true"
+          fi
+          echo "Observation-only component mode: ${OBSERVATION_MODE}"
+          echo "Component extra args: ${EXTRA_ARGS:-none}"
+          set +e
+          python scripts/generate_daily_evidence_components.py \
+            --input-dir reports/daily_evidence_inputs \
+            --output-dir reports/daily_evidence_components \
+            --report-date "${{ steps.report-date.outputs.value }}" \
+            $EXTRA_ARGS
+          STATUS=$?
+          echo "$STATUS" > reports/daily_evidence_components/component_exit_code.txt
+          echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Build daily evidence report
+        id: report
+        continue-on-error: true
+        run: |
+          mkdir -p reports/daily_evidence
+          EXTRA_ARGS=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && { [ "${{ github.event.inputs.bootstrap_observation_only_sources }}" = "true" ] || [ "${{ github.event.inputs.use_real_paper_observation_source }}" = "true" ]; }; then
+            EXTRA_ARGS="--max-failed-components 3"
+          fi
+          echo "Daily report extra args: ${EXTRA_ARGS:-none}"
+          set +e
+          python scripts/run_daily_evidence_report.py \
+            --input-dir reports/daily_evidence_components \
+            --output-dir reports/daily_evidence \
+            --report-date "${{ steps.report-date.outputs.value }}" \
+            $EXTRA_ARGS
+          STATUS=$?
+          echo "$STATUS" > reports/daily_evidence/report_exit_code.txt
+          echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Review real paper observation cadence
+        id: cadence
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.use_real_paper_observation_source == 'true' }}
+        continue-on-error: true
+        run: |
+          mkdir -p reports/daily_observation_cadence
+          set +e
+          python scripts/review_daily_observation_cadence.py \
+            --report-date "${{ steps.report-date.outputs.value }}" \
+            --raw-source-dir "${{ github.event.inputs.real_paper_observation_source_dir }}" \
+            --artifact-root reports \
+            --output-dir reports/daily_observation_cadence
+          STATUS=$?
+          echo "$STATUS" > reports/daily_observation_cadence/cadence_exit_code.txt
+          echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload daily evidence artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: daily-evidence-report-${{ steps.report-date.outputs.value }}
+          if-no-files-found: ignore
+          path: |
+            reports/daily_evidence_source_bootstrap/
+            reports/daily_paper_observation_source/
+            reports/daily_observation_cadence/
+            reports/daily_observation_source_feed/
+            reports/daily_observation_feed/
+            reports/daily_evidence_input_build/
+            reports/daily_evidence_input_validation/
+            reports/daily_evidence/
+            reports/daily_evidence_components/
+
+      - name: Fail workflow on non-observation evidence failure
+        if: ${{ steps.components.outputs.exit_code != '0' && !(github.event_name == 'workflow_dispatch' && (github.event.inputs.bootstrap_observation_only_sources == 'true' || github.event.inputs.use_real_paper_observation_source == 'true')) }}
+        run: |
+          echo "Component generation failed outside observation-only dispatch mode."
+          exit 1
+
+      - name: Fail workflow on non-observation report build failure
+        if: ${{ steps.report.outputs.exit_code != '0' && !(github.event_name == 'workflow_dispatch' && (github.event.inputs.bootstrap_observation_only_sources == 'true' || github.event.inputs.use_real_paper_observation_source == 'true')) }}
+        run: |
+          echo "Daily evidence report build failed outside observation-only dispatch mode. Artifact was uploaded for diagnostics."
+          exit 1
+
+      - name: Fail workflow on real paper cadence failure
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.use_real_paper_observation_source == 'true' && steps.cadence.outputs.exit_code != '0' }}
+        run: |
+          echo "Real paper observation cadence review failed. Artifact was uploaded for diagnostics."
+          exit 1
