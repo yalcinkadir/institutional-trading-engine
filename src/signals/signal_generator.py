@@ -96,6 +96,20 @@ def _action_for_decision(decision: str) -> str:
     }.get(decision, "NO_TRADE")
 
 
+def _requires_scanner_metrics(decision_report: dict) -> bool:
+    """Return whether signal generation needs scanner metrics to be safe.
+
+    Actionable decisions cannot be converted into signals without scanner metrics,
+    because missing metrics silently become close=None / atr14=None and can make a
+    dry data pipeline look like a legitimate no-trade day.
+    """
+    for item in decision_report.get("decisions", []):
+        decision = str(item.get("decision") or "")
+        if _action_for_decision(decision) == "BUY_WATCH":
+            return True
+    return False
+
+
 def _build_signal_payload_for_identity(
     *,
     symbol: str,
@@ -166,6 +180,12 @@ def build_signals(
     scanner_metrics_map: dict[str, Any] | None = None,
     market_regime: str = "Unknown",
 ) -> list[Signal]:
+    if scanner_metrics_map is None and _requires_scanner_metrics(decision_report):
+        raise ValueError(
+            "scanner_metrics_map is required for actionable signal generation; "
+            "missing scanner metrics must fail closed instead of producing close:null no-trade signals"
+        )
+
     now_iso = datetime.now(UTC).isoformat()
     signals: list[Signal] = []
 
