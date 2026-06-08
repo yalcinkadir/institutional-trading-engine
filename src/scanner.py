@@ -107,6 +107,17 @@ def _is_blocked_metrics(metrics: dict | None) -> bool:
     return not metrics or str(metrics.get("data_status", "")).upper() == "BLOCKED"
 
 
+def _env_flag(name: str, default: bool = False) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _volatility_proxy_symbol() -> str:
+    return os.getenv("VOLATILITY_PROXY_SYMBOL", "VIXY").strip() or "VIXY"
+
+
 def get_daily_bars(symbol, days=500, retries=3):
     end_date = datetime.now(timezone.utc).date()
     start_date = end_date - timedelta(days=days)
@@ -238,57 +249,125 @@ def get_daily_bars(symbol, days=500, retries=3):
     return None
 
 
-def get_vix_value(retries=3):
-    # Polygon index ticker format can depend on plan/feed.
-    # We try I:VIX. If unavailable, return None gracefully.
-    symbol = "I:VIX"
-    end_date = datetime.now(timezone.utc).date()
-    start_date = end_date - timedelta(days=30)
+def _direction_from_close_series(df: pd.DataFrame) -> str:
+    latest_close = df.iloc[-1]["close"]
+    prev_close = df.iloc[-2]["close"] if len(df) >= 2 else pd.NA
 
-    url = f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/day/{start_date}/{end_date}"
-    params = {
-        "adjusted": "true",
-        "sort": "asc",
-        "limit": 100,
-        "apiKey": API_KEY,
+    if pd.isna(prev_close):
+        return "Flat"
+    if latest_close > prev_close:
+        return "Rising"
+    if latest_close < prev_close:
+        return "Falling"
+    return "Flat"
+
+
+def _regime_volatility_payload(
+    *,
+    symbol: str,
+    df: pd.DataFrame,
+    fallback_level: str,
+    data_status: str,
+    proxy_for: str | None = None,
+    primary_failure: MarketDataFailure | None = None,
+) -> dict[str, Any]:
+    latest_close = df.iloc[-1]["close"]
+    payload: dict[str, Any] = {
+        "close": latest_close,
+        "direction": _direction_from_close_series(df),
+        "source": "polygon",
+        "source_symbol": symbol,
+        "fallback_level": fallback_level,
+        "data_status": data_status,
+        "source_timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+    if proxy_for:
+        payload["proxy_for"] = proxy_for
+    if primary_failure is not None:
+        payload.update(
+            {
+                "data_failure_kind": primary_failure.kind.value,
+                "data_failure_message": primary_failure.message,
+                "provider_status_code": primary_failure.status_code,
+            }
+        )
+    return payload
+
+
+def _blocked_regime_volatility_payload(
+    failure: MarketDataFailure | None,
+    *,
+    source_symbol: str,
+    primary_failure: MarketDataFailure | None = None,
+) -> dict[str, Any]:
+    effective_failure = failure or primary_failure or MarketDataFailure(
+        symbol=source_symbol,
+        kind=MarketDataFailureKind.EMPTY_BARS,
+        message="no usable volatility/regime data source returned bars",
+    )
+    return {
+        "close": pd.NA,
+        "direction": "Unavailable",
+        "source": effective_failure.provider,
+        "source_symbol": source_symbol,
+        "fallback_level": "none",
+        "data_status": "BLOCKED",
+        "source_timestamp": datetime.now(timezone.utc).isoformat(),
+        "data_failure_kind": effective_failure.kind.value,
+        "data_failure_message": effective_failure.message,
+        "provider_status_code": effective_failure.status_code,
     }
 
-    for attempt in range(retries):
-        try:
-            response = requests.get(url, params=params, timeout=30)
 
-            if response.status_code == 429:
-                time.sleep(15)
-                continue
+def get_vix_value(retries=3):
+    """Return volatility/regime context with explicit provenance.
 
-            response.raise_for_status()
-            data = response.json()
+    Polygon `I:VIX` requires an index-capable plan. By default this scanner does
+    not blindly call the index endpoint. Set `POLYGON_INDEX_DATA_ENABLED=true`
+    only when the configured Polygon tier supports index aggregates. Otherwise
+    the scanner uses `VOLATILITY_PROXY_SYMBOL` (default: VIXY) and marks regime
+    health as DEGRADED.
+    """
+    primary_symbol = "I:VIX"
+    proxy_symbol = _volatility_proxy_symbol()
+    primary_failure: MarketDataFailure | None = None
 
-            if "results" not in data or not data["results"]:
-                return None
+    if _env_flag("POLYGON_INDEX_DATA_ENABLED", default=False):
+        primary_df = get_daily_bars(primary_symbol, days=30, retries=retries)
+        if primary_df is not None and not primary_df.empty:
+            return _regime_volatility_payload(
+                symbol=primary_symbol,
+                df=primary_df,
+                fallback_level="primary",
+                data_status="OK",
+            )
+        primary_failure = get_market_data_failure(primary_symbol)
+    else:
+        primary_failure = MarketDataFailure(
+            symbol=primary_symbol,
+            kind=MarketDataFailureKind.AUTH_FORBIDDEN,
+            message="Polygon index aggregates are disabled for the configured provider tier; using volatility proxy",
+            attempts=0,
+        )
+        _record_market_data_failure(primary_failure)
 
-            df = pd.DataFrame(data["results"])
-            df = df.rename(columns={"c": "close"})
-            latest_close = df.iloc[-1]["close"]
-            prev_close = df.iloc[-2]["close"] if len(df) >= 2 else pd.NA
+    proxy_df = get_daily_bars(proxy_symbol, days=30, retries=retries)
+    if proxy_df is not None and not proxy_df.empty:
+        return _regime_volatility_payload(
+            symbol=proxy_symbol,
+            df=proxy_df,
+            fallback_level="proxy",
+            data_status="DEGRADED",
+            proxy_for=primary_symbol,
+            primary_failure=primary_failure,
+        )
 
-            direction = "Flat"
-            if pd.notna(prev_close):
-                if latest_close > prev_close:
-                    direction = "Rising"
-                elif latest_close < prev_close:
-                    direction = "Falling"
-
-            return {
-                "close": latest_close,
-                "direction": direction,
-            }
-
-        except Exception:
-            if attempt < retries - 1:
-                time.sleep(10)
-            else:
-                return None
+    proxy_failure = get_market_data_failure(proxy_symbol)
+    return _blocked_regime_volatility_payload(
+        proxy_failure,
+        source_symbol=proxy_symbol,
+        primary_failure=primary_failure,
+    )
 
 
 def calculate_rsi(series, period=14):
@@ -592,6 +671,8 @@ def build_market_regime_summary(metrics_map, vix_data):
             "- Risk State: N/A",
             "- Fresh Longs: N/A",
             "- VIX: N/A",
+            "- Volatility Data Health: BLOCKED",
+            "- VIX Source: N/A",
             "- Comment: Missing or blocked SPY/QQQ data",
         ]
 
@@ -633,20 +714,32 @@ def build_market_regime_summary(metrics_map, vix_data):
     elif market_regime == "Bearish":
         risk_state = "Risk-Off"
 
+    volatility_health = "DEGRADED"
     vix_text = "Unavailable"
+    vix_source = "N/A"
+    vix_failure = None
     if vix_data:
-        vix_close = fmt_number(vix_data["close"])
-        vix_dir = vix_data["direction"]
+        volatility_health = str(vix_data.get("data_status") or "DEGRADED")
+        fallback_level = str(vix_data.get("fallback_level") or "none")
+        source_symbol = str(vix_data.get("source_symbol") or "N/A")
+        vix_source = f"{vix_data.get('source', 'unknown')}:{source_symbol} ({fallback_level})"
+        vix_failure = vix_data.get("data_failure_kind")
+        vix_close = fmt_number(vix_data.get("close"))
+        vix_dir = vix_data.get("direction", "Unavailable")
         vix_text = f"{vix_close} ({vix_dir})"
-
-        if pd.notna(vix_data["close"]):
+        if fallback_level == "proxy":
+            vix_text = f"{vix_text} proxy_for={vix_data.get('proxy_for', 'I:VIX')}"
+            if risk_state == "Risk-On":
+                risk_state = "Cautious"
+        elif fallback_level == "primary" and pd.notna(vix_data.get("close")):
             if vix_data["close"] > 25:
                 risk_state = "Risk-Off"
             elif vix_data["close"] > 18 and risk_state == "Risk-On":
                 risk_state = "Cautious"
-
-            if vix_data["direction"] == "Rising" and risk_state == "Risk-On":
+            if vix_data.get("direction") == "Rising" and risk_state == "Risk-On":
                 risk_state = "Cautious"
+        elif volatility_health == "BLOCKED":
+            risk_state = "Cautious" if risk_state == "Risk-On" else risk_state
 
     if market_regime == "Bullish" and extension_status == "Healthy" and risk_state == "Risk-On":
         fresh_longs = "Allowed"
@@ -678,6 +771,11 @@ def build_market_regime_summary(metrics_map, vix_data):
     else:
         comment_parts.append("capital protection should dominate")
 
+    if volatility_health != "OK":
+        comment_parts.append(f"volatility source health is {volatility_health}")
+    if vix_failure:
+        comment_parts.append(f"primary volatility source failed with {vix_failure}")
+
     comment = ". ".join(comment_parts) + "."
 
     return [
@@ -687,6 +785,8 @@ def build_market_regime_summary(metrics_map, vix_data):
         f"- Risk State: {risk_state}",
         f"- Fresh Longs: {fresh_longs}",
         f"- VIX: {vix_text}",
+        f"- Volatility Data Health: {volatility_health}",
+        f"- VIX Source: {vix_source}",
         f"- Comment: {comment}",
     ]
 
