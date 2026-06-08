@@ -14,7 +14,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: p160-apply-classification-${{ github.ref }}
+  group: repo-write-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -35,6 +35,14 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Prepare P160 evidence directory
+        run: |
+          mkdir -p artifacts/evidence/p160-classification
+          cat > artifacts/evidence/p160-classification/manifest.txt <<'EOF'
+          status=started
+          workflow=p160-apply-classification
+          EOF
+
       - name: Apply P160 classification
         run: |
           python scripts/classify_pipeline_modules_p160.py
@@ -45,8 +53,9 @@ jobs:
 
       - name: Show architecture diff
         run: |
-          git status --short
-          git diff -- docs/architecture/module_classification.json docs/architecture/module_inventory.generated.json || true
+          git status --short | tee artifacts/evidence/p160-classification/git-status.txt
+          git diff -- docs/architecture/module_classification.json docs/architecture/module_inventory.generated.json \
+            > artifacts/evidence/p160-classification/architecture-diff.patch || true
 
       - name: Commit generated architecture inventory
         run: |
@@ -54,9 +63,19 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add docs/architecture/module_classification.json docs/architecture/module_inventory.generated.json
           if git diff --cached --quiet; then
+            echo "status=no_changes" > artifacts/evidence/p160-classification/manifest.txt
             echo "No P160 architecture changes to commit."
           else
             git commit -m "fix: apply p160 module classification inventory"
             git pull --rebase origin "${GITHUB_REF_NAME}"
             git push origin "HEAD:${GITHUB_REF_NAME}"
+            echo "status=committed" > artifacts/evidence/p160-classification/manifest.txt
           fi
+
+      - name: Upload P160 classification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p160-classification-evidence
+          path: artifacts/evidence/p160-classification/
+          if-no-files-found: warn
