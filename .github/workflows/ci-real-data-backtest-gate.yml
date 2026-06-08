@@ -1,0 +1,95 @@
+name: CI Real-Data Backtest Evidence Gate
+
+on:
+  push:
+    branches: ["main", "master", "develop", "claude/**"]
+    paths:
+      - "scripts/run_historical_entry_exit_backtest.py"
+      - "scripts/build_real_data_backtest_evidence_pack.py"
+      - "scripts/validate_bt9_real_historical_input_pack.py"
+      - "scripts/validate_real_data_backtest_evidence_gate.py"
+      - "scripts/check_backtest_evidence_readme_guard.py"
+      - "src/backtesting/**"
+      - "reports/backtests/real-data-evidence-pack/**"
+      - ".github/workflows/ci-real-data-backtest-gate.yml"
+  pull_request:
+    paths:
+      - "scripts/run_historical_entry_exit_backtest.py"
+      - "scripts/build_real_data_backtest_evidence_pack.py"
+      - "scripts/validate_bt9_real_historical_input_pack.py"
+      - "scripts/validate_real_data_backtest_evidence_gate.py"
+      - "scripts/check_backtest_evidence_readme_guard.py"
+      - "src/backtesting/**"
+      - "reports/backtests/real-data-evidence-pack/**"
+      - ".github/workflows/ci-real-data-backtest-gate.yml"
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "Evidence run id"
+        required: false
+        default: "ci-gate-manual"
+
+permissions:
+  contents: read
+
+jobs:
+  evidence-gate:
+    name: Real-data backtest evidence gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Attempt real-data evidence pack (BLOCKED expected without Polygon key)
+        id: build_pack
+        continue-on-error: true
+        env:
+          POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
+        run: |
+          RUN_ID="${{ github.event.inputs.run_id || 'ci-gate-auto' }}"
+          mkdir -p reports/backtests/real-data-evidence-pack
+          set +e
+          python scripts/build_real_data_backtest_evidence_pack.py \
+            --symbols SPY,QQQ,AAPL \
+            --start-date 2024-01-01 \
+            --end-date 2026-01-01 \
+            --run-id "$RUN_ID" \
+            --data-source polygon \
+            --output-dir reports/backtests/real-data-evidence-pack
+          PACK_EXIT=$?
+          echo "pack_exit=$PACK_EXIT" >> "$GITHUB_OUTPUT"
+          echo "Pack build exited with code $PACK_EXIT"
+
+      - name: README guard — artifact must exist and README must not overclaim
+        run: python scripts/check_backtest_evidence_readme_guard.py
+
+      - name: Show artifact status
+        if: always()
+        run: |
+          ARTIFACT="reports/backtests/real-data-evidence-pack/real-data-backtest-evidence-package.json"
+          if [ -f "$ARTIFACT" ]; then
+            echo "=== Evidence package artifact ==="
+            cat "$ARTIFACT"
+          else
+            echo "WARNING: evidence artifact not found — README guard step should have already failed."
+          fi
+
+      - name: Upload evidence pack artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: real-data-backtest-evidence-pack-${{ github.run_id }}
+          if-no-files-found: warn
+          path: reports/backtests/real-data-evidence-pack/
