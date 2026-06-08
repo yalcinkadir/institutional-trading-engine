@@ -92,6 +92,7 @@ def _format_run_health(decision_report: dict) -> list[str]:
     run_health = decision_report.get("run_health") or {}
     scanner_quality = decision_report.get("scanner_data_quality") or {}
     governance_state = decision_report.get("governance_state") or {}
+    market_data_failures = scanner_quality.get("market_data_failures") or {}
     lines = ["## Run Health / Silent-Failure Gate", ""]
     lines.append(f"- Run Health: {run_health.get('run_health_status', 'UNKNOWN')}")
     lines.append(f"- Success Status: {run_health.get('success_status', 'UNKNOWN')}")
@@ -112,6 +113,14 @@ def _format_run_health(decision_report: dict) -> list[str]:
         )
     if "valid_symbols" in scanner_quality or "total_symbols" in scanner_quality:
         lines.append(f"- Scanner Valid Symbols: {scanner_quality.get('valid_symbols', 'n/a')} / {scanner_quality.get('total_symbols', 'n/a')}")
+    if market_data_failures:
+        lines.append("- Market Data Failures:")
+        for symbol, detail in sorted(market_data_failures.items()):
+            kind = detail.get("kind", "UNKNOWN")
+            message = detail.get("message") or "no message"
+            status_code = detail.get("status_code")
+            status_suffix = f" | status={status_code}" if status_code is not None else ""
+            lines.append(f"  - {symbol}: {kind}{status_suffix} | {message}")
     reasons = run_health.get("reasons") or []
     if reasons:
         lines.append(f"- Reasons: {', '.join(str(reason) for reason in reasons)}")
