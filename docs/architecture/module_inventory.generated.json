@@ -1,14 +1,14 @@
 {
   "classification_source": "docs/architecture/module_classification.json",
   "counters": {
-    "classified_modules": 27,
+    "classified_modules": 30,
     "connected_runtime": 12,
-    "delete_candidate": 1,
+    "delete_candidate": 4,
     "experimental": 10,
     "quarantine": 4,
     "total_src_modules": 314,
-    "unclassified_legacy": 287,
-    "unclassified_legacy_modules": 287
+    "unclassified_legacy": 284,
+    "unclassified_legacy_modules": 284
   },
   "grandfather_existing_modules": true,
   "modules": [
@@ -1285,28 +1285,28 @@
       "status": "unclassified_legacy"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "delete_candidate",
+      "notes": "ARCH106 strict triage: small generic OS-layer stub has no current code-search references. Candidate only; deletion requires a separate CI-proven removal PR.",
       "path": "src/os/priority_manager.py",
       "runtime_entrypoint": null,
       "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "status": "classified"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "delete_candidate",
+      "notes": "ARCH106 strict triage: small generic OS-layer routing stub has no current code-search references. Candidate only; deletion requires a separate CI-proven removal PR.",
       "path": "src/os/task_router.py",
       "runtime_entrypoint": null,
       "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "status": "classified"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "delete_candidate",
+      "notes": "ARCH106 strict triage: small generic OS-layer workflow stub has no current code-search references. Candidate only; deletion requires a separate CI-proven removal PR.",
       "path": "src/os/workflow_engine.py",
       "runtime_entrypoint": null,
       "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "status": "classified"
     },
     {
       "classification": "unclassified_legacy",

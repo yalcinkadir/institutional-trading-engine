@@ -44,6 +44,24 @@
       "runtime_entrypoint": null,
       "runtime_execution_proof": null
     },
+    "src/os/priority_manager.py": {
+      "classification": "delete_candidate",
+      "notes": "ARCH106 strict triage: small generic OS-layer stub has no current code-search references. Candidate only; deletion requires a separate CI-proven removal PR.",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null
+    },
+    "src/os/task_router.py": {
+      "classification": "delete_candidate",
+      "notes": "ARCH106 strict triage: small generic OS-layer routing stub has no current code-search references. Candidate only; deletion requires a separate CI-proven removal PR.",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null
+    },
+    "src/os/workflow_engine.py": {
+      "classification": "delete_candidate",
+      "notes": "ARCH106 strict triage: small generic OS-layer workflow stub has no current code-search references. Candidate only; deletion requires a separate CI-proven removal PR.",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null
+    },
     "src/reporting/cross_asset_report.py": {
       "classification": "connected_runtime",
       "notes": "Cross-asset report payload is exercised by the report/signal runtime path in ARCH106.",
