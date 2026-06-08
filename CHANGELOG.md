@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## P132 Scanner Runtime Boundary — 2026-06-07
+## P132 Scanner Runtime Boundary CI-Green Closure — 2026-06-07
 
 ### Added
 - Added `tests/test_p132_scanner_runtime_boundary.py`.
@@ -10,7 +10,7 @@
 - Added scanner runtime boundary validation to `src/validation/feature_connectivity_matrix_guard.py` to avoid introducing a new ARCH106 source-module inventory entry.
 - Static watchlists are now labelled as research setup only and cannot claim dynamic scanner breadth or trading-edge proof.
 - Dynamic scanner claims require a documented `scanner_contract_ref`.
-- Updated ROADMAP with P132 status and hard rule.
+- Updated ROADMAP with P132 Done / CI-green status and closed-remediation entry.
 
 ### Validated
 - Static watchlist payloads pass only when the boundary is explicit.
@@ -19,9 +19,11 @@
 - Dynamic scanner mode requires a scanner contract reference.
 - Paper-only safety boundary remains enforced.
 - ARCH106 inventory remains stable because no additional `src` module path is introduced.
+- CI is green.
 
 ### Status
-- P132: Implemented.
+- P132: Done / CI-green.
+- #132: Closed / completed.
 - Live trading authorization: unchanged; not granted by code.
 
 ---
