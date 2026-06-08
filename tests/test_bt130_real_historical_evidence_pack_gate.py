@@ -88,7 +88,14 @@ def test_bt130_real_data_runner_blocks_missing_coverage_manifest(tmp_path: Path)
 
     assert result.returncode == 1
     assert "missing_coverage_manifest" in result.stdout
-    assert not out.exists()
+    assert out.exists()
+    payload = json.loads(out.read_text(encoding="utf-8"))
+    assert payload["data_source"] == "real_data"
+    assert payload["is_demo"] is False
+    assert payload["input_pack_gate_status"] == "PASSED"
+    assert payload["input_completeness_status"] == "BLOCKED_MISSING_COVERAGE_MANIFEST"
+    assert payload["run_health_status"] == "BLOCKED"
+    assert payload["rejection_reasons"][0]["reasons"] == ["missing_coverage_manifest"]
 
 
 def test_bt130_real_data_runner_blocks_fully_rejected_plans(tmp_path: Path) -> None:
@@ -120,7 +127,16 @@ def test_bt130_real_data_runner_blocks_fully_rejected_plans(tmp_path: Path) -> N
 
     assert result.returncode == 1
     assert "accepted_plan_count=0" in result.stdout
-    assert not out.exists()
+    assert out.exists()
+    payload = json.loads(out.read_text(encoding="utf-8"))
+    assert payload["data_source"] == "real_data"
+    assert payload["is_demo"] is False
+    assert payload["input_pack_gate_status"] == "PASSED"
+    assert payload["input_completeness_status"] == "EMPTY_INPUT"
+    assert payload["run_health_status"] == "BLOCKED"
+    assert payload["input_plan_count"] == 1
+    assert payload["accepted_plan_count"] == 0
+    assert payload["rejected_plan_count"] == 1
 
 
 def test_bt130_evidence_gate_rejects_plan_count_mismatch(tmp_path: Path) -> None:
