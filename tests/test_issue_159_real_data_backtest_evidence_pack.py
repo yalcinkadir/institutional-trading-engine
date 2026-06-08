@@ -6,6 +6,14 @@ from pathlib import Path
 from scripts import run_historical_entry_exit_backtest as runner
 
 
+def _write_universe(path: Path, symbol: str = "AAPL") -> None:
+    path.write_text(
+        "symbol,effective_from,effective_to,active,asset_class,exchange,source,status,reason\n"
+        f"{symbol},2020-01-01,,true,equity,NASDAQ,initial_universe,active,issue 159 test universe\n",
+        encoding="utf-8",
+    )
+
+
 def test_real_data_backtest_writes_blocked_evidence_when_coverage_manifest_missing(monkeypatch, tmp_path: Path) -> None:
     plans_file = tmp_path / "plans.json"
     bars_root = tmp_path / "bars"
@@ -37,7 +45,7 @@ def test_real_data_backtest_writes_blocked_evidence_when_coverage_manifest_missi
         "date,open,high,low,close,volume\n2026-01-03,100,102,99,101,1000\n",
         encoding="utf-8",
     )
-    universe.write_text("symbol,start_date,end_date\nAAPL,2020-01-01,\n", encoding="utf-8")
+    _write_universe(universe)
 
     monkeypatch.setattr(
         runner,
@@ -116,7 +124,7 @@ def test_real_data_backtest_writes_blocked_evidence_when_all_plans_are_rejected(
         "date,open,high,low,close,volume\n2026-01-03,100,102,99,101,1000\n",
         encoding="utf-8",
     )
-    universe.write_text("symbol,start_date,end_date\nAAPL,2020-01-01,\n", encoding="utf-8")
+    _write_universe(universe)
     coverage_manifest.write_text(json.dumps({"symbols": ["AAPL"]}), encoding="utf-8")
 
     monkeypatch.setattr(
