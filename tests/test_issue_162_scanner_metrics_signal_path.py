@@ -3,6 +3,8 @@ from __future__ import annotations
 from types import SimpleNamespace
 import importlib
 
+import pytest
+
 
 def _decision_report() -> dict:
     return {
@@ -94,9 +96,41 @@ def test_market_payload_blocks_all_close_null_scanner_metrics(monkeypatch) -> No
         },
     )
 
-    try:
+    with pytest.raises(generate_report.ReportDataQualityBlockedError) as exc:
         generate_report._build_market_payload("premarket")
-    except generate_report.ReportDataQualityBlockedError as exc:
-        assert "scanner_metrics_incomplete:AAPL:close" in str(exc)
-    else:
-        raise AssertionError("all-close-null scanner metrics must block before signal generation")
+
+    assert "scanner_metrics_incomplete:AAPL:close" in str(exc.value)
+
+
+def test_build_signals_fails_closed_for_actionable_decisions_without_scanner_metrics() -> None:
+    signal_generator = importlib.import_module("src.signals.signal_generator")
+
+    with pytest.raises(ValueError, match="scanner_metrics_map is required"):
+        signal_generator.build_signals(
+            decision_report=_decision_report(),
+            scanner_metrics_map=None,
+            market_regime="Bullish",
+        )
+
+
+def test_generate_signals_fallback_cannot_silently_rebuild_actionable_signals_without_metrics(monkeypatch, tmp_path) -> None:
+    generate_report = importlib.import_module("scripts.generate_report")
+    signal_generator = importlib.import_module("src.signals.signal_generator")
+
+    monkeypatch.setattr(signal_generator, "SIGNALS_DIR", tmp_path)
+
+    decision_payload = {
+        "decision_report": _decision_report(),
+        "market_regime": "Bullish",
+        "scanner_data_quality": {
+            "data_quality_status": "UNKNOWN",
+            "total_symbols": 1,
+            "valid_symbols": 0,
+        },
+    }
+
+    with pytest.raises(generate_report.SignalGenerationFailedError) as exc:
+        generate_report.generate_signals(decision_payload)
+
+    assert "scanner_metrics_map is required" in str(exc.value)
+    assert exc.value.evidence["status"] == generate_report.SIGNAL_GENERATION_STATUS_FAILED
