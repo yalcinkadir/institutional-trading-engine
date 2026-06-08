@@ -246,15 +246,15 @@ def check_inventory(
     except json.JSONDecodeError as exc:
         return False, f"ARCH106 module inventory artifact is invalid JSON: {exc}\n"
 
-    if actual != expected:
-        return False, format_inventory_diff(inventory_diff(expected, actual))
-
     baseline_ok, baseline_message = _check_unclassified_legacy_baseline(
         inventory=expected,
         classification=classification,
     )
     if not baseline_ok:
         return False, baseline_message
+
+    if actual != expected:
+        return False, format_inventory_diff(inventory_diff(expected, actual))
 
     return True, "ARCH106 module inventory artifact is current.\n"
 
