@@ -40,6 +40,11 @@ PROVENANCE_FIELDS = (
     "fallback_level",
     "data_status",
 )
+MARKET_DATA_FAILURE_FIELDS = (
+    "data_failure_kind",
+    "data_failure_message",
+    "provider_status_code",
+)
 DEFAULT_MAX_STALENESS_MINUTES = 24 * 60
 
 
@@ -51,6 +56,7 @@ class ScannerMetricsDiagnostics:
     missing_required_fields: dict[str, list[str]] = field(default_factory=dict)
     missing_provenance_fields: dict[str, list[str]] = field(default_factory=dict)
     stale_symbols: dict[str, str] = field(default_factory=dict)
+    market_data_failures: dict[str, dict[str, Any]] = field(default_factory=dict)
 
     @property
     def has_warnings(self) -> bool:
@@ -59,11 +65,12 @@ class ScannerMetricsDiagnostics:
             or self.missing_required_fields
             or self.missing_provenance_fields
             or self.stale_symbols
+            or self.market_data_failures
         )
 
     @property
     def data_quality_status(self) -> str:
-        if self.missing_symbols or self.missing_required_fields:
+        if self.missing_symbols or self.missing_required_fields or self.market_data_failures:
             return "BLOCKED"
         if self.missing_provenance_fields or self.stale_symbols:
             return "DEGRADED"
@@ -75,6 +82,11 @@ class ScannerMetricsDiagnostics:
             lines.append(f"scanner_metrics_missing:{symbol}")
         for symbol, fields in self.missing_required_fields.items():
             lines.append(f"scanner_metrics_incomplete:{symbol}:{','.join(fields)}")
+        for symbol, detail in self.market_data_failures.items():
+            kind = str(detail.get("kind") or "UNKNOWN")
+            status_code = detail.get("status_code")
+            suffix = f":{status_code}" if status_code is not None else ""
+            lines.append(f"market_data_failure:{symbol}:{kind}{suffix}")
         for symbol, fields in self.missing_provenance_fields.items():
             lines.append(f"scanner_metrics_missing_provenance:{symbol}:{','.join(fields)}")
         for symbol, reason in self.stale_symbols.items():
@@ -90,6 +102,7 @@ class ScannerMetricsDiagnostics:
             "missing_required_fields": self.missing_required_fields,
             "missing_provenance_fields": self.missing_provenance_fields,
             "stale_symbols": self.stale_symbols,
+            "market_data_failures": self.market_data_failures,
         }
 
 
@@ -147,8 +160,8 @@ def normalize_symbol_metrics(metrics: dict[str, Any] | None) -> dict[str, Any] |
     """Normalize a raw scanner metrics row for signal generation.
 
     Numeric values are converted to floats where possible. Pandas `NA`, NaN and
-    infinity are converted to `None`. Non-numeric labels and provenance fields are
-    preserved.
+    infinity are converted to `None`. Non-numeric labels, provenance fields, and
+    canonical market-data failure fields are preserved.
     """
     if not metrics:
         return None
@@ -163,6 +176,12 @@ def normalize_symbol_metrics(metrics: dict[str, Any] | None) -> dict[str, Any] |
             normalized[key] = _safe_float(metrics.get(key))
 
     for key in PROVENANCE_FIELDS:
+        if key in metrics:
+            normalized[key] = _safe_text(metrics.get(key))
+
+    if "provider_status_code" in metrics:
+        normalized["provider_status_code"] = _safe_float(metrics.get("provider_status_code"))
+    for key in ("data_failure_kind", "data_failure_message"):
         if key in metrics:
             normalized[key] = _safe_text(metrics.get(key))
 
@@ -194,12 +213,21 @@ def normalize_scanner_metrics_map(
     missing_required_fields: dict[str, list[str]] = {}
     missing_provenance_fields: dict[str, list[str]] = {}
     stale_symbols: dict[str, str] = {}
+    market_data_failures: dict[str, dict[str, Any]] = {}
 
     for symbol in expected_symbols:
         row = normalize_symbol_metrics(source.get(symbol))
         if row is None:
             missing_symbols.append(symbol)
             continue
+
+        failure_kind = row.get("data_failure_kind")
+        if failure_kind:
+            market_data_failures[symbol] = {
+                "kind": failure_kind,
+                "message": row.get("data_failure_message"),
+                "status_code": row.get("provider_status_code"),
+            }
 
         missing_fields = [
             field for field in REQUIRED_SIGNAL_METRICS
@@ -224,7 +252,7 @@ def normalize_scanner_metrics_map(
             if stale_reason:
                 stale_symbols[symbol] = stale_reason
 
-        if missing_fields:
+        if missing_fields or failure_kind:
             row["data_status"] = "BLOCKED"
         elif missing_provenance or symbol in stale_symbols:
             row["data_status"] = "DEGRADED"
@@ -235,7 +263,7 @@ def normalize_scanner_metrics_map(
 
     valid_symbols = sum(
         1 for symbol in expected_symbols
-        if symbol in normalized and symbol not in missing_required_fields
+        if symbol in normalized and symbol not in missing_required_fields and symbol not in market_data_failures
     )
 
     diagnostics = ScannerMetricsDiagnostics(
@@ -245,5 +273,6 @@ def normalize_scanner_metrics_map(
         missing_required_fields=missing_required_fields,
         missing_provenance_fields=missing_provenance_fields,
         stale_symbols=stale_symbols,
+        market_data_failures=market_data_failures,
     )
     return normalized, diagnostics
