@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from dataclasses import asdict
 from datetime import UTC, datetime, timedelta
@@ -32,12 +33,16 @@ BLOCKING_SCANNER_DATA_QUALITY_STATUSES = {"BLOCKED", "UNKNOWN"}
 SIGNAL_GENERATION_STATUS_PASSED = "PASSED"
 SIGNAL_GENERATION_STATUS_FAILED = "FAILED"
 SIGNAL_GENERATION_STATUS_BLOCKED_DATA_QUALITY = "BLOCKED_DATA_QUALITY"
+SIGNAL_GENERATION_STATUS_BLOCKED_GOVERNANCE = "BLOCKED_GOVERNANCE"
 RUN_HEALTH_OK = "OK"
 RUN_HEALTH_NO_TRADE_VALID = "NO_TRADE_VALID"
 RUN_HEALTH_DEGRADED_DATA = "DEGRADED_DATA"
 RUN_HEALTH_EMPTY_INPUT = "EMPTY_INPUT"
 RUN_HEALTH_FALLBACK_ACTIVE = "FALLBACK_ACTIVE"
+RUN_HEALTH_GOVERNANCE_BLOCKED = "GOVERNANCE_BLOCKED"
 RUN_HEALTH_FAILED = "FAILED"
+GOVERNANCE_STATUS_PASSED = "PASSED"
+GOVERNANCE_STATUS_BLOCKED = "BLOCKED"
 
 
 class ReportDataQualityBlockedError(RuntimeError):
@@ -65,6 +70,84 @@ def _decision_symbols(decision_report: dict) -> list[str]:
         for item in decision_report.get("decisions", [])
         if item.get("symbol")
     ]
+
+
+def _env_flag(name: str, *, default: bool = False) -> bool:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+def _env_false(name: str, *, default: bool = False) -> bool:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"0", "false", "no", "n", "off"}
+
+
+def _evaluate_runtime_governance(report_type: str) -> dict[str, Any]:
+    """Evaluate governance on the active report path before signal output.
+
+    This is intentionally local to the scheduled report entrypoint. Static import
+    reachability is not enough; the active report path must stamp the evaluated
+    governance state into downstream artifacts.
+    """
+    kill_switch_active = _env_flag("ITE_KILL_SWITCH_ACTIVE") or _env_flag("KILL_SWITCH_ACTIVE")
+    approval_denied = _env_false("ITE_GOVERNANCE_APPROVED") or _env_false("GOVERNANCE_APPROVED")
+    reasons: list[str] = []
+    if kill_switch_active:
+        reasons.append("kill_switch_active")
+    if approval_denied:
+        reasons.append("governance_approval_denied")
+    status = GOVERNANCE_STATUS_BLOCKED if reasons else GOVERNANCE_STATUS_PASSED
+    return {
+        "stage": "active_report_path_governance",
+        "active_path": "scripts/generate_report.py::_build_market_payload",
+        "report_type": report_type,
+        "governance_status": status,
+        "kill_switch_active": kill_switch_active,
+        "approval_granted": not approval_denied,
+        "reasons": reasons,
+        "evaluated_at": datetime.now(UTC).isoformat(),
+        "live_trading_authorized": False,
+        "broker_execution_mode": "paper_only",
+    }
+
+
+def _governance_allows_actionable_output(governance_state: dict[str, Any]) -> bool:
+    return str(governance_state.get("governance_status") or "UNKNOWN").upper() == GOVERNANCE_STATUS_PASSED
+
+
+def _apply_governance_block_to_decisions(decision_report: dict[str, Any], governance_state: dict[str, Any]) -> None:
+    reasons = list(governance_state.get("reasons") or ["governance_blocked"])
+    for item in decision_report.get("decisions", []):
+        if item.get("decision") in {"approved", "reduced_size", "watch"}:
+            item["decision"] = "blocked"
+        item["position_size_multiplier"] = 0.0
+        blocked = list(item.get("blocked_reasons") or [])
+        for reason in reasons:
+            if reason not in blocked:
+                blocked.append(reason)
+        item["blocked_reasons"] = blocked
+        notes = list(item.get("notes") or [])
+        note = "runtime_governance_gate_blocked_active_report_path"
+        if note not in notes:
+            notes.append(note)
+        item["notes"] = notes
+    decision_report["approved_count"] = 0
+    decision_report["blocked_count"] = len(decision_report.get("decisions", []))
+    decision_report["summary"] = "Runtime governance gate blocked actionable output on the active report path."
+
+
+def _governance_block_evidence(governance_state: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "stage": "signal_generation",
+        "status": SIGNAL_GENERATION_STATUS_BLOCKED_GOVERNANCE,
+        "governance_state": governance_state,
+        "live_trading_authorized": False,
+        "broker_execution_mode": "paper_only",
+    }
 
 
 def _signal_generation_failure_evidence(
@@ -112,6 +195,15 @@ def _signal_attr(signal: Any, field_name: str, default: Any = None) -> Any:
 def _derive_market_run_health(decision_payload: dict[str, Any]) -> dict[str, Any]:
     """Classify a market report run so silent failures cannot look like success."""
     reasons: list[str] = []
+    governance_state = decision_payload.get("governance_state") or {}
+    if governance_state and not _governance_allows_actionable_output(governance_state):
+        reasons.extend(str(reason) for reason in governance_state.get("reasons", []) or ["governance_blocked"])
+        return {
+            "run_health_status": RUN_HEALTH_GOVERNANCE_BLOCKED,
+            "success_status": "BLOCKED",
+            "reasons": sorted(set(reasons)),
+        }
+
     scanner_status = str(
         (decision_payload.get("scanner_data_quality") or {}).get("data_quality_status") or "UNKNOWN"
     ).upper()
@@ -347,7 +439,35 @@ def _build_market_payload(report_type: str) -> tuple[dict, dict | None]:
     screener = build_screener_snapshot(report_type)
     cross_asset = build_cross_asset_report()
     decision_report = build_decision_report(market_regime=market_regime, screener=screener)
-    decision_payload = {"decision_report": decision_report, "market_regime": market_regime.get("regime", "Unknown")}
+    governance_state = _evaluate_runtime_governance(report_type)
+    decision_payload = {
+        "decision_report": decision_report,
+        "market_regime": market_regime.get("regime", "Unknown"),
+        "governance_state": governance_state,
+    }
+    decision_report["governance_state"] = governance_state
+
+    if not _governance_allows_actionable_output(governance_state):
+        _apply_governance_block_to_decisions(decision_report, governance_state)
+        evidence = _governance_block_evidence(governance_state)
+        _set_signal_generation_status(
+            decision_payload,
+            decision_report,
+            status=SIGNAL_GENERATION_STATUS_BLOCKED_GOVERNANCE,
+            evidence=evidence,
+        )
+        decision_payload["signals"] = []
+        run_health = _derive_market_run_health(decision_payload)
+        decision_payload["run_health"] = run_health
+        decision_report["run_health"] = run_health
+        payload = {
+            "report_type": report_type,
+            "market_regime": market_regime,
+            "cross_asset": cross_asset,
+            "screener": screener,
+            "decision_report": decision_report,
+        }
+        return payload, decision_payload
 
     raw_scanner_metrics = _load_scanner_metrics(decision_report)
     scanner_metrics_map, scanner_diagnostics = normalize_scanner_metrics_map(
@@ -367,6 +487,7 @@ def _build_market_payload(report_type: str) -> tuple[dict, dict | None]:
         evidence = {
             "stage": "signal_generation",
             "status": SIGNAL_GENERATION_STATUS_BLOCKED_DATA_QUALITY,
+            "governance_state": governance_state,
             "live_trading_authorized": False,
             "broker_execution_mode": "paper_only",
         }
@@ -450,9 +571,12 @@ def generate_signals(decision_payload: dict) -> None:
             signals,
             date_str=datetime.now(UTC).strftime("%Y-%m-%d"),
             data_quality=decision_payload.get("scanner_data_quality"),
+            governance_state=decision_payload.get("governance_state"),
         )
-        decision_payload["signal_generation_status"] = SIGNAL_GENERATION_STATUS_PASSED
-        decision_payload["signal_generation_health"] = _signal_generation_success_evidence()
+        current_status = str(decision_payload.get("signal_generation_status") or "UNKNOWN").upper()
+        if current_status not in {SIGNAL_GENERATION_STATUS_BLOCKED_GOVERNANCE, SIGNAL_GENERATION_STATUS_BLOCKED_DATA_QUALITY}:
+            decision_payload["signal_generation_status"] = SIGNAL_GENERATION_STATUS_PASSED
+            decision_payload["signal_generation_health"] = _signal_generation_success_evidence()
         print(f"Signals written: {json_path}, {md_path}")
         print(f"  {sum(1 for signal in signals if signal.action == 'BUY_WATCH')} actionable, {sum(1 for signal in signals if signal.action != 'BUY_WATCH')} no-trade")
     except ReportDataQualityBlockedError:
