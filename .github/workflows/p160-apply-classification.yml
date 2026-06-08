@@ -1,0 +1,62 @@
+name: P160 Apply Module Classification
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "scripts/classify_pipeline_modules_p160.py"
+      - "tests/test_p160_pipeline_classification_script.py"
+      - ".github/workflows/p160-apply-classification.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: p160-apply-classification-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    name: Apply P160 classification and regenerate inventory
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Apply P160 classification
+        run: |
+          python scripts/classify_pipeline_modules_p160.py
+
+      - name: Validate regenerated inventory
+        run: |
+          python scripts/generate_module_inventory.py --check
+
+      - name: Show architecture diff
+        run: |
+          git status --short
+          git diff -- docs/architecture/module_classification.json docs/architecture/module_inventory.generated.json || true
+
+      - name: Commit generated architecture inventory
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/architecture/module_classification.json docs/architecture/module_inventory.generated.json
+          if git diff --cached --quiet; then
+            echo "No P160 architecture changes to commit."
+          else
+            git commit -m "fix: apply p160 module classification inventory"
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
