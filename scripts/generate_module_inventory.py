@@ -86,7 +86,7 @@ def build_inventory(
     return {
         "schema_version": 1,
         "source": "scripts/generate_module_inventory.py",
-        "classification_source": _repo_relative(classification_path),
+        "classification_source": _repo_relative(classification_path) if classification_path.is_relative_to(REPO_ROOT) else classification_path.as_posix(),
         "grandfather_existing_modules": bool(classification.get("grandfather_existing_modules")),
         "counters": counters,
         "modules": modules,
@@ -174,6 +174,38 @@ def format_inventory_diff(diff: dict[str, Any]) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
+def _check_unclassified_legacy_baseline(
+    *,
+    inventory: dict[str, Any],
+    classification: dict[str, Any],
+) -> tuple[bool, str]:
+    """Block newly added production modules from hiding as legacy.
+
+    ARCH106 initially grandfathered the existing unclassified module set so the
+    repo could add the guard incrementally. That grandfathering must not grow.
+    Any new source module must be explicitly classified instead of increasing the
+    unclassified legacy count.
+    """
+
+    baseline_limit = classification.get("unclassified_legacy_baseline_limit")
+    if baseline_limit is None:
+        return True, ""
+
+    current_count = int(inventory.get("counters", {}).get("unclassified_legacy_modules", 0))
+    allowed_count = int(baseline_limit)
+    if current_count <= allowed_count:
+        return True, ""
+
+    return False, (
+        "ARCH106 unclassified legacy baseline exceeded.\n"
+        f"Current unclassified legacy modules: {current_count}\n"
+        f"Allowed baseline: {allowed_count}\n"
+        "New production modules under src/ must be explicitly classified as "
+        "connected_runtime, runtime_entrypoint, test_only, experimental, "
+        "quarantine or delete_candidate before merge.\n"
+    )
+
+
 def write_inventory(output_path: Path = DEFAULT_OUTPUT_PATH) -> Path:
     inventory = build_inventory()
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -181,8 +213,14 @@ def write_inventory(output_path: Path = DEFAULT_OUTPUT_PATH) -> Path:
     return output_path
 
 
-def check_inventory(output_path: Path = DEFAULT_OUTPUT_PATH) -> tuple[bool, str]:
-    expected = build_inventory()
+def check_inventory(
+    output_path: Path = DEFAULT_OUTPUT_PATH,
+    *,
+    repo_root: Path = REPO_ROOT,
+    classification_path: Path = DEFAULT_CLASSIFICATION_PATH,
+) -> tuple[bool, str]:
+    expected = build_inventory(repo_root=repo_root, classification_path=classification_path)
+    classification = load_classification(classification_path)
     if not output_path.exists():
         return False, (
             "ARCH106 module inventory artifact is missing.\n"
@@ -196,10 +234,17 @@ def check_inventory(output_path: Path = DEFAULT_OUTPUT_PATH) -> tuple[bool, str]
     except json.JSONDecodeError as exc:
         return False, f"ARCH106 module inventory artifact is invalid JSON: {exc}\n"
 
-    if actual == expected:
-        return True, "ARCH106 module inventory artifact is current.\n"
+    if actual != expected:
+        return False, format_inventory_diff(inventory_diff(expected, actual))
 
-    return False, format_inventory_diff(inventory_diff(expected, actual))
+    baseline_ok, baseline_message = _check_unclassified_legacy_baseline(
+        inventory=expected,
+        classification=classification,
+    )
+    if not baseline_ok:
+        return False, baseline_message
+
+    return True, "ARCH106 module inventory artifact is current.\n"
 
 
 def parse_args() -> argparse.Namespace:
