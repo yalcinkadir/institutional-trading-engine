@@ -1,0 +1,45 @@
+name: ARCH106 Promotion Helper Guard
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "scripts/promote_arch106_reporting_runtime_candidates.py"
+      - "tests/test_arch106_reporting_candidate_promotion.py"
+      - ".github/workflows/arch106-promotion-helper.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "scripts/promote_arch106_reporting_runtime_candidates.py"
+      - "tests/test_arch106_reporting_candidate_promotion.py"
+      - ".github/workflows/arch106-promotion-helper.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  arch106-promotion-helper:
+    name: ARCH106 promotion helper guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run ARCH106 promotion helper test
+        run: |
+          pytest tests/test_arch106_reporting_candidate_promotion.py -q
