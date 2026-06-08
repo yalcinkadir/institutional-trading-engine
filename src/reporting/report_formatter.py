@@ -91,11 +91,25 @@ def _format_unavailable_market_snapshot(ticker: str) -> list[str]:
 def _format_run_health(decision_report: dict) -> list[str]:
     run_health = decision_report.get("run_health") or {}
     scanner_quality = decision_report.get("scanner_data_quality") or {}
+    governance_state = decision_report.get("governance_state") or {}
     lines = ["## Run Health / Silent-Failure Gate", ""]
     lines.append(f"- Run Health: {run_health.get('run_health_status', 'UNKNOWN')}")
     lines.append(f"- Success Status: {run_health.get('success_status', 'UNKNOWN')}")
     lines.append(f"- Signal Generation: {decision_report.get('signal_generation_status', 'UNKNOWN')}")
     lines.append(f"- Scanner Data Quality: {scanner_quality.get('data_quality_status', 'UNKNOWN')}")
+    if governance_state:
+        governance_reasons = governance_state.get("reasons") or []
+        lines.append(f"- Governance Status: {governance_state.get('governance_status', 'UNKNOWN')}")
+        lines.append(f"- Governance Stage: {governance_state.get('stage', 'unknown')}")
+        lines.append(f"- Governance Active Path: {governance_state.get('active_path', 'unknown')}")
+        lines.append(f"- Kill Switch Active: {governance_state.get('kill_switch_active', 'unknown')}")
+        lines.append(f"- Governance Approval Granted: {governance_state.get('approval_granted', 'unknown')}")
+        lines.append(f"- Live Trading Authorized: {governance_state.get('live_trading_authorized', 'unknown')}")
+        lines.append(f"- Broker Execution Mode: {governance_state.get('broker_execution_mode', 'unknown')}")
+        lines.append(
+            "- Governance Reasons: "
+            + (", ".join(str(reason) for reason in governance_reasons) if governance_reasons else "none")
+        )
     if "valid_symbols" in scanner_quality or "total_symbols" in scanner_quality:
         lines.append(f"- Scanner Valid Symbols: {scanner_quality.get('valid_symbols', 'n/a')} / {scanner_quality.get('total_symbols', 'n/a')}")
     reasons = run_health.get("reasons") or []
