@@ -74,6 +74,7 @@ jobs:
 
           RUN_DATE="$(date -u +'%Y-%m-%d')"
           RUN_TIMESTAMP="$(date -u +'%Y-%m-%d_%H-%M-%S_UTC')"
+          HEALTH_RUN_TIMESTAMP="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
           ISO_WEEK="$(date -u +'%G-W%V')"
 
           if [[ "$REPORT_TYPE" == "weekly" ]]; then
@@ -90,11 +91,13 @@ jobs:
           echo "report_file=${REPORT_FILE}" >> "$GITHUB_OUTPUT"
           echo "latest_file=${LATEST_FILE}" >> "$GITHUB_OUTPUT"
           echo "run_timestamp=${RUN_TIMESTAMP}" >> "$GITHUB_OUTPUT"
+          echo "health_run_timestamp=${HEALTH_RUN_TIMESTAMP}" >> "$GITHUB_OUTPUT"
 
           echo "REPORT_TYPE=${REPORT_TYPE}" >> "$GITHUB_ENV"
           echo "REPORT_FILE=${REPORT_FILE}" >> "$GITHUB_ENV"
           echo "LATEST_FILE=${LATEST_FILE}" >> "$GITHUB_ENV"
           echo "RUN_TIMESTAMP=${RUN_TIMESTAMP}" >> "$GITHUB_ENV"
+          echo "HEALTH_RUN_TIMESTAMP=${HEALTH_RUN_TIMESTAMP}" >> "$GITHUB_ENV"
 
       - name: Generate report (+ signals)
         shell: bash
@@ -134,7 +137,10 @@ jobs:
         run: |
           python scripts/validate_paper_observation_health.py \
             --signals-file reports/signals/latest-signals.json \
-            --report-dir reports/validation
+            --report-dir reports/validation \
+            --run-timestamp "$HEALTH_RUN_TIMESTAMP" \
+            --workflow-name "${GITHUB_WORKFLOW}" \
+            --commit-sha "${GITHUB_SHA}"
 
       - name: Commit all outputs to repository
         shell: bash
@@ -174,7 +180,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: paper-observation-health-${{ steps.report_type.outputs.run_timestamp }}
-          path: reports/validation/
+          path: |
+            reports/validation/paper_observation_health.json
+            reports/validation/paper_observation_health.md
+            reports/validation/latest-paper-observation-health.json
           if-no-files-found: ignore
           retention-days: 90
 
@@ -237,4 +246,4 @@ jobs:
         run: |
           curl -sS -X POST "$REPORT_WEBHOOK_URL" \
             -H "Content-Type: text/plain; charset=utf-8" \
-            --data-binary "@${REPORT_FILE}"
+            --data-binary "@$REPORT_FILE"
