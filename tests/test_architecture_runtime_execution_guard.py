@@ -189,10 +189,12 @@ def test_arch106_report_signal_path_has_runtime_execution_proof(monkeypatch, tmp
         assert payload["decision_report"]["decisions"][0]["symbol"] == "NVDA"
         return "# ARCH106 Runtime Screener\nNVDA"
 
-    def fake_save_signals(signals, date_str=None, data_quality=None):
+    def fake_save_signals(signals, date_str=None, data_quality=None, governance_state=None):
         execution_trace.append("signals_saved")
         assert signals[0].action == "BUY_WATCH"
         assert data_quality["data_quality_status"] == "OK"
+        assert governance_state["governance_status"] == "PASSED"
+        assert governance_state["live_trading_authorized"] is False
         json_path = tmp_path / "signals.json"
         md_path = tmp_path / "signals.md"
         json_path.write_text("{}", encoding="utf-8")
