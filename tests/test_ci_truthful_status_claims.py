@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from scripts.validate_ci_truthful_status_claims import validate_file
+from scripts.validate_ci_truthful_status_claims import main, validate_file
 
 
 def test_blocks_repository_wide_ci_green_claim_without_evidence(tmp_path: Path) -> None:
@@ -66,3 +66,7 @@ def test_allows_main_green_with_commit_evidence(tmp_path: Path) -> None:
     )
 
     assert validate_file(doc) == []
+
+
+def test_actual_project_status_documents_pass_guard() -> None:
+    assert main([]) == 0
