@@ -354,6 +354,7 @@ def save_signals(
     date_str: str | None = None,
     signals_dir: Path | None = None,
     data_quality: dict[str, Any] | None = None,
+    governance_state: dict[str, Any] | None = None,
 ) -> tuple[Path, Path]:
     target_dir = signals_dir or SIGNALS_DIR
     target_dir.mkdir(parents=True, exist_ok=True)
@@ -370,12 +371,18 @@ def save_signals(
         "total_symbols": len(signals),
         "valid_symbols": sum(1 for signal in signals if signal.close is not None and signal.atr14 is not None),
     }
+    governance_summary = governance_state or {
+        "governance_status": "NOT_EVALUATED",
+        "live_trading_authorized": False,
+        "broker_execution_mode": "paper_only",
+    }
 
     payload = {
         "generated_at": datetime.now(UTC).isoformat(),
         "date": date,
         "market_regime": signals[0].market_regime if signals else "Unknown",
         "data_quality": data_quality_summary,
+        "governance_state": governance_summary,
         "total_signals": len(signals),
         "actionable_count": len(buy_signals),
         "no_trade_count": len(no_trade),
@@ -386,6 +393,12 @@ def save_signals(
 
     now_str = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
     lines = [f"# Institutional Signals - {date}", "", f"Generated: {now_str}", ""]
+    lines += ["## Governance", "", f"- Status: {governance_summary.get('governance_status', 'UNKNOWN')}"]
+    lines.append(f"- Kill Switch Active: {governance_summary.get('kill_switch_active', 'UNKNOWN')}")
+    lines.append(f"- Live Trading Authorized: {governance_summary.get('live_trading_authorized', False)}")
+    if governance_summary.get("reasons"):
+        lines.append(f"- Reasons: {', '.join(str(reason) for reason in governance_summary['reasons'])}")
+    lines.append("")
     lines += ["## Data Quality", "", f"- Status: {data_quality_summary.get('data_quality_status', 'UNKNOWN')}"]
     if data_quality_summary.get("missing_required_fields"):
         lines.append(f"- Missing required fields: {data_quality_summary['missing_required_fields']}")
