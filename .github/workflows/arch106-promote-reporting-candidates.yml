@@ -1,0 +1,58 @@
+name: ARCH106 Promote Reporting Candidates
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  promote-reporting-candidates:
+    name: Promote ARCH106 reporting candidates
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Promote reporting runtime candidates
+        run: |
+          python scripts/promote_arch106_reporting_runtime_candidates.py
+
+      - name: Verify inventory is current
+        run: |
+          python scripts/generate_module_inventory.py --check
+
+      - name: Verify promoted modules are connected runtime
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          inventory = json.loads(Path("docs/architecture/module_inventory.generated.json").read_text(encoding="utf-8"))
+          records = {record["path"]: record for record in inventory["modules"]}
+          for path in ["src/reporting/cross_asset_report.py", "src/reporting/report_formatter.py"]:
+              record = records[path]
+              assert record["status"] == "classified", record
+              assert record["classification"] == "connected_runtime", record
+              assert record["runtime_entrypoint"] == "scripts/generate_report.py", record
+              assert record["runtime_execution_proof"], record
+          PY
+
+      - name: Commit promotion artifacts
+        run: |
+          if git diff --quiet -- docs/architecture/module_classification.json docs/architecture/module_inventory.generated.json; then
+            echo "No ARCH106 reporting candidate promotion changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/architecture/module_classification.json docs/architecture/module_inventory.generated.json
+          git commit -m "Promote ARCH106 reporting runtime candidates"
+          git push
