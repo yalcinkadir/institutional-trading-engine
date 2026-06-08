@@ -12,6 +12,7 @@ CRITICAL_RUNTIME_IMPORTS = [
     "from src.reporting.market_regime import build_market_regime_summary",
     "from src.reporting.screener_engine import build_screener_snapshot",
     "from src.reporting.decision_report import build_decision_report",
+    "from src.reporting.cross_asset_report import build_cross_asset_report",
     "from src.signals.scanner_metrics_pipeline import normalize_scanner_metrics_map",
     "from src.signals.signal_generator import build_signals, save_signals",
 ]
@@ -19,6 +20,7 @@ CRITICAL_RUNTIME_IMPORTS = [
 CRITICAL_RUNTIME_CALLS = [
     "market_regime_called",
     "screener_called",
+    "cross_asset_called",
     "decision_report_called",
     "scanner_metrics_normalized",
     "signals_built",
@@ -111,6 +113,7 @@ def test_arch106_report_signal_path_has_runtime_execution_proof(monkeypatch, tmp
         }
 
     def fake_cross_asset() -> dict:
+        execution_trace.append("cross_asset_called")
         return {
             "data_status": "OK",
             "regime": "risk_on",
@@ -209,5 +212,7 @@ def test_arch106_report_signal_path_has_runtime_execution_proof(monkeypatch, tmp
         assert required_call in execution_trace
 
     assert execution_trace.index("market_regime_called") < execution_trace.index("decision_report_called")
+    assert execution_trace.index("screener_called") < execution_trace.index("decision_report_called")
+    assert execution_trace.index("cross_asset_called") < execution_trace.index("scanner_metrics_normalized")
     assert execution_trace.index("scanner_metrics_normalized") < execution_trace.index("signals_built")
     assert execution_trace.index("signals_built") < execution_trace.index("signals_saved")
