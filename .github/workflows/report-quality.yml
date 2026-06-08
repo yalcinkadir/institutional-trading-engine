@@ -52,17 +52,17 @@ jobs:
       - name: Generate report
         shell: bash
         run: |
-          mkdir -p reports
+          mkdir -p reports/generated
           python scripts/generate_report.py \
             --type "${{ matrix.report_type }}" \
-            --output "reports/${{ matrix.report_type }}-report.md"
+            --output "reports/generated/${{ matrix.report_type }}-report.md"
 
       - name: Validate report quality
         shell: bash
         run: |
           python scripts/validate_report_quality.py \
             --type "${{ matrix.report_type }}" \
-            --file "reports/${{ matrix.report_type }}-report.md" \
+            --file "reports/generated/${{ matrix.report_type }}-report.md" \
             --min-score 60
 
       - name: Upload validated report artifact
@@ -70,7 +70,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: validated-${{ matrix.report_type }}-report
-          path: reports/${{ matrix.report_type }}-report.md
+          path: reports/generated/${{ matrix.report_type }}-report.md
           retention-days: 14
 
   commit-validated-reports:
@@ -102,7 +102,7 @@ jobs:
       - name: Show downloaded reports
         shell: bash
         run: |
-          find reports -maxdepth 2 -type f -name '*report.md' -print
+          find reports -maxdepth 3 -type f -name '*report.md' -print
 
       - name: Commit validated reports
         shell: bash
@@ -110,7 +110,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add reports/*report.md 2>/dev/null || true
+          git add reports/generated/*report.md reports/*report.md 2>/dev/null || true
 
           if git diff --cached --quiet; then
             echo "No validated report changes to commit."
@@ -118,12 +118,4 @@ jobs:
           fi
 
           git commit -m "Update validated reports $(date -u +'%Y-%m-%d_%H-%M-%S_UTC')"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
-
-      - name: Upload report quality runtime evidence artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: report-quality-runtime-evidence-${{ github.run_id }}
-          path: reports/
-          retention-days: 30
+          git push
