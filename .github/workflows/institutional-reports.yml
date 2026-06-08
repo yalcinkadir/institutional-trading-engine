@@ -184,7 +184,7 @@ jobs:
             reports/validation/paper_observation_health.json
             reports/validation/paper_observation_health.md
             reports/validation/latest-paper-observation-health.json
-          if-no-files-found: ignore
+          if-no-files-found: error
           retention-days: 90
 
       - name: Upload full reports archive artifact
