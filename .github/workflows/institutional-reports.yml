@@ -142,13 +142,15 @@ jobs:
             --workflow-name "${GITHUB_WORKFLOW}" \
             --commit-sha "${GITHUB_SHA}"
 
-      - name: Commit all outputs to repository
+      - name: Commit allowed report outputs to repository
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add reports/
+          git add "$REPORT_FILE" "$LATEST_FILE"
+          git add reports/signals/*.json reports/signals/*.md 2>/dev/null || true
+          git add reports/validation/*.json reports/validation/*.md 2>/dev/null || true
           git add data/ 2>/dev/null || true
 
           if git diff --cached --quiet; then
@@ -165,6 +167,16 @@ jobs:
         with:
           name: ${{ steps.report_type.outputs.report_type }}-${{ steps.report_type.outputs.run_timestamp }}
           path: ${{ steps.report_type.outputs.report_file }}
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Upload latest generated report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: latest-${{ steps.report_type.outputs.report_type }}-${{ steps.report_type.outputs.run_timestamp }}
+          path: ${{ steps.report_type.outputs.latest_file }}
+          if-no-files-found: error
           retention-days: 90
 
       - name: Upload signals artifact
@@ -173,6 +185,7 @@ jobs:
         with:
           name: signals-${{ steps.report_type.outputs.run_timestamp }}
           path: reports/signals/
+          if-no-files-found: error
           retention-days: 90
 
       - name: Upload paper observation health artifact
@@ -193,6 +206,7 @@ jobs:
         with:
           name: reports-archive-${{ steps.report_type.outputs.run_timestamp }}
           path: reports/
+          if-no-files-found: error
           retention-days: 90
 
       - name: Build Telegram summary
@@ -238,12 +252,4 @@ jobs:
           curl -sS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
             -F chat_id="${TELEGRAM_CHAT_ID}" \
             -F document="@${REPORT_FILE}" \
-            -F caption="${TITLE}"
-
-      - name: Send report to webhook if configured
-        if: env.REPORT_WEBHOOK_URL != ''
-        shell: bash
-        run: |
-          curl -sS -X POST "$REPORT_WEBHOOK_URL" \
-            -H "Content-Type: text/plain; charset=utf-8" \
-            --data-binary "@$REPORT_FILE"
+            -F caption="$TITLE"
