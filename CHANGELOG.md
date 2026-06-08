@@ -64,6 +64,16 @@
 
 ---
 
+## IP9/IP10 Public Repository Governance — 2026-06-01
+
+### Status
+- IP9: Done / CI-wired.
+- IP10: Done / CI-wired.
+- Historical anchor retained for public repository governance tests.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
 ## Historical changelog note
 
 Earlier detailed entries remain available in git history. Current and future changelog status language follows `docs/operations/ci_truthful_status_claims_policy.md`.
