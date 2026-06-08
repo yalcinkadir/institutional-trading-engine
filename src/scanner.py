@@ -7,13 +7,57 @@ import pandas as pd
 import requests
 
 from src.config import SYMBOLS, BENCHMARK_MAP
+from src.market_data_failures import MarketDataFailure, MarketDataFailureKind
 from src.signals.structure_levels import latest_confirmed_swing_low_3bar
 
 API_KEY = os.getenv("POLYGON_API_KEY")
+MARKET_DATA_FAILURES: dict[str, MarketDataFailure] = {}
+
+
+def _record_market_data_failure(failure: MarketDataFailure) -> None:
+    MARKET_DATA_FAILURES[failure.symbol] = failure
+
+
+def get_market_data_failure(symbol: str) -> MarketDataFailure | None:
+    return MARKET_DATA_FAILURES.get(symbol)
+
+
+def clear_market_data_failures() -> None:
+    MARKET_DATA_FAILURES.clear()
+
+
+def _failure_stub_metrics(symbol: str) -> dict:
+    failure = get_market_data_failure(symbol)
+    if failure is None:
+        failure = MarketDataFailure(
+            symbol=symbol,
+            kind=MarketDataFailureKind.EMPTY_BARS,
+            message="scanner returned no bars without a provider-level failure detail",
+        )
+    return {
+        "symbol": symbol,
+        "close": None,
+        "atr14": None,
+        "warnings": [failure.message],
+        **failure.as_metrics_fields(),
+        "source_timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
 
 def get_daily_bars(symbol, days=500, retries=3):
     end_date = datetime.now(timezone.utc).date()
     start_date = end_date - timedelta(days=days)
+
+    if not API_KEY:
+        failure = MarketDataFailure(
+            symbol=symbol,
+            kind=MarketDataFailureKind.MISSING_API_KEY,
+            message="POLYGON_API_KEY is not configured",
+            attempts=0,
+        )
+        _record_market_data_failure(failure)
+        print(f"Market data failure for {symbol}: {failure.kind.value}: {failure.message}")
+        return None
 
     url = f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/day/{start_date}/{end_date}"
     params = {
@@ -23,23 +67,81 @@ def get_daily_bars(symbol, days=500, retries=3):
         "apiKey": API_KEY,
     }
 
+    last_failure: MarketDataFailure | None = None
     for attempt in range(retries):
+        attempt_no = attempt + 1
         try:
             response = requests.get(url, params=params, timeout=30)
 
             if response.status_code == 429:
+                last_failure = MarketDataFailure(
+                    symbol=symbol,
+                    kind=MarketDataFailureKind.RATE_LIMIT,
+                    message="Polygon rate limit while loading daily bars",
+                    status_code=429,
+                    attempts=attempt_no,
+                )
+                _record_market_data_failure(last_failure)
                 wait_time = 15
                 print(f"Rate limit hit for {symbol}. Waiting {wait_time}s...")
-                time.sleep(wait_time)
-                continue
-
-            response.raise_for_status()
-            data = response.json()
-
-            if "results" not in data or not data["results"]:
-                print(f"No data returned for {symbol}")
+                if attempt < retries - 1:
+                    time.sleep(wait_time)
+                    continue
                 return None
 
+            if response.status_code == 403:
+                failure = MarketDataFailure(
+                    symbol=symbol,
+                    kind=MarketDataFailureKind.AUTH_FORBIDDEN,
+                    message="Polygon returned 403 Forbidden for daily bars",
+                    status_code=403,
+                    attempts=attempt_no,
+                )
+                _record_market_data_failure(failure)
+                print(f"Market data failure for {symbol}: {failure.kind.value}: {failure.message}")
+                return None
+
+            try:
+                response.raise_for_status()
+            except requests.HTTPError as exc:
+                failure = MarketDataFailure(
+                    symbol=symbol,
+                    kind=MarketDataFailureKind.HTTP_ERROR,
+                    message=f"Polygon HTTP error while loading daily bars: {exc}",
+                    status_code=response.status_code,
+                    attempts=attempt_no,
+                )
+                _record_market_data_failure(failure)
+                print(f"Market data failure for {symbol}: {failure.kind.value}: {failure.message}")
+                return None
+
+            try:
+                data = response.json()
+            except ValueError as exc:
+                failure = MarketDataFailure(
+                    symbol=symbol,
+                    kind=MarketDataFailureKind.PARSE_ERROR,
+                    message=f"Polygon response JSON parse failed: {exc}",
+                    status_code=response.status_code,
+                    attempts=attempt_no,
+                )
+                _record_market_data_failure(failure)
+                print(f"Market data failure for {symbol}: {failure.kind.value}: {failure.message}")
+                return None
+
+            if "results" not in data or not data["results"]:
+                failure = MarketDataFailure(
+                    symbol=symbol,
+                    kind=MarketDataFailureKind.EMPTY_BARS,
+                    message="Polygon returned no daily bars",
+                    status_code=response.status_code,
+                    attempts=attempt_no,
+                )
+                _record_market_data_failure(failure)
+                print(f"Market data failure for {symbol}: {failure.kind.value}: {failure.message}")
+                return None
+
+            MARKET_DATA_FAILURES.pop(symbol, None)
             df = pd.DataFrame(data["results"])
             df["date"] = pd.to_datetime(df["t"], unit="ms").dt.date
             df = df.rename(
@@ -54,13 +156,23 @@ def get_daily_bars(symbol, days=500, retries=3):
 
             return df[["date", "open", "high", "low", "close", "volume"]].copy()
 
-        except Exception as e:
-            print(f"Error for {symbol}: {e}")
+        except requests.RequestException as exc:
+            last_failure = MarketDataFailure(
+                symbol=symbol,
+                kind=MarketDataFailureKind.NETWORK_ERROR,
+                message=f"Polygon request failed while loading daily bars: {exc}",
+                attempts=attempt_no,
+            )
+            _record_market_data_failure(last_failure)
+            print(f"Market data failure for {symbol}: {last_failure.kind.value}: {last_failure.message}")
             if attempt < retries - 1:
                 time.sleep(10)
             else:
-                print(f"Final error for {symbol}")
                 return None
+
+    if last_failure is not None:
+        _record_market_data_failure(last_failure)
+    return None
 
 
 def get_vix_value(retries=3):
@@ -216,8 +328,10 @@ def fmt_signed_percent(value, digits=2):
     sign = "+" if value >= 0 else ""
     return f"{sign}{value:.{digits}f}%"
 
+
 def benchmark_for_symbol(symbol):
     return BENCHMARK_MAP.get(symbol, "SPY")
+
 
 def calculate_20d_return(close_series):
     if len(close_series) < 21:
@@ -227,6 +341,7 @@ def calculate_20d_return(close_series):
     if past_close == 0:
         return pd.NA
     return ((current_close / past_close) - 1) * 100
+
 
 def setup_readiness_label(metrics):
     if not metrics:
@@ -284,7 +399,7 @@ def build_symbol_metrics(symbol, benchmark_returns):
     df = get_daily_bars(symbol)
 
     if df is None or df.empty:
-        return None
+        return _failure_stub_metrics(symbol)
 
     df["SMA20"] = df["close"].rolling(20).mean()
     df["SMA50"] = df["close"].rolling(50).mean()
@@ -511,6 +626,7 @@ def build_market_regime_summary(metrics_map, vix_data):
         f"- VIX: {vix_text}",
         f"- Comment: {comment}",
     ]
+
 
 def build_leaders_section(metrics_map):
     clean_rows = []
