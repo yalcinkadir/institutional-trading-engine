@@ -1,6 +1,4 @@
 {
-  "schema_version": 1,
-  "policy": "New production modules under src/ must be explicitly classified before merge. Existing legacy modules are grandfathered until the full ARCH106 inventory pass is completed. The unclassified legacy baseline must not grow.",
   "allowed_classifications": [
     "connected_runtime",
     "runtime_entrypoint",
@@ -9,8 +7,6 @@
     "quarantine",
     "delete_candidate"
   ],
-  "grandfather_existing_modules": true,
-  "unclassified_legacy_baseline_limit": 303,
   "classified_modules": {
     "src/adaptive_expectancy.py": {
       "classification": "experimental",
@@ -24,10 +20,6 @@
       "classification": "experimental",
       "notes": "ARCH106 Step 4b: simple analytics/backtesting helper. Not marked connected_runtime until a live runtime execution proof exists."
     },
-    "src/analytics/walk_forward_validation.py": {
-      "classification": "experimental",
-      "notes": "ARCH106 Step 4b: analytics walk-forward validation helper. Not marked connected_runtime until a live runtime execution proof exists."
-    },
     "src/analytics/performance_tracker.py": {
       "classification": "experimental",
       "notes": "ARCH106 Step 4b: analytics performance statistics helper. Not marked connected_runtime until a live runtime execution proof exists."
@@ -36,35 +28,55 @@
       "classification": "experimental",
       "notes": "ARCH106 Step 4b: analytics signal quality helper. Not marked connected_runtime until a live runtime execution proof exists."
     },
-    "src/signals/signal_generator.py": {
-      "classification": "connected_runtime",
-      "runtime_entrypoint": "scripts/generate_report.py",
-      "runtime_execution_proof": "tests/test_architecture_runtime_execution_guard.py::test_arch106_report_signal_path_has_runtime_execution_proof",
-      "notes": "Report/signal runtime path is CI-proven in ARCH106 Step 1."
+    "src/analytics/walk_forward_validation.py": {
+      "classification": "experimental",
+      "notes": "ARCH106 Step 4b: analytics walk-forward validation helper. Not marked connected_runtime until a live runtime execution proof exists."
     },
-    "src/signals/scanner_metrics_pipeline.py": {
+    "src/reporting/cross_asset_report.py": {
       "classification": "connected_runtime",
+      "notes": "Cross-asset report payload is exercised by the report/signal runtime path in ARCH106.",
       "runtime_entrypoint": "scripts/generate_report.py",
-      "runtime_execution_proof": "tests/test_architecture_runtime_execution_guard.py::test_arch106_report_signal_path_has_runtime_execution_proof",
-      "notes": "DATA1 diagnostics are normalized and passed into signal generation on the report path."
+      "runtime_execution_proof": "tests/test_architecture_runtime_execution_guard.py::test_arch106_report_signal_path_has_runtime_execution_proof"
     },
     "src/reporting/decision_report.py": {
       "classification": "connected_runtime",
+      "notes": "Decision report is exercised by the report/signal runtime path.",
       "runtime_entrypoint": "scripts/generate_report.py",
-      "runtime_execution_proof": "tests/test_architecture_runtime_execution_guard.py::test_arch106_report_signal_path_has_runtime_execution_proof",
-      "notes": "Decision report is exercised by the report/signal runtime path."
+      "runtime_execution_proof": "tests/test_architecture_runtime_execution_guard.py::test_arch106_report_signal_path_has_runtime_execution_proof"
     },
     "src/reporting/market_regime.py": {
       "classification": "connected_runtime",
+      "notes": "Market regime summary is exercised by the report/signal runtime path.",
       "runtime_entrypoint": "scripts/generate_report.py",
-      "runtime_execution_proof": "tests/test_architecture_runtime_execution_guard.py::test_arch106_report_signal_path_has_runtime_execution_proof",
-      "notes": "Market regime summary is exercised by the report/signal runtime path."
+      "runtime_execution_proof": "tests/test_architecture_runtime_execution_guard.py::test_arch106_report_signal_path_has_runtime_execution_proof"
+    },
+    "src/reporting/report_formatter.py": {
+      "classification": "connected_runtime",
+      "notes": "Report formatter receives and renders the market report payload on the ARCH106 runtime path.",
+      "runtime_entrypoint": "scripts/generate_report.py",
+      "runtime_execution_proof": "tests/test_architecture_runtime_execution_guard.py::test_arch106_report_signal_path_has_runtime_execution_proof"
     },
     "src/reporting/screener_engine.py": {
       "classification": "connected_runtime",
+      "notes": "Screener snapshot is exercised by the report/signal runtime path.",
       "runtime_entrypoint": "scripts/generate_report.py",
-      "runtime_execution_proof": "tests/test_architecture_runtime_execution_guard.py::test_arch106_report_signal_path_has_runtime_execution_proof",
-      "notes": "Screener snapshot is exercised by the report/signal runtime path."
+      "runtime_execution_proof": "tests/test_architecture_runtime_execution_guard.py::test_arch106_report_signal_path_has_runtime_execution_proof"
+    },
+    "src/signals/scanner_metrics_pipeline.py": {
+      "classification": "connected_runtime",
+      "notes": "DATA1 diagnostics are normalized and passed into signal generation on the report path.",
+      "runtime_entrypoint": "scripts/generate_report.py",
+      "runtime_execution_proof": "tests/test_architecture_runtime_execution_guard.py::test_arch106_report_signal_path_has_runtime_execution_proof"
+    },
+    "src/signals/signal_generator.py": {
+      "classification": "connected_runtime",
+      "notes": "Report/signal runtime path is CI-proven in ARCH106 Step 1.",
+      "runtime_entrypoint": "scripts/generate_report.py",
+      "runtime_execution_proof": "tests/test_architecture_runtime_execution_guard.py::test_arch106_report_signal_path_has_runtime_execution_proof"
     }
-  }
+  },
+  "grandfather_existing_modules": true,
+  "policy": "New production modules under src/ must be explicitly classified before merge. Existing legacy modules are grandfathered until the full ARCH106 inventory pass is completed. The unclassified legacy baseline must not grow.",
+  "schema_version": 1,
+  "unclassified_legacy_baseline_limit": 303
 }

@@ -1,12 +1,12 @@
 {
   "classification_source": "docs/architecture/module_classification.json",
   "counters": {
-    "classified_modules": 11,
-    "connected_runtime": 5,
+    "classified_modules": 13,
+    "connected_runtime": 7,
     "experimental": 6,
     "total_src_modules": 314,
-    "unclassified_legacy": 303,
-    "unclassified_legacy_modules": 303
+    "unclassified_legacy": 301,
+    "unclassified_legacy_modules": 301
   },
   "grandfather_existing_modules": true,
   "modules": [
@@ -1563,12 +1563,12 @@
       "status": "unclassified_legacy"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "connected_runtime",
+      "notes": "Cross-asset report payload is exercised by the report/signal runtime path in ARCH106.",
       "path": "src/reporting/cross_asset_report.py",
-      "runtime_entrypoint": null,
-      "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "runtime_entrypoint": "scripts/generate_report.py",
+      "runtime_execution_proof": "tests/test_architecture_runtime_execution_guard.py::test_arch106_report_signal_path_has_runtime_execution_proof",
+      "status": "classified"
     },
     {
       "classification": "connected_runtime",
@@ -1587,12 +1587,12 @@
       "status": "classified"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "connected_runtime",
+      "notes": "Report formatter receives and renders the market report payload on the ARCH106 runtime path.",
       "path": "src/reporting/report_formatter.py",
-      "runtime_entrypoint": null,
-      "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "runtime_entrypoint": "scripts/generate_report.py",
+      "runtime_execution_proof": "tests/test_architecture_runtime_execution_guard.py::test_arch106_report_signal_path_has_runtime_execution_proof",
+      "status": "classified"
     },
     {
       "classification": "unclassified_legacy",
