@@ -1,0 +1,84 @@
+name: ARCH106 Promote Runtime Quarantine
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: repo-write-${{ github.repository }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  promote-runtime-quarantine:
+    name: Promote ARCH106 runtime quarantine candidates
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Promote runtime quarantine candidates
+        run: |
+          python scripts/promote_arch106_runtime_quarantine_candidates.py
+
+      - name: Verify inventory is current
+        run: |
+          python scripts/generate_module_inventory.py --check
+
+      - name: Verify runtime quarantine candidates are isolated
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          inventory = json.loads(Path("docs/architecture/module_inventory.generated.json").read_text(encoding="utf-8"))
+          records = {record["path"]: record for record in inventory["modules"]}
+          for path in [
+              "src/runtime/governance_approval_gate.py",
+              "src/runtime/runtime_proof_pack_summary.py",
+          ]:
+              target = Path(path)
+              assert target.exists(), "quarantine promotion must not delete files"
+              record = records[path]
+              assert record["status"] == "classified", record
+              assert record["classification"] == "quarantine", record
+              assert record["runtime_entrypoint"] is None, record
+              assert record["runtime_execution_proof"] is None, record
+              assert "runtime proof" in record["notes"], record
+          PY
+
+      - name: Persist promotion evidence
+        if: always()
+        run: |
+          mkdir -p artifacts/evidence/arch106-runtime-quarantine-promotion
+          git status --short > artifacts/evidence/arch106-runtime-quarantine-promotion/git-status.txt
+          git diff -- docs/architecture/module_classification.json docs/architecture/module_inventory.generated.json \
+            > artifacts/evidence/arch106-runtime-quarantine-promotion/promotion.diff || true
+
+      - name: Upload promotion evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: arch106-runtime-quarantine-promotion-evidence
+          path: artifacts/evidence/arch106-runtime-quarantine-promotion/
+          if-no-files-found: error
+
+      - name: Commit promotion artifacts
+        run: |
+          if git diff --quiet -- docs/architecture/module_classification.json docs/architecture/module_inventory.generated.json; then
+            echo "No ARCH106 runtime quarantine promotion changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/architecture/module_classification.json docs/architecture/module_inventory.generated.json
+          git commit -m "Promote ARCH106 runtime quarantine candidates"
+          git push
