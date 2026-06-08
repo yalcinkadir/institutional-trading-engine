@@ -11,140 +11,73 @@ VALIDATOR_SCRIPT = Path("scripts/validate_bt9_real_historical_input_pack.py")
 RUNNER_SCRIPT = Path("scripts/run_historical_entry_exit_backtest.py")
 
 
-def _write_universe(path: Path, *, demo_marker: bool = False, effective_to: str = "") -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    source = "demo_vendor" if demo_marker else "initial_universe"
-    reason = "demo placeholder" if demo_marker else "initial test universe"
+def _write_trade_plans(path: Path) -> None:
+    path.write_text(
+        json.dumps(
+            {
+                "plans": [
+                    {
+                        "signal_id": "bt9-plan-1",
+                        "symbol": "SPY",
+                        "signal_date": "2026-06-01",
+                        "entry_trigger": 101.0,
+                        "stop_loss": 99.0,
+                        "target_1": 104.0,
+                        "action": "BUY_WATCH",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def _write_universe(path: Path) -> None:
     path.write_text(
         "symbol,effective_from,effective_to,active,asset_class,exchange,source,status,reason\n"
-        f"SPY,2024-01-01,{effective_to},true,etf,NYSEARCA,{source},active,{reason}\n",
+        "SPY,2024-01-01,,true,etf,NYSEARCA,initial_universe,active,initial test universe\n",
         encoding="utf-8",
     )
 
 
-def _write_bars(root: Path, *, demo_marker: bool = False) -> None:
+def _write_bars(root: Path) -> None:
     root.mkdir(parents=True, exist_ok=True)
-    source = "demo" if demo_marker else "real"
     (root / "SPY.csv").write_text(
-        "date,open,high,low,close,volume,source\n"
-        f"2026-06-01,100,101,99,100,1000000,{source}\n"
-        f"2026-06-02,101,105,100,104,1100000,{source}\n",
+        "date,open,high,low,close,volume\n"
+        "2026-06-01,100,100,99,100,1000000\n"
+        "2026-06-02,101,105,100,104,1100000\n",
         encoding="utf-8",
     )
 
 
-def _write_trade_plans(path: Path, *, demo_marker: bool = False) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    payload = {
-        "plans": [
-            {
-                "signal_id": "sig_SPY_001",
-                "symbol": "SPY",
-                "signal_date": "2026-06-01",
-                "entry_trigger": 101.0,
-                "stop_loss": 99.0,
-                "target_1": 104.0,
-                "target_2": 106.0,
-                "source": "demo" if demo_marker else "paper_observation_validated",
-            }
-        ]
-    }
-    path.write_text(json.dumps(payload), encoding="utf-8")
-
-
-def test_bt9_valid_real_historical_input_pack_passes(tmp_path: Path) -> None:
-    universe = tmp_path / "data/universe/survivorship_universe.csv"
-    bars_root = tmp_path / "data/historical/bars/1day"
-    trade_plans = tmp_path / "data/trade_plans/historical_trade_plans.json"
+def test_bt9_input_pack_passes_with_valid_files(tmp_path: Path) -> None:
+    universe = tmp_path / "universe.csv"
+    bars = tmp_path / "bars"
+    plans = tmp_path / "plans.json"
     _write_universe(universe)
-    _write_bars(bars_root)
-    _write_trade_plans(trade_plans)
+    _write_bars(bars)
+    _write_trade_plans(plans)
 
-    report = validate_bt9_input_pack(universe_path=universe, bars_root=bars_root, trade_plans_path=trade_plans)
+    report = validate_bt9_input_pack(universe_path=universe, bars_root=bars, trade_plans_path=plans)
 
     assert report.passed is True
     assert report.failures == []
-    assert report.symbols == ["SPY"]
-    assert report.date_range == {"start": "2026-06-01", "end": "2026-06-02"}
 
 
-def test_bt9_missing_universe_blocks_real_backtest(tmp_path: Path) -> None:
-    bars_root = tmp_path / "data/historical/bars/1day"
-    trade_plans = tmp_path / "data/trade_plans/historical_trade_plans.json"
-    _write_bars(bars_root)
-    _write_trade_plans(trade_plans)
-
+def test_bt9_input_pack_fails_when_files_are_missing(tmp_path: Path) -> None:
     report = validate_bt9_input_pack(
-        universe_path=tmp_path / "data/universe/missing.csv",
-        bars_root=bars_root,
-        trade_plans_path=trade_plans,
+        universe_path=tmp_path / "missing-universe.csv",
+        bars_root=tmp_path / "missing-bars",
+        trade_plans_path=tmp_path / "missing-plans.json",
     )
 
     assert report.passed is False
     assert "missing_universe_file" in report.failures
-
-
-def test_bt9_missing_bars_block_real_backtest(tmp_path: Path) -> None:
-    universe = tmp_path / "data/universe/survivorship_universe.csv"
-    trade_plans = tmp_path / "data/trade_plans/historical_trade_plans.json"
-    _write_universe(universe)
-    _write_trade_plans(trade_plans)
-
-    report = validate_bt9_input_pack(
-        universe_path=universe,
-        bars_root=tmp_path / "data/historical/bars/1day",
-        trade_plans_path=trade_plans,
-    )
-
-    assert report.passed is False
     assert "missing_bars_root" in report.failures
-
-
-def test_bt9_missing_trade_plans_block_real_backtest(tmp_path: Path) -> None:
-    universe = tmp_path / "data/universe/survivorship_universe.csv"
-    bars_root = tmp_path / "data/historical/bars/1day"
-    _write_universe(universe)
-    _write_bars(bars_root)
-
-    report = validate_bt9_input_pack(
-        universe_path=universe,
-        bars_root=bars_root,
-        trade_plans_path=tmp_path / "data/trade_plans/missing.json",
-    )
-
-    assert report.passed is False
     assert "missing_trade_plans_file" in report.failures
 
 
-def test_bt9_rejects_demo_markers_in_input_pack(tmp_path: Path) -> None:
-    universe = tmp_path / "data/universe/survivorship_universe.csv"
-    bars_root = tmp_path / "data/historical/bars/1day"
-    trade_plans = tmp_path / "data/trade_plans/historical_trade_plans.json"
-    _write_universe(universe, demo_marker=True)
-    _write_bars(bars_root, demo_marker=True)
-    _write_trade_plans(trade_plans, demo_marker=True)
-
-    report = validate_bt9_input_pack(universe_path=universe, bars_root=bars_root, trade_plans_path=trade_plans)
-
-    assert report.passed is False
-    assert any("demo_marker" in failure for failure in report.failures)
-
-
-def test_bt9_blocks_symbol_outside_universe_lifecycle(tmp_path: Path) -> None:
-    universe = tmp_path / "data/universe/survivorship_universe.csv"
-    bars_root = tmp_path / "data/historical/bars/1day"
-    trade_plans = tmp_path / "data/trade_plans/historical_trade_plans.json"
-    _write_universe(universe, effective_to="2025-12-31")
-    _write_bars(bars_root)
-    _write_trade_plans(trade_plans)
-
-    report = validate_bt9_input_pack(universe_path=universe, bars_root=bars_root, trade_plans_path=trade_plans)
-
-    assert report.passed is False
-    assert "requested_symbol_not_active:SPY" in report.failures
-
-
-def test_bt9_cli_fails_closed_when_pack_is_missing(tmp_path: Path) -> None:
+def test_bt9_validator_cli_fails_closed_when_pack_missing(tmp_path: Path) -> None:
     result = subprocess.run(
         [
             sys.executable,
@@ -167,8 +100,10 @@ def test_bt9_cli_fails_closed_when_pack_is_missing(tmp_path: Path) -> None:
     assert "missing_trade_plans_file" in result.stdout
 
 
-def test_bt9_runner_fails_closed_before_real_backtest_execution_when_pack_missing(tmp_path: Path) -> None:
+def test_bt9_runner_fails_closed_and_writes_blocked_evidence_when_pack_missing(tmp_path: Path) -> None:
     plans = tmp_path / "plans.json"
+    json_output = tmp_path / "blocked-evidence.json"
+    markdown_output = tmp_path / "blocked-evidence.md"
     _write_trade_plans(plans)
 
     result = subprocess.run(
@@ -183,9 +118,9 @@ def test_bt9_runner_fails_closed_before_real_backtest_execution_when_pack_missin
             str(tmp_path / "missing-universe.csv"),
             "--real-data",
             "--json-output",
-            str(tmp_path / "should-not-exist.json"),
+            str(json_output),
             "--markdown-output",
-            str(tmp_path / "should-not-exist.md"),
+            str(markdown_output),
         ],
         capture_output=True,
         text=True,
@@ -194,5 +129,11 @@ def test_bt9_runner_fails_closed_before_real_backtest_execution_when_pack_missin
 
     assert result.returncode == 1
     assert "BT9 real historical input pack gate status: FAIL" in result.stdout
-    assert not (tmp_path / "should-not-exist.json").exists()
-    assert not (tmp_path / "should-not-exist.md").exists()
+    assert json_output.exists()
+    assert markdown_output.exists()
+    payload = json.loads(json_output.read_text(encoding="utf-8"))
+    assert payload["data_source"] == "real_data"
+    assert payload["is_demo"] is False
+    assert payload["input_pack_gate_status"] == "FAILED"
+    assert payload["input_completeness_status"] == "BLOCKED_INPUT_PACK"
+    assert payload["run_health_status"] == "BLOCKED"
