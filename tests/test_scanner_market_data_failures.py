@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import requests
 
-from src.market_data_failures import MarketDataFailureKind
 from src.signals.scanner_metrics_pipeline import normalize_scanner_metrics_map
 import src.scanner as scanner
 
@@ -33,7 +32,7 @@ def test_daily_bars_classifies_polygon_403_as_auth_forbidden(monkeypatch) -> Non
 
     failure = scanner.get_market_data_failure("I:VIX")
     assert failure is not None
-    assert failure.kind == MarketDataFailureKind.AUTH_FORBIDDEN
+    assert failure.kind == scanner.MarketDataFailureKind.AUTH_FORBIDDEN
     assert failure.status_code == 403
 
 
@@ -45,7 +44,7 @@ def test_daily_bars_classifies_empty_results_separately(monkeypatch) -> None:
 
     failure = scanner.get_market_data_failure("SPY")
     assert failure is not None
-    assert failure.kind == MarketDataFailureKind.EMPTY_BARS
+    assert failure.kind == scanner.MarketDataFailureKind.EMPTY_BARS
     assert failure.status_code == 200
 
 
@@ -58,7 +57,7 @@ def test_daily_bars_classifies_rate_limit(monkeypatch) -> None:
 
     failure = scanner.get_market_data_failure("QQQ")
     assert failure is not None
-    assert failure.kind == MarketDataFailureKind.RATE_LIMIT
+    assert failure.kind == scanner.MarketDataFailureKind.RATE_LIMIT
     assert failure.status_code == 429
 
 
