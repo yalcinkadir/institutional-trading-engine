@@ -3,6 +3,10 @@ name: ARCH106 Promote Reporting Candidates
 on:
   workflow_dispatch:
 
+concurrency:
+  group: repo-write-${{ github.repository }}
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
@@ -44,6 +48,22 @@ jobs:
               assert record["runtime_entrypoint"] == "scripts/generate_report.py", record
               assert record["runtime_execution_proof"], record
           PY
+
+      - name: Persist promotion evidence
+        if: always()
+        run: |
+          mkdir -p artifacts/evidence/arch106-reporting-promotion
+          git status --short > artifacts/evidence/arch106-reporting-promotion/git-status.txt
+          git diff -- docs/architecture/module_classification.json docs/architecture/module_inventory.generated.json \
+            > artifacts/evidence/arch106-reporting-promotion/promotion.diff || true
+
+      - name: Upload promotion evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: arch106-reporting-promotion-evidence
+          path: artifacts/evidence/arch106-reporting-promotion/
+          if-no-files-found: error
 
       - name: Commit promotion artifacts
         run: |
