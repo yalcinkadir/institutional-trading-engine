@@ -1,0 +1,164 @@
+from __future__ import annotations
+
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+SCRIPT = Path("scripts/build_real_data_backtest_evidence_pack.py")
+
+
+def _write_plan(path: Path) -> None:
+    path.write_text(
+        json.dumps(
+            {
+                "plans": [
+                    {
+                        "signal_id": "sig_SPY_p151_real",
+                        "symbol": "SPY",
+                        "signal_date": "2026-06-01",
+                        "entry_trigger": 101.0,
+                        "stop_loss": 99.0,
+                        "target_1": 104.0,
+                        "target_2": 106.0,
+                        "source": "paper_observation_validated",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def _write_bars(root: Path) -> None:
+    root.mkdir(parents=True, exist_ok=True)
+    (root / "SPY.csv").write_text(
+        "date,open,high,low,close,volume\n"
+        "2026-06-01,100,100,99,100,1000000\n"
+        "2026-06-02,101,105,100,104,1100000\n"
+        "2026-06-03,104,106,103,106,1200000\n",
+        encoding="utf-8",
+    )
+
+
+def _write_universe(path: Path) -> None:
+    path.write_text(
+        "symbol,effective_from,effective_to,active,asset_class,exchange,source,status,reason\n"
+        "SPY,2024-01-01,,true,etf,NYSEARCA,licensed_fixture,active,p151 test universe\n",
+        encoding="utf-8",
+    )
+
+
+def _write_coverage(path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(
+            {
+                "vendor": "polygon",
+                "status": "ok",
+                "requested_start_date": "2026-06-01",
+                "requested_end_date": "2026-06-03",
+                "symbols": [
+                    {
+                        "symbol": "SPY",
+                        "status": "ok",
+                        "bar_count": 3,
+                        "output_path": "bars/SPY.csv",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def test_p151_blocks_when_approved_data_source_key_is_missing(tmp_path: Path) -> None:
+    env = os.environ.copy()
+    env.pop("POLYGON_API_KEY", None)
+    output_dir = tmp_path / "pack"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT),
+            "--symbols",
+            "SPY",
+            "--start-date",
+            "2026-06-01",
+            "--end-date",
+            "2026-06-03",
+            "--run-id",
+            "p151-missing-key",
+            "--output-dir",
+            str(output_dir),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+        env=env,
+    )
+
+    assert result.returncode == 1
+    package = json.loads((output_dir / "real-data-backtest-evidence-package.json").read_text(encoding="utf-8"))
+    assert package["status"] == "BLOCKED"
+    assert package["is_demo"] is False
+    assert "missing_POLYGON_API_KEY" in package["block_reasons"]
+    assert not (output_dir / "real-data-backtest-evidence.json").exists()
+
+
+def test_p151_builds_valid_real_data_evidence_package_from_prepared_inputs(tmp_path: Path) -> None:
+    plans = tmp_path / "plans.json"
+    bars = tmp_path / "bars"
+    universe = tmp_path / "universe.csv"
+    coverage = tmp_path / "coverage.json"
+    output_dir = tmp_path / "pack"
+    _write_plan(plans)
+    _write_bars(bars)
+    _write_universe(universe)
+    _write_coverage(coverage)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT),
+            "--symbols",
+            "SPY",
+            "--start-date",
+            "2026-06-01",
+            "--end-date",
+            "2026-06-03",
+            "--run-id",
+            "p151-valid-real-data",
+            "--plans-file",
+            str(plans),
+            "--bars-root",
+            str(bars),
+            "--universe",
+            str(universe),
+            "--coverage-manifest",
+            str(coverage),
+            "--output-dir",
+            str(output_dir),
+            "--skip-ingestion",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0
+    package = json.loads((output_dir / "real-data-backtest-evidence-package.json").read_text(encoding="utf-8"))
+    evidence = json.loads((output_dir / "real-data-backtest-evidence.json").read_text(encoding="utf-8"))
+
+    assert package["status"] == "VALID"
+    assert package["bt130_gate_status"] == "PASSED"
+    assert package["data_source"] == "polygon"
+    assert package["is_demo"] is False
+    assert package["evidence_gate_report"]["passed"] is True
+    assert evidence["data_source"] == "real_data"
+    assert evidence["is_demo"] is False
+    assert evidence["input_pack_gate_status"] == "PASSED"
+    assert evidence["accepted_plan_count"] == 1
+    assert evidence["broker_execution_mode"] == "paper_only"
+    assert evidence["live_trading_authorized"] is False
