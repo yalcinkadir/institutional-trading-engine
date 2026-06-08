@@ -92,6 +92,18 @@
       "runtime_entrypoint": null,
       "runtime_execution_proof": null
     },
+    "src/runtime/governance_approval_gate.py": {
+      "classification": "quarantine",
+      "notes": "ARCH106 strict triage: governance-sensitive approval logic appears valuable but has no current proven runtime execution path. Keep isolated until a dedicated runtime proof promotes it.",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null
+    },
+    "src/runtime/runtime_proof_pack_summary.py": {
+      "classification": "quarantine",
+      "notes": "ARCH106 strict triage: runtime proof-pack summarization is governance-sensitive evidence logic without current runtime proof. Keep isolated until reviewed and proven.",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null
+    },
     "src/signals/entry_quality.py": {
       "classification": "connected_runtime",
       "notes": "Entry trigger quality is executed by build_signals on the ARCH106 BUY_WATCH signal runtime path.",

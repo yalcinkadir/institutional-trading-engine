@@ -1,13 +1,14 @@
 {
   "classification_source": "docs/architecture/module_classification.json",
   "counters": {
-    "classified_modules": 23,
+    "classified_modules": 25,
     "connected_runtime": 12,
     "delete_candidate": 1,
     "experimental": 10,
+    "quarantine": 2,
     "total_src_modules": 314,
-    "unclassified_legacy": 291,
-    "unclassified_legacy_modules": 291
+    "unclassified_legacy": 289,
+    "unclassified_legacy_modules": 289
   },
   "grandfather_existing_modules": true,
   "modules": [
@@ -1732,12 +1733,12 @@
       "status": "unclassified_legacy"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "quarantine",
+      "notes": "ARCH106 strict triage: governance-sensitive approval logic appears valuable but has no current proven runtime execution path. Keep isolated until a dedicated runtime proof promotes it.",
       "path": "src/runtime/governance_approval_gate.py",
       "runtime_entrypoint": null,
       "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "status": "classified"
     },
     {
       "classification": "unclassified_legacy",
@@ -1788,12 +1789,12 @@
       "status": "unclassified_legacy"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "quarantine",
+      "notes": "ARCH106 strict triage: runtime proof-pack summarization is governance-sensitive evidence logic without current runtime proof. Keep isolated until reviewed and proven.",
       "path": "src/runtime/runtime_proof_pack_summary.py",
       "runtime_entrypoint": null,
       "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "status": "classified"
     },
     {
       "classification": "unclassified_legacy",
