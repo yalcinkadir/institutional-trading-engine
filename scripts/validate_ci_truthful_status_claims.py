@@ -18,7 +18,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_DOCS = ("README.md", "ROADMAP.md", "CHANGELOG.md")
 
 DANGEROUS_CLAIM_RE = re.compile(
-    r"(" 
+    r"("
     r"\bCI\s+is\s+green\b|"
     r"\bfull\s+regression(?:\s+suite)?\s+(?:is\s+)?green\b|"
     r"\bmain(?:\s+branch)?\s+(?:is\s+)?green\b|"
@@ -30,7 +30,7 @@ DANGEROUS_CLAIM_RE = re.compile(
 )
 
 EVIDENCE_RE = re.compile(
-    r"(" 
+    r"("
     r"https://github\.com/[^\s)]+/(?:actions/runs/\d+(?:/job/\d+)?|commit/[0-9a-fA-F]{7,40})|"
     r"\b[a-f0-9]{7,40}\b|"
     r"\bevidence artifact\b|"
@@ -52,6 +52,13 @@ def _nearby_lines(lines: list[str], index: int, radius: int = 2) -> str:
     return "\n".join(lines[start:end])
 
 
+def _display_path(path: Path) -> str:
+    try:
+        return path.resolve().relative_to(REPO_ROOT).as_posix()
+    except ValueError:
+        return path.name
+
+
 def validate_file(path: Path) -> list[str]:
     text = path.read_text(encoding="utf-8")
     lines = text.splitlines()
@@ -64,7 +71,7 @@ def validate_file(path: Path) -> list[str]:
         if EVIDENCE_RE.search(nearby):
             continue
         errors.append(
-            f"{path.relative_to(REPO_ROOT)}:{i + 1}: unsupported repository-wide CI-green claim: {line.strip()}"
+            f"{_display_path(path)}:{i + 1}: unsupported repository-wide CI-green claim: {line.strip()}"
         )
 
     return errors
