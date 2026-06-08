@@ -56,6 +56,37 @@ def test_arch106_inventory_check_blocks_growth_of_unclassified_legacy_modules(tm
     assert "must be explicitly classified" in message
 
 
+def test_arch106_inventory_check_reports_baseline_growth_before_stale_inventory(tmp_path: Path) -> None:
+    repo = tmp_path
+    src = repo / "src"
+    src.mkdir()
+    (src / "legacy_one.py").write_text("VALUE = 1\n", encoding="utf-8")
+
+    classification_path = repo / "docs" / "architecture" / "module_classification.json"
+    output_path = repo / "docs" / "architecture" / "module_inventory.generated.json"
+    _write_classification(classification_path, baseline_limit=1)
+
+    write_inventory(
+        output_path=output_path,
+        repo_root=repo,
+        classification_path=classification_path,
+    )
+
+    (src / "new_unclassified_module.py").write_text("VALUE = 2\n", encoding="utf-8")
+
+    is_current, message = check_inventory(
+        output_path,
+        repo_root=repo,
+        classification_path=classification_path,
+    )
+
+    assert is_current is False
+    assert "ARCH106 unclassified legacy baseline exceeded" in message
+    assert "ARCH106 module inventory artifact is stale" not in message
+    assert "Current unclassified legacy modules: 2" in message
+    assert "Allowed baseline: 1" in message
+
+
 def test_arch106_inventory_check_allows_new_module_when_explicitly_classified(tmp_path: Path) -> None:
     repo = tmp_path
     src = repo / "src"
