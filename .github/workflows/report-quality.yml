@@ -96,13 +96,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           pattern: validated-*-report
-          path: reports
+          path: reports/generated
           merge-multiple: true
 
       - name: Show downloaded reports
         shell: bash
         run: |
-          find reports -maxdepth 3 -type f -name '*report.md' -print
+          find reports/generated -maxdepth 1 -type f -name '*report.md' -print
 
       - name: Commit validated reports
         shell: bash
@@ -110,7 +110,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add reports/generated/*report.md reports/*report.md 2>/dev/null || true
+          git add reports/generated/*report.md 2>/dev/null || true
 
           if git diff --cached --quiet; then
             echo "No validated report changes to commit."
