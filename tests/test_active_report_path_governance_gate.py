@@ -37,8 +37,7 @@ def _decision_report() -> dict:
     }
 
 
-def test_p149_kill_switch_blocks_active_report_path_before_actionable_output(monkeypatch) -> None:
-    monkeypatch.setenv("ITE_KILL_SWITCH_ACTIVE", "true")
+def _patch_report_dependencies(monkeypatch) -> None:
     monkeypatch.setattr(
         generate_report,
         "build_market_regime_summary",
@@ -47,6 +46,11 @@ def test_p149_kill_switch_blocks_active_report_path_before_actionable_output(mon
     monkeypatch.setattr(generate_report, "build_screener_snapshot", lambda report_type: {"title": "Test Screener", "watchlist": [], "objectives": [], "warnings": []})
     monkeypatch.setattr(generate_report, "build_cross_asset_report", lambda: {"data_status": "OK", "regime": "risk_on", "risk_score": 70, "risk_on_score": 70, "risk_off_score": 30})
     monkeypatch.setattr(generate_report, "build_decision_report", lambda *, market_regime, screener: _decision_report())
+
+
+def test_p149_kill_switch_blocks_active_report_path_before_actionable_output(monkeypatch) -> None:
+    monkeypatch.setenv("ITE_KILL_SWITCH_ACTIVE", "true")
+    _patch_report_dependencies(monkeypatch)
 
     report, decision_payload = generate_report.build_report("premarket")
 
@@ -63,16 +67,24 @@ def test_p149_kill_switch_blocks_active_report_path_before_actionable_output(mon
     assert "BUY_WATCH" not in report
 
 
+def test_p149_governance_state_is_visible_in_report_artifact(monkeypatch) -> None:
+    monkeypatch.setenv("ITE_KILL_SWITCH_ACTIVE", "true")
+    _patch_report_dependencies(monkeypatch)
+
+    report, _ = generate_report.build_report("premarket")
+
+    assert "Governance Status: BLOCKED" in report
+    assert "Governance Stage: active_report_path_governance" in report
+    assert "Governance Active Path: scripts/generate_report.py::_build_market_payload" in report
+    assert "Kill Switch Active: True" in report
+    assert "Live Trading Authorized: False" in report
+    assert "Broker Execution Mode: paper_only" in report
+    assert "Governance Reasons: kill_switch_active" in report
+
+
 def test_p149_governance_state_is_persisted_to_signal_artifact(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setenv("ITE_KILL_SWITCH_ACTIVE", "true")
-    monkeypatch.setattr(
-        generate_report,
-        "build_market_regime_summary",
-        lambda report_type: {"regime": "Bullish", "data_status": "OK", "market_health_score": 80, "symbols": {}, "focus_areas": []},
-    )
-    monkeypatch.setattr(generate_report, "build_screener_snapshot", lambda report_type: {"title": "Test Screener", "watchlist": [], "objectives": [], "warnings": []})
-    monkeypatch.setattr(generate_report, "build_cross_asset_report", lambda: {"data_status": "OK", "regime": "risk_on", "risk_score": 70, "risk_on_score": 70, "risk_off_score": 30})
-    monkeypatch.setattr(generate_report, "build_decision_report", lambda *, market_regime, screener: _decision_report())
+    _patch_report_dependencies(monkeypatch)
 
     _, decision_payload = generate_report.build_report("premarket")
 
