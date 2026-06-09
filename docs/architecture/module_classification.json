@@ -32,6 +32,150 @@
       "classification": "experimental",
       "notes": "ARCH106 Step 4b: analytics walk-forward validation helper. Not marked connected_runtime until a live runtime execution proof exists."
     },
+    "src/backtesting/__init__.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/backtesting/__init__.py"
+    },
+    "src/backtesting/cross_validation.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/backtesting/cross_validation.py"
+    },
+    "src/backtesting/historical_entry_exit_backtest.py": {
+      "classification": "connected_runtime",
+      "notes": "P160 pipeline triage: BT130-proven historical backtesting runtime module. Module: src/backtesting/historical_entry_exit_backtest.py",
+      "runtime_entrypoint": "scripts/run_historical_entry_exit_backtest.py",
+      "runtime_execution_proof": "tests/test_bt130_real_historical_evidence_pack_gate.py"
+    },
+    "src/backtesting/historical_models.py": {
+      "classification": "connected_runtime",
+      "notes": "P160 pipeline triage: BT130-proven historical backtesting runtime module. Module: src/backtesting/historical_models.py",
+      "runtime_entrypoint": "scripts/run_historical_entry_exit_backtest.py",
+      "runtime_execution_proof": "tests/test_bt130_real_historical_evidence_pack_gate.py"
+    },
+    "src/backtesting/historical_report.py": {
+      "classification": "connected_runtime",
+      "notes": "P160 pipeline triage: BT130-proven historical backtesting runtime module. Module: src/backtesting/historical_report.py",
+      "runtime_entrypoint": "scripts/run_historical_entry_exit_backtest.py",
+      "runtime_execution_proof": "tests/test_bt130_real_historical_evidence_pack_gate.py"
+    },
+    "src/backtesting/realistic_execution.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/backtesting/realistic_execution.py"
+    },
+    "src/backtesting/signal_validation.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/backtesting/signal_validation.py"
+    },
+    "src/backtesting/walk_forward.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/backtesting/walk_forward.py"
+    },
+    "src/data/__init__.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/data/__init__.py"
+    },
+    "src/data/cache.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/data/cache.py"
+    },
+    "src/data/data_quality.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/data/data_quality.py"
+    },
+    "src/data/market_data.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/data/market_data.py"
+    },
+    "src/data/polygon_client.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/data/polygon_client.py"
+    },
+    "src/operations/__init__.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/operations/__init__.py"
+    },
+    "src/operations/broker_compatibility.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/operations/broker_compatibility.py"
+    },
+    "src/operations/broker_failover.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/operations/broker_failover.py"
+    },
+    "src/operations/broker_monitoring.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/operations/broker_monitoring.py"
+    },
+    "src/operations/broker_reconciliation.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/operations/broker_reconciliation.py"
+    },
+    "src/operations/daily_evidence_report.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/operations/daily_evidence_report.py"
+    },
+    "src/operations/execution_adapter.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/operations/execution_adapter.py"
+    },
+    "src/operations/execution_journal.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/operations/execution_journal.py"
+    },
+    "src/operations/execution_policies.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/operations/execution_policies.py"
+    },
+    "src/operations/manual_portfolio_sync.py": {
+      "classification": "quarantine",
+      "notes": "P160 pipeline triage: safety-sensitive module kept isolated until dedicated governance review and runtime proof exist. Module: src/operations/manual_portfolio_sync.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null
+    },
+    "src/operations/market_calendar.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/operations/market_calendar.py"
+    },
+    "src/operations/market_state.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/operations/market_state.py"
+    },
+    "src/operations/order_lifecycle.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/operations/order_lifecycle.py"
+    },
+    "src/operations/order_router.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/operations/order_router.py"
+    },
+    "src/operations/paper_broker_adapter.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/operations/paper_broker_adapter.py"
+    },
+    "src/operations/paper_observation.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/operations/paper_observation.py"
+    },
+    "src/operations/paper_order_book.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/operations/paper_order_book.py"
+    },
+    "src/operations/paper_portfolio.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/operations/paper_portfolio.py"
+    },
+    "src/operations/performance_monitor.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/operations/performance_monitor.py"
+    },
+    "src/operations/position_lifecycle.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/operations/position_lifecycle.py"
+    },
+    "src/operations/risk_monitor.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/operations/risk_monitor.py"
+    },
     "src/operations/runtime_evidence_manifest.py": {
       "classification": "quarantine",
       "notes": "ARCH106 strict triage: audit/evidence manifest logic is valuable and fail-safe oriented, but has no current proven runtime execution path. Keep isolated until an operations runtime proof exists.",
@@ -43,6 +187,30 @@
       "notes": "ARCH106 strict triage: manifest guard is fail-closed operational safety logic, but has no current proven runtime execution path. Keep isolated until an operations runtime proof exists.",
       "runtime_entrypoint": null,
       "runtime_execution_proof": null
+    },
+    "src/operations/runtime_state.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/operations/runtime_state.py"
+    },
+    "src/operations/scheduler.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/operations/scheduler.py"
+    },
+    "src/operations/trade_audit.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/operations/trade_audit.py"
+    },
+    "src/operations/trade_execution.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/operations/trade_execution.py"
+    },
+    "src/operations/trade_reconciliation.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/operations/trade_reconciliation.py"
+    },
+    "src/operations/trading_session.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/operations/trading_session.py"
     },
     "src/os/priority_manager.py": {
       "classification": "delete_candidate",
@@ -61,6 +229,62 @@
       "notes": "ARCH106 strict triage: small generic OS-layer workflow stub has no current code-search references. Candidate only; deletion requires a separate CI-proven removal PR.",
       "runtime_entrypoint": null,
       "runtime_execution_proof": null
+    },
+    "src/outcomes/__init__.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/outcomes/__init__.py"
+    },
+    "src/outcomes/attribution.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/outcomes/attribution.py"
+    },
+    "src/outcomes/drift_detection.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/outcomes/drift_detection.py"
+    },
+    "src/outcomes/edge_decay.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/outcomes/edge_decay.py"
+    },
+    "src/outcomes/evidence_export.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/outcomes/evidence_export.py"
+    },
+    "src/outcomes/expectancy.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/outcomes/expectancy.py"
+    },
+    "src/outcomes/outcome_history.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/outcomes/outcome_history.py"
+    },
+    "src/outcomes/outcome_models.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/outcomes/outcome_models.py"
+    },
+    "src/outcomes/outcome_summary.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/outcomes/outcome_summary.py"
+    },
+    "src/outcomes/regime_outcomes.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/outcomes/regime_outcomes.py"
+    },
+    "src/outcomes/replay.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/outcomes/replay.py"
+    },
+    "src/outcomes/statistics.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/outcomes/statistics.py"
+    },
+    "src/outcomes/trade_outcome.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/outcomes/trade_outcome.py"
+    },
+    "src/quality/liquidity_filter.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/quality/liquidity_filter.py"
     },
     "src/reporting/cross_asset_report.py": {
       "classification": "connected_runtime",
@@ -134,6 +358,10 @@
       "runtime_entrypoint": null,
       "runtime_execution_proof": null
     },
+    "src/signals/__init__.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/signals/__init__.py"
+    },
     "src/signals/entry_quality.py": {
       "classification": "connected_runtime",
       "notes": "Entry trigger quality is executed by build_signals on the ARCH106 BUY_WATCH signal runtime path.",
@@ -145,6 +373,10 @@
       "notes": "Exit target quality is executed by build_signals on the ARCH106 BUY_WATCH signal runtime path.",
       "runtime_entrypoint": "src/signals/signal_generator.py",
       "runtime_execution_proof": "tests/test_arch106_signal_runtime_helper_proof.py::test_arch106_signal_runtime_helpers_execute_on_buy_watch_path"
+    },
+    "src/signals/intraday_vwap.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/signals/intraday_vwap.py"
     },
     "src/signals/scanner_metrics_pipeline.py": {
       "classification": "connected_runtime",
@@ -164,21 +396,151 @@
       "runtime_entrypoint": "src/signals/signal_generator.py",
       "runtime_execution_proof": "tests/test_arch106_signal_runtime_helper_proof.py::test_arch106_signal_runtime_helpers_execute_on_buy_watch_path"
     },
+    "src/signals/signal_status.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/signals/signal_status.py"
+    },
     "src/signals/stop_loss_quality.py": {
       "classification": "connected_runtime",
       "notes": "Stop-loss quality is executed by build_signals on the ARCH106 BUY_WATCH signal runtime path.",
       "runtime_entrypoint": "src/signals/signal_generator.py",
       "runtime_execution_proof": "tests/test_arch106_signal_runtime_helper_proof.py::test_arch106_signal_runtime_helpers_execute_on_buy_watch_path"
     },
+    "src/signals/structure_levels.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/signals/structure_levels.py"
+    },
     "src/signals/trade_plan_validator.py": {
       "classification": "connected_runtime",
       "notes": "Trade-plan validation is executed by build_signals as the final executable signal gate on the ARCH106 BUY_WATCH runtime path.",
       "runtime_entrypoint": "src/signals/signal_generator.py",
       "runtime_execution_proof": "tests/test_arch106_signal_runtime_helper_proof.py::test_arch106_signal_runtime_helpers_execute_on_buy_watch_path"
+    },
+    "src/validation/__init__.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/validation/__init__.py"
+    },
+    "src/validation/circuit_breakers.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/validation/circuit_breakers.py"
+    },
+    "src/validation/data_contracts.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/validation/data_contracts.py"
+    },
+    "src/validation/data_freshness.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/validation/data_freshness.py"
+    },
+    "src/validation/data_quality_gate.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/validation/data_quality_gate.py"
+    },
+    "src/validation/drawdown_guard.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/validation/drawdown_guard.py"
+    },
+    "src/validation/execution_kill_switch.py": {
+      "classification": "quarantine",
+      "notes": "P160 pipeline triage: safety-sensitive module kept isolated until dedicated governance review and runtime proof exist. Module: src/validation/execution_kill_switch.py",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null
+    },
+    "src/validation/fail_closed.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/validation/fail_closed.py"
+    },
+    "src/validation/gate_result.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/validation/gate_result.py"
+    },
+    "src/validation/governance.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/validation/governance.py"
+    },
+    "src/validation/input_pack_gate.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/validation/input_pack_gate.py"
+    },
+    "src/validation/market_regime_gate.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/validation/market_regime_gate.py"
+    },
+    "src/validation/position_limits.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/validation/position_limits.py"
+    },
+    "src/validation/quality_gate.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/validation/quality_gate.py"
+    },
+    "src/validation/risk_limits.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/validation/risk_limits.py"
+    },
+    "src/validation/runtime_health.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/validation/runtime_health.py"
+    },
+    "src/validation/schema_validation.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/validation/schema_validation.py"
+    },
+    "src/validation/signal_gate.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/validation/signal_gate.py"
+    },
+    "src/validation/silent_failure.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/validation/silent_failure.py"
+    },
+    "src/validation/symbol_universe_gate.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/validation/symbol_universe_gate.py"
+    },
+    "src/validation/trade_plan_gate.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/validation/trade_plan_gate.py"
+    },
+    "src/validation/validation_report.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/validation/validation_report.py"
+    },
+    "src/validation/volatility_gate.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/validation/volatility_gate.py"
+    },
+    "src/validation/warnings.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/validation/warnings.py"
+    },
+    "src/validation/weekly_review_gate.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/validation/weekly_review_gate.py"
+    },
+    "src/validation/workflow_health.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/validation/workflow_health.py"
+    },
+    "src/watchers/__init__.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/watchers/__init__.py"
+    },
+    "src/watchers/entry_exit_watcher.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/watchers/entry_exit_watcher.py"
+    },
+    "src/watchers/regime_invalidation.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/watchers/regime_invalidation.py"
+    },
+    "src/watchers/trailing_stop_manager.py": {
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/watchers/trailing_stop_manager.py"
     }
   },
   "grandfather_existing_modules": true,
   "policy": "New production modules under src/ must be explicitly classified before merge. Existing legacy modules are grandfathered until the full ARCH106 inventory pass is completed. The unclassified legacy baseline must not grow.",
   "schema_version": 1,
-  "unclassified_legacy_baseline_limit": 303
+  "unclassified_legacy_baseline_limit": 266
 }

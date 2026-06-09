@@ -1,14 +1,14 @@
 {
   "classification_source": "docs/architecture/module_classification.json",
   "counters": {
-    "classified_modules": 30,
-    "connected_runtime": 12,
+    "classified_modules": 48,
+    "connected_runtime": 15,
     "delete_candidate": 4,
-    "experimental": 10,
-    "quarantine": 4,
+    "experimental": 23,
+    "quarantine": 6,
     "total_src_modules": 314,
-    "unclassified_legacy": 284,
-    "unclassified_legacy_modules": 284
+    "unclassified_legacy": 266,
+    "unclassified_legacy_modules": 266
   },
   "grandfather_existing_modules": true,
   "modules": [
@@ -253,12 +253,12 @@
       "status": "unclassified_legacy"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/backtesting/__init__.py",
       "path": "src/backtesting/__init__.py",
       "runtime_entrypoint": null,
       "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "status": "classified"
     },
     {
       "classification": "unclassified_legacy",
@@ -277,28 +277,28 @@
       "status": "unclassified_legacy"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "connected_runtime",
+      "notes": "P160 pipeline triage: BT130-proven historical backtesting runtime module. Module: src/backtesting/historical_entry_exit_backtest.py",
       "path": "src/backtesting/historical_entry_exit_backtest.py",
-      "runtime_entrypoint": null,
-      "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "runtime_entrypoint": "scripts/run_historical_entry_exit_backtest.py",
+      "runtime_execution_proof": "tests/test_bt130_real_historical_evidence_pack_gate.py",
+      "status": "classified"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "connected_runtime",
+      "notes": "P160 pipeline triage: BT130-proven historical backtesting runtime module. Module: src/backtesting/historical_models.py",
       "path": "src/backtesting/historical_models.py",
-      "runtime_entrypoint": null,
-      "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "runtime_entrypoint": "scripts/run_historical_entry_exit_backtest.py",
+      "runtime_execution_proof": "tests/test_bt130_real_historical_evidence_pack_gate.py",
+      "status": "classified"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "connected_runtime",
+      "notes": "P160 pipeline triage: BT130-proven historical backtesting runtime module. Module: src/backtesting/historical_report.py",
       "path": "src/backtesting/historical_report.py",
-      "runtime_entrypoint": null,
-      "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "runtime_entrypoint": "scripts/run_historical_entry_exit_backtest.py",
+      "runtime_execution_proof": "tests/test_bt130_real_historical_evidence_pack_gate.py",
+      "status": "classified"
     },
     {
       "classification": "unclassified_legacy",
@@ -453,12 +453,12 @@
       "status": "unclassified_legacy"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/data/__init__.py",
       "path": "src/data/__init__.py",
       "runtime_entrypoint": null,
       "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "status": "classified"
     },
     {
       "classification": "unclassified_legacy",
@@ -477,12 +477,12 @@
       "status": "unclassified_legacy"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/data/polygon_client.py",
       "path": "src/data/polygon_client.py",
       "runtime_entrypoint": null,
       "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "status": "classified"
     },
     {
       "classification": "unclassified_legacy",
@@ -1141,12 +1141,12 @@
       "status": "unclassified_legacy"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "quarantine",
+      "notes": "P160 pipeline triage: safety-sensitive module kept isolated until dedicated governance review and runtime proof exist. Module: src/operations/manual_portfolio_sync.py",
       "path": "src/operations/manual_portfolio_sync.py",
       "runtime_entrypoint": null,
       "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "status": "classified"
     },
     {
       "classification": "unclassified_legacy",
@@ -1365,12 +1365,12 @@
       "status": "unclassified_legacy"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/outcomes/outcome_summary.py",
       "path": "src/outcomes/outcome_summary.py",
       "runtime_entrypoint": null,
       "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "status": "classified"
     },
     {
       "classification": "unclassified_legacy",
@@ -1509,12 +1509,12 @@
       "status": "unclassified_legacy"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/quality/liquidity_filter.py",
       "path": "src/quality/liquidity_filter.py",
       "runtime_entrypoint": null,
       "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "status": "classified"
     },
     {
       "classification": "unclassified_legacy",
@@ -1917,12 +1917,12 @@
       "status": "unclassified_legacy"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/signals/__init__.py",
       "path": "src/signals/__init__.py",
       "runtime_entrypoint": null,
       "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "status": "classified"
     },
     {
       "classification": "connected_runtime",
@@ -1941,12 +1941,12 @@
       "status": "classified"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/signals/intraday_vwap.py",
       "path": "src/signals/intraday_vwap.py",
       "runtime_entrypoint": null,
       "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "status": "classified"
     },
     {
       "classification": "connected_runtime",
@@ -1973,12 +1973,12 @@
       "status": "classified"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/signals/signal_status.py",
       "path": "src/signals/signal_status.py",
       "runtime_entrypoint": null,
       "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "status": "classified"
     },
     {
       "classification": "connected_runtime",
@@ -1989,12 +1989,12 @@
       "status": "classified"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/signals/structure_levels.py",
       "path": "src/signals/structure_levels.py",
       "runtime_entrypoint": null,
       "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "status": "classified"
     },
     {
       "classification": "connected_runtime",
@@ -2269,12 +2269,12 @@
       "status": "unclassified_legacy"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "quarantine",
+      "notes": "P160 pipeline triage: safety-sensitive module kept isolated until dedicated governance review and runtime proof exist. Module: src/validation/execution_kill_switch.py",
       "path": "src/validation/execution_kill_switch.py",
       "runtime_entrypoint": null,
       "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "status": "classified"
     },
     {
       "classification": "unclassified_legacy",
@@ -2493,36 +2493,36 @@
       "status": "unclassified_legacy"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/watchers/__init__.py",
       "path": "src/watchers/__init__.py",
       "runtime_entrypoint": null,
       "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "status": "classified"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/watchers/entry_exit_watcher.py",
       "path": "src/watchers/entry_exit_watcher.py",
       "runtime_entrypoint": null,
       "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "status": "classified"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/watchers/regime_invalidation.py",
       "path": "src/watchers/regime_invalidation.py",
       "runtime_entrypoint": null,
       "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "status": "classified"
     },
     {
-      "classification": "unclassified_legacy",
-      "notes": "Legacy module not yet classified in ARCH106 Step 3.",
+      "classification": "experimental",
+      "notes": "P160 pipeline triage: pipeline-relevant module classified as experimental until a direct runtime execution proof exists. Module: src/watchers/trailing_stop_manager.py",
       "path": "src/watchers/trailing_stop_manager.py",
       "runtime_entrypoint": null,
       "runtime_execution_proof": null,
-      "status": "unclassified_legacy"
+      "status": "classified"
     }
   ],
   "schema_version": 1,
