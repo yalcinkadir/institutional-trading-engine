@@ -1,0 +1,220 @@
+name: BT131 Real Data Backtest Evidence
+
+on:
+  workflow_dispatch:
+    inputs:
+      symbols:
+        description: "Comma-separated symbols to ingest / validate"
+        required: false
+        default: "MSFT,NVDA,META,AAPL,MU,QQQ,GLD,SLV"
+        type: string
+      start_date:
+        description: "Historical start date YYYY-MM-DD"
+        required: false
+        default: "2024-01-01"
+        type: string
+      end_date:
+        description: "Historical end date YYYY-MM-DD. Defaults to current UTC date when blank."
+        required: false
+        type: string
+      run_id:
+        description: "Backtest run id"
+        required: false
+        default: "bt131-real-data-manual"
+        type: string
+      strategy_version:
+        description: "Strategy version label"
+        required: false
+        default: "historical-entry-exit-v1"
+        type: string
+      plans_file:
+        description: "Historical trade plans file"
+        required: false
+        default: "data/trade_plans/historical_trade_plans.json"
+        type: string
+      source_observations:
+        description: "Optional validated Paper Observation records to export into historical trade plans"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  real-data-backtest-evidence:
+    name: Build real-data backtest evidence or BLOCKED artifact
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
+      VOLATILITY_PROXY_SYMBOL: ${{ vars.VOLATILITY_PROXY_SYMBOL || 'VIXY' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Prepare evidence directories
+        run: |
+          mkdir -p reports/backtests
+          mkdir -p data/historical/metadata
+          mkdir -p data/trade_plans
+
+      - name: Resolve runtime inputs
+        id: runtime
+        env:
+          INPUT_SYMBOLS: ${{ inputs.symbols }}
+          INPUT_START_DATE: ${{ inputs.start_date }}
+          INPUT_END_DATE: ${{ inputs.end_date }}
+          INPUT_RUN_ID: ${{ inputs.run_id }}
+          INPUT_STRATEGY_VERSION: ${{ inputs.strategy_version }}
+          INPUT_PLANS_FILE: ${{ inputs.plans_file }}
+          INPUT_SOURCE_OBSERVATIONS: ${{ inputs.source_observations }}
+        run: |
+          end_date="${INPUT_END_DATE:-$(date -u +%F)}"
+          echo "symbols=${INPUT_SYMBOLS}" >> "$GITHUB_OUTPUT"
+          echo "start_date=${INPUT_START_DATE}" >> "$GITHUB_OUTPUT"
+          echo "end_date=${end_date}" >> "$GITHUB_OUTPUT"
+          echo "run_id=${INPUT_RUN_ID}" >> "$GITHUB_OUTPUT"
+          echo "strategy_version=${INPUT_STRATEGY_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "plans_file=${INPUT_PLANS_FILE}" >> "$GITHUB_OUTPUT"
+          echo "source_observations=${INPUT_SOURCE_OBSERVATIONS}" >> "$GITHUB_OUTPUT"
+
+      - name: Optionally export historical trade plans from validated observations
+        if: ${{ inputs.source_observations != '' }}
+        run: |
+          set +e
+          python scripts/export_historical_trade_plans.py \
+            --source "${{ steps.runtime.outputs.source_observations }}" \
+            --output "${{ steps.runtime.outputs.plans_file }}" \
+            --manifest data/trade_plans/historical_trade_plans_manifest.json
+          echo "trade_plan_export_exit_code=$?" >> reports/backtests/bt131-runtime-status.env
+
+      - name: Ingest historical Polygon bars when API key is available
+        run: |
+          if [ -z "${POLYGON_API_KEY:-}" ]; then
+            echo "historical_ingestion_status=BLOCKED_MISSING_POLYGON_API_KEY" >> reports/backtests/bt131-runtime-status.env
+            echo "POLYGON_API_KEY is not available; BT9 will fail closed if bars are missing."
+            exit 0
+          fi
+
+          set +e
+          python scripts/ingest_historical_polygon.py \
+            --symbols "${{ steps.runtime.outputs.symbols }}" \
+            --start-date "${{ steps.runtime.outputs.start_date }}" \
+            --end-date "${{ steps.runtime.outputs.end_date }}" \
+            --coverage-manifest-path data/historical/metadata/coverage_manifest.json \
+            --metadata-path data/historical/metadata/ingestion_status.json \
+            --output-root data/historical \
+            --json > reports/backtests/bt131-historical-ingestion.json
+          status=$?
+          echo "historical_ingestion_exit_code=${status}" >> reports/backtests/bt131-runtime-status.env
+          exit 0
+
+      - name: Run BT9 input-pack gate
+        run: |
+          set +e
+          python scripts/validate_bt9_real_historical_input_pack.py \
+            --universe data/universe/survivorship_universe.csv \
+            --bars-root data/historical/bars/1day \
+            --trade-plans "${{ steps.runtime.outputs.plans_file }}" \
+            --report-output reports/backtests/bt9-real-historical-input-pack-gate.json
+          status=$?
+          echo "bt9_exit_code=${status}" >> reports/backtests/bt131-runtime-status.env
+          exit 0
+
+      - name: Run real-data historical entry/exit backtest
+        run: |
+          set +e
+          python scripts/run_historical_entry_exit_backtest.py \
+            --real-data \
+            --data-source real_data \
+            --run-id "${{ steps.runtime.outputs.run_id }}" \
+            --strategy-version "${{ steps.runtime.outputs.strategy_version }}" \
+            --plans-file "${{ steps.runtime.outputs.plans_file }}" \
+            --bars-root data/historical/bars/1day \
+            --universe data/universe/survivorship_universe.csv \
+            --coverage-manifest data/historical/metadata/coverage_manifest.json \
+            --json-output reports/backtests/real-data-backtest-evidence.json \
+            --markdown-output reports/backtests/real-data-backtest-evidence.md
+          status=$?
+          echo "backtest_exit_code=${status}" >> reports/backtests/bt131-runtime-status.env
+          exit 0
+
+      - name: Validate accepted real-data evidence when backtest passed
+        run: |
+          backtest_status=$(grep '^backtest_exit_code=' reports/backtests/bt131-runtime-status.env | tail -1 | cut -d= -f2 || echo "1")
+          if [ "$backtest_status" != "0" ]; then
+            echo "Backtest did not pass; expecting explicit BLOCKED evidence artifact."
+            test -f reports/backtests/real-data-backtest-evidence.json
+            exit 0
+          fi
+
+          python scripts/validate_real_data_backtest_evidence_gate.py \
+            --artifact reports/backtests/real-data-backtest-evidence.json \
+            --report-output reports/backtests/real-data-backtest-evidence-gate.json
+
+      - name: Verify evidence artifact is reviewable
+        run: |
+          test -f reports/backtests/real-data-backtest-evidence.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path("reports/backtests/real-data-backtest-evidence.json")
+          payload = json.loads(path.read_text(encoding="utf-8"))
+          required = [
+              "run_id",
+              "data_source",
+              "is_demo",
+              "input_pack_gate_status",
+              "input_completeness_status",
+              "run_health_status",
+              "live_trading_authorized",
+              "broker_execution_mode",
+          ]
+          missing = [field for field in required if field not in payload]
+          if missing:
+              raise SystemExit(f"missing required backtest evidence fields: {missing}")
+          if payload.get("data_source") != "real_data":
+              raise SystemExit("BT131 evidence must be data_source=real_data")
+          if payload.get("is_demo") is not False:
+              raise SystemExit("BT131 evidence must not be demo")
+          if payload.get("live_trading_authorized") is not False:
+              raise SystemExit("BT131 must not authorize live trading")
+          if payload.get("broker_execution_mode") != "paper_only":
+              raise SystemExit("BT131 must remain paper_only")
+
+          print("BT131 evidence artifact status:", payload.get("run_health_status"))
+          print("BT131 input gate:", payload.get("input_pack_gate_status"))
+          PY
+
+      - name: Upload real-data backtest evidence artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bt131-real-data-backtest-evidence-${{ github.run_id }}
+          path: |
+            reports/backtests/*.json
+            reports/backtests/*.md
+            data/historical/metadata/*.json
+            data/trade_plans/*manifest*.json
+          if-no-files-found: error
+          retention-days: 90
