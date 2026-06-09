@@ -1,0 +1,11 @@
+{
+  "run_status": "NO_ELIGIBLE_SIGNALS",
+  "run_timestamp_utc": "2026-06-09T03:13:51.116802+00:00",
+  "days_evaluated": 7,
+  "signal_batch_count": 0,
+  "total_input_signals": 0,
+  "total_evaluated": 0,
+  "skip_reasons": [
+    "no_signal_files_in_window"
+  ]
+}
