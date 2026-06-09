@@ -1,106 +1,111 @@
 name: Outcome Tracking
 
 on:
-  schedule:
-    - cron: "0 2 * * *"
+schedule:
+- cron: “0 2 * * *”
 
-  workflow_dispatch:
-    inputs:
-      days:
-        description: "Number of past days to evaluate"
-        required: false
-        default: "7"
+workflow_dispatch:
+inputs:
+days:
+description: “Number of past days to evaluate”
+required: false
+default: “7”
 
 permissions:
-  contents: read
+contents: read
 
 concurrency:
-  group: outcome-tracking-${{ github.ref }}
-  cancel-in-progress: false
+group: outcome-tracking-${{ github.ref }}
+cancel-in-progress: false
 
 jobs:
-  outcomes:
-    name: Generate Institutional Outcome Artifacts
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+outcomes:
+name: Generate Institutional Outcome Artifacts
+runs-on: ubuntu-latest
+timeout-minutes: 20
 
-    env:
-      POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-          fetch-depth: 1
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Ensure required directories exist
-        run: |
-          mkdir -p reports/outcomes
-          mkdir -p data
-
-      - name: Generate outcome reports
-        run: |
-          DAYS="${{ github.event.inputs.days || '7' }}"
-          python scripts/generate_outcomes.py --days "$DAYS"
-
-      - name: Run expectancy learning pipeline
-        shell: bash
-        run: |
-          if [[ -f data/decision_log.csv ]]; then
-            echo "Using decision_log.csv"
-            python scripts/update_outcomes.py \
-              --decision-log data/decision_log.csv \
-              --output reports/expectancy-report.md
-
-          elif [[ -f data/decision_log.jsonl ]]; then
-            echo "Using decision_log.jsonl"
-            python scripts/update_outcomes.py \
-              --decision-log data/decision_log.jsonl \
-              --output reports/expectancy-report.md || true
-
-          else
-            echo "No decision log found. Skipping expectancy learning."
-          fi
-
-      - name: Verify outcome manifest exists
-        run: |
-          test -f reports/outcomes/outcome-run-manifest.json
-          python - <<'PY'
-          import json
-          from pathlib import Path
-          manifest = json.loads(Path('reports/outcomes/outcome-run-manifest.json').read_text())
-          status = manifest.get('run_status')
-          if status not in {'OK', 'NO_ELIGIBLE_SIGNALS', 'BLOCKED_MISSING_INPUTS'}:
-              raise SystemExit(f'unexpected outcome run_status: {status}')
-          print(f"outcome run_status={status}")
-          PY
-
-      - name: Upload outcome artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: institutional-outcomes-${{ github.run_id }}
-          path: reports/outcomes/
-          retention-days: 90
-
-      - name: Upload runtime evidence artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: outcome-runtime-evidence-${{ github.run_id }}
-          path: |
-            reports/outcomes/
-            reports/expectancy-report.md
-            data/
-          retention-days: 90
+env:
+  POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
+steps:
+  - name: Checkout repository
+    uses: actions/checkout@v4
+    with:
+      persist-credentials: false
+      fetch-depth: 1
+  - name: Setup Python
+    uses: actions/setup-python@v5
+    with:
+      python-version: "3.11"
+  - name: Install dependencies
+    run: |
+      python -m pip install --upgrade pip
+      pip install -r requirements.txt
+  - name: Ensure required directories exist
+    run: |
+      mkdir -p reports/outcomes
+      mkdir -p data
+  - name: Generate outcome reports
+    run: |
+      DAYS="${{ github.event.inputs.days || '7' }}"
+      python scripts/generate_outcomes.py --days "$DAYS"
+  - name: Augment P165 outcome manifest
+    run: |
+      python scripts/augment_outcome_manifest_p165.py --outcomes-dir reports/outcomes
+  - name: Run expectancy learning pipeline
+    shell: bash
+    run: |
+      if [[ -f data/decision_log.csv ]]; then
+        echo "Using decision_log.csv"
+        python scripts/update_outcomes.py \
+          --decision-log data/decision_log.csv \
+          --output reports/expectancy-report.md
+      elif [[ -f data/decision_log.jsonl ]]; then
+        echo "Using decision_log.jsonl"
+        python scripts/update_outcomes.py \
+          --decision-log data/decision_log.jsonl \
+          --output reports/expectancy-report.md || true
+      else
+        echo "No decision log found. Skipping expectancy learning."
+      fi
+  - name: Verify outcome manifest exists
+    run: |
+      test -f reports/outcomes/outcome-run-manifest.json
+      python - <<'PY'
+      import json
+      from pathlib import Path
+      manifest = json.loads(Path("reports/outcomes/outcome-run-manifest.json").read_text())
+      status = manifest.get("run_status")
+      if status not in {"OK", "NO_ELIGIBLE_SIGNALS", "BLOCKED_MISSING_INPUTS"}:
+          raise SystemExit(f"unexpected outcome run_status: {status}")
+      required_fields = [
+          "evaluable_signal_count",
+          "evaluated_outcome_count",
+          "skipped_count",
+          "skip_reasons",
+          "manifest_contract_version",
+      ]
+      missing = [field for field in required_fields if field not in manifest]
+      if missing:
+          raise SystemExit(f"missing outcome manifest fields: {missing}")
+      print(f"outcome run_status={status}")
+      print(f"evaluable_signal_count={manifest['evaluable_signal_count']}")
+      print(f"evaluated_outcome_count={manifest['evaluated_outcome_count']}")
+      print(f"skipped_count={manifest['skipped_count']}")
+      PY
+  - name: Upload outcome artifacts
+    if: always()
+    uses: actions/upload-artifact@v4
+    with:
+      name: institutional-outcomes-${{ github.run_id }}
+      path: reports/outcomes/
+      retention-days: 90
+  - name: Upload runtime evidence artifact
+    if: always()
+    uses: actions/upload-artifact@v4
+    with:
+      name: outcome-runtime-evidence-${{ github.run_id }}
+      path: |
+        reports/outcomes/
+        reports/expectancy-report.md
+        data/
+      retention-days: 90
