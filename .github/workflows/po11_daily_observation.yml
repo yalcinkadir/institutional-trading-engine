@@ -37,6 +37,7 @@ jobs:
     env:
       POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
       VOLATILITY_PROXY_SYMBOL: ${{ vars.VOLATILITY_PROXY_SYMBOL || 'VIXY' }}
+      PYTHONPATH: ${{ github.workspace }}
 
     steps:
       - name: Checkout repository
