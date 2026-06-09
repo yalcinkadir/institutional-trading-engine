@@ -30,6 +30,7 @@ PO14: Forward Evidence Quality Gate implemented and CI-green
 P120: Productive Paper Observation evidence remains gated until schema-valid durable observation artifacts are produced and CI-green.
 P122: Paper Observation health gate blocks blind observation output when close/ATR/regime/scanner metrics indicate infrastructure failure.
 P124: Silent-failure run health gate distinguishes valid no-trade, degraded data, fallback/demo and failed runs before reports, Paper Observation or backtests are treated as successful.
+P166: Productive daily Paper Observation producer writes canonical `reports/daily_evidence/<date>.json` before PO11 validation and includes VIX/regime provenance.
 
 Runtime Governance:
 GOV1-GOV10: runtime / pre-live governance hardening implemented and CI-green
@@ -112,7 +113,9 @@ First review date: 2026-07-01
 Major evidence review date: 2026-09-01
 Extended review date: 2026-12-01
 Live trading authorization: not granted by code
-Productive Paper Observation evidence is not claimed until P120 validates schema-valid durable observation artifacts in CI.
+Productive Paper Observation evidence is produced by `scripts/produce_daily_observation_evidence_p166.py` and written to `reports/daily_evidence/<observation_date>.json` before PO11 validation.
+
+The scheduled PO11 workflow runs the P166 producer, validates the generated evidence through the existing daily observation record path, uploads `reports/daily_evidence/*.json`, and then uploads the PO11 automation artifact. Runtime evidence is not committed back to `main`.
 
 PO14 adds a forward-evidence quality gate for monthly Paper Observation packs.
 CER1 adds capacity/execution realism review.
