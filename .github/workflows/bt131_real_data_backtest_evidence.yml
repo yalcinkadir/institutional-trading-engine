@@ -90,6 +90,7 @@ jobs:
           INPUT_SOURCE_OBSERVATIONS: ${{ inputs.source_observations }}
         run: |
           end_date="${INPUT_END_DATE:-$(date -u +%F)}"
+          runtime_universe="data/historical/metadata/bt131_runtime_universe.csv"
           echo "symbols=${INPUT_SYMBOLS}" >> "$GITHUB_OUTPUT"
           echo "start_date=${INPUT_START_DATE}" >> "$GITHUB_OUTPUT"
           echo "end_date=${end_date}" >> "$GITHUB_OUTPUT"
@@ -97,6 +98,7 @@ jobs:
           echo "strategy_version=${INPUT_STRATEGY_VERSION}" >> "$GITHUB_OUTPUT"
           echo "plans_file=${INPUT_PLANS_FILE}" >> "$GITHUB_OUTPUT"
           echo "source_observations=${INPUT_SOURCE_OBSERVATIONS}" >> "$GITHUB_OUTPUT"
+          echo "runtime_universe=${runtime_universe}" >> "$GITHUB_OUTPUT"
 
       - name: Optionally export historical trade plans from validated observations
         if: ${{ inputs.source_observations != '' }}
@@ -129,6 +131,17 @@ jobs:
           echo "historical_ingestion_exit_code=${status}" >> reports/backtests/bt131-runtime-status.env
           exit 0
 
+      - name: Build BT131 runtime universe from ingested coverage
+        run: |
+          set +e
+          python scripts/build_bt131_runtime_universe.py \
+            --coverage-manifest data/historical/metadata/coverage_manifest.json \
+            --output "${{ steps.runtime.outputs.runtime_universe }}" \
+            --summary-output reports/backtests/bt131-runtime-universe.json
+          status=$?
+          echo "runtime_universe_exit_code=${status}" >> reports/backtests/bt131-runtime-status.env
+          exit 0
+
       - name: Generate historical trade plans from ingested bars when needed
         if: ${{ inputs.source_observations == '' }}
         run: |
@@ -150,7 +163,7 @@ jobs:
         run: |
           set +e
           python scripts/validate_bt9_real_historical_input_pack.py \
-            --universe data/universe/survivorship_universe.csv \
+            --universe "${{ steps.runtime.outputs.runtime_universe }}" \
             --bars-root data/historical/bars/1day \
             --trade-plans "${{ steps.runtime.outputs.plans_file }}" \
             --report-output reports/backtests/bt9-real-historical-input-pack-gate.json
@@ -168,7 +181,7 @@ jobs:
             --strategy-version "${{ steps.runtime.outputs.strategy_version }}" \
             --plans-file "${{ steps.runtime.outputs.plans_file }}" \
             --bars-root data/historical/bars/1day \
-            --universe data/universe/survivorship_universe.csv \
+            --universe "${{ steps.runtime.outputs.runtime_universe }}" \
             --coverage-manifest data/historical/metadata/coverage_manifest.json \
             --json-output reports/backtests/real-data-backtest-evidence.json \
             --markdown-output reports/backtests/real-data-backtest-evidence.md
@@ -233,6 +246,8 @@ jobs:
             reports/backtests/*.json
             reports/backtests/*.md
             data/historical/metadata/*.json
+            data/historical/metadata/*.csv
+            data/trade_plans/*.json
             data/trade_plans/*manifest*.json
           if-no-files-found: error
           retention-days: 90
