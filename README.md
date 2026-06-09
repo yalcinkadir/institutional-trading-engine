@@ -63,6 +63,7 @@ BT5: Walk-Forward / Out-of-Sample Robustness Gate implemented and CI-green
 BT6: Evidence Baseline Regression Gate implemented and CI-green
 BT7: Capacity / Turnover / Realism Gate implemented and CI-green
 BT130: Real Historical Backtest Evidence Pack Gate implemented / CI-pending
+BT131: Real-data backtest evidence workflow implemented / CI-pending; valid output requires BT9 and P121/BT130 gates, otherwise a BLOCKED artifact is uploaded.
 CER1: Capacity / Execution Realism Evidence Review Summary implemented and CI-green
 PFA1: Position-level Forward Evidence Attribution implemented and CI-green
 BT8: Backtesting Evidence Report generator implemented and CI-green
@@ -122,6 +123,24 @@ CER1 adds capacity/execution realism review.
 PFA1 adds position-level forward-evidence attribution by joining risk attribution with 1D, 5D, 20D, MFE and MAE outcome evidence.
 FCM1 adds a feature connectivity matrix guard so implemented / CI-green features must declare runtime gates, guard tests, evidence artifacts, documentation references and upstream/downstream links.
 RPW1 adds a deterministic runtime proof-pack artifact writer and retention index for review-ready runtime proof evidence.
+
+## Backtesting Evidence Process
+
+BT131 provides a manual GitHub Actions workflow for real-data backtest evidence generation:
+
+```bash
+gh workflow run bt131_real_data_backtest_evidence.yml \
+  -f symbols=MSFT,NVDA,META,AAPL,MU,QQQ,GLD,SLV \
+  -f start_date=2024-01-01 \
+  -f end_date=2026-06-09 \
+  -f run_id=bt131-real-data-manual \
+  -f strategy_version=historical-entry-exit-v1 \
+  -f plans_file=data/trade_plans/historical_trade_plans.json
+```
+
+The workflow ingests Polygon historical bars when `POLYGON_API_KEY` is available, validates the BT9 real historical input pack, runs the real-data historical entry/exit backtest, validates accepted evidence through the P121/BT130 gate, and uploads JSON/Markdown artifacts.
+
+If required real inputs are missing, invalid, demo, synthetic, placeholder or public-safe, the workflow must write and upload a `BLOCKED` real-data evidence artifact instead of claiming productive historical evidence.
 
 ## Architecture Contracts
 
