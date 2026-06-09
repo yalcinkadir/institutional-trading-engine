@@ -35,6 +35,12 @@ def test_po11_manual_dispatch_inputs_are_prefilled() -> None:
     assert 'raw_observation_date = os.environ.get("OBSERVATION_DATE") or "auto"' in text
 
 
+def test_po11_workflow_sets_pythonpath_for_src_imports() -> None:
+    text = _workflow_text()
+
+    assert "PYTHONPATH: ${{ github.workspace }}" in text
+
+
 def test_po11_workflow_runs_p166_producer_before_po10_automation_runner() -> None:
     text = _workflow_text()
 
