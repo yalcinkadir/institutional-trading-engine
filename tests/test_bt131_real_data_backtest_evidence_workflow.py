@@ -18,14 +18,16 @@ def test_bt131_workflow_exists_and_supports_manual_dispatch() -> None:
         assert f"{input_name}:" in text
 
 
-def test_bt131_workflow_uses_python_311_and_read_only_permissions() -> None:
+def test_bt131_workflow_uses_python_311_and_repo_write_for_report_persistence() -> None:
     text = _workflow_text()
 
     assert "python-version: \"3.11\"" in text
     assert "permissions:" in text
-    assert "contents: read" in text
-    assert "contents: write" not in text
-    assert "persist-credentials: false" in text
+    assert "contents: write" in text
+    assert "concurrency:" in text
+    assert "group: repo-write-${{ github.ref }}" in text
+    assert "cancel-in-progress: false" in text
+    assert "persist-credentials: true" in text
     assert "PYTHONPATH: ${{ github.workspace }}" in text
 
 
@@ -38,8 +40,9 @@ def test_bt131_workflow_orchestrates_real_data_gates_in_order() -> None:
     bt9 = text.index("Run BT9 input-pack gate")
     runner = text.index("Run real-data historical entry/exit backtest")
     gate = text.index("Validate accepted real-data evidence when backtest passed")
+    persist = text.index("Persist validated backtest reports to repository")
 
-    assert ingestion < runtime_universe < generation < bt9 < runner < gate
+    assert ingestion < runtime_universe < generation < bt9 < runner < gate < persist
     assert "scripts/ingest_historical_polygon.py" in text
     assert "scripts/build_bt131_runtime_universe.py" in text
     assert "scripts/generate_historical_trade_plans.py" in text
@@ -89,6 +92,21 @@ def test_bt131_workflow_accepts_blocked_artifact_path_without_fake_success() -> 
     assert "input_pack_gate_status" in text
 
 
+def test_bt131_workflow_persists_validated_reports_to_repo_without_telegram() -> None:
+    text = _workflow_text()
+
+    assert "Persist validated backtest reports to repository" in text
+    assert "reports/backtests/real_data/runs/${GITHUB_RUN_ID_VALUE}" in text
+    assert "reports/backtests/real_data/latest" in text
+    assert "reports/backtests/real_data/index.json" in text
+    assert "git add reports/backtests/real_data/" in text
+    assert "git commit -m \"Persist BT131 real-data backtest reports" in text
+    assert "git push" in text
+    assert "TELEGRAM_BOT_TOKEN" not in text
+    assert "sendMessage" not in text
+    assert "telegram" not in text.lower()
+
+
 def test_bt131_workflow_uploads_reviewable_evidence_artifacts() -> None:
     text = _workflow_text()
 
@@ -96,6 +114,9 @@ def test_bt131_workflow_uploads_reviewable_evidence_artifacts() -> None:
     assert "bt131-real-data-backtest-evidence" in text
     assert "reports/backtests/*.json" in text
     assert "reports/backtests/*.md" in text
+    assert "reports/backtests/real_data/**/*.json" in text
+    assert "reports/backtests/real_data/**/*.md" in text
+    assert "reports/backtests/real_data/**/*.csv" in text
     assert "data/historical/metadata/*.json" in text
     assert "data/historical/metadata/*.csv" in text
     assert "data/trade_plans/*.json" in text
