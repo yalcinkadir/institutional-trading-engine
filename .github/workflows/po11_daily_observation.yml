@@ -122,6 +122,44 @@ jobs:
               raise SystemExit("PO11 blocked: referenced daily evidence artifact is missing or invalid")
           PY
 
+      - name: Send Paper Observation Telegram summary
+        if: always()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          OBSERVATION_DATE: ${{ inputs.observation_date }}
+          PO11_JOB_STATUS: ${{ job.status }}
+        run: |
+          mkdir -p reports/telegram_dispatch
+          observation_date="${OBSERVATION_DATE:-auto}"
+          if [ "$observation_date" = "auto" ]; then
+            observation_date="$(date -u +%F)"
+          fi
+          notification_status="COMPLETED"
+          if [ "${PO11_JOB_STATUS}" != "success" ]; then
+            notification_status="FAILED"
+          fi
+
+          if [ -z "${TELEGRAM_BOT_TOKEN:-}" ] || [ -z "${TELEGRAM_CHAT_ID:-}" ]; then
+            cat > reports/telegram_dispatch/paper-observation-notification.json <<JSON
+          {
+            "status": "SKIPPED_MISSING_TELEGRAM_CONFIG",
+            "sent": false,
+            "report_type": "paper_observation",
+            "observation_date": "${observation_date}",
+            "reason": "TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID is not configured"
+          }
+          JSON
+            echo "PO11 Telegram notification skipped: missing TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID"
+            exit 0
+          fi
+
+          python scripts/send_paper_observation_notification.py \
+            --report-date "$observation_date" \
+            --status "$notification_status" \
+            --output-json reports/telegram_dispatch/paper-observation-notification.json \
+            --send
+
       - name: Upload daily evidence artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -137,5 +175,14 @@ jobs:
         with:
           name: po11-daily-observation-artifact
           path: reports/daily_observation_automation/*.json
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Upload PO11 Telegram dispatch artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: po11-telegram-dispatch-artifact
+          path: reports/telegram_dispatch/paper-observation-notification.json
           if-no-files-found: error
           retention-days: 90
