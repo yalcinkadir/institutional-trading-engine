@@ -40,15 +40,17 @@ def test_bt131_workflow_orchestrates_real_data_gates_in_order() -> None:
     bt9 = text.index("Run BT9 input-pack gate")
     runner = text.index("Run real-data historical entry/exit backtest")
     gate = text.index("Validate accepted real-data evidence when backtest passed")
+    analyzer = text.index("Generate BT132 strategy improvement reports")
     persist = text.index("Persist validated backtest reports to repository")
 
-    assert ingestion < runtime_universe < generation < bt9 < runner < gate < persist
+    assert ingestion < runtime_universe < generation < bt9 < runner < gate < analyzer < persist
     assert "scripts/ingest_historical_polygon.py" in text
     assert "scripts/build_bt131_runtime_universe.py" in text
     assert "scripts/generate_historical_trade_plans.py" in text
     assert "scripts/validate_bt9_real_historical_input_pack.py" in text
     assert "scripts/run_historical_entry_exit_backtest.py" in text
     assert "scripts/validate_real_data_backtest_evidence_gate.py" in text
+    assert "scripts/analyze_bt132_strategy_improvement.py" in text
 
 
 def test_bt131_workflow_builds_and_uses_runtime_universe() -> None:
@@ -92,6 +94,16 @@ def test_bt131_workflow_accepts_blocked_artifact_path_without_fake_success() -> 
     assert "input_pack_gate_status" in text
 
 
+def test_bt131_workflow_generates_bt132_strategy_improvement_report() -> None:
+    text = _workflow_text()
+
+    assert "Generate BT132 strategy improvement reports" in text
+    assert "scripts/analyze_bt132_strategy_improvement.py" in text
+    assert "--evidence reports/backtests/real-data-backtest-evidence.json" in text
+    assert "--output-json reports/backtests/bt132-strategy-improvement-report.json" in text
+    assert "--output-md reports/backtests/bt132-strategy-improvement-report.md" in text
+
+
 def test_bt131_workflow_persists_validated_reports_to_repo_without_telegram() -> None:
     text = _workflow_text()
 
@@ -99,8 +111,12 @@ def test_bt131_workflow_persists_validated_reports_to_repo_without_telegram() ->
     assert "reports/backtests/real_data/runs/${GITHUB_RUN_ID_VALUE}" in text
     assert "reports/backtests/real_data/latest" in text
     assert "reports/backtests/real_data/index.json" in text
+    assert "bt132-strategy-improvement-report.json" in text
+    assert "bt132-strategy-improvement-report.md" in text
+    assert "bt132_review_status" in text
+    assert "bt132_recommendation_count" in text
     assert "git add reports/backtests/real_data/" in text
-    assert "git commit -m \"Persist BT131 real-data backtest reports" in text
+    assert "git commit -m \"Persist BT131/BT132 real-data backtest reports" in text
     assert "git push" in text
     assert "TELEGRAM_BOT_TOKEN" not in text
     assert "sendMessage" not in text
