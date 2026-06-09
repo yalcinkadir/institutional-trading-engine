@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from types import SimpleNamespace
 import importlib
 
@@ -22,6 +23,10 @@ def _decision_report() -> dict:
     }
 
 
+def _fresh_source_timestamp() -> str:
+    return datetime.now(UTC).isoformat()
+
+
 def test_market_payload_passes_non_empty_scanner_metrics_to_signal_generation(monkeypatch) -> None:
     generate_report = importlib.import_module("scripts.generate_report")
     signal_generator = importlib.import_module("src.signals.signal_generator")
@@ -33,8 +38,16 @@ def test_market_payload_passes_non_empty_scanner_metrics_to_signal_generation(mo
     )
     monkeypatch.setattr(generate_report, "build_screener_snapshot", lambda report_type: {})
     monkeypatch.setattr(generate_report, "build_cross_asset_report", lambda: {})
-    monkeypatch.setattr(generate_report, "build_decision_report", lambda *, market_regime, screener: _decision_report())
-    monkeypatch.setattr(generate_report, "_merge_signal_levels_into_decisions", lambda decision_report, signals: None)
+    monkeypatch.setattr(
+        generate_report,
+        "build_decision_report",
+        lambda *, market_regime, screener: _decision_report(),
+    )
+    monkeypatch.setattr(
+        generate_report,
+        "_merge_signal_levels_into_decisions",
+        lambda decision_report, signals: None,
+    )
 
     loaded_metrics = {
         "AAPL": {
@@ -42,7 +55,7 @@ def test_market_payload_passes_non_empty_scanner_metrics_to_signal_generation(mo
             "atr14": 2.5,
             "atr_pct": 2.02,
             "source": "polygon",
-            "source_timestamp": "2026-06-08T12:00:00+00:00",
+            "source_timestamp": _fresh_source_timestamp(),
             "fallback_level": "primary",
             "data_status": "OK",
         }
@@ -80,7 +93,11 @@ def test_market_payload_blocks_all_close_null_scanner_metrics(monkeypatch) -> No
     )
     monkeypatch.setattr(generate_report, "build_screener_snapshot", lambda report_type: {})
     monkeypatch.setattr(generate_report, "build_cross_asset_report", lambda: {})
-    monkeypatch.setattr(generate_report, "build_decision_report", lambda *, market_regime, screener: _decision_report())
+    monkeypatch.setattr(
+        generate_report,
+        "build_decision_report",
+        lambda *, market_regime, screener: _decision_report(),
+    )
     monkeypatch.setattr(
         generate_report,
         "_load_scanner_metrics",
@@ -89,7 +106,7 @@ def test_market_payload_blocks_all_close_null_scanner_metrics(monkeypatch) -> No
                 "close": None,
                 "atr14": 2.5,
                 "source": "polygon",
-                "source_timestamp": "2026-06-08T12:00:00+00:00",
+                "source_timestamp": _fresh_source_timestamp(),
                 "fallback_level": "primary",
                 "data_status": "OK",
             }
@@ -113,7 +130,10 @@ def test_build_signals_fails_closed_for_actionable_decisions_without_scanner_met
         )
 
 
-def test_generate_signals_fallback_cannot_silently_rebuild_actionable_signals_without_metrics(monkeypatch, tmp_path) -> None:
+def test_generate_signals_fallback_cannot_silently_rebuild_actionable_signals_without_metrics(
+    monkeypatch,
+    tmp_path,
+) -> None:
     generate_report = importlib.import_module("scripts.generate_report")
     signal_generator = importlib.import_module("src.signals.signal_generator")
 
