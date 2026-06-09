@@ -26,21 +26,34 @@ def test_bt131_workflow_uses_python_311_and_read_only_permissions() -> None:
     assert "contents: read" in text
     assert "contents: write" not in text
     assert "persist-credentials: false" in text
+    assert "PYTHONPATH: ${{ github.workspace }}" in text
 
 
 def test_bt131_workflow_orchestrates_real_data_gates_in_order() -> None:
     text = _workflow_text()
 
     ingestion = text.index("Ingest historical Polygon bars when API key is available")
+    generation = text.index("Generate historical trade plans from ingested bars when needed")
     bt9 = text.index("Run BT9 input-pack gate")
     runner = text.index("Run real-data historical entry/exit backtest")
     gate = text.index("Validate accepted real-data evidence when backtest passed")
 
-    assert ingestion < bt9 < runner < gate
+    assert ingestion < generation < bt9 < runner < gate
     assert "scripts/ingest_historical_polygon.py" in text
+    assert "scripts/generate_historical_trade_plans.py" in text
     assert "scripts/validate_bt9_real_historical_input_pack.py" in text
     assert "scripts/run_historical_entry_exit_backtest.py" in text
     assert "scripts/validate_real_data_backtest_evidence_gate.py" in text
+
+
+def test_bt131_workflow_generates_trade_plans_when_source_observations_are_absent() -> None:
+    text = _workflow_text()
+
+    assert "if: ${{ inputs.source_observations == '' }}" in text
+    assert "--bars-root data/historical/bars/1day" in text
+    assert "--output \"${{ steps.runtime.outputs.plans_file }}\"" in text
+    assert "bt131-generated-trade-plans.json" in text
+    assert "historical_trade_plan_generation_exit_code" in text
 
 
 def test_bt131_workflow_forces_real_data_and_blocks_demo_claims() -> None:
@@ -69,6 +82,8 @@ def test_bt131_workflow_uploads_reviewable_evidence_artifacts() -> None:
     assert "bt131-real-data-backtest-evidence" in text
     assert "reports/backtests/*.json" in text
     assert "reports/backtests/*.md" in text
+    assert "data/historical/metadata/*.json" in text
+    assert "data/trade_plans/*manifest*.json" in text
     assert "retention-days: 90" in text
 
 
