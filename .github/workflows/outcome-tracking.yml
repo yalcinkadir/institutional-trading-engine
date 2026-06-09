@@ -12,15 +12,15 @@ on:
         default: "7"
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: repo-write-${{ github.ref }}
+  group: outcome-tracking-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
   outcomes:
-    name: Generate Real Institutional Outcomes
+    name: Generate Institutional Outcome Artifacts
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -31,8 +31,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          persist-credentials: true
-          fetch-depth: 0
+          persist-credentials: false
+          fetch-depth: 1
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -49,7 +49,7 @@ jobs:
           mkdir -p reports/outcomes
           mkdir -p data
 
-      - name: Generate real outcome reports
+      - name: Generate outcome reports
         run: |
           DAYS="${{ github.event.inputs.days || '7' }}"
           python scripts/generate_outcomes.py --days "$DAYS"
@@ -73,28 +73,24 @@ jobs:
             echo "No decision log found. Skipping expectancy learning."
           fi
 
-      - name: Commit outcome reports and expectancy
+      - name: Verify outcome manifest exists
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          git add reports/outcomes/
-          git add reports/expectancy-report.md 2>/dev/null || true
-          git add data/ 2>/dev/null || true
-
-          if git diff --cached --quiet; then
-            echo "No outcome changes to commit"
-          else
-            git commit -m "Update outcomes and expectancy $(date -u +'%Y-%m-%d')"
-            git pull --rebase origin "${GITHUB_REF_NAME}"
-            git push origin "HEAD:${GITHUB_REF_NAME}"
-          fi
+          test -f reports/outcomes/outcome-run-manifest.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          manifest = json.loads(Path('reports/outcomes/outcome-run-manifest.json').read_text())
+          status = manifest.get('run_status')
+          if status not in {'OK', 'NO_ELIGIBLE_SIGNALS', 'BLOCKED_MISSING_INPUTS'}:
+              raise SystemExit(f'unexpected outcome run_status: {status}')
+          print(f"outcome run_status={status}")
+          PY
 
       - name: Upload outcome artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: institutional-outcomes-$(date -u +'%Y-%m-%d')
+          name: institutional-outcomes-${{ github.run_id }}
           path: reports/outcomes/
           retention-days: 90
 
