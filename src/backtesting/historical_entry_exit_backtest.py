@@ -163,6 +163,61 @@ def load_trade_plans(path: Path) -> list[HistoricalTradePlan]:
     return load_trade_plans_with_report(path).plans
 
 
+def _initial_result_fields(plan: HistoricalTradePlan) -> dict[str, Any]:
+    return {
+        "entry_trigger": plan.entry_trigger,
+        "initial_stop_loss": plan.stop_loss,
+        "target_1": plan.target_1,
+        "target_2": plan.target_2,
+    }
+
+
+def _missing_fields_for_result(*, entry_hit: bool, mae_mfe_available: bool) -> dict[str, str]:
+    missing: dict[str, str] = {}
+    if not entry_hit:
+        missing["entry_price"] = "entry_not_hit"
+    if not mae_mfe_available:
+        missing["max_favorable_excursion_r"] = "entry_not_hit_or_no_post_signal_bars"
+        missing["max_adverse_excursion_r"] = "entry_not_hit_or_no_post_signal_bars"
+    return missing
+
+
+def _excursion_fields(plan: HistoricalTradePlan, observed_bars: pd.DataFrame, entry_price: float | None) -> dict[str, float | None]:
+    if entry_price is None or observed_bars.empty:
+        return {"max_favorable_excursion_r": None, "max_adverse_excursion_r": None}
+
+    risk = entry_price - plan.stop_loss
+    if risk <= 0:
+        return {"max_favorable_excursion_r": None, "max_adverse_excursion_r": None}
+
+    highest_high = float(observed_bars["high"].max())
+    lowest_low = float(observed_bars["low"].min())
+    return {
+        "max_favorable_excursion_r": round((highest_high - entry_price) / risk, 4),
+        "max_adverse_excursion_r": round((lowest_low - entry_price) / risk, 4),
+    }
+
+
+def _enriched_result_fields(
+    plan: HistoricalTradePlan,
+    *,
+    entry_price: float | None,
+    observed_bars: pd.DataFrame,
+    same_bar_ambiguous: bool,
+    signal_day_cluster_size: int | None,
+) -> dict[str, Any]:
+    excursions = _excursion_fields(plan, observed_bars, entry_price)
+    mae_mfe_available = excursions["max_favorable_excursion_r"] is not None and excursions["max_adverse_excursion_r"] is not None
+    return {
+        **_initial_result_fields(plan),
+        "entry_price": entry_price,
+        **excursions,
+        "same_bar_ambiguous": same_bar_ambiguous,
+        "missing_field_reasons": _missing_fields_for_result(entry_hit=entry_price is not None, mae_mfe_available=mae_mfe_available),
+        "signal_day_cluster_size": signal_day_cluster_size,
+    }
+
+
 def _result(plan: HistoricalTradePlan, **kwargs: Any) -> HistoricalBacktestResult:
     base = {
         "signal_id": plan.signal_id,
@@ -178,6 +233,13 @@ def _result(plan: HistoricalTradePlan, **kwargs: Any) -> HistoricalBacktestResul
         "r_multiple": 0.0,
         "bars_evaluated": 0,
         "reason": "",
+        **_initial_result_fields(plan),
+        "entry_price": None,
+        "max_favorable_excursion_r": None,
+        "max_adverse_excursion_r": None,
+        "same_bar_ambiguous": False,
+        "missing_field_reasons": _missing_fields_for_result(entry_hit=False, mae_mfe_available=False),
+        "signal_day_cluster_size": None,
     }
     base.update(kwargs)
     return HistoricalBacktestResult(**base)
@@ -219,6 +281,7 @@ def simulate_plan(
     *,
     max_bars: int = 20,
     cfg: BacktestExecutionConfig = BacktestExecutionConfig(),
+    signal_day_cluster_size: int | None = None,
 ) -> HistoricalBacktestResult:
     if plan.stop_model not in SUPPORTED_STOP_MODELS:
         raise ValueError(f"unsupported stop_model: {plan.stop_model!r}")
@@ -239,6 +302,17 @@ def simulate_plan(
     t1 = False
     entry_date: str | None = None
     entry_fill_price: float | None = None
+    entry_index: int | None = None
+
+    def enriched(count: int, same_bar_ambiguous: bool = False) -> dict[str, Any]:
+        observed = future.iloc[entry_index:count] if entry_index is not None else pd.DataFrame()
+        return _enriched_result_fields(
+            plan,
+            entry_price=entry_fill_price,
+            observed_bars=observed,
+            same_bar_ambiguous=same_bar_ambiguous,
+            signal_day_cluster_size=signal_day_cluster_size,
+        )
 
     for index, row in future.iterrows():
         current_date = str(row["date"])
@@ -251,38 +325,186 @@ def simulate_plan(
         if not entered and high >= plan.entry_trigger:
             entered = True
             entry_date = current_date
+            entry_index = index
             entry_fill_price = _entry_fill_price(plan, bar_open, cfg)
+            same_bar_ambiguous = low <= plan.stop_loss and high >= plan.target_1
             if cfg.same_bar_stop_first and low <= plan.stop_loss:
                 fill = _stop_fill_price(plan, bar_open, cfg)
-                return _result(plan, outcome=OUTCOME_STOP_HIT, entry_hit=True, target_1_hit=False, target_2_hit=False, stop_hit=True, false_breakout=True, entry_date=entry_date, exit_date=current_date, exit_price=fill, r_multiple=_r(plan, fill, entry_fill_price), bars_evaluated=count, reason="same_bar_stop_first")
+                return _result(
+                    plan,
+                    outcome=OUTCOME_STOP_HIT,
+                    entry_hit=True,
+                    target_1_hit=False,
+                    target_2_hit=False,
+                    stop_hit=True,
+                    false_breakout=True,
+                    entry_date=entry_date,
+                    exit_date=current_date,
+                    exit_price=fill,
+                    r_multiple=_r(plan, fill, entry_fill_price),
+                    bars_evaluated=count,
+                    reason="same_bar_stop_first",
+                    **enriched(count, same_bar_ambiguous=same_bar_ambiguous),
+                )
             if high >= plan.target_1:
                 t1 = True
                 if t1_only:
-                    return _result(plan, outcome=OUTCOME_TARGET_1_HIT, entry_hit=True, target_1_hit=True, target_2_hit=False, stop_hit=False, false_breakout=False, entry_date=entry_date, exit_date=current_date, exit_price=plan.target_1, r_multiple=_r(plan, plan.target_1, entry_fill_price), bars_evaluated=count, reason="target_1_only_exit")
+                    return _result(
+                        plan,
+                        outcome=OUTCOME_TARGET_1_HIT,
+                        entry_hit=True,
+                        target_1_hit=True,
+                        target_2_hit=False,
+                        stop_hit=False,
+                        false_breakout=False,
+                        entry_date=entry_date,
+                        exit_date=current_date,
+                        exit_price=plan.target_1,
+                        r_multiple=_r(plan, plan.target_1, entry_fill_price),
+                        bars_evaluated=count,
+                        reason="target_1_only_exit",
+                        **enriched(count, same_bar_ambiguous=same_bar_ambiguous),
+                    )
                 if plan.target_2 and high >= plan.target_2:
-                    return _result(plan, outcome=OUTCOME_TARGET_2_HIT, entry_hit=True, target_1_hit=True, target_2_hit=True, stop_hit=False, false_breakout=False, entry_date=entry_date, exit_date=current_date, exit_price=plan.target_2, r_multiple=_r(plan, plan.target_2, entry_fill_price), bars_evaluated=count, reason="target_2_hit")
+                    return _result(
+                        plan,
+                        outcome=OUTCOME_TARGET_2_HIT,
+                        entry_hit=True,
+                        target_1_hit=True,
+                        target_2_hit=True,
+                        stop_hit=False,
+                        false_breakout=False,
+                        entry_date=entry_date,
+                        exit_date=current_date,
+                        exit_price=plan.target_2,
+                        r_multiple=_r(plan, plan.target_2, entry_fill_price),
+                        bars_evaluated=count,
+                        reason="target_2_hit",
+                        **enriched(count, same_bar_ambiguous=same_bar_ambiguous),
+                    )
             continue
 
         if entered:
             if low <= effective_stop:
                 fill = _effective_stop_fill_price(plan=plan, bar_open=bar_open, effective_stop=effective_stop, cfg=cfg)
-                return _result(plan, outcome=OUTCOME_STOP_HIT, entry_hit=True, target_1_hit=t1, target_2_hit=False, stop_hit=True, false_breakout=not t1, entry_date=entry_date, exit_date=current_date, exit_price=fill, r_multiple=_r(plan, fill, entry_fill_price), bars_evaluated=count, reason="breakeven_stop_after_t1" if (t1 and breakeven_after_t1) else "stop_hit")
+                return _result(
+                    plan,
+                    outcome=OUTCOME_STOP_HIT,
+                    entry_hit=True,
+                    target_1_hit=t1,
+                    target_2_hit=False,
+                    stop_hit=True,
+                    false_breakout=not t1,
+                    entry_date=entry_date,
+                    exit_date=current_date,
+                    exit_price=fill,
+                    r_multiple=_r(plan, fill, entry_fill_price),
+                    bars_evaluated=count,
+                    reason="breakeven_stop_after_t1" if (t1 and breakeven_after_t1) else "stop_hit",
+                    **enriched(count),
+                )
             if high >= plan.target_1 and not t1:
                 t1 = True
                 if t1_only:
-                    return _result(plan, outcome=OUTCOME_TARGET_1_HIT, entry_hit=True, target_1_hit=True, target_2_hit=False, stop_hit=False, false_breakout=False, entry_date=entry_date, exit_date=current_date, exit_price=plan.target_1, r_multiple=_r(plan, plan.target_1, entry_fill_price), bars_evaluated=count, reason="target_1_only_exit")
+                    return _result(
+                        plan,
+                        outcome=OUTCOME_TARGET_1_HIT,
+                        entry_hit=True,
+                        target_1_hit=True,
+                        target_2_hit=False,
+                        stop_hit=False,
+                        false_breakout=False,
+                        entry_date=entry_date,
+                        exit_date=current_date,
+                        exit_price=plan.target_1,
+                        r_multiple=_r(plan, plan.target_1, entry_fill_price),
+                        bars_evaluated=count,
+                        reason="target_1_only_exit",
+                        **enriched(count),
+                    )
             if t1 and not t1_only and plan.target_2 and high >= plan.target_2:
-                return _result(plan, outcome=OUTCOME_TARGET_2_HIT, entry_hit=True, target_1_hit=True, target_2_hit=True, stop_hit=False, false_breakout=False, entry_date=entry_date, exit_date=current_date, exit_price=plan.target_2, r_multiple=_r(plan, plan.target_2, entry_fill_price), bars_evaluated=count, reason="target_2_hit")
+                return _result(
+                    plan,
+                    outcome=OUTCOME_TARGET_2_HIT,
+                    entry_hit=True,
+                    target_1_hit=True,
+                    target_2_hit=True,
+                    stop_hit=False,
+                    false_breakout=False,
+                    entry_date=entry_date,
+                    exit_date=current_date,
+                    exit_price=plan.target_2,
+                    r_multiple=_r(plan, plan.target_2, entry_fill_price),
+                    bars_evaluated=count,
+                    reason="target_2_hit",
+                    **enriched(count),
+                )
 
     if not entered:
-        return _result(plan, outcome=OUTCOME_EXPIRED if plan.valid_until else OUTCOME_ENTRY_NOT_HIT, entry_hit=False, target_1_hit=False, target_2_hit=False, stop_hit=False, false_breakout=False, bars_evaluated=len(future), reason="entry_not_hit")
+        return _result(
+            plan,
+            outcome=OUTCOME_EXPIRED if plan.valid_until else OUTCOME_ENTRY_NOT_HIT,
+            entry_hit=False,
+            target_1_hit=False,
+            target_2_hit=False,
+            stop_hit=False,
+            false_breakout=False,
+            bars_evaluated=len(future),
+            reason="entry_not_hit",
+            signal_day_cluster_size=signal_day_cluster_size,
+        )
 
     close = float(future.iloc[-1]["close"]) if not future.empty else (entry_fill_price or plan.entry_trigger)
     if t1 and plan.exit_model != "t1_t2":
-        return _result(plan, outcome=OUTCOME_TARGET_1_HIT, entry_hit=True, target_1_hit=True, target_2_hit=False, stop_hit=False, false_breakout=False, entry_date=entry_date, exit_date=entry_date, exit_price=plan.target_1, r_multiple=_r(plan, plan.target_1, entry_fill_price), bars_evaluated=len(future), reason="target_1_only")
+        return _result(
+            plan,
+            outcome=OUTCOME_TARGET_1_HIT,
+            entry_hit=True,
+            target_1_hit=True,
+            target_2_hit=False,
+            stop_hit=False,
+            false_breakout=False,
+            entry_date=entry_date,
+            exit_date=entry_date,
+            exit_price=plan.target_1,
+            r_multiple=_r(plan, plan.target_1, entry_fill_price),
+            bars_evaluated=len(future),
+            reason="target_1_only",
+            **enriched(len(future)),
+        )
     if t1:
-        return _result(plan, outcome=OUTCOME_EXPIRED, entry_hit=True, target_1_hit=True, target_2_hit=False, stop_hit=False, false_breakout=False, entry_date=entry_date, exit_date=str(future.iloc[-1]["date"]) if not future.empty else entry_date, exit_price=close, r_multiple=_r(plan, close, entry_fill_price), bars_evaluated=len(future), reason="expired_after_target_1_without_target_2")
-    return _result(plan, outcome=OUTCOME_EXPIRED, entry_hit=True, target_1_hit=False, target_2_hit=False, stop_hit=False, false_breakout=True, entry_date=entry_date, exit_date=str(future.iloc[-1]["date"]) if not future.empty else entry_date, exit_price=close, r_multiple=_r(plan, close, entry_fill_price), bars_evaluated=len(future), reason="no_exit_level_hit")
+        return _result(
+            plan,
+            outcome=OUTCOME_EXPIRED,
+            entry_hit=True,
+            target_1_hit=True,
+            target_2_hit=False,
+            stop_hit=False,
+            false_breakout=False,
+            entry_date=entry_date,
+            exit_date=str(future.iloc[-1]["date"]) if not future.empty else entry_date,
+            exit_price=close,
+            r_multiple=_r(plan, close, entry_fill_price),
+            bars_evaluated=len(future),
+            reason="expired_after_target_1_without_target_2",
+            **enriched(len(future)),
+        )
+    return _result(
+        plan,
+        outcome=OUTCOME_EXPIRED,
+        entry_hit=True,
+        target_1_hit=False,
+        target_2_hit=False,
+        stop_hit=False,
+        false_breakout=True,
+        entry_date=entry_date,
+        exit_date=str(future.iloc[-1]["date"]) if not future.empty else entry_date,
+        exit_price=close,
+        r_multiple=_r(plan, close, entry_fill_price),
+        bars_evaluated=len(future),
+        reason="no_exit_level_hit",
+        **enriched(len(future)),
+    )
 
 
 def calculate_metrics(results: list[HistoricalBacktestResult]) -> HistoricalBacktestMetrics:
@@ -319,6 +541,14 @@ def _derive_backtest_input_health(
     return "OK", "OK"
 
 
+def _signal_day_cluster_sizes(plans: list[HistoricalTradePlan]) -> dict[tuple[str, str], int]:
+    counts: dict[tuple[str, str], int] = {}
+    for plan in plans:
+        key = (plan.symbol, plan.signal_date)
+        counts[key] = counts.get(key, 0) + 1
+    return counts
+
+
 def run_backtest(
     plans: list[HistoricalTradePlan],
     *,
@@ -338,10 +568,19 @@ def run_backtest(
 ) -> HistoricalBacktestReport:
     cache: dict[str, pd.DataFrame] = {}
     results: list[HistoricalBacktestResult] = []
+    cluster_sizes = _signal_day_cluster_sizes(plans)
     for plan in plans:
         if plan.symbol not in cache:
             cache[plan.symbol] = load_historical_bars(bars_root / f"{plan.symbol}.csv")
-        results.append(simulate_plan(plan, cache[plan.symbol], max_bars=max_bars, cfg=cfg))
+        results.append(
+            simulate_plan(
+                plan,
+                cache[plan.symbol],
+                max_bars=max_bars,
+                cfg=cfg,
+                signal_day_cluster_size=cluster_sizes.get((plan.symbol, plan.signal_date)),
+            )
+        )
 
     load_report = plan_load_report or HistoricalTradePlanLoadReport(
         input_plan_count=len(plans),
