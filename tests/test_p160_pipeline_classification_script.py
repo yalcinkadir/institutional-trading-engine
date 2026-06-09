@@ -7,11 +7,12 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts/classify_pipeline_modules_p160.py"
 
 
-def test_p160_script_declares_expected_counts_and_baseline() -> None:
+def test_p160_script_declares_expected_count_and_dynamic_baseline() -> None:
     text = SCRIPT.read_text(encoding="utf-8")
 
     assert "EXPECTED_NEW_COUNT = 88" in text
-    assert "EXPECTED_RESULTING_UNCLASSIFIED_BASELINE = 196" in text
+    assert "derive_unclassified_baseline" in text
+    assert "unclassified_legacy_modules" in text
 
 
 def test_p160_runtime_proof_constants_are_present() -> None:
