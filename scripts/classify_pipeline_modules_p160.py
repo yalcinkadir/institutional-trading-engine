@@ -2,8 +2,8 @@
 """One-shot script: classify pipeline-relevant modules for issue #160.
 
 Run once, then discard. Reads the existing classification JSON, merges in
-P160 pipeline-module entries, writes the file back, and regenerates the module
-inventory.
+P160 pipeline-module entries, writes the file back, derives the legacy baseline
+from the generated inventory, and regenerates the module inventory.
 
 Does NOT touch already-classified modules.
 """
@@ -17,6 +17,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CLASSIFICATION_PATH = ROOT / "docs" / "architecture" / "module_classification.json"
+INVENTORY_PATH = ROOT / "docs" / "architecture" / "module_inventory.generated.json"
 
 CONNECTED_RUNTIME_PATHS = [
     "src/backtesting/historical_entry_exit_backtest.py",
@@ -116,7 +117,6 @@ EXPERIMENTAL_PATHS = [
 ]
 
 EXPECTED_NEW_COUNT = 88
-EXPECTED_RESULTING_UNCLASSIFIED_BASELINE = 196
 RUNTIME_ENTRYPOINT = "scripts/run_historical_entry_exit_backtest.py"
 RUNTIME_EXECUTION_PROOF = "tests/test_bt130_real_historical_evidence_pack_gate.py"
 
@@ -181,6 +181,19 @@ def write_classification(payload: dict) -> None:
     )
 
 
+def generate_inventory() -> int:
+    return subprocess.run(
+        [sys.executable, "scripts/generate_module_inventory.py"],
+        cwd=ROOT,
+        check=False,
+    ).returncode
+
+
+def derive_unclassified_baseline() -> int:
+    inventory = json.loads(INVENTORY_PATH.read_text(encoding="utf-8"))
+    return int(inventory["counters"]["unclassified_legacy_modules"])
+
+
 def merge_entries(payload: dict) -> tuple[int, list[str]]:
     classified = payload.setdefault("classified_modules", {})
     skipped: list[str] = []
@@ -191,7 +204,6 @@ def merge_entries(payload: dict) -> tuple[int, list[str]]:
             continue
         classified[path] = record
         added += 1
-    payload["unclassified_legacy_baseline_limit"] = EXPECTED_RESULTING_UNCLASSIFIED_BASELINE
     return added, skipped
 
 
@@ -205,18 +217,24 @@ def main() -> int:
 
     payload = load_classification()
     added, skipped = merge_entries(payload)
+    payload.pop("unclassified_legacy_baseline_limit", None)
     write_classification(payload)
 
-    result = subprocess.run(
-        [sys.executable, "scripts/generate_module_inventory.py"],
-        cwd=ROOT,
-        check=False,
-    )
-    if result.returncode != 0:
-        return result.returncode
+    result = generate_inventory()
+    if result != 0:
+        return result
 
+    payload = load_classification()
+    payload["unclassified_legacy_baseline_limit"] = derive_unclassified_baseline()
+    write_classification(payload)
+
+    result = generate_inventory()
+    if result != 0:
+        return result
+
+    baseline = payload["unclassified_legacy_baseline_limit"]
     print(f"P160 classification merge complete: added={added}, skipped_existing={len(skipped)}")
-    print(f"Unclassified legacy baseline set to {EXPECTED_RESULTING_UNCLASSIFIED_BASELINE}")
+    print(f"Unclassified legacy baseline set to {baseline}")
     return 0
 
 
