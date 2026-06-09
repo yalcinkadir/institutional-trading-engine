@@ -53,6 +53,7 @@ jobs:
     env:
       POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
       VOLATILITY_PROXY_SYMBOL: ${{ vars.VOLATILITY_PROXY_SYMBOL || 'VIXY' }}
+      PYTHONPATH: ${{ github.workspace }}
 
     steps:
       - name: Checkout repository
@@ -126,6 +127,23 @@ jobs:
             --json > reports/backtests/bt131-historical-ingestion.json
           status=$?
           echo "historical_ingestion_exit_code=${status}" >> reports/backtests/bt131-runtime-status.env
+          exit 0
+
+      - name: Generate historical trade plans from ingested bars when needed
+        if: ${{ inputs.source_observations == '' }}
+        run: |
+          if [ -f "${{ steps.runtime.outputs.plans_file }}" ]; then
+            echo "historical_trade_plan_generation_status=SKIPPED_EXISTING_PLANS_FILE" >> reports/backtests/bt131-runtime-status.env
+            exit 0
+          fi
+
+          set +e
+          python scripts/generate_historical_trade_plans.py \
+            --bars-root data/historical/bars/1day \
+            --output "${{ steps.runtime.outputs.plans_file }}" \
+            > reports/backtests/bt131-generated-trade-plans.json
+          status=$?
+          echo "historical_trade_plan_generation_exit_code=${status}" >> reports/backtests/bt131-runtime-status.env
           exit 0
 
       - name: Run BT9 input-pack gate
