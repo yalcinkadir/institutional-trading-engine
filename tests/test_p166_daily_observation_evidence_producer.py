@@ -60,7 +60,7 @@ def test_p166_producer_builds_schema_valid_daily_evidence_with_vix_proxy(monkeyp
     assert vix_input["live_or_paper_confidence_authorized"] is False
 
 
-ndef test_p166_producer_blocks_when_regime_unvalidated(monkeypatch) -> None:
+def test_p166_producer_blocks_when_regime_unvalidated(monkeypatch) -> None:
     monkeypatch.setattr(producer, "build_market_regime_summary", lambda _report_type: _regime("UNVALIDATED", "FALLBACK"))
 
     record = producer.build_daily_evidence(
