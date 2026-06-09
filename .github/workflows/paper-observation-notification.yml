@@ -12,22 +12,21 @@ on:
           - STARTED
           - COMPLETED
           - FAILED
-  schedule:
-    # Runs on weekdays after the regular US market close window.
-    - cron: "15 22 * * 1-5"
 
 permissions:
   contents: read
 
 jobs:
   notify:
-    name: Send paper observation notification
+    name: Send manual paper observation notification
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -49,7 +48,7 @@ jobs:
         run: |
           cat reports/paper_observation/paper_observation_asset_timeline.md
 
-      - name: Send B1.1 paper observation Telegram notification
+      - name: Send manual B1.1 paper observation Telegram notification
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
