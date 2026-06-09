@@ -6,8 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       observation_date:
-        description: "Observation date in YYYY-MM-DD format. Defaults to current UTC date."
+        description: "Observation date in YYYY-MM-DD format, or auto for current UTC date."
         required: false
+        default: "auto"
         type: string
       minimum_records:
         description: "Minimum records required for PO9 gate evaluation."
@@ -17,6 +18,7 @@ on:
       selected_symbols:
         description: "Comma-separated paper observation symbols. Defaults to configured P166 universe."
         required: false
+        default: "MSFT,NVDA,META,AAPL,MU,QQQ,GLD,SLV"
         type: string
 
 permissions:
@@ -58,7 +60,10 @@ jobs:
           OBSERVATION_DATE: ${{ inputs.observation_date }}
           SELECTED_SYMBOLS: ${{ inputs.selected_symbols }}
         run: |
-          observation_date="${OBSERVATION_DATE:-$(date -u +%F)}"
+          observation_date="${OBSERVATION_DATE:-auto}"
+          if [ "$observation_date" = "auto" ]; then
+            observation_date="$(date -u +%F)"
+          fi
           args=(--observation-date "$observation_date")
           if [ -n "${SELECTED_SYMBOLS:-}" ]; then
             args+=(--selected-symbols "$SELECTED_SYMBOLS")
@@ -82,7 +87,11 @@ jobs:
               write_daily_observation_automation_artifact,
           )
 
-          observation_date = os.environ.get("OBSERVATION_DATE") or datetime.now(timezone.utc).date().isoformat()
+          raw_observation_date = os.environ.get("OBSERVATION_DATE") or "auto"
+          if raw_observation_date == "auto":
+              observation_date = datetime.now(timezone.utc).date().isoformat()
+          else:
+              observation_date = raw_observation_date
           minimum_records = int(os.environ.get("MINIMUM_RECORDS") or "1")
           created_at = f"{observation_date}T00:00:00Z"
 
