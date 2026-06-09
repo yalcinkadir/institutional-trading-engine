@@ -11,6 +11,13 @@ from src.scoring.market_health_score import MarketHealthScore
 INDEX_TICKERS = ["SPY", "QQQ"]
 VIX_TICKER = "I:VIX"
 NEUTRAL_FALLBACK_VIX = 20.0
+VIX_UNAVAILABLE_ENTITLEMENT = "VIX_UNAVAILABLE_ENTITLEMENT"
+VIX_UNAVAILABLE = "VIX_UNAVAILABLE"
+REGIME_STATUS_LIVE = "LIVE"
+REGIME_STATUS_DEGRADED = "DEGRADED"
+REGIME_STATUS_UNVALIDATED = "UNVALIDATED"
+REGIME_STATUS_BLOCKED = "BLOCKED"
+UNVALIDATED_REGIME = "UNVALIDATED_REGIME"
 BREADTH_UNIVERSE = [
     "MSFT",
     "NVDA",
@@ -65,10 +72,22 @@ def _safe_symbol_snapshot(client: PolygonClient, ticker: str) -> dict:
     }
 
 
+def _is_vix_entitlement_error(ticker: str, exc: Exception | str | None) -> bool:
+    if ticker != VIX_TICKER or exc is None:
+        return False
+    text = str(exc).lower()
+    return "403" in text or "forbidden" in text or "entitlement" in text
+
+
 def _try_symbol_snapshot(client: PolygonClient, ticker: str) -> tuple[dict | None, str | None]:
     try:
         return _safe_symbol_snapshot(client, ticker), None
     except Exception as exc:
+        if _is_vix_entitlement_error(ticker, exc):
+            return None, (
+                f"{ticker}: {VIX_UNAVAILABLE_ENTITLEMENT}: "
+                "Polygon VIX index entitlement unavailable; regime validation is unvalidated"
+            )
         return None, f"{ticker}: {type(exc).__name__}: {exc}"
 
 
@@ -127,6 +146,18 @@ def _fallback_snapshot(ticker: str) -> dict:
     }
 
 
+def _vix_failure_reason(vix_error: str | None) -> str:
+    if vix_error and VIX_UNAVAILABLE_ENTITLEMENT in vix_error:
+        return VIX_UNAVAILABLE_ENTITLEMENT
+    return VIX_UNAVAILABLE
+
+
+def _vix_status(vix_error: str | None) -> str:
+    if vix_error and VIX_UNAVAILABLE_ENTITLEMENT in vix_error:
+        return REGIME_STATUS_UNVALIDATED
+    return REGIME_STATUS_DEGRADED
+
+
 def _vix_regime_input(
     *,
     vix: dict | None,
@@ -138,22 +169,28 @@ def _vix_regime_input(
             "symbol": VIX_TICKER,
             "source": "polygon",
             "timestamp": timestamp_utc,
-            "status": "LIVE",
+            "status": REGIME_STATUS_LIVE,
+            "validation_status": REGIME_STATUS_LIVE,
             "value": float(vix["close"]),
             "fallback_used": False,
             "fallback_value": None,
+            "reason": None,
             "error": None,
         }
 
+    reason = _vix_failure_reason(vix_error)
     return {
         "symbol": VIX_TICKER,
         "source": "polygon",
         "timestamp": timestamp_utc,
-        "status": "DEGRADED",
+        "status": _vix_status(vix_error),
+        "validation_status": REGIME_STATUS_UNVALIDATED,
         "value": NEUTRAL_FALLBACK_VIX,
         "fallback_used": True,
         "fallback_value": NEUTRAL_FALLBACK_VIX,
+        "reason": reason,
         "error": vix_error or "VIX input unavailable",
+        "live_or_paper_confidence_authorized": False,
     }
 
 
@@ -170,11 +207,11 @@ def _index_trend_regime_input(
         symbols.append("QQQ")
 
     if not symbols:
-        status = "BLOCKED"
+        status = REGIME_STATUS_BLOCKED
     elif len(symbols) < 2:
-        status = "DEGRADED"
+        status = REGIME_STATUS_DEGRADED
     else:
-        status = "LIVE"
+        status = REGIME_STATUS_LIVE
 
     return {
         "symbols": symbols,
@@ -208,7 +245,9 @@ def _calculate_partial_market_score(
         breadth_percent=float(breadth.get("breadth_percent", 0)),
     ).calculate()
 
-    if vix_input.get("fallback_used"):
+    if vix_input.get("validation_status") == REGIME_STATUS_UNVALIDATED:
+        score["regime"] = UNVALIDATED_REGIME
+    elif vix_input.get("fallback_used"):
         score["regime"] = f"{score['regime']} (VIX degraded)"
 
     return score
@@ -220,17 +259,19 @@ def _blocked_client_regime_input(timestamp_utc: str, error: str) -> dict[str, An
             "symbol": VIX_TICKER,
             "source": "polygon",
             "timestamp": timestamp_utc,
-            "status": "BLOCKED",
+            "status": REGIME_STATUS_BLOCKED,
+            "validation_status": REGIME_STATUS_BLOCKED,
             "value": None,
             "fallback_used": False,
             "fallback_value": None,
+            "reason": "POLYGON_CLIENT_UNAVAILABLE",
             "error": error,
         },
         "index_trend": {
             "symbols": [],
             "source": "polygon",
             "timestamp": timestamp_utc,
-            "status": "BLOCKED",
+            "status": REGIME_STATUS_BLOCKED,
             "required_symbols": INDEX_TICKERS,
         },
     }
@@ -257,6 +298,7 @@ def build_market_regime_summary(report_type: str) -> dict:
                 f"Error: {type(exc).__name__}: {exc}",
             ],
             "data_status": "FALLBACK",
+            "regime_validation_status": REGIME_STATUS_BLOCKED,
             "errors": [error],
             "regime_input": _blocked_client_regime_input(timestamp_utc, error),
         }
@@ -296,9 +338,14 @@ def build_market_regime_summary(report_type: str) -> dict:
     if vix is not None:
         symbols["VIX"] = vix
 
-    if regime_input["index_trend"]["status"] == "BLOCKED":
+    regime_validation_status = str(regime_input["vix"].get("validation_status") or "UNKNOWN")
+    if regime_input["index_trend"]["status"] == REGIME_STATUS_BLOCKED:
         data_status = "FALLBACK"
-    elif errors or regime_input["vix"]["status"] != "LIVE" or regime_input["index_trend"]["status"] != "LIVE":
+    elif (
+        errors
+        or regime_input["vix"]["status"] != REGIME_STATUS_LIVE
+        or regime_input["index_trend"]["status"] != REGIME_STATUS_LIVE
+    ):
         data_status = "PARTIAL"
     else:
         data_status = "LIVE"
@@ -312,6 +359,10 @@ def build_market_regime_summary(report_type: str) -> dict:
         notes.append(
             f"VIX data unavailable; scoring used a neutral fallback VIX value of {NEUTRAL_FALLBACK_VIX}."
         )
+    if regime_validation_status == REGIME_STATUS_UNVALIDATED:
+        notes.append(
+            "VIX/regime validation is UNVALIDATED; unavailable VIX evidence does not authorize live or paper confidence claims."
+        )
 
     if errors:
         notes.append("Some market data feeds failed; report is running in degraded mode.")
@@ -320,6 +371,7 @@ def build_market_regime_summary(report_type: str) -> dict:
         "timestamp_utc": timestamp_utc,
         "market_health_score": score["score"],
         "regime": score["regime"],
+        "regime_validation_status": regime_validation_status,
         "focus_areas": _focus_areas(report_type),
         "symbols": symbols,
         "breadth": breadth,
