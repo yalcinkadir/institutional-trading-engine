@@ -1,22 +1,24 @@
 {
   "broker_execution_mode": "paper_only",
+  "bt132_recommendation_count": 3,
+  "bt132_review_status": "READY_FOR_REVIEW",
   "data_source": "real_data",
-  "github_run_id": "27224765319",
+  "github_run_id": "27232937046",
   "input_completeness_status": "OK",
   "input_pack_gate_status": "PASSED",
   "is_demo": false,
   "metrics": {
-    "average_r": 0.4898,
+    "average_r": 0.2763,
     "entry_hit_rate": 0.9583,
-    "expectancy_r": 0.4898,
+    "expectancy_r": 0.2763,
     "expired_without_entry_rate": 0.0417,
     "false_breakout_rate": 0.5,
-    "stop_hit_rate": 0.4583,
+    "stop_hit_rate": 0.5,
     "target_1_hit_rate": 0.4583,
-    "target_2_hit_rate": 0.2917,
+    "target_2_hit_rate": 0.25,
     "total": 24
   },
   "run_health_status": "OK",
   "run_id": "bt131-real-data-manual",
-  "updated_at": "2026-06-09T17:44:59.387605Z"
+  "updated_at": "2026-06-09T20:13:39.545923Z"
 }
