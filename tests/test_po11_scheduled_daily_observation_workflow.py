@@ -24,6 +24,17 @@ def test_po11_workflow_has_schedule_and_manual_dispatch() -> None:
     assert "selected_symbols:" in text
 
 
+def test_po11_manual_dispatch_inputs_are_prefilled() -> None:
+    text = _workflow_text()
+
+    assert 'default: "auto"' in text
+    assert 'default: "1"' in text
+    assert 'default: "MSFT,NVDA,META,AAPL,MU,QQQ,GLD,SLV"' in text
+    assert 'Observation date in YYYY-MM-DD format, or auto for current UTC date.' in text
+    assert "if [ \"$observation_date\" = \"auto\" ]; then" in text
+    assert 'raw_observation_date = os.environ.get("OBSERVATION_DATE") or "auto"' in text
+
+
 def test_po11_workflow_runs_p166_producer_before_po10_automation_runner() -> None:
     text = _workflow_text()
 
