@@ -1,8 +1,8 @@
 # Institutional Trading Engine Roadmap
 
-Status date: 2026-06-07
+Status date: 2026-06-09
 
-Current state: TEST1 Evidence-Oriented TDD Policy is active. EV1-EV12 evidence-integrity remediation is implemented and CI-green. CI runtime simplification is implemented and CI-green. PO128 and PO129 silent-failure/dataflow guards are implemented and CI-green. W1 Entry/Exit Watcher Git-Write Decoupling is implemented and CI-green. P132 Scanner Runtime Boundary is implemented and CI-green. BT130 Real Historical Backtest Evidence Pack Gate is implemented and CI-pending. PortfolioState fail-closed fixture migration (#102) is validated and closed.
+Current state: TEST1 Evidence-Oriented TDD Policy is active. EV1-EV12 evidence-integrity remediation is implemented and CI-green. CI runtime simplification is implemented and CI-green. PO128 and PO129 silent-failure/dataflow guards are implemented and CI-green. W1 Entry/Exit Watcher Git-Write Decoupling is implemented and CI-green. P132 Scanner Runtime Boundary is implemented and CI-green. P160 module classification baseline is completed. P161 Dataflow Contract Matrix is implemented and CI-pending. BT130 Real Historical Backtest Evidence Pack Gate is implemented / CI-pending. PortfolioState fail-closed fixture migration (#102) is validated and closed.
 
 The system remains research / decision-support / paper-observation only. Real-money execution is not authorized by code.
 
@@ -74,6 +74,17 @@ BT130 requires real-data backtest evidence packs to include run identity, real-d
 
 P132 requires runtime reports and Paper Observation evidence to expose `selection_mode`, selected symbols and selection reason. Static watchlists are allowed as research setup only and must not claim dynamic scanner breadth or trading-edge proof. Dynamic scanner claims require a documented scanner contract reference.
 
+## Phase P160/P161 — Architecture Classification & Dataflow Contracts
+
+| ID | Task | Priority | Impact | Status |
+|---|---|---:|---:|---|
+| P160 | Classify unclassified legacy modules before expanding runtime scope | P1 | High | Done / CI-green |
+| P161 | Dataflow Contract Matrix: Scanner → Signals → Quality → Validator → Watcher → Evidence | P1 | High | Implemented / CI-pending |
+
+P161 defines required pipeline fields, canonical `atr14` naming, allowed `atr` boundary aliasing, runtime producer/consumer ownership and fail-closed behavior. Missing critical fields must become `BLOCKED_MISSING_INPUTS`, not silent `NO_TRADE_VALID` output.
+
+Contract document: `docs/architecture/dataflow_contract_matrix.md`.
+
 ## Phase RGP — Runtime Governance Proof Pack
 
 | ID | Task | Priority | Impact | Status |
@@ -143,6 +154,7 @@ PFA joins position-level risk attribution with forward outcome evidence. It does
 
 - #102: PortfolioState fail-closed fixture migration validated and closed. Runtime remains fail-closed for missing or non-boolean `governance_valid`; test fixtures that need a valid state set `governance_valid=true`; committed default `data/portfolio_state.json` remains `governance_valid=false` until real paper/broker state exists.
 - #132: Scanner Runtime Boundary validated and closed. Runtime reports and Paper Observation evidence must expose `selection_mode`; static watchlists remain research setup only and cannot claim dynamic scanner breadth or trading-edge proof.
+- #160: Module classification baseline validated and closed. Pipeline-relevant modules have explicit classification, and the architecture inventory is regenerated under guard.
 
 ## Recommended Next Remediation Order
 
