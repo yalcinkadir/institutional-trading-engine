@@ -38,7 +38,11 @@ on:
         type: string
 
 permissions:
-  contents: read
+  contents: write
+
+concurrency:
+  group: repo-write-${{ github.ref }}
+  cancel-in-progress: false
 
 defaults:
   run:
@@ -59,7 +63,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          persist-credentials: false
+          persist-credentials: true
           fetch-depth: 1
 
       - name: Setup Python
@@ -237,6 +241,71 @@ jobs:
           print("BT131 input gate:", payload.get("input_pack_gate_status"))
           PY
 
+      - name: Persist validated backtest reports to repository
+        if: success()
+        env:
+          RUN_ID: ${{ steps.runtime.outputs.run_id }}
+          GITHUB_RUN_ID_VALUE: ${{ github.run_id }}
+        run: |
+          backtest_status=$(grep '^backtest_exit_code=' reports/backtests/bt131-runtime-status.env | tail -1 | cut -d= -f2 || echo "1")
+          if [ "$backtest_status" != "0" ]; then
+            echo "Skipping repo persistence because backtest did not pass."
+            exit 0
+          fi
+
+          report_dir="reports/backtests/real_data/runs/${GITHUB_RUN_ID_VALUE}"
+          latest_dir="reports/backtests/real_data/latest"
+          mkdir -p "$report_dir" "$latest_dir"
+
+          cp reports/backtests/real-data-backtest-evidence.json "$report_dir/real-data-backtest-evidence.json"
+          cp reports/backtests/real-data-backtest-evidence.md "$report_dir/real-data-backtest-evidence.md"
+          cp reports/backtests/bt9-real-historical-input-pack-gate.json "$report_dir/bt9-real-historical-input-pack-gate.json"
+          cp reports/backtests/real-data-backtest-evidence-gate.json "$report_dir/real-data-backtest-evidence-gate.json"
+          cp reports/backtests/bt131-runtime-universe.json "$report_dir/bt131-runtime-universe.json"
+          cp reports/backtests/bt131-generated-trade-plans.json "$report_dir/bt131-generated-trade-plans.json" || true
+          cp data/historical/metadata/coverage_manifest.json "$report_dir/coverage_manifest.json"
+          cp data/historical/metadata/ingestion_status.json "$report_dir/ingestion_status.json"
+          cp data/historical/metadata/bt131_runtime_universe.csv "$report_dir/bt131_runtime_universe.csv"
+          cp "${{ steps.runtime.outputs.plans_file }}" "$report_dir/historical_trade_plans.json"
+
+          rm -rf "$latest_dir"
+          mkdir -p "$latest_dir"
+          cp "$report_dir"/* "$latest_dir"/
+
+          python - <<'PY'
+          import json
+          from datetime import datetime, timezone
+          from pathlib import Path
+          import os
+
+          latest = Path("reports/backtests/real_data/latest")
+          evidence = json.loads((latest / "real-data-backtest-evidence.json").read_text(encoding="utf-8"))
+          index = {
+              "updated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+              "github_run_id": os.environ["GITHUB_RUN_ID_VALUE"],
+              "run_id": evidence.get("run_id"),
+              "data_source": evidence.get("data_source"),
+              "is_demo": evidence.get("is_demo"),
+              "input_pack_gate_status": evidence.get("input_pack_gate_status"),
+              "input_completeness_status": evidence.get("input_completeness_status"),
+              "run_health_status": evidence.get("run_health_status"),
+              "broker_execution_mode": evidence.get("broker_execution_mode"),
+              "metrics": evidence.get("metrics", {}),
+          }
+          Path("reports/backtests/real_data/index.json").write_text(json.dumps(index, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase
+          git add reports/backtests/real_data/
+          if git diff --cached --quiet; then
+            echo "No backtest report changes to commit."
+            exit 0
+          fi
+          git commit -m "Persist BT131 real-data backtest reports (${GITHUB_RUN_ID_VALUE})"
+          git push
+
       - name: Upload real-data backtest evidence artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -245,6 +314,9 @@ jobs:
           path: |
             reports/backtests/*.json
             reports/backtests/*.md
+            reports/backtests/real_data/**/*.json
+            reports/backtests/real_data/**/*.md
+            reports/backtests/real_data/**/*.csv
             data/historical/metadata/*.json
             data/historical/metadata/*.csv
             data/trade_plans/*.json
