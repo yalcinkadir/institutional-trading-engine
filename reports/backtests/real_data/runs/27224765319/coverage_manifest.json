@@ -1,0 +1,94 @@
+{
+  "generated_at": "2026-06-09T17:44:58+00:00",
+  "missing_data_summary": [],
+  "multiplier": 1,
+  "ok_symbol_count": 8,
+  "requested_end_date": "2026-06-01",
+  "requested_start_date": "2024-01-01",
+  "status": "ok",
+  "symbol_count": 8,
+  "symbols": [
+    {
+      "bar_count": 605,
+      "end_date": "2026-06-01",
+      "missing_data_summary": [],
+      "output_path": "data/historical/bars/1day/MSFT.csv",
+      "rows_fetched": 605,
+      "start_date": "2024-01-01",
+      "status": "ok",
+      "symbol": "MSFT"
+    },
+    {
+      "bar_count": 605,
+      "end_date": "2026-06-01",
+      "missing_data_summary": [],
+      "output_path": "data/historical/bars/1day/NVDA.csv",
+      "rows_fetched": 605,
+      "start_date": "2024-01-01",
+      "status": "ok",
+      "symbol": "NVDA"
+    },
+    {
+      "bar_count": 605,
+      "end_date": "2026-06-01",
+      "missing_data_summary": [],
+      "output_path": "data/historical/bars/1day/META.csv",
+      "rows_fetched": 605,
+      "start_date": "2024-01-01",
+      "status": "ok",
+      "symbol": "META"
+    },
+    {
+      "bar_count": 605,
+      "end_date": "2026-06-01",
+      "missing_data_summary": [],
+      "output_path": "data/historical/bars/1day/AAPL.csv",
+      "rows_fetched": 605,
+      "start_date": "2024-01-01",
+      "status": "ok",
+      "symbol": "AAPL"
+    },
+    {
+      "bar_count": 605,
+      "end_date": "2026-06-01",
+      "missing_data_summary": [],
+      "output_path": "data/historical/bars/1day/MU.csv",
+      "rows_fetched": 605,
+      "start_date": "2024-01-01",
+      "status": "ok",
+      "symbol": "MU"
+    },
+    {
+      "bar_count": 605,
+      "end_date": "2026-06-01",
+      "missing_data_summary": [],
+      "output_path": "data/historical/bars/1day/QQQ.csv",
+      "rows_fetched": 605,
+      "start_date": "2024-01-01",
+      "status": "ok",
+      "symbol": "QQQ"
+    },
+    {
+      "bar_count": 605,
+      "end_date": "2026-06-01",
+      "missing_data_summary": [],
+      "output_path": "data/historical/bars/1day/GLD.csv",
+      "rows_fetched": 605,
+      "start_date": "2024-01-01",
+      "status": "ok",
+      "symbol": "GLD"
+    },
+    {
+      "bar_count": 605,
+      "end_date": "2026-06-01",
+      "missing_data_summary": [],
+      "output_path": "data/historical/bars/1day/SLV.csv",
+      "rows_fetched": 605,
+      "start_date": "2024-01-01",
+      "status": "ok",
+      "symbol": "SLV"
+    }
+  ],
+  "timespan": "day",
+  "vendor": "polygon"
+}

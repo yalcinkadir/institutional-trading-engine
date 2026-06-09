@@ -1,0 +1,21 @@
+{
+  "passed": true,
+  "universe_path": "data/historical/metadata/bt131_runtime_universe.csv",
+  "bars_root": "data/historical/bars/1day",
+  "trade_plans_path": "data/trade_plans/historical_trade_plans.json",
+  "symbols": [
+    "AAPL",
+    "GLD",
+    "META",
+    "MSFT",
+    "MU",
+    "NVDA",
+    "QQQ",
+    "SLV"
+  ],
+  "date_range": {
+    "start": "2024-01-02",
+    "end": "2026-06-01"
+  },
+  "failures": []
+}

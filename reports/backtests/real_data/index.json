@@ -1,0 +1,22 @@
+{
+  "broker_execution_mode": "paper_only",
+  "data_source": "real_data",
+  "github_run_id": "27224765319",
+  "input_completeness_status": "OK",
+  "input_pack_gate_status": "PASSED",
+  "is_demo": false,
+  "metrics": {
+    "average_r": 0.4898,
+    "entry_hit_rate": 0.9583,
+    "expectancy_r": 0.4898,
+    "expired_without_entry_rate": 0.0417,
+    "false_breakout_rate": 0.5,
+    "stop_hit_rate": 0.4583,
+    "target_1_hit_rate": 0.4583,
+    "target_2_hit_rate": 0.2917,
+    "total": 24
+  },
+  "run_health_status": "OK",
+  "run_id": "bt131-real-data-manual",
+  "updated_at": "2026-06-09T17:44:59.387605Z"
+}

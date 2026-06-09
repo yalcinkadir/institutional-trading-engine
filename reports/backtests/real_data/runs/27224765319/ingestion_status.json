@@ -1,0 +1,109 @@
+{
+  "symbols": {
+    "AAPL:1:day": {
+      "end_date": "2026-06-01",
+      "last_updated_at": "2026-06-09T17:44:57+00:00",
+      "message": "",
+      "multiplier": 1,
+      "output_path": "data/historical/bars/1day/AAPL.csv",
+      "rows_fetched": 605,
+      "rows_written": 605,
+      "start_date": "2024-01-01",
+      "status": "ok",
+      "symbol": "AAPL",
+      "timespan": "day"
+    },
+    "GLD:1:day": {
+      "end_date": "2026-06-01",
+      "last_updated_at": "2026-06-09T17:44:58+00:00",
+      "message": "",
+      "multiplier": 1,
+      "output_path": "data/historical/bars/1day/GLD.csv",
+      "rows_fetched": 605,
+      "rows_written": 605,
+      "start_date": "2024-01-01",
+      "status": "ok",
+      "symbol": "GLD",
+      "timespan": "day"
+    },
+    "META:1:day": {
+      "end_date": "2026-06-01",
+      "last_updated_at": "2026-06-09T17:44:56+00:00",
+      "message": "",
+      "multiplier": 1,
+      "output_path": "data/historical/bars/1day/META.csv",
+      "rows_fetched": 605,
+      "rows_written": 605,
+      "start_date": "2024-01-01",
+      "status": "ok",
+      "symbol": "META",
+      "timespan": "day"
+    },
+    "MSFT:1:day": {
+      "end_date": "2026-06-01",
+      "last_updated_at": "2026-06-09T17:44:56+00:00",
+      "message": "",
+      "multiplier": 1,
+      "output_path": "data/historical/bars/1day/MSFT.csv",
+      "rows_fetched": 605,
+      "rows_written": 605,
+      "start_date": "2024-01-01",
+      "status": "ok",
+      "symbol": "MSFT",
+      "timespan": "day"
+    },
+    "MU:1:day": {
+      "end_date": "2026-06-01",
+      "last_updated_at": "2026-06-09T17:44:57+00:00",
+      "message": "",
+      "multiplier": 1,
+      "output_path": "data/historical/bars/1day/MU.csv",
+      "rows_fetched": 605,
+      "rows_written": 605,
+      "start_date": "2024-01-01",
+      "status": "ok",
+      "symbol": "MU",
+      "timespan": "day"
+    },
+    "NVDA:1:day": {
+      "end_date": "2026-06-01",
+      "last_updated_at": "2026-06-09T17:44:56+00:00",
+      "message": "",
+      "multiplier": 1,
+      "output_path": "data/historical/bars/1day/NVDA.csv",
+      "rows_fetched": 605,
+      "rows_written": 605,
+      "start_date": "2024-01-01",
+      "status": "ok",
+      "symbol": "NVDA",
+      "timespan": "day"
+    },
+    "QQQ:1:day": {
+      "end_date": "2026-06-01",
+      "last_updated_at": "2026-06-09T17:44:57+00:00",
+      "message": "",
+      "multiplier": 1,
+      "output_path": "data/historical/bars/1day/QQQ.csv",
+      "rows_fetched": 605,
+      "rows_written": 605,
+      "start_date": "2024-01-01",
+      "status": "ok",
+      "symbol": "QQQ",
+      "timespan": "day"
+    },
+    "SLV:1:day": {
+      "end_date": "2026-06-01",
+      "last_updated_at": "2026-06-09T17:44:58+00:00",
+      "message": "",
+      "multiplier": 1,
+      "output_path": "data/historical/bars/1day/SLV.csv",
+      "rows_fetched": 605,
+      "rows_written": 605,
+      "start_date": "2024-01-01",
+      "status": "ok",
+      "symbol": "SLV",
+      "timespan": "day"
+    }
+  },
+  "updated_at": "2026-06-09T17:44:58+00:00"
+}

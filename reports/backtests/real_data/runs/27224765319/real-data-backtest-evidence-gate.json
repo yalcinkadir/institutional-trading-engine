@@ -1,0 +1,7 @@
+{
+  "passed": true,
+  "artifact_path": "reports/backtests/real-data-backtest-evidence.json",
+  "missing_fields": [],
+  "invalid_fields": [],
+  "errors": []
+}
