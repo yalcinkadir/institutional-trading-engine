@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from datetime import UTC, datetime
 from statistics import mean
 from typing import Any
@@ -10,11 +11,14 @@ from src.scoring.market_health_score import MarketHealthScore
 
 INDEX_TICKERS = ["SPY", "QQQ"]
 VIX_TICKER = "I:VIX"
+DEFAULT_VOLATILITY_PROXY_SYMBOL = "VIXY"
 NEUTRAL_FALLBACK_VIX = 20.0
 VIX_UNAVAILABLE_ENTITLEMENT = "VIX_UNAVAILABLE_ENTITLEMENT"
 VIX_UNAVAILABLE = "VIX_UNAVAILABLE"
+VIX_PROXY_FALLBACK = "VIX_PROXY_FALLBACK"
 REGIME_STATUS_LIVE = "LIVE"
 REGIME_STATUS_DEGRADED = "DEGRADED"
+REGIME_STATUS_PROXY_DEGRADED = "PROXY_DEGRADED"
 REGIME_STATUS_UNVALIDATED = "UNVALIDATED"
 REGIME_STATUS_BLOCKED = "BLOCKED"
 UNVALIDATED_REGIME = "UNVALIDATED_REGIME"
@@ -36,6 +40,10 @@ BREADTH_UNIVERSE = [
     "SHOP",
     "PLTR",
 ]
+
+
+def _volatility_proxy_symbol() -> str:
+    return os.getenv("VOLATILITY_PROXY_SYMBOL", DEFAULT_VOLATILITY_PROXY_SYMBOL).strip() or DEFAULT_VOLATILITY_PROXY_SYMBOL
 
 
 def _latest_close(bars: list[dict]) -> float:
@@ -86,7 +94,7 @@ def _try_symbol_snapshot(client: PolygonClient, ticker: str) -> tuple[dict | Non
         if _is_vix_entitlement_error(ticker, exc):
             return None, (
                 f"{ticker}: {VIX_UNAVAILABLE_ENTITLEMENT}: "
-                "Polygon VIX index entitlement unavailable; regime validation is unvalidated"
+                "Polygon VIX index entitlement unavailable; volatility proxy fallback required"
             )
         return None, f"{ticker}: {type(exc).__name__}: {exc}"
 
@@ -158,10 +166,26 @@ def _vix_status(vix_error: str | None) -> str:
     return REGIME_STATUS_DEGRADED
 
 
+def _synthetic_vix_from_proxy(proxy: dict) -> float:
+    """Map a tradable volatility proxy into a conservative VIX-like score input.
+
+    The proxy price is not the VIX index. We only use its trend state to choose a
+    conservative scoring input while preserving PROXY_DEGRADED provenance.
+    """
+
+    if proxy.get("above_sma50") and proxy.get("above_sma200"):
+        return 28.0
+    if proxy.get("above_sma50"):
+        return 24.0
+    return 18.0
+
+
 def _vix_regime_input(
     *,
     vix: dict | None,
     vix_error: str | None,
+    vix_proxy: dict | None,
+    vix_proxy_error: str | None,
     timestamp_utc: str,
 ) -> dict[str, Any]:
     if vix and vix.get("close") is not None:
@@ -178,6 +202,27 @@ def _vix_regime_input(
             "error": None,
         }
 
+    if vix_proxy and vix_proxy.get("close") is not None:
+        proxy_value = _synthetic_vix_from_proxy(vix_proxy)
+        return {
+            "symbol": VIX_TICKER,
+            "source": "polygon_proxy",
+            "proxy_symbol": vix_proxy["ticker"],
+            "timestamp": timestamp_utc,
+            "status": REGIME_STATUS_PROXY_DEGRADED,
+            "validation_status": REGIME_STATUS_DEGRADED,
+            "value": proxy_value,
+            "fallback_used": True,
+            "fallback_value": proxy_value,
+            "reason": VIX_PROXY_FALLBACK,
+            "error": vix_error,
+            "proxy_error": vix_proxy_error,
+            "proxy_close": float(vix_proxy["close"]),
+            "proxy_above_sma50": bool(vix_proxy.get("above_sma50")),
+            "proxy_above_sma200": bool(vix_proxy.get("above_sma200")),
+            "live_or_paper_confidence_authorized": False,
+        }
+
     reason = _vix_failure_reason(vix_error)
     return {
         "symbol": VIX_TICKER,
@@ -190,6 +235,7 @@ def _vix_regime_input(
         "fallback_value": NEUTRAL_FALLBACK_VIX,
         "reason": reason,
         "error": vix_error or "VIX input unavailable",
+        "proxy_error": vix_proxy_error,
         "live_or_paper_confidence_authorized": False,
     }
 
@@ -247,6 +293,8 @@ def _calculate_partial_market_score(
 
     if vix_input.get("validation_status") == REGIME_STATUS_UNVALIDATED:
         score["regime"] = UNVALIDATED_REGIME
+    elif vix_input.get("status") == REGIME_STATUS_PROXY_DEGRADED:
+        score["regime"] = f"{score['regime']} (VIX proxy degraded)"
     elif vix_input.get("fallback_used"):
         score["regime"] = f"{score['regime']} (VIX degraded)"
 
@@ -306,8 +354,12 @@ def build_market_regime_summary(report_type: str) -> dict:
     spy, spy_error = _try_symbol_snapshot(client, "SPY")
     qqq, qqq_error = _try_symbol_snapshot(client, "QQQ")
     vix, vix_error = _try_symbol_snapshot(client, VIX_TICKER)
+    vix_proxy = None
+    vix_proxy_error = None
+    if vix is None and vix_error and VIX_UNAVAILABLE_ENTITLEMENT in vix_error:
+        vix_proxy, vix_proxy_error = _try_symbol_snapshot(client, _volatility_proxy_symbol())
 
-    for error in [spy_error, qqq_error, vix_error]:
+    for error in [spy_error, qqq_error, vix_error, vix_proxy_error]:
         if error:
             errors.append(error)
 
@@ -325,7 +377,13 @@ def build_market_regime_summary(report_type: str) -> dict:
     errors.extend(breadth.get("failed_symbols", []))
 
     regime_input = {
-        "vix": _vix_regime_input(vix=vix, vix_error=vix_error, timestamp_utc=timestamp_utc),
+        "vix": _vix_regime_input(
+            vix=vix,
+            vix_error=vix_error,
+            vix_proxy=vix_proxy,
+            vix_proxy_error=vix_proxy_error,
+            timestamp_utc=timestamp_utc,
+        ),
         "index_trend": _index_trend_regime_input(spy=spy, qqq=qqq, timestamp_utc=timestamp_utc),
     }
     score = _calculate_partial_market_score(spy, qqq, regime_input["vix"], breadth)
@@ -337,6 +395,8 @@ def build_market_regime_summary(report_type: str) -> dict:
         symbols["QQQ"] = qqq
     if vix is not None:
         symbols["VIX"] = vix
+    if vix_proxy is not None:
+        symbols["VIX_PROXY"] = vix_proxy
 
     regime_validation_status = str(regime_input["vix"].get("validation_status") or "UNKNOWN")
     if regime_input["index_trend"]["status"] == REGIME_STATUS_BLOCKED:
@@ -355,13 +415,21 @@ def build_market_regime_summary(report_type: str) -> dict:
         "Breadth currently uses the configured leader universe, not the full S&P 500 universe.",
     ]
 
-    if regime_input["vix"].get("fallback_used"):
+    if regime_input["vix"].get("status") == REGIME_STATUS_PROXY_DEGRADED:
+        notes.append(
+            "Polygon VIX index unavailable; using configured volatility proxy for degraded regime evidence."
+        )
+    elif regime_input["vix"].get("fallback_used"):
         notes.append(
             f"VIX data unavailable; scoring used a neutral fallback VIX value of {NEUTRAL_FALLBACK_VIX}."
         )
     if regime_validation_status == REGIME_STATUS_UNVALIDATED:
         notes.append(
             "VIX/regime validation is UNVALIDATED; unavailable VIX evidence does not authorize live or paper confidence claims."
+        )
+    if regime_validation_status == REGIME_STATUS_DEGRADED:
+        notes.append(
+            "VIX/regime validation is DEGRADED; proxy evidence must not be treated as full VIX validation."
         )
 
     if errors:
