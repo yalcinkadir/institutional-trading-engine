@@ -241,6 +241,14 @@ jobs:
           print("BT131 input gate:", payload.get("input_pack_gate_status"))
           PY
 
+      - name: Generate BT132 strategy improvement reports
+        if: success()
+        run: |
+          python scripts/analyze_bt132_strategy_improvement.py \
+            --evidence reports/backtests/real-data-backtest-evidence.json \
+            --output-json reports/backtests/bt132-strategy-improvement-report.json \
+            --output-md reports/backtests/bt132-strategy-improvement-report.md
+
       - name: Persist validated backtest reports to repository
         if: success()
         env:
@@ -263,6 +271,8 @@ jobs:
           cp reports/backtests/real-data-backtest-evidence-gate.json "$report_dir/real-data-backtest-evidence-gate.json"
           cp reports/backtests/bt131-runtime-universe.json "$report_dir/bt131-runtime-universe.json"
           cp reports/backtests/bt131-generated-trade-plans.json "$report_dir/bt131-generated-trade-plans.json" || true
+          cp reports/backtests/bt132-strategy-improvement-report.json "$report_dir/bt132-strategy-improvement-report.json"
+          cp reports/backtests/bt132-strategy-improvement-report.md "$report_dir/bt132-strategy-improvement-report.md"
           cp data/historical/metadata/coverage_manifest.json "$report_dir/coverage_manifest.json"
           cp data/historical/metadata/ingestion_status.json "$report_dir/ingestion_status.json"
           cp data/historical/metadata/bt131_runtime_universe.csv "$report_dir/bt131_runtime_universe.csv"
@@ -280,6 +290,7 @@ jobs:
 
           latest = Path("reports/backtests/real_data/latest")
           evidence = json.loads((latest / "real-data-backtest-evidence.json").read_text(encoding="utf-8"))
+          improvement = json.loads((latest / "bt132-strategy-improvement-report.json").read_text(encoding="utf-8"))
           index = {
               "updated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
               "github_run_id": os.environ["GITHUB_RUN_ID_VALUE"],
@@ -291,6 +302,8 @@ jobs:
               "run_health_status": evidence.get("run_health_status"),
               "broker_execution_mode": evidence.get("broker_execution_mode"),
               "metrics": evidence.get("metrics", {}),
+              "bt132_review_status": improvement.get("review_status"),
+              "bt132_recommendation_count": len(improvement.get("recommendations", [])),
           }
           Path("reports/backtests/real_data/index.json").write_text(json.dumps(index, indent=2, sort_keys=True) + "\n", encoding="utf-8")
           PY
@@ -303,7 +316,7 @@ jobs:
             echo "No backtest report changes to commit."
             exit 0
           fi
-          git commit -m "Persist BT131 real-data backtest reports (${GITHUB_RUN_ID_VALUE})"
+          git commit -m "Persist BT131/BT132 real-data backtest reports (${GITHUB_RUN_ID_VALUE})"
           git push
 
       - name: Upload real-data backtest evidence artifacts
