@@ -21,6 +21,19 @@ def test_po11_workflow_has_schedule_and_manual_dispatch() -> None:
     assert "workflow_dispatch:" in text
     assert "observation_date:" in text
     assert "minimum_records:" in text
+    assert "selected_symbols:" in text
+
+
+def test_po11_workflow_runs_p166_producer_before_po10_automation_runner() -> None:
+    text = _workflow_text()
+
+    producer_index = text.index("Produce P166 daily observation evidence")
+    automation_index = text.index("Run PO10 daily observation automation")
+
+    assert producer_index < automation_index
+    assert "scripts/produce_daily_observation_evidence_p166.py" in text
+    assert "reports/daily_evidence/*.json" in text
+    assert "p166-daily-observation-evidence" in text
 
 
 def test_po11_workflow_runs_po10_automation_runner() -> None:
@@ -48,6 +61,14 @@ def test_po11_workflow_uses_read_only_permissions() -> None:
     assert "permissions:" in text
     assert "contents: read" in text
     assert "contents: write" not in text
+    assert "persist-credentials: false" in text
+
+
+def test_po11_workflow_passes_vix_proxy_configuration() -> None:
+    text = _workflow_text()
+
+    assert "VOLATILITY_PROXY_SYMBOL" in text
+    assert "VIXY" in text
 
 
 def test_po11_workflow_does_not_reference_live_broker_or_secrets() -> None:
