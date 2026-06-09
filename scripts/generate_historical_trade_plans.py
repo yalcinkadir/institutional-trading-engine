@@ -137,8 +137,10 @@ def build_plan(symbol: str, rows: list[dict[str, Any]], index: int, *, lookahead
         valid_until=str(rows[valid_index]["date"]),
         entry_type="breakout_trigger",
         setup_type="historical_pullback_continuation",
-        stop_model="atr_1_25_or_2pct",
-        exit_model="target_2_or_stop",
+        # The generator already materializes concrete stop/target price levels.
+        # Use the canonical simulator models so generated plans are executable.
+        stop_model="fixed",
+        exit_model="t1_t2",
     )
 
 
