@@ -14,6 +14,10 @@ on:
         required: false
         default: "1"
         type: string
+      selected_symbols:
+        description: "Comma-separated paper observation symbols. Defaults to configured P166 universe."
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -26,11 +30,18 @@ jobs:
   scheduled-daily-observation:
     name: Build PO10 daily observation artifact
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
+
+    env:
+      POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
+      VOLATILITY_PROXY_SYMBOL: ${{ vars.VOLATILITY_PROXY_SYMBOL || 'VIXY' }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -41,6 +52,18 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+
+      - name: Produce P166 daily observation evidence
+        env:
+          OBSERVATION_DATE: ${{ inputs.observation_date }}
+          SELECTED_SYMBOLS: ${{ inputs.selected_symbols }}
+        run: |
+          observation_date="${OBSERVATION_DATE:-$(date -u +%F)}"
+          args=(--observation-date "$observation_date")
+          if [ -n "${SELECTED_SYMBOLS:-}" ]; then
+            args+=(--selected-symbols "$SELECTED_SYMBOLS")
+          fi
+          python scripts/produce_daily_observation_evidence_p166.py "${args[@]}"
 
       - name: Run PO10 daily observation automation
         env:
@@ -89,6 +112,15 @@ jobs:
               raise SystemExit("PO11 blocked: referenced daily evidence artifact is missing or invalid")
           PY
 
+      - name: Upload daily evidence artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p166-daily-observation-evidence
+          path: reports/daily_evidence/*.json
+          if-no-files-found: error
+          retention-days: 90
+
       - name: Upload PO11 automation artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -96,3 +128,4 @@ jobs:
           name: po11-daily-observation-artifact
           path: reports/daily_observation_automation/*.json
           if-no-files-found: error
+          retention-days: 90
