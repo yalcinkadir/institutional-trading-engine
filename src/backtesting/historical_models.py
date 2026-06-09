@@ -86,6 +86,16 @@ class HistoricalBacktestResult:
     setup_type: str | None = None
     stop_model: str | None = None
     exit_model: str | None = None
+    entry_price: float | None = None
+    entry_trigger: float | None = None
+    initial_stop_loss: float | None = None
+    target_1: float | None = None
+    target_2: float | None = None
+    max_favorable_excursion_r: float | None = None
+    max_adverse_excursion_r: float | None = None
+    same_bar_ambiguous: bool = False
+    missing_field_reasons: dict[str, str] = field(default_factory=dict)
+    signal_day_cluster_size: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
