@@ -53,6 +53,7 @@ FCM1: Feature Connectivity Matrix Guard implemented and CI-wired
 RPW1: Runtime Proof-Pack Artifact Writer / Retention Index implemented and CI-wired
 DATA1: Market data quality contract blocks missing close/ATR, stale timestamps and missing source metadata before signals or reports consume them.
 P161: Dataflow Contract Matrix defines Scanner → Signals → Quality → Validator → Watcher → Evidence required fields, canonical ATR naming and fail-closed missing-field behavior.
+P164: VIX/regime evidence first uses Polygon `I:VIX`; if unavailable because of provider entitlement, it falls back to configured volatility proxy `VOLATILITY_PROXY_SYMBOL` defaulting to `VIXY` and stamps `PROXY_DEGRADED` provenance.
 
 Backtesting / Evidence:
 BT2: Strategy Test Matrix implemented
@@ -126,3 +127,11 @@ The active pipeline contract is documented in `docs/architecture/dataflow_contra
 The matrix defines required fields across Scanner → Signals → Quality → Validator → Watcher → Evidence, including `signal_id`, `action`, `decision`, `entry_trigger`, `stop_loss`, `target_1`, `run_health_status`, and the canonical `atr14` naming rule.
 
 Missing critical downstream fields must fail closed as `BLOCKED_MISSING_INPUTS`; they must not be silently interpreted as valid `NO_TRADE_VALID` days.
+
+## Regime / VIX Data Quality Policy
+
+The regime path first attempts the true Polygon VIX index ticker `I:VIX`. If that ticker is unavailable because the configured provider tier lacks entitlement, the system uses a configured volatility proxy from `VOLATILITY_PROXY_SYMBOL`, defaulting to `VIXY`.
+
+Proxy evidence is useful for Paper Observation continuity, but it is not full VIX validation. Proxy-backed regime evidence is stamped with `source=polygon_proxy`, `status=PROXY_DEGRADED`, `validation_status=DEGRADED`, `reason=VIX_PROXY_FALLBACK`, and `live_or_paper_confidence_authorized=false`.
+
+If neither true VIX nor proxy evidence is available, the system stamps `UNVALIDATED_REGIME` with `VIX_UNAVAILABLE_ENTITLEMENT` or `VIX_UNAVAILABLE`. Such runs may proceed for research visibility but do not authorize live trading, paper-confidence claims, or evidence-quality claims.
