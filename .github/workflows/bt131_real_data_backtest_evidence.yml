@@ -261,6 +261,10 @@ jobs:
             exit 0
           fi
 
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase
+
           report_dir="reports/backtests/real_data/runs/${GITHUB_RUN_ID_VALUE}"
           latest_dir="reports/backtests/real_data/latest"
           mkdir -p "$report_dir" "$latest_dir"
@@ -308,9 +312,6 @@ jobs:
           Path("reports/backtests/real_data/index.json").write_text(json.dumps(index, indent=2, sort_keys=True) + "\n", encoding="utf-8")
           PY
 
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git pull --rebase
           git add reports/backtests/real_data/
           if git diff --cached --quiet; then
             echo "No backtest report changes to commit."
