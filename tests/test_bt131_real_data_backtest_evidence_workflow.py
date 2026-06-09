@@ -33,17 +33,31 @@ def test_bt131_workflow_orchestrates_real_data_gates_in_order() -> None:
     text = _workflow_text()
 
     ingestion = text.index("Ingest historical Polygon bars when API key is available")
+    runtime_universe = text.index("Build BT131 runtime universe from ingested coverage")
     generation = text.index("Generate historical trade plans from ingested bars when needed")
     bt9 = text.index("Run BT9 input-pack gate")
     runner = text.index("Run real-data historical entry/exit backtest")
     gate = text.index("Validate accepted real-data evidence when backtest passed")
 
-    assert ingestion < generation < bt9 < runner < gate
+    assert ingestion < runtime_universe < generation < bt9 < runner < gate
     assert "scripts/ingest_historical_polygon.py" in text
+    assert "scripts/build_bt131_runtime_universe.py" in text
     assert "scripts/generate_historical_trade_plans.py" in text
     assert "scripts/validate_bt9_real_historical_input_pack.py" in text
     assert "scripts/run_historical_entry_exit_backtest.py" in text
     assert "scripts/validate_real_data_backtest_evidence_gate.py" in text
+
+
+def test_bt131_workflow_builds_and_uses_runtime_universe() -> None:
+    text = _workflow_text()
+
+    assert "runtime_universe=\"data/historical/metadata/bt131_runtime_universe.csv\"" in text
+    assert "--coverage-manifest data/historical/metadata/coverage_manifest.json" in text
+    assert "--output \"${{ steps.runtime.outputs.runtime_universe }}\"" in text
+    assert "bt131-runtime-universe.json" in text
+    assert "--universe \"${{ steps.runtime.outputs.runtime_universe }}\"" in text
+    assert "data/historical/metadata/*.csv" in text
+    assert "--universe data/universe/survivorship_universe.csv" not in text
 
 
 def test_bt131_workflow_generates_trade_plans_when_source_observations_are_absent() -> None:
@@ -83,6 +97,8 @@ def test_bt131_workflow_uploads_reviewable_evidence_artifacts() -> None:
     assert "reports/backtests/*.json" in text
     assert "reports/backtests/*.md" in text
     assert "data/historical/metadata/*.json" in text
+    assert "data/historical/metadata/*.csv" in text
+    assert "data/trade_plans/*.json" in text
     assert "data/trade_plans/*manifest*.json" in text
     assert "retention-days: 90" in text
 
