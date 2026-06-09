@@ -115,9 +115,11 @@ def test_bt131_workflow_persists_validated_reports_to_repo_without_telegram() ->
     assert "bt132-strategy-improvement-report.md" in text
     assert "bt132_review_status" in text
     assert "bt132_recommendation_count" in text
+    assert "git pull --rebase" in text
     assert "git add reports/backtests/real_data/" in text
     assert "git commit -m \"Persist BT131/BT132 real-data backtest reports" in text
     assert "git push" in text
+    assert text.index("git pull --rebase") < text.index('report_dir="reports/backtests/real_data/runs/${GITHUB_RUN_ID_VALUE}"')
     assert "TELEGRAM_BOT_TOKEN" not in text
     assert "sendMessage" not in text
     assert "telegram" not in text.lower()
