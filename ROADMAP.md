@@ -2,7 +2,7 @@
 
 Status date: 2026-06-09
 
-Current state: TEST1 Evidence-Oriented TDD Policy is active. EV1-EV12 evidence-integrity remediation is implemented and CI-green. CI runtime simplification is implemented and CI-green. PO128 and PO129 silent-failure/dataflow guards are implemented and CI-green. W1 Entry/Exit Watcher Git-Write Decoupling is implemented and CI-green. P132 Scanner Runtime Boundary is implemented and CI-green. P160 module classification baseline is completed. P161 Dataflow Contract Matrix is implemented and CI-green. P164 VIX/regime entitlement handling with volatility proxy fallback is implemented and CI-green. BT130 Real Historical Backtest Evidence Pack Gate is implemented / CI-pending. PortfolioState fail-closed fixture migration (#102) is validated and closed.
+Current state: TEST1 Evidence-Oriented TDD Policy is active. EV1-EV12 evidence-integrity remediation is implemented and CI-green. CI runtime simplification is implemented and CI-green. PO128 and PO129 silent-failure/dataflow guards are implemented and CI-green. W1 Entry/Exit Watcher Git-Write Decoupling is implemented and CI-green. P132 Scanner Runtime Boundary is implemented and CI-green. P160 module classification baseline is completed. P161 Dataflow Contract Matrix is implemented and CI-green. P164 VIX/regime entitlement handling with volatility proxy fallback is implemented and CI-green. P166 productive daily Paper Observation evidence producer is implemented / CI-pending. BT130 Real Historical Backtest Evidence Pack Gate is implemented / CI-pending. PortfolioState fail-closed fixture migration (#102) is validated and closed.
 
 The system remains research / decision-support / paper-observation only. Real-money execution is not authorized by code.
 
@@ -65,6 +65,9 @@ BT130 requires real-data backtest evidence packs to include run identity, real-d
 | PO12 | Daily Observation Artifact Retention & Review Index | P0 | Critical | Done / CI-green |
 | PO13 | Monthly Paper Observation Review Pack | P0 | Critical | Done / CI-green |
 | PO14 | Forward Evidence Quality Gate | P0 | Critical | Done / CI-green |
+| P166 | Productive daily Paper Observation evidence producer with VIX/regime provenance | P0 | Critical | Implemented / CI-pending |
+
+P166 makes the scheduled PO11 workflow produce `reports/daily_evidence/<observation_date>.json` before PO11 validates it. The producer embeds selection mode, selected symbols, run-health status, data-quality status, paper-only safety boundary and VIX/regime provenance. Runtime evidence is uploaded as Actions artifacts and is not committed back to `main`.
 
 ## Phase P132 — Scanner Runtime Boundary
 
