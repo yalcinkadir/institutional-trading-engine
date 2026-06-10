@@ -1,0 +1,9 @@
+{
+  "bars_root": "data/historical/bars/1day",
+  "output": "data/trade_plans/historical_trade_plans.json",
+  "scanned_symbols": 8,
+  "symbols_with_plans": 8,
+  "generated_plans": 24,
+  "max_plans": 5000,
+  "max_plans_per_symbol": 3
+}
