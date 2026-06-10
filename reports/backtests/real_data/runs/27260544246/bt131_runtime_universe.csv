@@ -1,0 +1,9 @@
+symbol,effective_from,effective_to,active,asset_class,exchange,source,status,reason
+AAPL,2024-01-01,,true,equity,NASDAQ,bt131_runtime_coverage_manifest,active,covered in BT131 historical ingestion run
+GLD,2024-01-01,,true,etf,NYSEARCA,bt131_runtime_coverage_manifest,active,covered in BT131 historical ingestion run
+META,2024-01-01,,true,equity,NASDAQ,bt131_runtime_coverage_manifest,active,covered in BT131 historical ingestion run
+MSFT,2024-01-01,,true,equity,NASDAQ,bt131_runtime_coverage_manifest,active,covered in BT131 historical ingestion run
+MU,2024-01-01,,true,equity,NASDAQ,bt131_runtime_coverage_manifest,active,covered in BT131 historical ingestion run
+NVDA,2024-01-01,,true,equity,NASDAQ,bt131_runtime_coverage_manifest,active,covered in BT131 historical ingestion run
+QQQ,2024-01-01,,true,etf,NASDAQ,bt131_runtime_coverage_manifest,active,covered in BT131 historical ingestion run
+SLV,2024-01-01,,true,etf,NYSEARCA,bt131_runtime_coverage_manifest,active,covered in BT131 historical ingestion run

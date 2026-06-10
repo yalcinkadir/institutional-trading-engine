@@ -3,7 +3,7 @@
   "bt132_recommendation_count": 3,
   "bt132_review_status": "READY_FOR_REVIEW",
   "data_source": "real_data",
-  "github_run_id": "27258643022",
+  "github_run_id": "27260544246",
   "input_completeness_status": "OK",
   "input_pack_gate_status": "PASSED",
   "is_demo": false,
@@ -20,5 +20,5 @@
   },
   "run_health_status": "OK",
   "run_id": "bt131-real-data-manual",
-  "updated_at": "2026-06-10T06:50:22.242715Z"
+  "updated_at": "2026-06-10T07:30:57.132354Z"
 }
