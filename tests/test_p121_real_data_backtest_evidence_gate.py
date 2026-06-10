@@ -267,6 +267,7 @@ def test_p121_real_data_runner_writes_evidence_but_gate_blocks_insufficient_samp
     assert payload["input_plan_count"] == 1
     assert payload["accepted_plan_count"] == 1
     assert payload["rejected_plan_count"] == 0
+    assert payload["capacity_turnover_snapshot"]["metrics"]["trade_count"] == 1
     assert payload["live_trading_authorized"] is False
     assert payload["broker_execution_mode"] == "paper_only"
     gate = validate_real_data_backtest_evidence_artifact(output_json)
@@ -274,5 +275,6 @@ def test_p121_real_data_runner_writes_evidence_but_gate_blocks_insufficient_samp
     assert gate.observed_trade_count == 1
     assert gate.sample_quality_status == "INSUFFICIENT_SAMPLE"
     assert "insufficient_sample" in gate.invalid_fields
-    assert "capacity_turnover_snapshot" in gate.missing_fields
+    assert "capacity_turnover_snapshot" not in gate.missing_fields
     assert "capacity_turnover_realism_gate" in gate.invalid_fields
+    assert any("trade_count_floor" in failure for failure in gate.capacity_turnover_failures)
