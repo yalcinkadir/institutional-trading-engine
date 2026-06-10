@@ -25,7 +25,7 @@ No invariant violation may be silently converted to `PASS`.
 | `BLOCKED` | The run cannot support the requested evidence or promotion claim. | Must not claim success. Must include blocker reason codes. |
 | `FAILED` | The run failed unexpectedly or implementation/runtime error occurred. | Must not be counted as a valid no-trade or valid degraded evidence state. |
 
-`DEGRADED` must never behave like `PASS`.
+DEGRADED must never behave like `PASS`.
 
 ## Required invariant schema
 
