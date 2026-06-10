@@ -2,7 +2,7 @@
 
 Status date: 2026-06-11
 
-Current state: TEST1 Evidence-Oriented TDD Policy is active. EV1-EV12 evidence-integrity remediation is implemented and CI-green. CI runtime simplification is implemented and CI-green. PO128 and PO129 silent-failure/dataflow guards are implemented and CI-green. W1 Entry/Exit Watcher Git-Write Decoupling is implemented and CI-green. P132 Scanner Runtime Boundary is implemented and CI-green. P160 module classification baseline is completed. P161 Dataflow Contract Matrix is implemented and CI-green. P164 VIX/regime entitlement handling with volatility proxy fallback is implemented and CI-green. P166 productive daily Paper Observation evidence producer is implemented / CI-pending. BT130 Real Historical Backtest Evidence Pack Gate is implemented / CI-pending. PortfolioState fail-closed fixture migration (#102), JWT fail-closed migration (#103), and FCM1/RPW1 CI-wired backlog status (#104) are validated and closed.
+Current state: TEST1 Evidence-Oriented TDD Policy is active. EV1-EV12 evidence-integrity remediation is implemented and CI-green. CI runtime simplification is implemented and CI-green. PO128 and PO129 silent-failure/dataflow guards are implemented and CI-green. W1 Entry/Exit Watcher Git-Write Decoupling is implemented and CI-green. P132 Scanner Runtime Boundary is implemented and CI-green. P160 module classification baseline is completed. P161 Dataflow Contract Matrix is implemented and CI-green. P164 VIX/regime entitlement handling with volatility proxy fallback is implemented and CI-green. P166 productive daily Paper Observation evidence producer is implemented / CI-pending. BT130 Real Historical Backtest Evidence Pack Gate is implemented / CI-pending. PortfolioState fail-closed fixture migration (#102), JWT fail-closed migration (#103), FCM1/RPW1 CI-wired backlog status (#104), and Logic Safety Governance (#189) are validated at documentation/test-guard level.
 
 The system remains research / decision-support / paper-observation only. Real-money execution is not authorized by code.
 
@@ -19,6 +19,8 @@ No real-data backtest claim without a complete, validated evidence pack.
 Scheduled runtime workflows must not mutate the main branch with generated artifacts. Runtime evidence belongs in CI artifacts, retention indexes or explicitly governed evidence stores.
 
 Static Paper Observation watchlists must be labelled with `selection_mode=static_watchlist` and must not be represented as dynamic scanner evidence or trading-edge proof.
+
+Unknown, degraded, blocked, failed, demo/stub/synthetic or missing-provenance states must not be promoted as full `PASS`, strategy validation, production-grade evidence or live-readiness.
 
 ## Phase BT — Backtesting Evidence Gates
 
@@ -46,6 +48,20 @@ BT130 requires real-data backtest evidence packs to include run identity, real-d
 | ID | Task | Priority | Impact | Status |
 |---|---|---:|---:|---|
 | TEST1 | Evidence-Oriented TDD Policy | P0 | Critical | Active |
+| #189 | Machine-checkable System Invariants and Logic Safety Governance | P0 | Critical | Implemented / targeted tests pending |
+
+#189 defines machine-checkable system invariants, logic-safety severity classes, forbidden state conversions, evidence-traceability minimums and PR checklist linkage. It complements #188 Evidence Quality Gate by preventing `DEGRADED`, `UNKNOWN`, `BLOCKED`, demo/stub or missing-provenance output from being promoted as full `PASS` evidence.
+
+Governance documents:
+
+- `docs/architecture/system-invariants.md`
+- `docs/operations/logic-safety-governance.md`
+
+Guard tests:
+
+- `tests/test_system_invariants.py`
+- `tests/test_logic_safety_state_matrix.py`
+- `tests/test_evidence_traceability_contract.py`
 
 ## Phase PO — Paper Observation Evidence Process
 
@@ -169,9 +185,10 @@ PFA joins position-level risk attribution with forward outcome evidence. It does
 
 ## Recommended Next Remediation Order
 
-1. Architecture reachability + runtime execution guard (#106)
-2. Continue Phase B data-integrity foundation: survivorship-safe universe, second-provider cross-validation and real persisted daily observation source feed
-3. Validate remaining CI-pending evidence workflows before upgrading status language
+1. Validate #189 targeted guard tests and keep the system-invariant layer green.
+2. Architecture reachability + runtime execution guard (#106 / #178 alignment).
+3. Continue Phase B data-integrity foundation: survivorship-safe universe, second-provider cross-validation and real persisted daily observation source feed.
+4. Validate remaining CI-pending evidence workflows before upgrading status language.
 
 ## Safety Boundary
 
