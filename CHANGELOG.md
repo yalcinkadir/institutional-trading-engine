@@ -1,5 +1,33 @@
 # CHANGELOG
 
+## Logic Safety Governance #189 — 2026-06-11
+
+### Added
+- Added `docs/architecture/system-invariants.md`.
+- Added `docs/operations/logic-safety-governance.md`.
+- Added `tests/test_system_invariants.py`.
+- Added `tests/test_logic_safety_state_matrix.py`.
+- Added `tests/test_evidence_traceability_contract.py`.
+
+### Changed
+- Updated `.github/pull_request_template.md` with a Logic Safety Governance section.
+- Updated `README.md` to document #189, System Invariants and the targeted guard test command.
+- Updated `ROADMAP.md` to add #189 as a P0 machine-checkable logic-safety governance layer.
+
+### Guardrails
+- System invariants now define severity classes `P0_BLOCKER`, `P1_DEGRADED` and `P2_WARNING`.
+- The logic-safety state matrix blocks promotion of `UNKNOWN`, `DEGRADED`, `BLOCKED`, demo/stub/synthetic or missing-provenance output as full `PASS` evidence.
+- Evidence traceability now requires run identity, data mode, source/provenance, checksum or artifact hash, pipeline/generator version and runtime trace where applicable.
+- PRs touching decision/evidence logic must map changes to affected invariants and link a concrete evidence or test command.
+
+### Boundary
+- This is a governance and guard-test layer.
+- No strategy rule, scoring threshold, entry/exit rule or broker execution capability is changed.
+- Live trading authorization: unchanged; not granted by code.
+- Repository-wide full-regression green is not claimed by this changelog entry.
+
+---
+
 ## FCM1 / RPW1 CI-wired Backlog Closure #104 — 2026-06-11
 
 ### Verified
