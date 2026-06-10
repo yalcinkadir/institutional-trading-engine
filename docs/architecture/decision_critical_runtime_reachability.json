@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "issue": "#178",
+  "policy": "Decision-critical modules must either be runtime-connected with execution proof or explicitly classified as non-runtime research/quarantine/test/deprecated before they can be referenced in architecture maturity claims.",
+  "allowed_states": [
+    "runtime_connected",
+    "experimental",
+    "quarantine",
+    "test_only",
+    "deprecated"
+  ],
+  "forbidden_claims_for_non_runtime": [
+    "decision_stack_validated",
+    "runtime_active",
+    "module_complete",
+    "strategy_validated",
+    "paper_confidence_authorized",
+    "live_ready"
+  ],
+  "modules": [
+    {
+      "path": "src/reporting/decision_report.py",
+      "state": "runtime_connected",
+      "runtime_entrypoint": "scripts/generate_report.py",
+      "runtime_execution_proof": "tests/test_architecture_runtime_execution_guard.py::test_arch106_report_signal_path_has_runtime_execution_proof",
+      "claim_boundary": "Active report-path module. Runtime claims are limited to the report/signal path proven by the referenced guard test."
+    },
+    {
+      "path": "src/signals/signal_generator.py",
+      "state": "runtime_connected",
+      "runtime_entrypoint": "scripts/generate_report.py",
+      "runtime_execution_proof": "tests/test_architecture_runtime_execution_guard.py::test_arch106_report_signal_path_has_runtime_execution_proof",
+      "claim_boundary": "Active signal-generation module on the report/signal path. Runtime claims are limited to the proven path."
+    },
+    {
+      "path": "src/signals/trade_plan_validator.py",
+      "state": "runtime_connected",
+      "runtime_entrypoint": "src/signals/signal_generator.py",
+      "runtime_execution_proof": "tests/test_arch106_signal_runtime_helper_proof.py::test_arch106_signal_runtime_helpers_execute_on_buy_watch_path",
+      "claim_boundary": "Active executable-signal validation helper on the BUY_WATCH signal path."
+    },
+    {
+      "path": "src/decision_confidence.py",
+      "state": "experimental",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "claim_boundary": "Orthogonal confidence scoring helper. Not counted as active runtime decision-stack evidence until wired into a production entry point and promoted with a runtime execution proof."
+    },
+    {
+      "path": "src/data_quality_engine.py",
+      "state": "experimental",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "claim_boundary": "Standalone data-quality engine. Not counted as active runtime data-quality enforcement until wired into scanner/report/signal evidence and promoted with proof. Existing active data-quality contract remains DATA1/P161."
+    },
+    {
+      "path": "src/event_risk_engine.py",
+      "state": "experimental",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "claim_boundary": "Event-risk research helper with placeholder-feed boundary. It must not imply live calendar-backed event-risk enforcement until a live feed and runtime proof exist."
+    },
+    {
+      "path": "src/liquidity_volatility_engine.py",
+      "state": "experimental",
+      "runtime_entrypoint": null,
+      "runtime_execution_proof": null,
+      "claim_boundary": "Liquidity/volatility assessment helper. Not counted as active runtime environment filter until connected to report/signal/validator path with execution proof."
+    }
+  ]
+}
