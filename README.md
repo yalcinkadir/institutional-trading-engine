@@ -55,6 +55,7 @@ RPW1: Runtime Proof-Pack Artifact Writer / Retention Index closed / targeted CI-
 DATA1: Market data quality contract blocks missing close/ATR, stale timestamps and missing source metadata before signals or reports consume them.
 P161: Dataflow Contract Matrix defines Scanner → Signals → Quality → Validator → Watcher → Evidence required fields, canonical ATR naming and fail-closed missing-field behavior.
 P164: VIX/regime evidence first uses Polygon `I:VIX`; if unavailable because of provider entitlement, it falls back to configured volatility proxy `VOLATILITY_PROXY_SYMBOL` defaulting to `VIXY` and stamps `PROXY_DEGRADED` provenance.
+#189: System Invariants and Logic Safety Governance implemented as machine-checkable documentation/test guards; `DEGRADED`, `BLOCKED`, `UNKNOWN`, demo/stub and missing-provenance states must not be promoted as full `PASS` evidence.
 
 Backtesting / Evidence:
 BT2: Strategy Test Matrix implemented
@@ -102,6 +103,33 @@ A fix is not complete unless a guard test captures the dangerous path, boundary 
 
 Policy document:
 docs/operations/test1_evidence_oriented_tdd_policy.md
+
+## Logic Safety Governance
+
+#189 adds machine-checkable System Invariants and Logic Safety Governance.
+
+Policy documents:
+
+- `docs/architecture/system-invariants.md`
+- `docs/operations/logic-safety-governance.md`
+
+The core rule is simple: unknown, degraded, blocked, demo/stub or missing-provenance states must never be promoted as full `PASS` evidence.
+
+Initial core invariants:
+
+- `SI-001 No silent success`
+- `SI-002 No uncoupled strategy evidence`
+- `SI-003 No unknown regime promotion`
+- `SI-004 No placeholder scoring in confidence/readiness`
+- `SI-005 No missing provenance for production-grade evidence`
+- `SI-006 No decision-critical module without runtime reachability`
+- `SI-007 DEGRADED must not behave like PASS`
+
+Relevant guard tests:
+
+```bash
+pytest tests/test_system_invariants.py tests/test_logic_safety_state_matrix.py tests/test_evidence_traceability_contract.py -q
+```
 
 ## Paper Observation Evidence Process
 
