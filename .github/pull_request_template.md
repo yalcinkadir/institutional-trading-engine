@@ -10,6 +10,18 @@
 - [ ] Relevant targeted tests pass locally
 - [ ] Full regression is green or any exception is documented
 
+## TEST1 Operational Stability Decision Gate
+
+Every PR that touches Paper Observation, Backtesting, evidence generation, report generation, signal persistence, outcome tracking, risk/governance gates or CI workflows must answer this before merge:
+
+- [ ] I decided whether the correct outcome is `PASS`, `BLOCKED`, `DEGRADED` or `FAILED`.
+- [ ] Expected missing/invalid inputs produce reviewable `BLOCKED` or `DEGRADED` artifacts instead of fake metrics or unnecessary workflow crashes.
+- [ ] Hard-fail is used only where continuing would persist unsafe actionable data, corrupt evidence/state, or create misleading executable signals.
+- [ ] The artifact/log includes explicit reason codes for blocked/degraded states.
+- [ ] Backtesting and Paper Observation remain operationally stable where safe.
+- [ ] Guard tests cover the dangerous path and the operational-stability behavior.
+- [ ] Documentation was updated when the evidence/status semantics changed.
+
 ## IP9 Public Edge Review
 
 Every PR that touches strategy, scoring, thresholds, setup maps, exit profiles, ranking, reports, evidence, execution, sizing or CI gates must answer the following before merge:
