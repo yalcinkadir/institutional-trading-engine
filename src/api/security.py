@@ -4,7 +4,7 @@ import os
 
 from fastapi import Header, HTTPException
 
-from src.api.jwt_auth import validate_access_token
+from src.api.jwt_auth import JWTSecretNotConfiguredError, validate_access_token
 from src.api.rbac import validate_permission
 
 
@@ -27,9 +27,17 @@ def require_permission(permission: str):
         if not authorization.startswith("Bearer "):
             raise HTTPException(status_code=401, detail="Invalid authorization format")
 
-        token = authorization.replace("Bearer ", "")
+        token = authorization.removeprefix("Bearer ").strip()
+        if not token:
+            raise HTTPException(status_code=401, detail="Missing bearer token")
 
-        payload = validate_access_token(token)
+        try:
+            payload = validate_access_token(token)
+        except JWTSecretNotConfiguredError as exc:
+            raise HTTPException(
+                status_code=503,
+                detail="JWT authentication is not configured",
+            ) from exc
 
         role = payload.get("role", "viewer")
 
