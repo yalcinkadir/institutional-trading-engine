@@ -9,6 +9,19 @@ from scripts.validate_real_data_backtest_evidence_gate import validate_real_data
 from src.backtesting.historical_entry_exit_backtest import load_trade_plans_with_report
 
 RUNNER_SCRIPT = Path("scripts/run_historical_entry_exit_backtest.py")
+PIPELINE_METADATA = {
+    "pipeline_coupled": True,
+    "pipeline_generation_source": "scanner_signal_quality_validator_fixture",
+    "generated_signal_count": 1,
+    "validated_trade_plan_count": 1,
+    "blocked_signal_count": 0,
+    "runtime_gates_applied": [
+        "scanner",
+        "signal_generator",
+        "quality_fusion",
+        "trade_plan_validator",
+    ],
+}
 
 
 def _write_plan(path: Path, *, valid: bool = True, unsupported_action: bool = False) -> None:
@@ -24,7 +37,7 @@ def _write_plan(path: Path, *, valid: bool = True, unsupported_action: bool = Fa
         plan["stop_loss"] = 99.0
     if unsupported_action:
         plan["action"] = "SELL"
-    path.write_text(json.dumps({"plans": [plan]}), encoding="utf-8")
+    path.write_text(json.dumps({"metadata": PIPELINE_METADATA, "plans": [plan]}), encoding="utf-8")
 
 
 def _write_bars(root: Path) -> None:
