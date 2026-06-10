@@ -136,7 +136,7 @@ def test_build_signals_fails_closed_for_actionable_decisions_without_scanner_met
         )
 
 
-def test_generate_signals_fallback_cannot_silently_rebuild_actionable_signals_without_metrics(
+def test_generate_signals_requires_precomputed_signals_from_market_payload(
     monkeypatch,
     tmp_path,
 ) -> None:
@@ -155,8 +155,8 @@ def test_generate_signals_fallback_cannot_silently_rebuild_actionable_signals_wi
         },
     }
 
-    with pytest.raises(generate_report.SignalGenerationFailedError) as exc:
+    with pytest.raises(generate_report.ReportDataQualityBlockedError) as exc:
         generate_report.generate_signals(decision_payload)
 
-    assert "scanner_metrics_map is required" in str(exc.value)
-    assert exc.value.evidence["status"] == generate_report.SIGNAL_GENERATION_STATUS_FAILED
+    assert "precomputed signals missing" in str(exc.value)
+    assert "refusing fallback signal rebuild" in str(exc.value)
