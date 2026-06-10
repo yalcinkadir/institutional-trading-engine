@@ -27,10 +27,7 @@ def _fresh_source_timestamp() -> str:
     return datetime.now(UTC).isoformat()
 
 
-def test_market_payload_passes_non_empty_scanner_metrics_to_signal_generation(monkeypatch) -> None:
-    generate_report = importlib.import_module("scripts.generate_report")
-    signal_generator = importlib.import_module("src.signals.signal_generator")
-
+def _patch_market_report_builders(monkeypatch, generate_report) -> None:
     monkeypatch.setattr(
         generate_report,
         "build_market_regime_summary",
@@ -43,6 +40,13 @@ def test_market_payload_passes_non_empty_scanner_metrics_to_signal_generation(mo
         "build_decision_report",
         lambda *, market_regime, screener: _decision_report(),
     )
+
+
+def test_market_payload_passes_non_empty_scanner_metrics_to_signal_generation(monkeypatch) -> None:
+    generate_report = importlib.import_module("scripts.generate_report")
+    signal_generator = importlib.import_module("src.signals.signal_generator")
+
+    _patch_market_report_builders(monkeypatch, generate_report)
     monkeypatch.setattr(
         generate_report,
         "_merge_signal_levels_into_decisions",
@@ -83,21 +87,23 @@ def test_market_payload_passes_non_empty_scanner_metrics_to_signal_generation(mo
     assert decision_payload["signals"][0].action == "BUY_WATCH"
 
 
+def test_market_payload_blocks_when_scanner_metrics_loader_returns_none(monkeypatch) -> None:
+    generate_report = importlib.import_module("scripts.generate_report")
+
+    _patch_market_report_builders(monkeypatch, generate_report)
+    monkeypatch.setattr(generate_report, "_load_scanner_metrics", lambda decision_report: None)
+
+    with pytest.raises(generate_report.ReportDataQualityBlockedError) as exc:
+        generate_report._build_market_payload("premarket")
+
+    assert "Scanner data quality status BLOCKED blocks report generation" in str(exc.value)
+    assert "scanner_metrics_missing:AAPL" in str(exc.value)
+
+
 def test_market_payload_blocks_all_close_null_scanner_metrics(monkeypatch) -> None:
     generate_report = importlib.import_module("scripts.generate_report")
 
-    monkeypatch.setattr(
-        generate_report,
-        "build_market_regime_summary",
-        lambda report_type: {"regime": "Bullish"},
-    )
-    monkeypatch.setattr(generate_report, "build_screener_snapshot", lambda report_type: {})
-    monkeypatch.setattr(generate_report, "build_cross_asset_report", lambda: {})
-    monkeypatch.setattr(
-        generate_report,
-        "build_decision_report",
-        lambda *, market_regime, screener: _decision_report(),
-    )
+    _patch_market_report_builders(monkeypatch, generate_report)
     monkeypatch.setattr(
         generate_report,
         "_load_scanner_metrics",
