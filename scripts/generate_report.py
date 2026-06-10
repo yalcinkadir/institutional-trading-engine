@@ -556,16 +556,11 @@ def persist_scoring_adjustments(report_type: str, decision_payload: dict) -> Non
 
 def generate_signals(decision_payload: dict) -> None:
     try:
-        from src.signals.signal_generator import build_signals, save_signals
+        from src.signals.signal_generator import save_signals
         signals = decision_payload.get("signals")
         if signals is None:
-            diagnostics = decision_payload.get("scanner_metrics_diagnostics")
-            if diagnostics is not None:
-                _enforce_scanner_data_quality(diagnostics)
-            signals = build_signals(
-                decision_report=decision_payload["decision_report"],
-                scanner_metrics_map=None,
-                market_regime=decision_payload["market_regime"],
+            raise ReportDataQualityBlockedError(
+                "precomputed signals missing; refusing fallback signal rebuild without scanner metrics"
             )
         json_path, md_path = save_signals(
             signals,
