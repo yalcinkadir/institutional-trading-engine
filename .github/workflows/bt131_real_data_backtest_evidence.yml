@@ -257,6 +257,14 @@ jobs:
             --output-json reports/backtests/bt133-entry-confirmation-variant-report.json \
             --output-md reports/backtests/bt133-entry-confirmation-variant-report.md
 
+      - name: Generate BT134 stop-loss variant reports
+        if: success()
+        run: |
+          python scripts/analyze_bt134_stop_loss_variants.py \
+            --evidence reports/backtests/real-data-backtest-evidence.json \
+            --output-json reports/backtests/bt134-stop-loss-variant-report.json \
+            --output-md reports/backtests/bt134-stop-loss-variant-report.md
+
       - name: Generate BT176 guarded entry confirmation experiment reports
         if: success()
         run: |
@@ -297,6 +305,8 @@ jobs:
           cp reports/backtests/bt132-strategy-improvement-report.md "$report_dir/bt132-strategy-improvement-report.md"
           cp reports/backtests/bt133-entry-confirmation-variant-report.json "$report_dir/bt133-entry-confirmation-variant-report.json"
           cp reports/backtests/bt133-entry-confirmation-variant-report.md "$report_dir/bt133-entry-confirmation-variant-report.md"
+          cp reports/backtests/bt134-stop-loss-variant-report.json "$report_dir/bt134-stop-loss-variant-report.json"
+          cp reports/backtests/bt134-stop-loss-variant-report.md "$report_dir/bt134-stop-loss-variant-report.md"
           cp reports/backtests/bt133-guarded-entry-confirmation-experiment.json "$report_dir/bt133-guarded-entry-confirmation-experiment.json"
           cp reports/backtests/bt133-guarded-entry-confirmation-experiment.md "$report_dir/bt133-guarded-entry-confirmation-experiment.md"
           cp data/historical/metadata/coverage_manifest.json "$report_dir/coverage_manifest.json"
@@ -318,6 +328,7 @@ jobs:
           evidence = json.loads((latest / "real-data-backtest-evidence.json").read_text(encoding="utf-8"))
           improvement = json.loads((latest / "bt132-strategy-improvement-report.json").read_text(encoding="utf-8"))
           entry_variants = json.loads((latest / "bt133-entry-confirmation-variant-report.json").read_text(encoding="utf-8"))
+          stop_variants = json.loads((latest / "bt134-stop-loss-variant-report.json").read_text(encoding="utf-8"))
           guarded_entry = json.loads((latest / "bt133-guarded-entry-confirmation-experiment.json").read_text(encoding="utf-8"))
           index = {
               "updated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
@@ -334,6 +345,9 @@ jobs:
               "bt132_recommendation_count": len(improvement.get("recommendations", [])),
               "bt133_final_recommendation": entry_variants.get("final_recommendation"),
               "bt133_variant_count": len(entry_variants.get("variant_results", [])),
+              "bt134_final_recommendation": stop_variants.get("final_recommendation"),
+              "bt134_variant_count": len(stop_variants.get("variant_results", [])),
+              "bt134_production_rule_change_allowed": stop_variants.get("production_rule_change_allowed"),
               "bt176_guard_status": guarded_entry.get("guard_status"),
               "bt176_candidate_variant_id": guarded_entry.get("candidate_variant_id"),
               "bt176_experiment_scope": guarded_entry.get("experiment_scope"),
@@ -347,7 +361,7 @@ jobs:
             echo "No backtest report changes to commit."
             exit 0
           fi
-          git commit -m "Persist BT131/BT132/BT133/BT176 real-data backtest reports (${GITHUB_RUN_ID_VALUE})"
+          git commit -m "Persist BT131/BT132/BT133/BT134/BT176 real-data backtest reports (${GITHUB_RUN_ID_VALUE})"
           git push
 
       - name: Upload real-data backtest evidence artifacts
