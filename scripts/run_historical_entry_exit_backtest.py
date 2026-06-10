@@ -86,6 +86,13 @@ def _metadata(payload: dict[str, Any]) -> dict[str, Any]:
     return metadata if isinstance(metadata, dict) else {}
 
 
+def _metadata_int(metadata: dict[str, Any], key: str, default: int) -> int:
+    try:
+        return int(metadata.get(key, default))
+    except (TypeError, ValueError):
+        return default
+
+
 def _runtime_gates(metadata: dict[str, Any]) -> list[str]:
     raw = metadata.get("runtime_gates_applied") or []
     if isinstance(raw, list):
@@ -231,9 +238,9 @@ def _fail_closed_if_real_data_not_pipeline_coupled(
         rejected_plan_count=input_count,
         pipeline_coupled=pipeline_coupled,
         pipeline_generation_source=generation_source,
-        generated_signal_count=int(metadata.get("generated_signal_count") or input_count or 0),
-        validated_trade_plan_count=int(metadata.get("validated_trade_plan_count") or 0),
-        blocked_signal_count=int(metadata.get("blocked_signal_count") or input_count or 0),
+        generated_signal_count=_metadata_int(metadata, "generated_signal_count", input_count),
+        validated_trade_plan_count=_metadata_int(metadata, "validated_trade_plan_count", 0),
+        blocked_signal_count=_metadata_int(metadata, "blocked_signal_count", input_count),
         runtime_gates_applied=runtime_gates_applied,
     )
     return 1
@@ -249,6 +256,10 @@ def main() -> int:
     if pipeline_exit is not None:
         return pipeline_exit
 
+    payload = _read_trade_plan_payload(Path(args.plans_file))
+    metadata = _metadata(payload)
+    runtime_gates_applied = _runtime_gates(metadata)
+
     plan_load = load_trade_plans_with_report(Path(args.plans_file))
     if _real_data_requested(args) and plan_load.report.accepted_plan_count == 0:
         print("Real-data backtest blocked: accepted_plan_count=0")
@@ -261,6 +272,12 @@ def main() -> int:
             input_plan_count=plan_load.report.input_plan_count,
             accepted_plan_count=plan_load.report.accepted_plan_count,
             rejected_plan_count=plan_load.report.rejected_plan_count,
+            pipeline_coupled=metadata.get("pipeline_coupled") is True,
+            pipeline_generation_source=str(metadata.get("pipeline_generation_source") or "UNKNOWN"),
+            generated_signal_count=_metadata_int(metadata, "generated_signal_count", plan_load.report.input_plan_count),
+            validated_trade_plan_count=_metadata_int(metadata, "validated_trade_plan_count", plan_load.report.accepted_plan_count),
+            blocked_signal_count=_metadata_int(metadata, "blocked_signal_count", plan_load.report.rejected_plan_count),
+            runtime_gates_applied=runtime_gates_applied,
         )
         return 1
 
@@ -279,6 +296,12 @@ def main() -> int:
         survivorship_universe_path=str(Path(args.universe)),
         trade_plans_path=str(Path(args.plans_file)),
         plan_load_report=plan_load.report,
+        pipeline_coupled=metadata.get("pipeline_coupled") is True,
+        pipeline_generation_source=str(metadata.get("pipeline_generation_source") or "UNKNOWN"),
+        generated_signal_count=_metadata_int(metadata, "generated_signal_count", plan_load.report.input_plan_count),
+        validated_trade_plan_count=_metadata_int(metadata, "validated_trade_plan_count", plan_load.report.accepted_plan_count),
+        blocked_signal_count=_metadata_int(metadata, "blocked_signal_count", plan_load.report.rejected_plan_count),
+        runtime_gates_applied=runtime_gates_applied,
     )
     write_report(report, json_path=Path(args.json_output), markdown_path=Path(args.markdown_output))
 
