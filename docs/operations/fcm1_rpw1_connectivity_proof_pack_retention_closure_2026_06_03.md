@@ -1,6 +1,7 @@
 # FCM1 / RPW1 Connectivity and Proof-Pack Retention Closure — 2026-06-03
 
-Status: implemented / CI-wired
+Status: closed / targeted CI-wired evidence verified
+Status reviewed: 2026-06-11
 
 ## Scope
 
@@ -19,6 +20,7 @@ minimal validation/writer modules implemented
 targeted tests validated locally as an isolated slice
 dedicated CI workflow wired
 documentation updated after implementation
+2026-06-11 status review confirms the CI-wired backlog item can be closed without claiming repository-wide full regression
 ```
 
 ## Implemented behavior
@@ -66,16 +68,37 @@ missing proof-pack identity, observation window or summary blocks artifact writi
 live/non-paper artifact-writer boundary violations block and normalize to safe output
 ```
 
-## CI
+## CI wiring evidence
 
 ```text
-FCM1 / RPW1 dedicated workflow:
+Dedicated workflow:
 .github/workflows/fcm-rpw-ci.yml
+
+Workflow triggers:
+- push to main when FCM1/RPW1 source, tests or workflow files change
+- pull_request to main when FCM1/RPW1 source, tests or workflow files change
+- manual workflow_dispatch
 
 Targeted commands:
 pytest tests/test_fcm1_feature_connectivity_matrix_guard.py -q
 pytest tests/test_rpw1_runtime_proof_pack_artifact_writer.py -q
 ```
+
+## Closure decision for #104
+
+```text
+#104 can be closed as a backlog/status cleanup item.
+
+Reason:
+- FCM1 implementation exists.
+- RPW1 implementation exists.
+- Guard tests exist for both features.
+- Dedicated targeted CI workflow exists.
+- Documentation and roadmap references exist.
+- Safety boundary remains paper_only and live_trading_authorized=false.
+```
+
+This is a targeted feature closure. It does not claim that the repository-wide full regression suite is currently green.
 
 ## Safety boundary
 
