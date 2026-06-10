@@ -45,3 +45,41 @@ def test_viewer_cannot_access_metrics(monkeypatch):
     )
 
     assert response.status_code == 403
+
+
+def test_metrics_rejects_malformed_authorization_header():
+    response = client.get(
+        "/metrics",
+        headers={
+            "Authorization": "Token not-a-bearer-token",
+        },
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid authorization format"
+
+
+def test_metrics_rejects_empty_bearer_token():
+    response = client.get(
+        "/metrics",
+        headers={
+            "Authorization": "Bearer    ",
+        },
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Missing bearer token"
+
+
+def test_metrics_fails_closed_when_jwt_secret_is_not_configured(monkeypatch):
+    monkeypatch.delenv(JWT_SECRET_ENV, raising=False)
+
+    response = client.get(
+        "/metrics",
+        headers={
+            "Authorization": "Bearer x.y.z",
+        },
+    )
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == "JWT authentication is not configured"
