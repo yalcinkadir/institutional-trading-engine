@@ -18,6 +18,37 @@ def _results(count: int) -> list[dict]:
     ]
 
 
+def _capacity_snapshot(*, trade_count: int = 30, max_position_adv_pct: float = 1.25) -> dict:
+    return {
+        "run_id": "real-bt-2026-06-05-001",
+        "strategy_id": "historical-entry-exit-v1",
+        "dataset_id": "real-data-polygon-bt131",
+        "parameter_version": "p179-real-data-min-trade-gate",
+        "evidence_type": "capacity_turnover_realism",
+        "proposed_capital_usd": 100000.0,
+        "symbol_count": 2,
+        "metrics": {
+            "median_adv_usd": 75000000.0,
+            "max_position_adv_pct": max_position_adv_pct,
+            "portfolio_adv_pct": 8.5,
+            "average_daily_turnover_pct": 12.0,
+            "annual_turnover_pct": 620.0,
+            "round_trip_cost_bps": 7.5,
+            "gross_expectancy_bps": 28.0,
+            "net_expectancy_bps": 20.5,
+            "average_holding_days": 4.2,
+            "trade_count": trade_count,
+            "slippage_model_coverage_pct": 100.0,
+        },
+        "artifact_hashes": {
+            "real_data_backtest_evidence": "sha256:real-data-backtest-evidence",
+            "capacity_turnover_snapshot": "sha256:capacity-turnover-snapshot",
+        },
+        "tags": ["real_data", "public_safe", "research_only"],
+        "footer": "Research / Paper Observation Only. Execution is not authorized by this report.",
+    }
+
+
 def _valid_real_payload(*, trade_count: int = 30) -> dict:
     return {
         "run_id": "real-bt-2026-06-05-001",
@@ -40,6 +71,7 @@ def _valid_real_payload(*, trade_count: int = 30) -> dict:
         "rejection_reasons": [],
         "metrics": {"total": trade_count, "trade_count": trade_count, "expectancy_r": 0.42},
         "results": _results(trade_count),
+        "capacity_turnover_snapshot": _capacity_snapshot(trade_count=trade_count),
         "tags": ["real_data", "research_only"],
         "live_trading_authorized": False,
         "broker_execution_mode": "paper_only",
@@ -105,6 +137,51 @@ def test_p121_valid_real_data_backtest_evidence_passes_when_sample_is_reviewable
     assert gate.invalid_fields == []
     assert gate.observed_trade_count == 30
     assert gate.sample_quality_status == "REVIEWABLE_SAMPLE"
+    assert gate.capacity_turnover_passed is True
+    assert gate.capacity_turnover_failures == []
+
+
+def test_p179_missing_capacity_turnover_snapshot_fails_real_data_evidence_gate(tmp_path: Path) -> None:
+    artifact = tmp_path / "missing-capacity-snapshot.json"
+    payload = _valid_real_payload(trade_count=30)
+    del payload["capacity_turnover_snapshot"]
+    artifact.write_text(json.dumps(payload), encoding="utf-8")
+
+    gate = validate_real_data_backtest_evidence_artifact(artifact)
+
+    assert gate.passed is False
+    assert "capacity_turnover_snapshot" in gate.missing_fields
+    assert "capacity_turnover_realism_gate" in gate.invalid_fields
+    assert gate.capacity_turnover_passed is False
+    assert gate.capacity_turnover_failures == ["capacity_turnover_snapshot_missing"]
+
+
+def test_p179_capacity_turnover_failure_blocks_real_data_reviewability(tmp_path: Path) -> None:
+    artifact = tmp_path / "failing-capacity-snapshot.json"
+    payload = _valid_real_payload(trade_count=30)
+    payload["capacity_turnover_snapshot"] = _capacity_snapshot(trade_count=30, max_position_adv_pct=7.0)
+    artifact.write_text(json.dumps(payload), encoding="utf-8")
+
+    gate = validate_real_data_backtest_evidence_artifact(artifact)
+
+    assert gate.passed is False
+    assert "capacity_turnover_realism_gate" in gate.invalid_fields
+    assert gate.capacity_turnover_passed is False
+    assert any("capacity_liquidity_limits" in failure for failure in gate.capacity_turnover_failures)
+
+
+def test_p179_capacity_trade_count_must_match_backtest_trade_count(tmp_path: Path) -> None:
+    artifact = tmp_path / "capacity-count-mismatch.json"
+    payload = _valid_real_payload(trade_count=30)
+    payload["capacity_turnover_snapshot"] = _capacity_snapshot(trade_count=31)
+    artifact.write_text(json.dumps(payload), encoding="utf-8")
+
+    gate = validate_real_data_backtest_evidence_artifact(artifact)
+
+    assert gate.passed is False
+    assert "capacity_turnover_realism_gate" in gate.invalid_fields
+    assert gate.capacity_turnover_passed is False
+    assert "capacity_trade_count_mismatch: capacity=31, evidence=30" in gate.capacity_turnover_failures
 
 
 def test_p121_demo_backtest_cannot_pass_as_real_evidence(tmp_path: Path) -> None:
@@ -197,3 +274,5 @@ def test_p121_real_data_runner_writes_evidence_but_gate_blocks_insufficient_samp
     assert gate.observed_trade_count == 1
     assert gate.sample_quality_status == "INSUFFICIENT_SAMPLE"
     assert "insufficient_sample" in gate.invalid_fields
+    assert "capacity_turnover_snapshot" in gate.missing_fields
+    assert "capacity_turnover_realism_gate" in gate.invalid_fields
