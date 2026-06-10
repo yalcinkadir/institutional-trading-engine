@@ -113,6 +113,17 @@ def test_p179_workflow_blocks_insufficient_sample_before_review_reports() -> Non
     assert text.index("Verify evidence artifact is reviewable") < text.index("Persist validated backtest reports to repository")
 
 
+def test_p179_workflow_requires_capacity_turnover_gate_before_review_reports() -> None:
+    text = _workflow_text()
+
+    assert "capacity_turnover_snapshot" in text
+    assert "real-data-backtest-evidence-gate.json" in text
+    assert "capacity_turnover_passed" in text
+    assert "BT131 capacity/turnover gate failed; not review-ready" in text
+    assert text.index("capacity_turnover_passed") < text.index("Generate BT132 strategy improvement reports")
+    assert text.index("capacity_turnover_passed") < text.index("Persist validated backtest reports to repository")
+
+
 def test_bt131_workflow_generates_bt132_strategy_improvement_report() -> None:
     text = _workflow_text()
 
@@ -180,6 +191,8 @@ def test_bt131_workflow_persists_validated_reports_to_repo_without_telegram() ->
     assert "bt133-guarded-entry-confirmation-experiment.md" in text
     assert "sample_quality_status" in text
     assert "min_trade_count" in text
+    assert "capacity_turnover_passed" in text
+    assert "capacity_turnover_failures" in text
     assert "bt132_review_status" in text
     assert "bt132_recommendation_count" in text
     assert "bt133_final_recommendation" in text
