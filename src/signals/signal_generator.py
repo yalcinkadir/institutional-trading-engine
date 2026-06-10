@@ -175,6 +175,41 @@ def _demo_provenance_reasons(
     return reasons
 
 
+def _unsafe_actionable_artifact_reasons(signal: Signal) -> list[str]:
+    reasons: list[str] = []
+    if signal.close is None:
+        reasons.append("missing_close")
+    if signal.entry_trigger is None:
+        reasons.append("missing_entry_trigger")
+    if signal.atr14 is None:
+        reasons.append("missing_atr14")
+    if signal.stop_loss is None:
+        reasons.append("missing_stop_loss")
+    if signal.target_1 is None:
+        reasons.append("missing_target_1")
+    if signal.source is None:
+        reasons.append("missing_source")
+    if signal.source_timestamp is None:
+        reasons.append("missing_source_timestamp")
+    if signal.fallback_level is None:
+        reasons.append("missing_fallback_level")
+    if signal.data_status != "OK":
+        reasons.append(f"data_status_{signal.data_status.lower()}")
+    return reasons
+
+
+def _enforce_safe_actionable_signal_artifacts(signals: list[Signal]) -> None:
+    failures: list[str] = []
+    for signal in signals:
+        if signal.action != "BUY_WATCH":
+            continue
+        reasons = _unsafe_actionable_artifact_reasons(signal)
+        if reasons:
+            failures.append(f"{signal.signal_id}:{signal.symbol}:{','.join(reasons)}")
+    if failures:
+        raise ValueError("unsafe actionable signal artifact: " + "; ".join(failures))
+
+
 def build_signals(
     decision_report: dict,
     scanner_metrics_map: dict[str, Any] | None = None,
@@ -376,6 +411,8 @@ def save_signals(
     data_quality: dict[str, Any] | None = None,
     governance_state: dict[str, Any] | None = None,
 ) -> tuple[Path, Path]:
+    _enforce_safe_actionable_signal_artifacts(signals)
+
     target_dir = signals_dir or SIGNALS_DIR
     target_dir.mkdir(parents=True, exist_ok=True)
 
