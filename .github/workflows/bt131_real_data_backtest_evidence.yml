@@ -33,7 +33,7 @@ on:
         default: "data/trade_plans/historical_trade_plans.json"
         type: string
       source_observations:
-        description: "Optional validated Paper Observation records to export into historical trade plans"
+        description: "Required validated Paper Observation records to export into historical trade plans"
         required: false
         type: string
 
@@ -104,17 +104,8 @@ jobs:
           echo "source_observations=${INPUT_SOURCE_OBSERVATIONS}" >> "$GITHUB_OUTPUT"
           echo "runtime_universe=${runtime_universe}" >> "$GITHUB_OUTPUT"
 
-      - name: Optionally export historical trade plans from validated observations
-        if: ${{ inputs.source_observations != '' }}
-        run: |
-          set +e
-          python scripts/export_historical_trade_plans.py \
-            --source "${{ steps.runtime.outputs.source_observations }}" \
-            --output "${{ steps.runtime.outputs.plans_file }}" \
-            --manifest data/trade_plans/historical_trade_plans_manifest.json
-          echo "trade_plan_export_exit_code=$?" >> reports/backtests/bt131-runtime-status.env
-
       - name: Ingest historical Polygon bars when API key is available
+        if: ${{ inputs.source_observations != '' }}
         run: |
           if [ -z "${POLYGON_API_KEY:-}" ]; then
             echo "historical_ingestion_status=BLOCKED_MISSING_POLYGON_API_KEY" >> reports/backtests/bt131-runtime-status.env
@@ -136,6 +127,7 @@ jobs:
           exit 0
 
       - name: Build BT131 runtime universe from ingested coverage
+        if: ${{ inputs.source_observations != '' }}
         run: |
           set +e
           python scripts/build_bt131_runtime_universe.py \
@@ -146,24 +138,93 @@ jobs:
           echo "runtime_universe_exit_code=${status}" >> reports/backtests/bt131-runtime-status.env
           exit 0
 
-      - name: Generate historical trade plans from ingested bars when needed
-        if: ${{ inputs.source_observations == '' }}
+      - name: Export pipeline-coupled trade plans from validated observations
+        if: ${{ inputs.source_observations != '' }}
         run: |
-          if [ -f "${{ steps.runtime.outputs.plans_file }}" ]; then
-            echo "historical_trade_plan_generation_status=SKIPPED_EXISTING_PLANS_FILE" >> reports/backtests/bt131-runtime-status.env
-            exit 0
-          fi
-
           set +e
-          python scripts/generate_historical_trade_plans.py \
-            --bars-root data/historical/bars/1day \
+          python scripts/export_historical_trade_plans.py \
+            --source "${{ steps.runtime.outputs.source_observations }}" \
             --output "${{ steps.runtime.outputs.plans_file }}" \
-            > reports/backtests/bt131-generated-trade-plans.json
+            --manifest data/trade_plans/historical_trade_plans_manifest.json
           status=$?
-          echo "historical_trade_plan_generation_exit_code=${status}" >> reports/backtests/bt131-runtime-status.env
+          echo "historical_trade_plan_export_exit_code=${status}" >> reports/backtests/bt131-runtime-status.env
           exit 0
 
+      - name: Block BT131 when validated observations are absent
+        if: ${{ inputs.source_observations == '' }}
+        env:
+          RUN_ID: ${{ steps.runtime.outputs.run_id }}
+          STRATEGY_VERSION: ${{ steps.runtime.outputs.strategy_version }}
+        run: |
+          echo "source_observations is required for pipeline-coupled BT131 real-data evidence"
+          echo "backtest_exit_code=1" >> reports/backtests/bt131-runtime-status.env
+          echo "bt9_exit_code=1" >> reports/backtests/bt131-runtime-status.env
+          echo "historical_trade_plan_export_status=BLOCKED_MISSING_VALIDATED_OBSERVATIONS" >> reports/backtests/bt131-runtime-status.env
+          python - <<'PY'
+          import json
+          import os
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          payload = {
+              "run_id": os.environ["RUN_ID"],
+              "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+              "data_source": "real_data",
+              "is_demo": False,
+              "strategy_version": os.environ["STRATEGY_VERSION"],
+              "metrics": {
+                  "total": 0,
+                  "entry_hit_rate": 0.0,
+                  "expired_without_entry_rate": 0.0,
+                  "stop_hit_rate": 0.0,
+                  "target_1_hit_rate": 0.0,
+                  "target_2_hit_rate": 0.0,
+                  "false_breakout_rate": 0.0,
+                  "average_r": 0.0,
+                  "expectancy_r": 0.0,
+              },
+              "results": [],
+              "symbol_universe": [],
+              "date_range": {},
+              "tags": ["real_data", "research_only", "blocked"],
+              "input_pack_gate_status": "FAILED",
+              "input_completeness_status": "BLOCKED_MISSING_VALIDATED_OBSERVATIONS",
+              "run_health_status": "BLOCKED",
+              "coverage_manifest_path": "data/historical/metadata/coverage_manifest.json",
+              "survivorship_universe_path": "data/historical/metadata/bt131_runtime_universe.csv",
+              "trade_plans_path": "data/trade_plans/historical_trade_plans.json",
+              "input_plan_count": 0,
+              "accepted_plan_count": 0,
+              "rejected_plan_count": 0,
+              "rejection_reasons": [
+                  {
+                      "plan_index": None,
+                      "signal_id": None,
+                      "symbol": None,
+                      "reasons": ["missing_validated_observations_for_pipeline_coupled_backtest"],
+                  }
+              ],
+              "pipeline_coupled": False,
+              "pipeline_generation_source": "BLOCKED_MISSING_VALIDATED_OBSERVATIONS",
+              "generated_signal_count": 0,
+              "validated_trade_plan_count": 0,
+              "blocked_signal_count": 0,
+              "runtime_gates_applied": [],
+              "live_trading_authorized": False,
+              "broker_execution_mode": "paper_only",
+          }
+          out = Path("reports/backtests/real-data-backtest-evidence.json")
+          out.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          Path("reports/backtests/real-data-backtest-evidence.md").write_text(
+              "# BT131 Real-Data Backtest Evidence\n\n"
+              "Status: BLOCKED_MISSING_VALIDATED_OBSERVATIONS\n\n"
+              "Real-data evidence requires validated, pipeline-coupled Paper Observation records.\n",
+              encoding="utf-8",
+          )
+          PY
+
       - name: Run BT9 input-pack gate
+        if: ${{ inputs.source_observations != '' }}
         run: |
           set +e
           python scripts/validate_bt9_real_historical_input_pack.py \
@@ -176,6 +237,7 @@ jobs:
           exit 0
 
       - name: Run real-data historical entry/exit backtest
+        if: ${{ inputs.source_observations != '' }}
         run: |
           set +e
           python scripts/run_historical_entry_exit_backtest.py \
@@ -242,7 +304,7 @@ jobs:
           PY
 
       - name: Generate BT132 strategy improvement reports
-        if: success()
+        if: ${{ success() && inputs.source_observations != '' }}
         run: |
           python scripts/analyze_bt132_strategy_improvement.py \
             --evidence reports/backtests/real-data-backtest-evidence.json \
@@ -250,7 +312,7 @@ jobs:
             --output-md reports/backtests/bt132-strategy-improvement-report.md
 
       - name: Generate BT133 entry confirmation variant reports
-        if: success()
+        if: ${{ success() && inputs.source_observations != '' }}
         run: |
           python scripts/analyze_bt133_entry_confirmation_variants.py \
             --evidence reports/backtests/real-data-backtest-evidence.json \
@@ -258,7 +320,7 @@ jobs:
             --output-md reports/backtests/bt133-entry-confirmation-variant-report.md
 
       - name: Generate BT134 stop-loss variant reports
-        if: success()
+        if: ${{ success() && inputs.source_observations != '' }}
         run: |
           python scripts/analyze_bt134_stop_loss_variants.py \
             --evidence reports/backtests/real-data-backtest-evidence.json \
@@ -266,7 +328,7 @@ jobs:
             --output-md reports/backtests/bt134-stop-loss-variant-report.md
 
       - name: Generate BT139 sample expansion reports
-        if: success()
+        if: ${{ success() && inputs.source_observations != '' }}
         run: |
           python scripts/analyze_bt139_bt131_sample_expansion.py \
             --evidence reports/backtests/real-data-backtest-evidence.json \
@@ -274,7 +336,7 @@ jobs:
             --output-md reports/backtests/bt139-bt131-sample-expansion-report.md
 
       - name: Generate BT176 guarded entry confirmation experiment reports
-        if: success()
+        if: ${{ success() && inputs.source_observations != '' }}
         run: |
           python scripts/analyze_bt176_guarded_entry_confirmation_experiment.py \
             --evidence reports/backtests/real-data-backtest-evidence.json \
@@ -308,7 +370,6 @@ jobs:
           cp reports/backtests/bt9-real-historical-input-pack-gate.json "$report_dir/bt9-real-historical-input-pack-gate.json"
           cp reports/backtests/real-data-backtest-evidence-gate.json "$report_dir/real-data-backtest-evidence-gate.json"
           cp reports/backtests/bt131-runtime-universe.json "$report_dir/bt131-runtime-universe.json"
-          cp reports/backtests/bt131-generated-trade-plans.json "$report_dir/bt131-generated-trade-plans.json" || true
           cp reports/backtests/bt132-strategy-improvement-report.json "$report_dir/bt132-strategy-improvement-report.json"
           cp reports/backtests/bt132-strategy-improvement-report.md "$report_dir/bt132-strategy-improvement-report.md"
           cp reports/backtests/bt133-entry-confirmation-variant-report.json "$report_dir/bt133-entry-confirmation-variant-report.json"
