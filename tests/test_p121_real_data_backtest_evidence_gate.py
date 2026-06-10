@@ -9,10 +9,23 @@ from scripts.validate_real_data_backtest_evidence_gate import validate_real_data
 
 VALIDATOR_SCRIPT = Path("scripts/validate_real_data_backtest_evidence_gate.py")
 RUNNER_SCRIPT = Path("scripts/run_historical_entry_exit_backtest.py")
+PIPELINE_METADATA = {
+    "pipeline_coupled": True,
+    "pipeline_generation_source": "scanner_signal_quality_validator_fixture",
+    "generated_signal_count": 1,
+    "validated_trade_plan_count": 1,
+    "blocked_signal_count": 0,
+    "runtime_gates_applied": [
+        "scanner",
+        "signal_generator",
+        "quality_fusion",
+        "trade_plan_validator",
+    ],
+}
 
 
 def _valid_real_payload() -> dict:
-    return {
+    payload = {
         "run_id": "real-bt-2026-06-05-001",
         "data_source": "real_data",
         "is_demo": False,
@@ -35,12 +48,15 @@ def _valid_real_payload() -> dict:
         "live_trading_authorized": False,
         "broker_execution_mode": "paper_only",
     }
+    payload.update(PIPELINE_METADATA)
+    return payload
 
 
 def _write_plan(path: Path) -> None:
     path.write_text(
         json.dumps(
             {
+                "metadata": PIPELINE_METADATA,
                 "plans": [
                     {
                         "signal_id": "sig_SPY_real_001",
@@ -55,7 +71,7 @@ def _write_plan(path: Path) -> None:
                         "setup_type": "momentum_breakout",
                         "source": "paper_observation_validated",
                     }
-                ]
+                ],
             }
         ),
         encoding="utf-8",
@@ -174,6 +190,8 @@ def test_p121_real_data_runner_writes_valid_evidence_artifact(tmp_path: Path) ->
     assert payload["input_completeness_status"] == "OK"
     assert payload["run_health_status"] == "OK"
     assert payload["coverage_manifest_path"] == str(coverage_manifest)
+    assert payload["pipeline_coupled"] is True
+    assert payload["runtime_gates_applied"] == PIPELINE_METADATA["runtime_gates_applied"]
     assert payload["input_plan_count"] == 1
     assert payload["accepted_plan_count"] == 1
     assert payload["rejected_plan_count"] == 0
