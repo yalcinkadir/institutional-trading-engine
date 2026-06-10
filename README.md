@@ -50,8 +50,8 @@ RGP10: latest bar timestamp ordering guard implemented and CI-green
 RGP11: signal identity float quantization implemented and CI-green
 RGP12: partial-exit lifecycle persistence implemented and CI-green
 RGP13: Runtime Proof Pack Summary Builder implemented and CI-green
-FCM1: Feature Connectivity Matrix Guard implemented and CI-wired
-RPW1: Runtime Proof-Pack Artifact Writer / Retention Index implemented and CI-wired
+FCM1: Feature Connectivity Matrix Guard closed / targeted CI-wired; no repository-wide full-regression green claimed
+RPW1: Runtime Proof-Pack Artifact Writer / Retention Index closed / targeted CI-wired; no repository-wide full-regression green claimed
 DATA1: Market data quality contract blocks missing close/ATR, stale timestamps and missing source metadata before signals or reports consume them.
 P161: Dataflow Contract Matrix defines Scanner → Signals → Quality → Validator → Watcher → Evidence required fields, canonical ATR naming and fail-closed missing-field behavior.
 P164: VIX/regime evidence first uses Polygon `I:VIX`; if unavailable because of provider entitlement, it falls back to configured volatility proxy `VOLATILITY_PROXY_SYMBOL` defaulting to `VIXY` and stamps `PROXY_DEGRADED` provenance.
