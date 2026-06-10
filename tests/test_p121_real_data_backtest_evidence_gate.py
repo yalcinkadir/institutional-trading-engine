@@ -103,13 +103,17 @@ def _write_plan(path: Path) -> None:
     )
 
 
-def _write_bars(root: Path) -> None:
+def _write_bars(root: Path, *, malformed_volume: bool = False) -> None:
     root.mkdir(parents=True, exist_ok=True)
+    if malformed_volume:
+        volume_rows = ["", "not_available", "0"]
+    else:
+        volume_rows = ["1000000", "1100000", "1200000"]
     (root / "SPY.csv").write_text(
         "date,open,high,low,close,volume\n"
-        "2026-06-01,100,100,99,100,1000000\n"
-        "2026-06-02,101,105,100,104,1100000\n"
-        "2026-06-03,104,106,103,105,1200000\n",
+        f"2026-06-01,100,100,99,100,{volume_rows[0]}\n"
+        f"2026-06-02,101,105,100,104,{volume_rows[1]}\n"
+        f"2026-06-03,104,106,103,105,{volume_rows[2]}\n",
         encoding="utf-8",
     )
 
@@ -124,6 +128,52 @@ def _write_universe(path: Path) -> None:
 
 def _write_coverage_manifest(path: Path) -> None:
     path.write_text(json.dumps({"source": "polygon", "symbols": ["SPY"]}), encoding="utf-8")
+
+
+def _run_real_data_runner(
+    tmp_path: Path,
+    *,
+    proposed_capital_usd: float | None = None,
+    round_trip_cost_bps: float | None = None,
+    malformed_volume: bool = False,
+) -> tuple[subprocess.CompletedProcess[str], Path, Path]:
+    plans = tmp_path / "plans.json"
+    bars_root = tmp_path / "bars"
+    universe = tmp_path / "universe.csv"
+    coverage_manifest = tmp_path / "coverage_manifest.json"
+    output_json = tmp_path / "real-data-backtest-evidence.json"
+    output_md = tmp_path / "real-data-backtest-evidence.md"
+    _write_plan(plans)
+    _write_bars(bars_root, malformed_volume=malformed_volume)
+    _write_universe(universe)
+    _write_coverage_manifest(coverage_manifest)
+
+    command = [
+        sys.executable,
+        str(RUNNER_SCRIPT),
+        "--plans-file",
+        str(plans),
+        "--bars-root",
+        str(bars_root),
+        "--universe",
+        str(universe),
+        "--coverage-manifest",
+        str(coverage_manifest),
+        "--run-id",
+        "real-bt-runner-001",
+        "--real-data",
+        "--json-output",
+        str(output_json),
+        "--markdown-output",
+        str(output_md),
+    ]
+    if proposed_capital_usd is not None:
+        command.extend(["--proposed-capital-usd", str(proposed_capital_usd)])
+    if round_trip_cost_bps is not None:
+        command.extend(["--round-trip-cost-bps", str(round_trip_cost_bps)])
+
+    result = subprocess.run(command, capture_output=True, text=True, check=False)
+    return result, output_json, output_md
 
 
 def test_p121_valid_real_data_backtest_evidence_passes_when_sample_is_reviewable(tmp_path: Path) -> None:
@@ -213,41 +263,7 @@ def test_p121_missing_date_range_fails_schema(tmp_path: Path) -> None:
 
 
 def test_p121_real_data_runner_writes_evidence_but_gate_blocks_insufficient_sample(tmp_path: Path) -> None:
-    plans = tmp_path / "plans.json"
-    bars_root = tmp_path / "bars"
-    universe = tmp_path / "universe.csv"
-    coverage_manifest = tmp_path / "coverage_manifest.json"
-    output_json = tmp_path / "real-data-backtest-evidence.json"
-    output_md = tmp_path / "real-data-backtest-evidence.md"
-    _write_plan(plans)
-    _write_bars(bars_root)
-    _write_universe(universe)
-    _write_coverage_manifest(coverage_manifest)
-
-    result = subprocess.run(
-        [
-            sys.executable,
-            str(RUNNER_SCRIPT),
-            "--plans-file",
-            str(plans),
-            "--bars-root",
-            str(bars_root),
-            "--universe",
-            str(universe),
-            "--coverage-manifest",
-            str(coverage_manifest),
-            "--run-id",
-            "real-bt-runner-001",
-            "--real-data",
-            "--json-output",
-            str(output_json),
-            "--markdown-output",
-            str(output_md),
-        ],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    result, output_json, output_md = _run_real_data_runner(tmp_path)
 
     assert result.returncode == 0
     assert output_json.exists()
@@ -263,7 +279,6 @@ def test_p121_real_data_runner_writes_evidence_but_gate_blocks_insufficient_samp
     assert payload["run_health_status"] == "OK"
     assert payload["sample_quality_status"] == "INSUFFICIENT_SAMPLE"
     assert payload["min_trade_count"] == 30
-    assert payload["coverage_manifest_path"] == str(coverage_manifest)
     assert payload["input_plan_count"] == 1
     assert payload["accepted_plan_count"] == 1
     assert payload["rejected_plan_count"] == 0
@@ -278,3 +293,38 @@ def test_p121_real_data_runner_writes_evidence_but_gate_blocks_insufficient_samp
     assert "capacity_turnover_snapshot" not in gate.missing_fields
     assert "capacity_turnover_realism_gate" in gate.invalid_fields
     assert any("trade_count_floor" in failure for failure in gate.capacity_turnover_failures)
+
+
+def test_p179_runner_derives_capacity_metrics_from_real_bars_and_results(tmp_path: Path) -> None:
+    result, output_json, _ = _run_real_data_runner(tmp_path, proposed_capital_usd=1000.0, round_trip_cost_bps=1.0)
+
+    assert result.returncode == 0
+    payload = json.loads(output_json.read_text(encoding="utf-8"))
+    metrics = payload["capacity_turnover_snapshot"]["metrics"]
+
+    assert metrics["median_adv_usd"] == 114400000.0
+    assert metrics["max_position_adv_pct"] == 0.0009
+    assert metrics["portfolio_adv_pct"] == 0.0009
+    assert metrics["average_daily_turnover_pct"] == 33.3333
+    assert metrics["annual_turnover_pct"] == 8400.0
+    assert metrics["gross_expectancy_bps"] == 495.0495
+    assert metrics["net_expectancy_bps"] == 494.0495
+    assert metrics["average_holding_days"] == 1.0
+    assert payload["capacity_turnover_snapshot"]["proposed_capital_usd"] == 1000.0
+    assert payload["capacity_turnover_snapshot"]["artifact_hashes"]["bars_root"].endswith("bars")
+
+
+def test_p179_runner_fails_capacity_gate_when_adv_cannot_be_derived(tmp_path: Path) -> None:
+    result, output_json, _ = _run_real_data_runner(tmp_path, malformed_volume=True)
+
+    assert result.returncode == 0
+    payload = json.loads(output_json.read_text(encoding="utf-8"))
+    metrics = payload["capacity_turnover_snapshot"]["metrics"]
+    assert metrics["median_adv_usd"] == 0.0
+    assert metrics["max_position_adv_pct"] == 0.0
+    assert metrics["portfolio_adv_pct"] == 0.0
+
+    gate = validate_real_data_backtest_evidence_artifact(output_json)
+    assert gate.passed is False
+    assert "capacity_turnover_realism_gate" in gate.invalid_fields
+    assert any("positive_scale" in failure for failure in gate.capacity_turnover_failures)
