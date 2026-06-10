@@ -1,8 +1,8 @@
 # Institutional Trading Engine Roadmap
 
-Status date: 2026-06-09
+Status date: 2026-06-11
 
-Current state: TEST1 Evidence-Oriented TDD Policy is active. EV1-EV12 evidence-integrity remediation is implemented and CI-green. CI runtime simplification is implemented and CI-green. PO128 and PO129 silent-failure/dataflow guards are implemented and CI-green. W1 Entry/Exit Watcher Git-Write Decoupling is implemented and CI-green. P132 Scanner Runtime Boundary is implemented and CI-green. P160 module classification baseline is completed. P161 Dataflow Contract Matrix is implemented and CI-green. P164 VIX/regime entitlement handling with volatility proxy fallback is implemented and CI-green. P166 productive daily Paper Observation evidence producer is implemented / CI-pending. BT130 Real Historical Backtest Evidence Pack Gate is implemented / CI-pending. PortfolioState fail-closed fixture migration (#102) is validated and closed.
+Current state: TEST1 Evidence-Oriented TDD Policy is active. EV1-EV12 evidence-integrity remediation is implemented and CI-green. CI runtime simplification is implemented and CI-green. PO128 and PO129 silent-failure/dataflow guards are implemented and CI-green. W1 Entry/Exit Watcher Git-Write Decoupling is implemented and CI-green. P132 Scanner Runtime Boundary is implemented and CI-green. P160 module classification baseline is completed. P161 Dataflow Contract Matrix is implemented and CI-green. P164 VIX/regime entitlement handling with volatility proxy fallback is implemented and CI-green. P166 productive daily Paper Observation evidence producer is implemented / CI-pending. BT130 Real Historical Backtest Evidence Pack Gate is implemented / CI-pending. PortfolioState fail-closed fixture migration (#102) and JWT fail-closed migration (#103) are validated and closed.
 
 The system remains research / decision-support / paper-observation only. Real-money execution is not authorized by code.
 
@@ -159,15 +159,16 @@ PFA joins position-level risk attribution with forward outcome evidence. It does
 ## Closed Remediation Items
 
 - #102: PortfolioState fail-closed fixture migration validated and closed. Runtime remains fail-closed for missing or non-boolean `governance_valid`; test fixtures that need a valid state set `governance_valid=true`; committed default `data/portfolio_state.json` remains `governance_valid=false` until real paper/broker state exists.
+- #103: JWT fail-closed migration validated and closed. Missing or blank `INSTITUTIONAL_JWT_SECRET` blocks token creation and validation; protected API routes fail closed with explicit authentication/configuration errors; closure evidence is documented in `docs/operations/jwt_fail_closed_migration_103.md`.
 - #132: Scanner Runtime Boundary validated and closed. Runtime reports and Paper Observation evidence must expose `selection_mode`; static watchlists remain research setup only and cannot claim dynamic scanner breadth or trading-edge proof.
 - #160: Module classification baseline validated and closed. Pipeline-relevant modules have explicit classification, and the architecture inventory is regenerated under guard.
 - #164: VIX/regime entitlement handling validated and closed. The Paper Observation/report regime path attempts true `I:VIX`, falls back to `VOLATILITY_PROXY_SYMBOL`/`VIXY` with degraded proxy provenance, and fails visible as `UNVALIDATED_REGIME` if neither true VIX nor proxy evidence is available.
 
 ## Recommended Next Remediation Order
 
-1. Validate JWT fail-closed migration (#103)
-2. Close FCM1/RPW1 CI-wired backlog status (#104)
-3. Architecture reachability + runtime execution guard (#106)
+1. Close FCM1/RPW1 CI-wired backlog status (#104)
+2. Architecture reachability + runtime execution guard (#106)
+3. Continue Phase B data-integrity foundation: survivorship-safe universe, second-provider cross-validation and real persisted daily observation source feed
 
 ## Safety Boundary
 
