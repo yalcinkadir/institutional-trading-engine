@@ -22,6 +22,8 @@ def render_markdown(report: HistoricalBacktestReport) -> str:
         f"- Input pack gate status: {report.input_pack_gate_status}",
         f"- Input completeness status: {report.input_completeness_status}",
         f"- Run health status: {report.run_health_status}",
+        f"- Sample quality status: {report.sample_quality_status}",
+        f"- Minimum real-data trade count: {report.min_trade_count}",
         f"- Coverage manifest: {report.coverage_manifest_path}",
         f"- Survivorship universe: {report.survivorship_universe_path}",
         f"- Trade plans: {report.trade_plans_path}",
