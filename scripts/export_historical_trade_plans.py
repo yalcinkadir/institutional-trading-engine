@@ -22,6 +22,12 @@ REQUIRED_FIELDS = {
     "data_status",
     "provenance",
 }
+PIPELINE_GATE_NAMES = [
+    "scanner",
+    "signal_generator",
+    "quality_fusion",
+    "trade_plan_validator",
+]
 
 
 @dataclass(frozen=True)
@@ -36,6 +42,12 @@ class HistoricalTradePlanExportReport:
     symbols: list[str] = field(default_factory=list)
     output_sha256: str | None = None
     boundary: str = "paper_only_research_only"
+    pipeline_coupled: bool = False
+    pipeline_generation_source: str = "validated_paper_observation_export"
+    runtime_gates_applied: list[str] = field(default_factory=list)
+    generated_signal_count: int = 0
+    validated_trade_plan_count: int = 0
+    blocked_signal_count: int = 0
     failures: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
@@ -93,6 +105,24 @@ def _provenance(value: Any) -> dict[str, Any] | None:
     return None
 
 
+def _runtime_gates(record: dict[str, Any]) -> list[str]:
+    raw = record.get("runtime_gates_applied") or []
+    if isinstance(raw, list):
+        return [str(item) for item in raw]
+    return []
+
+
+def _pipeline_failures(record: dict[str, Any], index: int) -> list[str]:
+    failures: list[str] = []
+    if record.get("pipeline_coupled") is not True:
+        failures.append(f"record_{index}_not_pipeline_coupled")
+    gates = _runtime_gates(record)
+    missing_gates = sorted(set(PIPELINE_GATE_NAMES) - set(gates))
+    if missing_gates:
+        failures.append(f"record_{index}_missing_runtime_gates:{','.join(missing_gates)}")
+    return failures
+
+
 def _convert(record: dict[str, Any], index: int) -> tuple[dict[str, Any] | None, list[str]]:
     failures: list[str] = []
     missing = sorted(field for field in REQUIRED_FIELDS if record.get(field) in (None, ""))
@@ -100,6 +130,7 @@ def _convert(record: dict[str, Any], index: int) -> tuple[dict[str, Any] | None,
         failures.append(f"record_{index}_missing:{','.join(missing)}")
     if _has_marker(record):
         failures.append(f"record_{index}_demo_marker")
+    failures.extend(_pipeline_failures(record, index))
     if str(record.get("data_status") or "").lower() not in {"ok", "valid", "complete"}:
         failures.append(f"record_{index}_invalid_data_status:{record.get('data_status')}")
 
@@ -146,6 +177,18 @@ def _convert(record: dict[str, Any], index: int) -> tuple[dict[str, Any] | None,
     return plan, []
 
 
+def _metadata(*, plans: list[dict[str, Any]], records: list[dict[str, Any]]) -> dict[str, Any]:
+    blocked = max(len(records) - len(plans), 0)
+    return {
+        "pipeline_coupled": True,
+        "pipeline_generation_source": "validated_paper_observation_export",
+        "generated_signal_count": len(records),
+        "validated_trade_plan_count": len(plans),
+        "blocked_signal_count": blocked,
+        "runtime_gates_applied": PIPELINE_GATE_NAMES,
+    }
+
+
 def export_historical_trade_plans(*, source_path: Path, output_path: Path, manifest_path: Path) -> HistoricalTradePlanExportReport:
     records, failures = _read_records(source_path)
     plans: list[dict[str, Any]] = []
@@ -161,9 +204,10 @@ def export_historical_trade_plans(*, source_path: Path, output_path: Path, manif
     plans = sorted(plans, key=lambda item: (item["signal_date"], item["symbol"], item["signal_id"]))
     dates = sorted({plan["signal_date"] for plan in plans})
     output_sha: str | None = None
+    metadata = _metadata(plans=plans, records=records)
     if not failures:
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        payload = {"plans": plans}
+        payload = {"metadata": metadata, "plans": plans}
         raw = _json_bytes(payload)
         output_sha = hashlib.sha256(raw).hexdigest()
         output_path.write_bytes(raw)
@@ -178,6 +222,12 @@ def export_historical_trade_plans(*, source_path: Path, output_path: Path, manif
         exported_count=len(plans) if not failures else 0,
         symbols=sorted({plan["symbol"] for plan in plans}) if not failures else [],
         output_sha256=output_sha,
+        pipeline_coupled=not failures,
+        pipeline_generation_source="validated_paper_observation_export",
+        runtime_gates_applied=PIPELINE_GATE_NAMES if not failures else [],
+        generated_signal_count=metadata["generated_signal_count"] if not failures else len(records),
+        validated_trade_plan_count=metadata["validated_trade_plan_count"] if not failures else 0,
+        blocked_signal_count=metadata["blocked_signal_count"] if not failures else len(records),
         failures=failures,
     )
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
