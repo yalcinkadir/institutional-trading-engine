@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from dataclasses import replace
 from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
@@ -13,7 +14,11 @@ if str(ROOT_DIR) not in sys.path:
 
 from scripts.validate_bt9_real_historical_input_pack import validate_bt9_input_pack
 from src.backtesting.historical_entry_exit_backtest import load_trade_plans_with_report, run_backtest
-from src.backtesting.historical_models import HistoricalBacktestMetrics, HistoricalBacktestReport
+from src.backtesting.historical_models import (
+    HistoricalBacktestMetrics,
+    HistoricalBacktestReport,
+    derive_sample_quality_status,
+)
 from src.backtesting.historical_report import write_report
 
 DEFAULT_COVERAGE_MANIFEST = "data/historical/metadata/coverage_manifest.json"
@@ -77,6 +82,7 @@ def _write_blocked_real_data_evidence(
         input_pack_gate_status=input_pack_gate_status,
         input_completeness_status=input_completeness_status,
         run_health_status=run_health_status,
+        sample_quality_status=derive_sample_quality_status(0, is_demo=False),
         coverage_manifest_path=str(Path(args.coverage_manifest)),
         survivorship_universe_path=str(Path(args.universe)),
         trade_plans_path=str(Path(args.plans_file)),
@@ -172,6 +178,7 @@ def main() -> int:
         trade_plans_path=str(Path(args.plans_file)),
         plan_load_report=plan_load.report,
     )
+    report = replace(report, sample_quality_status=derive_sample_quality_status(report.metrics.total, is_demo=is_demo))
     write_report(report, json_path=Path(args.json_output), markdown_path=Path(args.markdown_output))
 
     print("Historical Entry / Stop / Exit backtest completed")
@@ -179,6 +186,7 @@ def main() -> int:
     print(f"Data source: {report.data_source}")
     print(f"Is demo: {report.is_demo}")
     print(f"Input pack gate: {report.input_pack_gate_status}")
+    print(f"Sample quality status: {report.sample_quality_status}")
     print(f"Input plans: {report.input_plan_count}")
     print(f"Accepted plans: {report.accepted_plan_count}")
     print(f"Rejected plans: {report.rejected_plan_count}")
