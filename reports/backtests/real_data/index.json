@@ -7,12 +7,18 @@
   "bt134_final_recommendation": "OVERFIT_RISK",
   "bt134_production_rule_change_allowed": false,
   "bt134_variant_count": 10,
+  "bt139_evidence_quality": "INSUFFICIENT_SAMPLE",
+  "bt139_production_rule_change_allowed": false,
+  "bt139_promotion_allowed": false,
+  "bt139_signal_day_count": 6,
+  "bt139_symbol_count": 8,
+  "bt139_trade_count": 24,
   "bt176_candidate_variant_id": "next_bar_close_confirmation_1bar",
   "bt176_experiment_scope": "paper_observation_shadow_only",
   "bt176_guard_status": "READY_FOR_PAPER_SHADOW",
   "bt176_production_rule_change_allowed": false,
   "data_source": "real_data",
-  "github_run_id": "27270029101",
+  "github_run_id": "27271230504",
   "input_completeness_status": "OK",
   "input_pack_gate_status": "PASSED",
   "is_demo": false,
@@ -29,5 +35,5 @@
   },
   "run_health_status": "OK",
   "run_id": "bt131-real-data-manual",
-  "updated_at": "2026-06-10T10:29:26.502497Z"
+  "updated_at": "2026-06-10T10:53:08.582987Z"
 }

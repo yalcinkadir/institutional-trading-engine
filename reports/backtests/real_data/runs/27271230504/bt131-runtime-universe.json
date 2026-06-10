@@ -1,0 +1,16 @@
+{
+  "coverage_manifest": "data/historical/metadata/coverage_manifest.json",
+  "runtime_universe": "data/historical/metadata/bt131_runtime_universe.csv",
+  "status": "OK",
+  "symbol_count": 8,
+  "symbols": [
+    "AAPL",
+    "GLD",
+    "META",
+    "MSFT",
+    "MU",
+    "NVDA",
+    "QQQ",
+    "SLV"
+  ]
+}
