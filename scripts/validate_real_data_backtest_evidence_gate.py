@@ -7,6 +7,8 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
+from src.validation.capacity_turnover_realism_gate import build_capacity_turnover_realism_report
+
 REQUIRED_FIELDS = [
     "run_id",
     "data_source",
@@ -26,6 +28,7 @@ REQUIRED_FIELDS = [
     "rejection_reasons",
     "metrics",
     "results",
+    "capacity_turnover_snapshot",
     "live_trading_authorized",
     "broker_execution_mode",
 ]
@@ -63,6 +66,8 @@ class RealDataBacktestEvidenceGateReport:
     observed_trade_count: int | None = None
     min_trade_count: int = MIN_REAL_DATA_TRADE_COUNT
     sample_quality_status: str = INSUFFICIENT_SAMPLE_STATUS
+    capacity_turnover_passed: bool = False
+    capacity_turnover_failures: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -146,6 +151,35 @@ def _derive_sample_quality_status(trade_count: int | None) -> str:
     return REVIEWABLE_SAMPLE_STATUS
 
 
+def _validate_capacity_turnover_snapshot(
+    payload: dict[str, Any],
+    *,
+    observed_trade_count: int | None,
+) -> tuple[bool, list[str]]:
+    snapshot = payload.get("capacity_turnover_snapshot")
+    if not isinstance(snapshot, dict):
+        return False, ["capacity_turnover_snapshot_missing"]
+
+    report = build_capacity_turnover_realism_report(snapshot)
+    failures: list[str] = []
+    if not report.passed:
+        for gate in report.gates:
+            if not gate.passed:
+                failures.extend([f"{gate.name}: {failure}" for failure in gate.failures] or [gate.name])
+
+    capacity_trade_count = None
+    metrics = snapshot.get("metrics")
+    if isinstance(metrics, dict):
+        capacity_trade_count = _int_or_none(metrics.get("trade_count"))
+    if observed_trade_count is not None and capacity_trade_count != observed_trade_count:
+        failures.append(
+            "capacity_trade_count_mismatch: "
+            f"capacity={capacity_trade_count}, evidence={observed_trade_count}"
+        )
+
+    return report.passed and not failures, failures
+
+
 def validate_real_data_backtest_evidence_artifact(path: Path) -> RealDataBacktestEvidenceGateReport:
     payload, errors = _load_payload(path)
     if payload is None:
@@ -212,6 +246,13 @@ def validate_real_data_backtest_evidence_artifact(path: Path) -> RealDataBacktes
     elif payload.get("sample_quality_status") not in (None, REVIEWABLE_SAMPLE_STATUS):
         invalid_fields.append("sample_quality_status")
 
+    capacity_turnover_passed, capacity_turnover_failures = _validate_capacity_turnover_snapshot(
+        payload,
+        observed_trade_count=observed_trade_count,
+    )
+    if not capacity_turnover_passed:
+        invalid_fields.append("capacity_turnover_realism_gate")
+
     if payload.get("live_trading_authorized") is not False:
         invalid_fields.append("live_trading_authorized")
     if payload.get("broker_execution_mode") != BROKER_EXECUTION_MODE:
@@ -228,11 +269,13 @@ def validate_real_data_backtest_evidence_artifact(path: Path) -> RealDataBacktes
         observed_trade_count=observed_trade_count,
         min_trade_count=MIN_REAL_DATA_TRADE_COUNT,
         sample_quality_status=sample_quality_status,
+        capacity_turnover_passed=capacity_turnover_passed,
+        capacity_turnover_failures=capacity_turnover_failures,
     )
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Validate real-data backtest evidence artifact schema.")
+    parser = argparse.ArgumentParser(description="Validate real-data backtest evidence artifact schema and review gates.")
     parser.add_argument("--artifact", default="reports/backtests/real-data-backtest-evidence.json")
     parser.add_argument("--report-output", default="reports/backtests/real-data-backtest-evidence-gate.json")
     return parser.parse_args()
@@ -251,6 +294,9 @@ def main() -> int:
     print(f"Observed trade count: {report.observed_trade_count}")
     print(f"Minimum trade count: {report.min_trade_count}")
     print(f"Sample quality status: {report.sample_quality_status}")
+    print(f"Capacity/turnover gate passed: {report.capacity_turnover_passed}")
+    if report.capacity_turnover_failures:
+        print(f"Capacity/turnover failures: {', '.join(report.capacity_turnover_failures)}")
     if report.missing_fields:
         print(f"Missing fields: {', '.join(report.missing_fields)}")
     if report.invalid_fields:
