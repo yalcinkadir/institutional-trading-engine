@@ -1,5 +1,27 @@
 # CHANGELOG
 
+## JWT Fail-Closed Migration #103 — 2026-06-11
+
+### Added
+- Added `docs/operations/jwt_fail_closed_migration_103.md` as closure evidence for the JWT authentication safety boundary.
+
+### Verified
+- Existing JWT implementation refuses missing or blank `INSTITUTIONAL_JWT_SECRET`.
+- Token creation and validation both fail closed when the JWT secret is not configured.
+- Protected API routes return explicit authentication/configuration failures instead of accepting requests.
+- Existing guard coverage is documented for `tests/test_jwt_auth.py` and `tests/test_security_layer.py`.
+
+### Changed
+- Updated `ROADMAP.md` so #103 is no longer listed as the next open remediation item.
+- Recommended next remediation order now starts with #104, then #106.
+
+### Boundary
+- Live trading authorization: unchanged; not granted by code.
+- Broker execution: unchanged; not authorized by this closure.
+- Repository-wide full-regression green is not claimed by this changelog entry.
+
+---
+
 ## BT176 Guarded Entry Confirmation Experiment — 2026-06-10
 
 ### Added
