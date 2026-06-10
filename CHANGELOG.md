@@ -1,5 +1,27 @@
 # CHANGELOG
 
+## FCM1 / RPW1 CI-wired Backlog Closure #104 — 2026-06-11
+
+### Verified
+- #104 was already closed/completed on GitHub.
+- FCM1 has implementation, guard tests and dedicated targeted CI workflow wiring.
+- RPW1 has implementation, guard tests and dedicated targeted CI workflow wiring.
+- Closure evidence is documented in `docs/operations/fcm1_rpw1_connectivity_proof_pack_retention_closure_2026_06_03.md`.
+
+### Changed
+- Updated FCM1/RPW1 closure evidence from `implemented / CI-wired` to `closed / targeted CI-wired evidence verified`.
+- Updated `ROADMAP.md` so #104 is no longer listed as the next open remediation item.
+- Updated `README.md` so FCM1/RPW1 are represented as targeted feature closures, not stale open CI-wired backlog items.
+- Recommended next remediation order now starts with #106.
+
+### Boundary
+- This is a targeted feature closure.
+- Repository-wide full-regression green is not claimed by this changelog entry.
+- Live trading authorization: unchanged; not granted by code.
+- Broker execution: unchanged; remains paper-only infrastructure.
+
+---
+
 ## JWT Fail-Closed Migration #103 — 2026-06-11
 
 ### Added
