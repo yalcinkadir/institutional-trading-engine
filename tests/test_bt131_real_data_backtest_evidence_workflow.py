@@ -14,7 +14,7 @@ def test_bt131_workflow_exists_and_supports_manual_dispatch() -> None:
 
     assert WORKFLOW_PATH.exists()
     assert "workflow_dispatch:" in text
-    for input_name in ("symbols", "start_date", "end_date", "run_id", "strategy_version", "plans_file"):
+    for input_name in ("symbols", "start_date", "end_date", "run_id", "strategy_version", "plans_file", "source_observations"):
         assert f"{input_name}:" in text
 
 
@@ -36,7 +36,8 @@ def test_bt131_workflow_orchestrates_real_data_gates_in_order() -> None:
 
     ingestion = text.index("Ingest historical Polygon bars when API key is available")
     runtime_universe = text.index("Build BT131 runtime universe from ingested coverage")
-    generation = text.index("Generate historical trade plans from ingested bars when needed")
+    observation_export = text.index("Export pipeline-coupled trade plans from validated observations")
+    missing_observations = text.index("Block BT131 when validated observations are absent")
     bt9 = text.index("Run BT9 input-pack gate")
     runner = text.index("Run real-data historical entry/exit backtest")
     gate = text.index("Validate accepted real-data evidence when backtest passed")
@@ -47,10 +48,11 @@ def test_bt131_workflow_orchestrates_real_data_gates_in_order() -> None:
     bt176 = text.index("Generate BT176 guarded entry confirmation experiment reports")
     persist = text.index("Persist validated backtest reports to repository")
 
-    assert ingestion < runtime_universe < generation < bt9 < runner < gate < bt132 < bt133 < bt134 < bt139 < bt176 < persist
+    assert ingestion < runtime_universe < observation_export < missing_observations < bt9 < runner < gate < bt132 < bt133 < bt134 < bt139 < bt176 < persist
     assert "scripts/ingest_historical_polygon.py" in text
     assert "scripts/build_bt131_runtime_universe.py" in text
-    assert "scripts/generate_historical_trade_plans.py" in text
+    assert "scripts/export_historical_trade_plans.py" in text
+    assert "scripts/generate_historical_trade_plans.py" not in text
     assert "scripts/validate_bt9_real_historical_input_pack.py" in text
     assert "scripts/run_historical_entry_exit_backtest.py" in text
     assert "scripts/validate_real_data_backtest_evidence_gate.py" in text
@@ -73,14 +75,27 @@ def test_bt131_workflow_builds_and_uses_runtime_universe() -> None:
     assert "--universe data/universe/survivorship_universe.csv" not in text
 
 
-def test_bt131_workflow_generates_trade_plans_when_source_observations_are_absent() -> None:
+def test_bt131_workflow_requires_validated_observations_for_trade_plan_export() -> None:
     text = _workflow_text()
 
-    assert "if: ${{ inputs.source_observations == '' }}" in text
-    assert "--bars-root data/historical/bars/1day" in text
+    assert "Export pipeline-coupled trade plans from validated observations" in text
+    assert "if: ${{ inputs.source_observations != '' }}" in text
+    assert "scripts/export_historical_trade_plans.py" in text
+    assert "--source \"${{ steps.runtime.outputs.source_observations }}\"" in text
     assert "--output \"${{ steps.runtime.outputs.plans_file }}\"" in text
-    assert "bt131-generated-trade-plans.json" in text
-    assert "historical_trade_plan_generation_exit_code" in text
+    assert "historical_trade_plan_export_exit_code" in text
+
+
+def test_bt131_workflow_blocks_real_data_evidence_when_validated_observations_are_absent() -> None:
+    text = _workflow_text()
+
+    assert "Block BT131 when validated observations are absent" in text
+    assert "if: ${{ inputs.source_observations == '' }}" in text
+    assert "BLOCKED_MISSING_VALIDATED_OBSERVATIONS" in text
+    assert "missing_validated_observations_for_pipeline_coupled_backtest" in text
+    assert "source_observations is required for pipeline-coupled BT131 real-data evidence" in text
+    assert "historical_trade_plan_generation_exit_code" not in text
+    assert "bt131-generated-trade-plans.json" not in text
 
 
 def test_bt131_workflow_forces_real_data_and_blocks_demo_claims() -> None:
