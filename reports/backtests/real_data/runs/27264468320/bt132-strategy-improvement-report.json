@@ -1,0 +1,522 @@
+{
+  "best_symbols_by_expectancy": [
+    {
+      "average_r": 0.8335,
+      "entry_hit_rate": 1.0,
+      "expectancy_r": 0.8335,
+      "false_breakout_rate": 0.6667,
+      "stop_hit_rate": 0.3333,
+      "symbol": "GLD",
+      "target_1_hit_rate": 0.3333,
+      "target_2_hit_rate": 0.3333,
+      "total": 3
+    },
+    {
+      "average_r": 0.7126,
+      "entry_hit_rate": 1.0,
+      "expectancy_r": 0.7126,
+      "false_breakout_rate": 0.3333,
+      "stop_hit_rate": 0.3333,
+      "symbol": "AAPL",
+      "target_1_hit_rate": 0.6667,
+      "target_2_hit_rate": 0.3333,
+      "total": 3
+    },
+    {
+      "average_r": 0.6975,
+      "entry_hit_rate": 1.0,
+      "expectancy_r": 0.6975,
+      "false_breakout_rate": 0.6667,
+      "stop_hit_rate": 0.3333,
+      "symbol": "NVDA",
+      "target_1_hit_rate": 0.3333,
+      "target_2_hit_rate": 0.3333,
+      "total": 3
+    },
+    {
+      "average_r": 0.4673,
+      "entry_hit_rate": 0.6667,
+      "expectancy_r": 0.4673,
+      "false_breakout_rate": 0.3333,
+      "stop_hit_rate": 0.0,
+      "symbol": "QQQ",
+      "target_1_hit_rate": 0.3333,
+      "target_2_hit_rate": 0.0,
+      "total": 3
+    },
+    {
+      "average_r": 0.3333,
+      "entry_hit_rate": 1.0,
+      "expectancy_r": 0.3333,
+      "false_breakout_rate": 0.3333,
+      "stop_hit_rate": 0.6667,
+      "symbol": "META",
+      "target_1_hit_rate": 0.6667,
+      "target_2_hit_rate": 0.3333,
+      "total": 3
+    }
+  ],
+  "data_source": "real_data",
+  "entry_findings": {
+    "entry_not_hit_count": 1,
+    "entry_not_hit_examples": [
+      {
+        "bars_evaluated": 20,
+        "outcome": "EXPIRED",
+        "r_multiple": 0.0,
+        "reason": "entry_not_hit",
+        "signal_date": "2024-03-28",
+        "signal_id": "hist_QQQ_74d2c1aae53e8e13",
+        "symbol": "QQQ"
+      }
+    ],
+    "entry_not_hit_rate": 0.0417,
+    "false_breakout_count": 12,
+    "false_breakout_examples": [
+      {
+        "bars_evaluated": 3,
+        "outcome": "STOP_HIT",
+        "r_multiple": -1.0873,
+        "reason": "stop_hit",
+        "signal_date": "2024-12-10",
+        "signal_id": "hist_GLD_660f05be20c28798",
+        "symbol": "GLD"
+      },
+      {
+        "bars_evaluated": 16,
+        "outcome": "STOP_HIT",
+        "r_multiple": -1.0674,
+        "reason": "stop_hit",
+        "signal_date": "2024-06-24",
+        "signal_id": "hist_MSFT_5af359349d977127",
+        "symbol": "MSFT"
+      },
+      {
+        "bars_evaluated": 15,
+        "outcome": "STOP_HIT",
+        "r_multiple": -1.0,
+        "reason": "stop_hit",
+        "signal_date": "2024-12-10",
+        "signal_id": "hist_AAPL_c7e18fc5dc59757a",
+        "symbol": "AAPL"
+      },
+      {
+        "bars_evaluated": 6,
+        "outcome": "STOP_HIT",
+        "r_multiple": -1.0,
+        "reason": "stop_hit",
+        "signal_date": "2024-12-10",
+        "signal_id": "hist_META_b215a7749494a8f2",
+        "symbol": "META"
+      },
+      {
+        "bars_evaluated": 11,
+        "outcome": "STOP_HIT",
+        "r_multiple": -1.0,
+        "reason": "stop_hit",
+        "signal_date": "2024-03-28",
+        "signal_id": "hist_MSFT_95f558162912119f",
+        "symbol": "MSFT"
+      },
+      {
+        "bars_evaluated": 5,
+        "outcome": "STOP_HIT",
+        "r_multiple": -1.0,
+        "reason": "stop_hit",
+        "signal_date": "2024-09-17",
+        "signal_id": "hist_MSFT_22b4a6dd62e2670e",
+        "symbol": "MSFT"
+      },
+      {
+        "bars_evaluated": 3,
+        "outcome": "STOP_HIT",
+        "r_multiple": -1.0,
+        "reason": "stop_hit",
+        "signal_date": "2024-06-24",
+        "signal_id": "hist_MU_7f56c7438fa2c834",
+        "symbol": "MU"
+      },
+      {
+        "bars_evaluated": 4,
+        "outcome": "STOP_HIT",
+        "r_multiple": -1.0,
+        "reason": "stop_hit",
+        "signal_date": "2024-03-28",
+        "signal_id": "hist_NVDA_b227181e5ede3f9c",
+        "symbol": "NVDA"
+      },
+      {
+        "bars_evaluated": 1,
+        "outcome": "STOP_HIT",
+        "r_multiple": -1.0,
+        "reason": "same_bar_stop_first",
+        "signal_date": "2024-09-17",
+        "signal_id": "hist_SLV_6e562d42e12f1da0",
+        "symbol": "SLV"
+      },
+      {
+        "bars_evaluated": 20,
+        "outcome": "EXPIRED",
+        "r_multiple": 0.0926,
+        "reason": "no_exit_level_hit",
+        "signal_date": "2024-06-24",
+        "signal_id": "hist_NVDA_7759b4f0c67a7da8",
+        "symbol": "NVDA"
+      }
+    ],
+    "false_breakout_rate": 0.5
+  },
+  "exit_findings": {
+    "target_1_without_target_2_count": 5,
+    "target_1_without_target_2_examples": [
+      {
+        "bars_evaluated": 18,
+        "outcome": "STOP_HIT",
+        "r_multiple": -1.1726,
+        "reason": "stop_hit",
+        "signal_date": "2024-06-24",
+        "signal_id": "hist_SLV_62aa0bac96783405",
+        "symbol": "SLV"
+      },
+      {
+        "bars_evaluated": 16,
+        "outcome": "STOP_HIT",
+        "r_multiple": -1.0,
+        "reason": "stop_hit",
+        "signal_date": "2024-03-28",
+        "signal_id": "hist_META_2fb35123392bfbfb",
+        "symbol": "META"
+      },
+      {
+        "bars_evaluated": 14,
+        "outcome": "STOP_HIT",
+        "r_multiple": -1.0,
+        "reason": "stop_hit",
+        "signal_date": "2024-03-28",
+        "signal_id": "hist_MU_fa92f04dbdc79618",
+        "symbol": "MU"
+      },
+      {
+        "bars_evaluated": 20,
+        "outcome": "EXPIRED",
+        "r_multiple": 0.1379,
+        "reason": "expired_after_target_1_without_target_2",
+        "signal_date": "2025-11-19",
+        "signal_id": "hist_AAPL_0cecb065d8318414",
+        "symbol": "AAPL"
+      },
+      {
+        "bars_evaluated": 20,
+        "outcome": "EXPIRED",
+        "r_multiple": 0.2026,
+        "reason": "expired_after_target_1_without_target_2",
+        "signal_date": "2024-06-24",
+        "signal_id": "hist_QQQ_7988a00265c0e355",
+        "symbol": "QQQ"
+      }
+    ],
+    "target_1_without_target_2_rate": 0.2083,
+    "target_2_hit_count": 6,
+    "target_2_hit_rate": 0.25
+  },
+  "false_breakout_findings": {
+    "by_symbol": [
+      {
+        "average_r": -1.0225,
+        "entry_hit_rate": 1.0,
+        "expectancy_r": -1.0225,
+        "false_breakout_rate": 1.0,
+        "stop_hit_rate": 1.0,
+        "symbol": "MSFT",
+        "target_1_hit_rate": 0.0,
+        "target_2_hit_rate": 0.0,
+        "total": 3
+      },
+      {
+        "average_r": 0.8335,
+        "entry_hit_rate": 1.0,
+        "expectancy_r": 0.8335,
+        "false_breakout_rate": 0.6667,
+        "stop_hit_rate": 0.3333,
+        "symbol": "GLD",
+        "target_1_hit_rate": 0.3333,
+        "target_2_hit_rate": 0.3333,
+        "total": 3
+      },
+      {
+        "average_r": 0.6975,
+        "entry_hit_rate": 1.0,
+        "expectancy_r": 0.6975,
+        "false_breakout_rate": 0.6667,
+        "stop_hit_rate": 0.3333,
+        "symbol": "NVDA",
+        "target_1_hit_rate": 0.3333,
+        "target_2_hit_rate": 0.3333,
+        "total": 3
+      },
+      {
+        "average_r": 0.7126,
+        "entry_hit_rate": 1.0,
+        "expectancy_r": 0.7126,
+        "false_breakout_rate": 0.3333,
+        "stop_hit_rate": 0.3333,
+        "symbol": "AAPL",
+        "target_1_hit_rate": 0.6667,
+        "target_2_hit_rate": 0.3333,
+        "total": 3
+      },
+      {
+        "average_r": 0.3333,
+        "entry_hit_rate": 1.0,
+        "expectancy_r": 0.3333,
+        "false_breakout_rate": 0.3333,
+        "stop_hit_rate": 0.6667,
+        "symbol": "META",
+        "target_1_hit_rate": 0.6667,
+        "target_2_hit_rate": 0.3333,
+        "total": 3
+      },
+      {
+        "average_r": 0.3333,
+        "entry_hit_rate": 1.0,
+        "expectancy_r": 0.3333,
+        "false_breakout_rate": 0.3333,
+        "stop_hit_rate": 0.6667,
+        "symbol": "MU",
+        "target_1_hit_rate": 0.6667,
+        "target_2_hit_rate": 0.3333,
+        "total": 3
+      },
+      {
+        "average_r": 0.4673,
+        "entry_hit_rate": 0.6667,
+        "expectancy_r": 0.4673,
+        "false_breakout_rate": 0.3333,
+        "stop_hit_rate": 0.0,
+        "symbol": "QQQ",
+        "target_1_hit_rate": 0.3333,
+        "target_2_hit_rate": 0.0,
+        "total": 3
+      },
+      {
+        "average_r": -0.1446,
+        "entry_hit_rate": 1.0,
+        "expectancy_r": -0.1446,
+        "false_breakout_rate": 0.3333,
+        "stop_hit_rate": 0.6667,
+        "symbol": "SLV",
+        "target_1_hit_rate": 0.6667,
+        "target_2_hit_rate": 0.3333,
+        "total": 3
+      }
+    ],
+    "false_breakout_count": 12,
+    "false_breakout_rate": 0.5
+  },
+  "input_completeness_status": "OK",
+  "input_pack_gate_status": "PASSED",
+  "is_demo": false,
+  "portfolio_metrics": {
+    "average_r": 0.2763,
+    "entry_hit_rate": 0.9583,
+    "expectancy_r": 0.2763,
+    "expired_without_entry_rate": 0.0417,
+    "false_breakout_rate": 0.5,
+    "outcomes": {
+      "EXPIRED": 6,
+      "STOP_HIT": 12,
+      "TARGET_2_HIT": 6
+    },
+    "reasons": {
+      "entry_not_hit": 1,
+      "expired_after_target_1_without_target_2": 2,
+      "no_exit_level_hit": 3,
+      "same_bar_stop_first": 1,
+      "stop_hit": 11,
+      "target_2_hit": 6
+    },
+    "stop_hit_rate": 0.5,
+    "target_1_hit_rate": 0.4583,
+    "target_2_hit_rate": 0.25,
+    "total": 24
+  },
+  "recommendations": [
+    {
+      "area": "entry",
+      "finding": "False-breakout rate is elevated.",
+      "next_test": "Compare current breakout trigger against stricter confirmation variants before changing production rules.",
+      "priority": "HIGH"
+    },
+    {
+      "area": "stop_loss",
+      "finding": "Stop-hit rate is elevated.",
+      "next_test": "Run a guarded comparison of fixed stop vs wider ATR-based stop and same-bar stop handling.",
+      "priority": "HIGH"
+    },
+    {
+      "area": "symbol_selection",
+      "finding": "Worst symbol by expectancy is MSFT.",
+      "next_test": "Run symbol-level exclusion/sizing sensitivity before excluding any symbol.",
+      "priority": "MEDIUM"
+    }
+  ],
+  "report_version": "bt132.v1",
+  "review_status": "READY_FOR_REVIEW",
+  "run_health_status": "OK",
+  "run_id": "bt131-real-data-manual",
+  "source_evidence": "reports/backtests/real-data-backtest-evidence.json",
+  "stop_loss_findings": {
+    "problem_examples": [
+      {
+        "bars_evaluated": 18,
+        "outcome": "STOP_HIT",
+        "r_multiple": -1.1726,
+        "reason": "stop_hit",
+        "signal_date": "2024-06-24",
+        "signal_id": "hist_SLV_62aa0bac96783405",
+        "symbol": "SLV"
+      },
+      {
+        "bars_evaluated": 3,
+        "outcome": "STOP_HIT",
+        "r_multiple": -1.0873,
+        "reason": "stop_hit",
+        "signal_date": "2024-12-10",
+        "signal_id": "hist_GLD_660f05be20c28798",
+        "symbol": "GLD"
+      },
+      {
+        "bars_evaluated": 16,
+        "outcome": "STOP_HIT",
+        "r_multiple": -1.0674,
+        "reason": "stop_hit",
+        "signal_date": "2024-06-24",
+        "signal_id": "hist_MSFT_5af359349d977127",
+        "symbol": "MSFT"
+      },
+      {
+        "bars_evaluated": 15,
+        "outcome": "STOP_HIT",
+        "r_multiple": -1.0,
+        "reason": "stop_hit",
+        "signal_date": "2024-12-10",
+        "signal_id": "hist_AAPL_c7e18fc5dc59757a",
+        "symbol": "AAPL"
+      },
+      {
+        "bars_evaluated": 16,
+        "outcome": "STOP_HIT",
+        "r_multiple": -1.0,
+        "reason": "stop_hit",
+        "signal_date": "2024-03-28",
+        "signal_id": "hist_META_2fb35123392bfbfb",
+        "symbol": "META"
+      },
+      {
+        "bars_evaluated": 6,
+        "outcome": "STOP_HIT",
+        "r_multiple": -1.0,
+        "reason": "stop_hit",
+        "signal_date": "2024-12-10",
+        "signal_id": "hist_META_b215a7749494a8f2",
+        "symbol": "META"
+      },
+      {
+        "bars_evaluated": 11,
+        "outcome": "STOP_HIT",
+        "r_multiple": -1.0,
+        "reason": "stop_hit",
+        "signal_date": "2024-03-28",
+        "signal_id": "hist_MSFT_95f558162912119f",
+        "symbol": "MSFT"
+      },
+      {
+        "bars_evaluated": 5,
+        "outcome": "STOP_HIT",
+        "r_multiple": -1.0,
+        "reason": "stop_hit",
+        "signal_date": "2024-09-17",
+        "signal_id": "hist_MSFT_22b4a6dd62e2670e",
+        "symbol": "MSFT"
+      },
+      {
+        "bars_evaluated": 14,
+        "outcome": "STOP_HIT",
+        "r_multiple": -1.0,
+        "reason": "stop_hit",
+        "signal_date": "2024-03-28",
+        "signal_id": "hist_MU_fa92f04dbdc79618",
+        "symbol": "MU"
+      },
+      {
+        "bars_evaluated": 3,
+        "outcome": "STOP_HIT",
+        "r_multiple": -1.0,
+        "reason": "stop_hit",
+        "signal_date": "2024-06-24",
+        "signal_id": "hist_MU_7f56c7438fa2c834",
+        "symbol": "MU"
+      }
+    ],
+    "stop_hit_count": 12,
+    "stop_hit_rate": 0.5
+  },
+  "total_trades": 24,
+  "worst_symbols_by_expectancy": [
+    {
+      "average_r": -1.0225,
+      "entry_hit_rate": 1.0,
+      "expectancy_r": -1.0225,
+      "false_breakout_rate": 1.0,
+      "stop_hit_rate": 1.0,
+      "symbol": "MSFT",
+      "target_1_hit_rate": 0.0,
+      "target_2_hit_rate": 0.0,
+      "total": 3
+    },
+    {
+      "average_r": -0.1446,
+      "entry_hit_rate": 1.0,
+      "expectancy_r": -0.1446,
+      "false_breakout_rate": 0.3333,
+      "stop_hit_rate": 0.6667,
+      "symbol": "SLV",
+      "target_1_hit_rate": 0.6667,
+      "target_2_hit_rate": 0.3333,
+      "total": 3
+    },
+    {
+      "average_r": 0.3333,
+      "entry_hit_rate": 1.0,
+      "expectancy_r": 0.3333,
+      "false_breakout_rate": 0.3333,
+      "stop_hit_rate": 0.6667,
+      "symbol": "META",
+      "target_1_hit_rate": 0.6667,
+      "target_2_hit_rate": 0.3333,
+      "total": 3
+    },
+    {
+      "average_r": 0.3333,
+      "entry_hit_rate": 1.0,
+      "expectancy_r": 0.3333,
+      "false_breakout_rate": 0.3333,
+      "stop_hit_rate": 0.6667,
+      "symbol": "MU",
+      "target_1_hit_rate": 0.6667,
+      "target_2_hit_rate": 0.3333,
+      "total": 3
+    },
+    {
+      "average_r": 0.4673,
+      "entry_hit_rate": 0.6667,
+      "expectancy_r": 0.4673,
+      "false_breakout_rate": 0.3333,
+      "stop_hit_rate": 0.0,
+      "symbol": "QQQ",
+      "target_1_hit_rate": 0.3333,
+      "target_2_hit_rate": 0.0,
+      "total": 3
+    }
+  ]
+}
