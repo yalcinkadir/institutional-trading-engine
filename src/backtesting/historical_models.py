@@ -152,11 +152,12 @@ class HistoricalBacktestReport:
     accepted_plan_count: int = 0
     rejected_plan_count: int = 0
     rejection_reasons: list[dict[str, Any]] = field(default_factory=list)
+    capacity_turnover_snapshot: dict[str, Any] | None = None
     live_trading_authorized: bool = False
     broker_execution_mode: str = "paper_only"
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        payload = {
             "run_id": self.run_id,
             "data_source": self.data_source,
             "is_demo": self.is_demo,
@@ -181,3 +182,6 @@ class HistoricalBacktestReport:
             "live_trading_authorized": self.live_trading_authorized,
             "broker_execution_mode": self.broker_execution_mode,
         }
+        if self.capacity_turnover_snapshot is not None:
+            payload["capacity_turnover_snapshot"] = self.capacity_turnover_snapshot
+        return payload
