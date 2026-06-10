@@ -222,6 +222,8 @@ jobs:
               "input_pack_gate_status",
               "input_completeness_status",
               "run_health_status",
+              "sample_quality_status",
+              "min_trade_count",
               "live_trading_authorized",
               "broker_execution_mode",
           ]
@@ -232,6 +234,8 @@ jobs:
               raise SystemExit("BT131 evidence must be data_source=real_data")
           if payload.get("is_demo") is not False:
               raise SystemExit("BT131 evidence must not be demo")
+          if payload.get("sample_quality_status") == "INSUFFICIENT_SAMPLE":
+              raise SystemExit("BT131 evidence is INSUFFICIENT_SAMPLE; not review-ready")
           if payload.get("live_trading_authorized") is not False:
               raise SystemExit("BT131 must not authorize live trading")
           if payload.get("broker_execution_mode") != "paper_only":
@@ -239,6 +243,7 @@ jobs:
 
           print("BT131 evidence artifact status:", payload.get("run_health_status"))
           print("BT131 input gate:", payload.get("input_pack_gate_status"))
+          print("BT131 sample quality:", payload.get("sample_quality_status"))
           PY
 
       - name: Generate BT132 strategy improvement reports
@@ -350,6 +355,8 @@ jobs:
               "input_pack_gate_status": evidence.get("input_pack_gate_status"),
               "input_completeness_status": evidence.get("input_completeness_status"),
               "run_health_status": evidence.get("run_health_status"),
+              "sample_quality_status": evidence.get("sample_quality_status"),
+              "min_trade_count": evidence.get("min_trade_count"),
               "broker_execution_mode": evidence.get("broker_execution_mode"),
               "metrics": evidence.get("metrics", {}),
               "bt132_review_status": improvement.get("review_status"),
