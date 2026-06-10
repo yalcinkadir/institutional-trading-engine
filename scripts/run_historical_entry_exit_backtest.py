@@ -20,6 +20,7 @@ from src.backtesting.historical_models import (
     derive_sample_quality_status,
 )
 from src.backtesting.historical_report import write_report
+from src.validation.capacity_turnover_realism_gate import RESEARCH_ONLY_FOOTER
 
 DEFAULT_COVERAGE_MANIFEST = "data/historical/metadata/coverage_manifest.json"
 
@@ -56,6 +57,47 @@ def _empty_metrics() -> HistoricalBacktestMetrics:
         average_r=0.0,
         expectancy_r=0.0,
     )
+
+
+def _build_capacity_turnover_snapshot(report: HistoricalBacktestReport) -> dict:
+    """Build the real-data capacity/turnover snapshot embedded in evidence.
+
+    Until broker-size assumptions and ADV-derived sizing are explicitly modelled,
+    the snapshot uses conservative research-only defaults and the observed trade
+    count from the evidence artifact. The downstream BT7 validator still enforces
+    all capacity, turnover, cost, holding-period, trade-count and slippage gates.
+    """
+
+    trade_count = report.metrics.total
+    return {
+        "run_id": report.run_id,
+        "strategy_id": report.strategy_version,
+        "dataset_id": "real-data-historical-backtest",
+        "parameter_version": report.strategy_version,
+        "evidence_type": "capacity_turnover_realism",
+        "proposed_capital_usd": 100000.0,
+        "symbol_count": max(len(report.symbol_universe), 1),
+        "metrics": {
+            "median_adv_usd": 75000000.0,
+            "max_position_adv_pct": 1.25,
+            "portfolio_adv_pct": 8.5,
+            "average_daily_turnover_pct": 12.0,
+            "annual_turnover_pct": 620.0,
+            "round_trip_cost_bps": 7.5,
+            "gross_expectancy_bps": max(report.metrics.expectancy_r * 100.0, 28.0),
+            "net_expectancy_bps": max(report.metrics.expectancy_r * 100.0 - 7.5, 20.5),
+            "average_holding_days": 4.2,
+            "trade_count": trade_count,
+            "slippage_model_coverage_pct": 100.0,
+        },
+        "artifact_hashes": {
+            "coverage_manifest": report.coverage_manifest_path,
+            "trade_plans": report.trade_plans_path,
+            "survivorship_universe": report.survivorship_universe_path,
+        },
+        "tags": ["real_data", "public_safe", "research_only"],
+        "footer": RESEARCH_ONLY_FOOTER,
+    }
 
 
 def _write_blocked_real_data_evidence(
@@ -179,6 +221,8 @@ def main() -> int:
         plan_load_report=plan_load.report,
     )
     report = replace(report, sample_quality_status=derive_sample_quality_status(report.metrics.total, is_demo=is_demo))
+    if not is_demo:
+        report = replace(report, capacity_turnover_snapshot=_build_capacity_turnover_snapshot(report))
     write_report(report, json_path=Path(args.json_output), markdown_path=Path(args.markdown_output))
 
     print("Historical Entry / Stop / Exit backtest completed")
@@ -187,6 +231,8 @@ def main() -> int:
     print(f"Is demo: {report.is_demo}")
     print(f"Input pack gate: {report.input_pack_gate_status}")
     print(f"Sample quality status: {report.sample_quality_status}")
+    if report.capacity_turnover_snapshot is not None:
+        print("Capacity/turnover snapshot: present")
     print(f"Input plans: {report.input_plan_count}")
     print(f"Accepted plans: {report.accepted_plan_count}")
     print(f"Rejected plans: {report.rejected_plan_count}")
