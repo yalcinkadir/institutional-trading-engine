@@ -11,6 +11,10 @@ OUTCOME_STOP_HIT = "STOP_HIT"
 OUTCOME_TARGET_1_HIT = "TARGET_1_HIT"
 OUTCOME_TARGET_2_HIT = "TARGET_2_HIT"
 
+INSUFFICIENT_SAMPLE_STATUS = "INSUFFICIENT_SAMPLE"
+REVIEWABLE_SAMPLE_STATUS = "REVIEWABLE_SAMPLE"
+MIN_REAL_DATA_TRADE_COUNT = 30
+
 
 @dataclass(frozen=True)
 class HistoricalTradePlan:
@@ -117,6 +121,14 @@ class HistoricalBacktestMetrics:
         return asdict(self)
 
 
+def derive_sample_quality_status(trade_count: int, *, is_demo: bool) -> str:
+    if is_demo:
+        return "DEMO_SAMPLE"
+    if trade_count < MIN_REAL_DATA_TRADE_COUNT:
+        return INSUFFICIENT_SAMPLE_STATUS
+    return REVIEWABLE_SAMPLE_STATUS
+
+
 @dataclass(frozen=True)
 class HistoricalBacktestReport:
     metrics: HistoricalBacktestMetrics
@@ -131,6 +143,8 @@ class HistoricalBacktestReport:
     input_pack_gate_status: str = "NOT_RUN"
     input_completeness_status: str = "UNKNOWN"
     run_health_status: str = "UNKNOWN"
+    sample_quality_status: str = INSUFFICIENT_SAMPLE_STATUS
+    min_trade_count: int = MIN_REAL_DATA_TRADE_COUNT
     coverage_manifest_path: str = ""
     survivorship_universe_path: str = ""
     trade_plans_path: str = ""
@@ -153,6 +167,8 @@ class HistoricalBacktestReport:
             "input_pack_gate_status": self.input_pack_gate_status,
             "input_completeness_status": self.input_completeness_status,
             "run_health_status": self.run_health_status,
+            "sample_quality_status": self.sample_quality_status,
+            "min_trade_count": self.min_trade_count,
             "coverage_manifest_path": self.coverage_manifest_path,
             "survivorship_universe_path": self.survivorship_universe_path,
             "trade_plans_path": self.trade_plans_path,
