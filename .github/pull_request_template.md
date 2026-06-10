@@ -22,6 +22,22 @@ Every PR that touches Paper Observation, Backtesting, evidence generation, repor
 - [ ] Guard tests cover the dangerous path and the operational-stability behavior.
 - [ ] Documentation was updated when the evidence/status semantics changed.
 
+## Logic Safety Governance
+
+Every PR that touches scanner, signals, quality engines, regime, risk, validator, watcher, reporting, backtesting, outcome tracking, evidence generation, status claims or CI gates must map the change to system invariants before merge:
+
+- [ ] New or changed logic maps to affected System Invariants from `docs/architecture/system-invariants.md`.
+- [ ] P0/P1 invariant violations are covered by guard or contract tests.
+- [ ] `DEGRADED` states have explicit forbidden claims and cannot behave like `PASS`.
+- [ ] Evidence output includes `run_id`, `data_mode`, checksum/provenance and runtime trace when applicable.
+- [ ] CI evidence gate result is attached, linked or represented by a concrete validation command.
+
+Affected invariants:
+- SI-___
+
+Evidence / test command:
+- `...`
+
 ## IP9 Public Edge Review
 
 Every PR that touches strategy, scoring, thresholds, setup maps, exit profiles, ranking, reports, evidence, execution, sizing or CI gates must answer the following before merge:
