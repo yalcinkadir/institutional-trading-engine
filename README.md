@@ -63,7 +63,8 @@ BT5: Walk-Forward / Out-of-Sample Robustness Gate implemented and CI-green
 BT6: Evidence Baseline Regression Gate implemented and CI-green
 BT7: Capacity / Turnover / Realism Gate implemented and CI-green
 BT130: Real Historical Backtest Evidence Pack Gate implemented / CI-pending
-BT131: Real-data backtest evidence workflow implemented / CI-pending; valid output requires BT9 and P121/BT130 gates, otherwise a BLOCKED artifact is uploaded.
+BT131: Real-data backtest evidence workflow implemented / CI-pending; valid output requires BT9 and P121/BT130/P179 gates, otherwise a BLOCKED or insufficient-sample artifact is uploaded.
+P179: Real-data backtest evidence must satisfy the minimum 30-trade sample-size gate before it can be treated as review-ready; 24-trade evidence is classified as `INSUFFICIENT_SAMPLE` and fails validation.
 CER1: Capacity / Execution Realism Evidence Review Summary implemented and CI-green
 PFA1: Position-level Forward Evidence Attribution implemented and CI-green
 BT8: Backtesting Evidence Report generator implemented and CI-green
@@ -138,7 +139,9 @@ gh workflow run bt131_real_data_backtest_evidence.yml \
   -f plans_file=data/trade_plans/historical_trade_plans.json
 ```
 
-The workflow ingests Polygon historical bars when `POLYGON_API_KEY` is available, validates the BT9 real historical input pack, runs the real-data historical entry/exit backtest, validates accepted evidence through the P121/BT130 gate, and uploads JSON/Markdown artifacts.
+The workflow ingests Polygon historical bars when `POLYGON_API_KEY` is available, validates the BT9 real historical input pack, runs the real-data historical entry/exit backtest, validates accepted evidence through the P121/BT130/P179 gates, and uploads JSON/Markdown artifacts.
+
+P179 enforces a minimum real-data sample size of 30 trades. Real-data evidence with fewer than 30 trades remains audit-visible but is stamped `sample_quality_status=INSUFFICIENT_SAMPLE`, fails the real-data evidence gate, and must not be treated as `READY_FOR_REVIEW` or used for strategy promotion.
 
 If required real inputs are missing, invalid, demo, synthetic, placeholder or public-safe, the workflow must write and upload a `BLOCKED` real-data evidence artifact instead of claiming productive historical evidence.
 
