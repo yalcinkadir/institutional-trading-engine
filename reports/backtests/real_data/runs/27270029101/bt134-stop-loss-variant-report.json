@@ -1,0 +1,667 @@
+{
+  "broker_execution_mode": "paper_only",
+  "data_source": "real_data",
+  "final_recommendation": "OVERFIT_RISK",
+  "input_completeness_status": "OK",
+  "input_pack_gate_status": "PASSED",
+  "is_demo": false,
+  "live_trading_authorized": false,
+  "production_rule_change_allowed": false,
+  "report_version": "bt134.v1",
+  "run_health_status": "OK",
+  "run_id": "bt131-real-data-manual",
+  "safety_notes": [
+    "Research only. No production stop rule change.",
+    "No live trading authorization.",
+    "broker_execution_mode remains paper_only.",
+    "Promotion requires a separate guarded issue with before/after evidence."
+  ],
+  "source_evidence": "reports/backtests/real-data-backtest-evidence.json",
+  "total_source_trades": 24,
+  "variant_results": [
+    {
+      "description": "Current BT131 fixed stop baseline.",
+      "family": "baseline",
+      "limitations": [],
+      "missing_fields": [],
+      "overfit_warning": null,
+      "parameters": {
+        "stop_model": "fixed"
+      },
+      "periods": [
+        {
+          "accepted_trades": 7,
+          "average_r": 0.4313,
+          "blocked_trades": 0,
+          "end_date": "2024-06-24",
+          "expectancy_r": 0.4313,
+          "period": "training",
+          "same_bar_ambiguous_trades": 0,
+          "skipped_trades": 1,
+          "start_date": "2024-03-28",
+          "stop_hit_rate": 0.5714,
+          "target_1_hit_rate": 0.7143,
+          "target_2_hit_rate": 0.4286,
+          "total_trades_considered": 8
+        },
+        {
+          "accepted_trades": 8,
+          "average_r": 0.0453,
+          "blocked_trades": 0,
+          "end_date": "2024-09-17",
+          "expectancy_r": 0.0453,
+          "period": "walk_forward",
+          "same_bar_ambiguous_trades": 0,
+          "skipped_trades": 0,
+          "start_date": "2024-06-24",
+          "stop_hit_rate": 0.5,
+          "target_1_hit_rate": 0.375,
+          "target_2_hit_rate": 0.125,
+          "total_trades_considered": 8
+        },
+        {
+          "accepted_trades": 8,
+          "average_r": 0.4062,
+          "blocked_trades": 0,
+          "end_date": "2025-11-19",
+          "expectancy_r": 0.4062,
+          "period": "out_of_sample",
+          "same_bar_ambiguous_trades": 0,
+          "skipped_trades": 0,
+          "start_date": "2024-09-17",
+          "stop_hit_rate": 0.5,
+          "target_1_hit_rate": 0.375,
+          "target_2_hit_rate": 0.25,
+          "total_trades_considered": 8
+        }
+      ],
+      "recommendation": "KEEP_BASELINE",
+      "status": "EVALUATED",
+      "variant_id": "baseline_fixed_stop"
+    },
+    {
+      "description": "Research proxy for wider fixed stop using BT136 MAE/MFE in R.",
+      "family": "wider_fixed_stop",
+      "limitations": [
+        "BT134 uses BT136 MAE/MFE summaries, not exact intrabar path ordering; result is a research proxy only."
+      ],
+      "missing_fields": [],
+      "overfit_warning": null,
+      "parameters": {
+        "stop_risk_multiplier": 1.0
+      },
+      "periods": [
+        {
+          "accepted_trades": 7,
+          "average_r": 0.2857,
+          "blocked_trades": 0,
+          "end_date": "2024-06-24",
+          "expectancy_r": 0.2857,
+          "period": "training",
+          "same_bar_ambiguous_trades": 0,
+          "skipped_trades": 1,
+          "start_date": "2024-03-28",
+          "stop_hit_rate": 0.5714,
+          "target_1_hit_rate": 0.4286,
+          "target_2_hit_rate": 0.4286,
+          "total_trades_considered": 8
+        },
+        {
+          "accepted_trades": 8,
+          "average_r": 0.1366,
+          "blocked_trades": 0,
+          "end_date": "2024-09-17",
+          "expectancy_r": 0.1366,
+          "period": "walk_forward",
+          "same_bar_ambiguous_trades": 0,
+          "skipped_trades": 0,
+          "start_date": "2024-06-24",
+          "stop_hit_rate": 0.5,
+          "target_1_hit_rate": 0.5,
+          "target_2_hit_rate": 0.25,
+          "total_trades_considered": 8
+        },
+        {
+          "accepted_trades": 8,
+          "average_r": 0.375,
+          "blocked_trades": 0,
+          "end_date": "2025-11-19",
+          "expectancy_r": 0.375,
+          "period": "out_of_sample",
+          "same_bar_ambiguous_trades": 0,
+          "skipped_trades": 0,
+          "start_date": "2024-09-17",
+          "stop_hit_rate": 0.5,
+          "target_1_hit_rate": 0.5,
+          "target_2_hit_rate": 0.375,
+          "total_trades_considered": 8
+        }
+      ],
+      "recommendation": "KEEP_BASELINE",
+      "status": "EVALUATED",
+      "variant_id": "wider_fixed_stop_1_0x"
+    },
+    {
+      "description": "Research proxy for wider fixed stop using BT136 MAE/MFE in R.",
+      "family": "wider_fixed_stop",
+      "limitations": [
+        "BT134 uses BT136 MAE/MFE summaries, not exact intrabar path ordering; result is a research proxy only."
+      ],
+      "missing_fields": [],
+      "overfit_warning": "In-sample improves while out-of-sample is degraded or negative.",
+      "parameters": {
+        "stop_risk_multiplier": 1.25
+      },
+      "periods": [
+        {
+          "accepted_trades": 7,
+          "average_r": 0.8146,
+          "blocked_trades": 0,
+          "end_date": "2024-06-24",
+          "expectancy_r": 0.8146,
+          "period": "training",
+          "same_bar_ambiguous_trades": 0,
+          "skipped_trades": 1,
+          "start_date": "2024-03-28",
+          "stop_hit_rate": 0.2857,
+          "target_1_hit_rate": 0.5714,
+          "target_2_hit_rate": 0.5714,
+          "total_trades_considered": 8
+        },
+        {
+          "accepted_trades": 8,
+          "average_r": 0.4518,
+          "blocked_trades": 0,
+          "end_date": "2024-09-17",
+          "expectancy_r": 0.4518,
+          "period": "walk_forward",
+          "same_bar_ambiguous_trades": 0,
+          "skipped_trades": 0,
+          "start_date": "2024-06-24",
+          "stop_hit_rate": 0.25,
+          "target_1_hit_rate": 0.625,
+          "target_2_hit_rate": 0.25,
+          "total_trades_considered": 8
+        },
+        {
+          "accepted_trades": 8,
+          "average_r": 0.25,
+          "blocked_trades": 0,
+          "end_date": "2025-11-19",
+          "expectancy_r": 0.25,
+          "period": "out_of_sample",
+          "same_bar_ambiguous_trades": 0,
+          "skipped_trades": 0,
+          "start_date": "2024-09-17",
+          "stop_hit_rate": 0.5,
+          "target_1_hit_rate": 0.5,
+          "target_2_hit_rate": 0.375,
+          "total_trades_considered": 8
+        }
+      ],
+      "recommendation": "OVERFIT_RISK",
+      "status": "EVALUATED",
+      "variant_id": "wider_fixed_stop_1_25x"
+    },
+    {
+      "description": "Research proxy for wider fixed stop using BT136 MAE/MFE in R.",
+      "family": "wider_fixed_stop",
+      "limitations": [
+        "BT134 uses BT136 MAE/MFE summaries, not exact intrabar path ordering; result is a research proxy only."
+      ],
+      "missing_fields": [],
+      "overfit_warning": "In-sample improves while out-of-sample is degraded or negative.",
+      "parameters": {
+        "stop_risk_multiplier": 1.5
+      },
+      "periods": [
+        {
+          "accepted_trades": 7,
+          "average_r": 1.0329,
+          "blocked_trades": 0,
+          "end_date": "2024-06-24",
+          "expectancy_r": 1.0329,
+          "period": "training",
+          "same_bar_ambiguous_trades": 0,
+          "skipped_trades": 1,
+          "start_date": "2024-03-28",
+          "stop_hit_rate": 0.1429,
+          "target_1_hit_rate": 0.5714,
+          "target_2_hit_rate": 0.5714,
+          "total_trades_considered": 8
+        },
+        {
+          "accepted_trades": 8,
+          "average_r": 0.9559,
+          "blocked_trades": 0,
+          "end_date": "2024-09-17",
+          "expectancy_r": 0.9559,
+          "period": "walk_forward",
+          "same_bar_ambiguous_trades": 0,
+          "skipped_trades": 0,
+          "start_date": "2024-06-24",
+          "stop_hit_rate": 0.0,
+          "target_1_hit_rate": 0.75,
+          "target_2_hit_rate": 0.25,
+          "total_trades_considered": 8
+        },
+        {
+          "accepted_trades": 8,
+          "average_r": 0.3171,
+          "blocked_trades": 0,
+          "end_date": "2025-11-19",
+          "expectancy_r": 0.3171,
+          "period": "out_of_sample",
+          "same_bar_ambiguous_trades": 0,
+          "skipped_trades": 0,
+          "start_date": "2024-09-17",
+          "stop_hit_rate": 0.375,
+          "target_1_hit_rate": 0.5,
+          "target_2_hit_rate": 0.375,
+          "total_trades_considered": 8
+        }
+      ],
+      "recommendation": "OVERFIT_RISK",
+      "status": "EVALUATED",
+      "variant_id": "wider_fixed_stop_1_5x"
+    },
+    {
+      "description": "ATR stop sensitivity. Skips when ATR evidence is unavailable.",
+      "family": "atr_stop",
+      "limitations": [
+        "BT134 uses BT136 MAE/MFE summaries, not exact intrabar path ordering; result is a research proxy only.",
+        "ATR variant skipped unless atr14_at_signal is present in real-data evidence.",
+        "Variant skipped because required evidence fields are missing from all source rows."
+      ],
+      "missing_fields": [
+        "atr14_at_signal"
+      ],
+      "overfit_warning": null,
+      "parameters": {
+        "atr_multiple": 1.0
+      },
+      "periods": [
+        {
+          "accepted_trades": 0,
+          "average_r": 0.0,
+          "blocked_trades": 0,
+          "end_date": null,
+          "expectancy_r": 0.0,
+          "period": "training",
+          "same_bar_ambiguous_trades": 0,
+          "skipped_trades": 8,
+          "start_date": null,
+          "stop_hit_rate": 0.0,
+          "target_1_hit_rate": 0.0,
+          "target_2_hit_rate": 0.0,
+          "total_trades_considered": 8
+        },
+        {
+          "accepted_trades": 0,
+          "average_r": 0.0,
+          "blocked_trades": 0,
+          "end_date": null,
+          "expectancy_r": 0.0,
+          "period": "walk_forward",
+          "same_bar_ambiguous_trades": 0,
+          "skipped_trades": 8,
+          "start_date": null,
+          "stop_hit_rate": 0.0,
+          "target_1_hit_rate": 0.0,
+          "target_2_hit_rate": 0.0,
+          "total_trades_considered": 8
+        },
+        {
+          "accepted_trades": 0,
+          "average_r": 0.0,
+          "blocked_trades": 0,
+          "end_date": null,
+          "expectancy_r": 0.0,
+          "period": "out_of_sample",
+          "same_bar_ambiguous_trades": 0,
+          "skipped_trades": 8,
+          "start_date": null,
+          "stop_hit_rate": 0.0,
+          "target_1_hit_rate": 0.0,
+          "target_2_hit_rate": 0.0,
+          "total_trades_considered": 8
+        }
+      ],
+      "recommendation": "NEEDS_MORE_DATA",
+      "status": "SKIPPED_INSUFFICIENT_FIELDS",
+      "variant_id": "atr_stop_1_0x"
+    },
+    {
+      "description": "ATR stop sensitivity. Skips when ATR evidence is unavailable.",
+      "family": "atr_stop",
+      "limitations": [
+        "BT134 uses BT136 MAE/MFE summaries, not exact intrabar path ordering; result is a research proxy only.",
+        "ATR variant skipped unless atr14_at_signal is present in real-data evidence.",
+        "Variant skipped because required evidence fields are missing from all source rows."
+      ],
+      "missing_fields": [
+        "atr14_at_signal"
+      ],
+      "overfit_warning": null,
+      "parameters": {
+        "atr_multiple": 1.5
+      },
+      "periods": [
+        {
+          "accepted_trades": 0,
+          "average_r": 0.0,
+          "blocked_trades": 0,
+          "end_date": null,
+          "expectancy_r": 0.0,
+          "period": "training",
+          "same_bar_ambiguous_trades": 0,
+          "skipped_trades": 8,
+          "start_date": null,
+          "stop_hit_rate": 0.0,
+          "target_1_hit_rate": 0.0,
+          "target_2_hit_rate": 0.0,
+          "total_trades_considered": 8
+        },
+        {
+          "accepted_trades": 0,
+          "average_r": 0.0,
+          "blocked_trades": 0,
+          "end_date": null,
+          "expectancy_r": 0.0,
+          "period": "walk_forward",
+          "same_bar_ambiguous_trades": 0,
+          "skipped_trades": 8,
+          "start_date": null,
+          "stop_hit_rate": 0.0,
+          "target_1_hit_rate": 0.0,
+          "target_2_hit_rate": 0.0,
+          "total_trades_considered": 8
+        },
+        {
+          "accepted_trades": 0,
+          "average_r": 0.0,
+          "blocked_trades": 0,
+          "end_date": null,
+          "expectancy_r": 0.0,
+          "period": "out_of_sample",
+          "same_bar_ambiguous_trades": 0,
+          "skipped_trades": 8,
+          "start_date": null,
+          "stop_hit_rate": 0.0,
+          "target_1_hit_rate": 0.0,
+          "target_2_hit_rate": 0.0,
+          "total_trades_considered": 8
+        }
+      ],
+      "recommendation": "NEEDS_MORE_DATA",
+      "status": "SKIPPED_INSUFFICIENT_FIELDS",
+      "variant_id": "atr_stop_1_5x"
+    },
+    {
+      "description": "ATR stop sensitivity. Skips when ATR evidence is unavailable.",
+      "family": "atr_stop",
+      "limitations": [
+        "BT134 uses BT136 MAE/MFE summaries, not exact intrabar path ordering; result is a research proxy only.",
+        "ATR variant skipped unless atr14_at_signal is present in real-data evidence.",
+        "Variant skipped because required evidence fields are missing from all source rows."
+      ],
+      "missing_fields": [
+        "atr14_at_signal"
+      ],
+      "overfit_warning": null,
+      "parameters": {
+        "atr_multiple": 2.0
+      },
+      "periods": [
+        {
+          "accepted_trades": 0,
+          "average_r": 0.0,
+          "blocked_trades": 0,
+          "end_date": null,
+          "expectancy_r": 0.0,
+          "period": "training",
+          "same_bar_ambiguous_trades": 0,
+          "skipped_trades": 8,
+          "start_date": null,
+          "stop_hit_rate": 0.0,
+          "target_1_hit_rate": 0.0,
+          "target_2_hit_rate": 0.0,
+          "total_trades_considered": 8
+        },
+        {
+          "accepted_trades": 0,
+          "average_r": 0.0,
+          "blocked_trades": 0,
+          "end_date": null,
+          "expectancy_r": 0.0,
+          "period": "walk_forward",
+          "same_bar_ambiguous_trades": 0,
+          "skipped_trades": 8,
+          "start_date": null,
+          "stop_hit_rate": 0.0,
+          "target_1_hit_rate": 0.0,
+          "target_2_hit_rate": 0.0,
+          "total_trades_considered": 8
+        },
+        {
+          "accepted_trades": 0,
+          "average_r": 0.0,
+          "blocked_trades": 0,
+          "end_date": null,
+          "expectancy_r": 0.0,
+          "period": "out_of_sample",
+          "same_bar_ambiguous_trades": 0,
+          "skipped_trades": 8,
+          "start_date": null,
+          "stop_hit_rate": 0.0,
+          "target_1_hit_rate": 0.0,
+          "target_2_hit_rate": 0.0,
+          "total_trades_considered": 8
+        }
+      ],
+      "recommendation": "NEEDS_MORE_DATA",
+      "status": "SKIPPED_INSUFFICIENT_FIELDS",
+      "variant_id": "atr_stop_2_0x"
+    },
+    {
+      "description": "Same-bar ambiguity sensitivity using BT136 same_bar_ambiguous flag.",
+      "family": "same_bar_handling",
+      "limitations": [
+        "Same-bar sensitivity is only active for rows marked same_bar_ambiguous=true."
+      ],
+      "missing_fields": [],
+      "overfit_warning": null,
+      "parameters": {
+        "same_bar_mode": "stop_first"
+      },
+      "periods": [
+        {
+          "accepted_trades": 7,
+          "average_r": 0.4313,
+          "blocked_trades": 0,
+          "end_date": "2024-06-24",
+          "expectancy_r": 0.4313,
+          "period": "training",
+          "same_bar_ambiguous_trades": 0,
+          "skipped_trades": 1,
+          "start_date": "2024-03-28",
+          "stop_hit_rate": 0.5714,
+          "target_1_hit_rate": 0.7143,
+          "target_2_hit_rate": 0.4286,
+          "total_trades_considered": 8
+        },
+        {
+          "accepted_trades": 8,
+          "average_r": 0.0453,
+          "blocked_trades": 0,
+          "end_date": "2024-09-17",
+          "expectancy_r": 0.0453,
+          "period": "walk_forward",
+          "same_bar_ambiguous_trades": 0,
+          "skipped_trades": 0,
+          "start_date": "2024-06-24",
+          "stop_hit_rate": 0.5,
+          "target_1_hit_rate": 0.375,
+          "target_2_hit_rate": 0.125,
+          "total_trades_considered": 8
+        },
+        {
+          "accepted_trades": 8,
+          "average_r": 0.4062,
+          "blocked_trades": 0,
+          "end_date": "2025-11-19",
+          "expectancy_r": 0.4062,
+          "period": "out_of_sample",
+          "same_bar_ambiguous_trades": 0,
+          "skipped_trades": 0,
+          "start_date": "2024-09-17",
+          "stop_hit_rate": 0.5,
+          "target_1_hit_rate": 0.375,
+          "target_2_hit_rate": 0.25,
+          "total_trades_considered": 8
+        }
+      ],
+      "recommendation": "KEEP_BASELINE",
+      "status": "EVALUATED",
+      "variant_id": "same_bar_handling_stop_first"
+    },
+    {
+      "description": "Same-bar ambiguity sensitivity using BT136 same_bar_ambiguous flag.",
+      "family": "same_bar_handling",
+      "limitations": [
+        "Same-bar sensitivity is only active for rows marked same_bar_ambiguous=true."
+      ],
+      "missing_fields": [],
+      "overfit_warning": null,
+      "parameters": {
+        "same_bar_mode": "target_first"
+      },
+      "periods": [
+        {
+          "accepted_trades": 7,
+          "average_r": 0.4313,
+          "blocked_trades": 0,
+          "end_date": "2024-06-24",
+          "expectancy_r": 0.4313,
+          "period": "training",
+          "same_bar_ambiguous_trades": 0,
+          "skipped_trades": 1,
+          "start_date": "2024-03-28",
+          "stop_hit_rate": 0.5714,
+          "target_1_hit_rate": 0.7143,
+          "target_2_hit_rate": 0.4286,
+          "total_trades_considered": 8
+        },
+        {
+          "accepted_trades": 8,
+          "average_r": 0.0453,
+          "blocked_trades": 0,
+          "end_date": "2024-09-17",
+          "expectancy_r": 0.0453,
+          "period": "walk_forward",
+          "same_bar_ambiguous_trades": 0,
+          "skipped_trades": 0,
+          "start_date": "2024-06-24",
+          "stop_hit_rate": 0.5,
+          "target_1_hit_rate": 0.375,
+          "target_2_hit_rate": 0.125,
+          "total_trades_considered": 8
+        },
+        {
+          "accepted_trades": 8,
+          "average_r": 0.4062,
+          "blocked_trades": 0,
+          "end_date": "2025-11-19",
+          "expectancy_r": 0.4062,
+          "period": "out_of_sample",
+          "same_bar_ambiguous_trades": 0,
+          "skipped_trades": 0,
+          "start_date": "2024-09-17",
+          "stop_hit_rate": 0.5,
+          "target_1_hit_rate": 0.375,
+          "target_2_hit_rate": 0.25,
+          "total_trades_considered": 8
+        }
+      ],
+      "recommendation": "KEEP_BASELINE",
+      "status": "EVALUATED",
+      "variant_id": "same_bar_handling_target_first"
+    },
+    {
+      "description": "Same-bar ambiguity sensitivity using BT136 same_bar_ambiguous flag.",
+      "family": "same_bar_handling",
+      "limitations": [
+        "Same-bar sensitivity is only active for rows marked same_bar_ambiguous=true."
+      ],
+      "missing_fields": [],
+      "overfit_warning": null,
+      "parameters": {
+        "same_bar_mode": "conservative_blocked"
+      },
+      "periods": [
+        {
+          "accepted_trades": 7,
+          "average_r": 0.4313,
+          "blocked_trades": 0,
+          "end_date": "2024-06-24",
+          "expectancy_r": 0.4313,
+          "period": "training",
+          "same_bar_ambiguous_trades": 0,
+          "skipped_trades": 1,
+          "start_date": "2024-03-28",
+          "stop_hit_rate": 0.5714,
+          "target_1_hit_rate": 0.7143,
+          "target_2_hit_rate": 0.4286,
+          "total_trades_considered": 8
+        },
+        {
+          "accepted_trades": 8,
+          "average_r": 0.0453,
+          "blocked_trades": 0,
+          "end_date": "2024-09-17",
+          "expectancy_r": 0.0453,
+          "period": "walk_forward",
+          "same_bar_ambiguous_trades": 0,
+          "skipped_trades": 0,
+          "start_date": "2024-06-24",
+          "stop_hit_rate": 0.5,
+          "target_1_hit_rate": 0.375,
+          "target_2_hit_rate": 0.125,
+          "total_trades_considered": 8
+        },
+        {
+          "accepted_trades": 8,
+          "average_r": 0.4062,
+          "blocked_trades": 0,
+          "end_date": "2025-11-19",
+          "expectancy_r": 0.4062,
+          "period": "out_of_sample",
+          "same_bar_ambiguous_trades": 0,
+          "skipped_trades": 0,
+          "start_date": "2024-09-17",
+          "stop_hit_rate": 0.5,
+          "target_1_hit_rate": 0.375,
+          "target_2_hit_rate": 0.25,
+          "total_trades_considered": 8
+        }
+      ],
+      "recommendation": "KEEP_BASELINE",
+      "status": "EVALUATED",
+      "variant_id": "same_bar_handling_conservative_blocked"
+    }
+  ],
+  "walk_forward_periods": {
+    "out_of_sample": {
+      "end_date": "2025-11-19",
+      "start_date": "2024-09-17"
+    },
+    "training": {
+      "end_date": "2024-06-24",
+      "start_date": "2024-03-28"
+    },
+    "walk_forward": {
+      "end_date": "2024-09-17",
+      "start_date": "2024-06-24"
+    }
+  }
+}
