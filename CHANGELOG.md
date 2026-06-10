@@ -21,7 +21,8 @@
 - Promotion to production requires a separate issue with fresh forward evidence and explicit approval.
 
 ### Status
-- #176: Implemented / CI-pending.
+- #176: Implemented / BT176 evidence workflow green on run `27267495405` for commit `121f6e7b999a32eac0c3340596062c765285fa15`.
+- Full repository regression is not claimed here; this status is scoped to the real-data BT131/BT132/BT133/BT176 evidence workflow.
 
 ---
 
