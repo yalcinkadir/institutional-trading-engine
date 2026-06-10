@@ -7,6 +7,9 @@ from scripts.export_historical_trade_plans import export_historical_trade_plans
 from scripts.validate_bt9_real_historical_input_pack import validate_bt9_input_pack
 
 
+RUNTIME_GATES = ["scanner", "signal_generator", "quality_fusion", "trade_plan_validator"]
+
+
 def _valid_record(**overrides):
     record = {
         "signal_id": "sig_SPY_001",
@@ -23,6 +26,8 @@ def _valid_record(**overrides):
         "data_source": "polygon",
         "data_status": "ok",
         "provenance": {"vendor": "polygon", "as_of": "2026-06-01T14:30:00Z"},
+        "pipeline_coupled": True,
+        "runtime_gates_applied": RUNTIME_GATES,
     }
     record.update(overrides)
     return record
@@ -79,6 +84,36 @@ def test_htp1_rejects_demo_synthetic_public_safe_records(tmp_path: Path) -> None
     assert "record_0_demo_marker" in report.failures
 
 
+def test_htp1_rejects_non_pipeline_coupled_observations(tmp_path: Path) -> None:
+    source = tmp_path / "observations.json"
+    _write_source(source, [_valid_record(pipeline_coupled=False)])
+
+    report = export_historical_trade_plans(
+        source_path=source,
+        output_path=tmp_path / "historical_trade_plans.json",
+        manifest_path=tmp_path / "manifest.json",
+    )
+
+    assert report.passed is False
+    assert "record_0_not_pipeline_coupled" in report.failures
+    assert not (tmp_path / "historical_trade_plans.json").exists()
+
+
+def test_htp1_rejects_observations_missing_runtime_gates(tmp_path: Path) -> None:
+    source = tmp_path / "observations.json"
+    _write_source(source, [_valid_record(runtime_gates_applied=["scanner", "signal_generator"])])
+
+    report = export_historical_trade_plans(
+        source_path=source,
+        output_path=tmp_path / "historical_trade_plans.json",
+        manifest_path=tmp_path / "manifest.json",
+    )
+
+    assert report.passed is False
+    assert "record_0_missing_runtime_gates:quality_fusion,trade_plan_validator" in report.failures
+    assert not (tmp_path / "historical_trade_plans.json").exists()
+
+
 def test_htp1_valid_observations_export_deterministic_trade_plans(tmp_path: Path) -> None:
     source = tmp_path / "observations.json"
     output = tmp_path / "historical_trade_plans.json"
@@ -101,6 +136,12 @@ def test_htp1_valid_observations_export_deterministic_trade_plans(tmp_path: Path
     assert first.passed is True
     assert second.passed is True
     assert output.read_bytes() == first_bytes
+    assert payload["metadata"]["pipeline_coupled"] is True
+    assert payload["metadata"]["pipeline_generation_source"] == "validated_paper_observation_export"
+    assert payload["metadata"]["generated_signal_count"] == 2
+    assert payload["metadata"]["validated_trade_plan_count"] == 2
+    assert payload["metadata"]["blocked_signal_count"] == 0
+    assert payload["metadata"]["runtime_gates_applied"] == RUNTIME_GATES
     assert [plan["signal_id"] for plan in payload["plans"]] == ["sig_SPY_001", "sig_QQQ_001"]
     assert manifest_payload["exported_count"] == 2
     assert manifest_payload["symbols"] == ["QQQ", "SPY"]
