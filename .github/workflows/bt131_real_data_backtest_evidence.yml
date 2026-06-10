@@ -209,12 +209,15 @@ jobs:
       - name: Verify evidence artifact is reviewable
         run: |
           test -f reports/backtests/real-data-backtest-evidence.json
+          test -f reports/backtests/real-data-backtest-evidence-gate.json
           python - <<'PY'
           import json
           from pathlib import Path
 
           path = Path("reports/backtests/real-data-backtest-evidence.json")
+          gate_path = Path("reports/backtests/real-data-backtest-evidence-gate.json")
           payload = json.loads(path.read_text(encoding="utf-8"))
+          gate = json.loads(gate_path.read_text(encoding="utf-8"))
           required = [
               "run_id",
               "data_source",
@@ -224,6 +227,7 @@ jobs:
               "run_health_status",
               "sample_quality_status",
               "min_trade_count",
+              "capacity_turnover_snapshot",
               "live_trading_authorized",
               "broker_execution_mode",
           ]
@@ -236,6 +240,10 @@ jobs:
               raise SystemExit("BT131 evidence must not be demo")
           if payload.get("sample_quality_status") == "INSUFFICIENT_SAMPLE":
               raise SystemExit("BT131 evidence is INSUFFICIENT_SAMPLE; not review-ready")
+          if gate.get("capacity_turnover_passed") is not True:
+              raise SystemExit("BT131 capacity/turnover gate failed; not review-ready")
+          if gate.get("passed") is not True:
+              raise SystemExit("BT131 evidence gate failed; not review-ready")
           if payload.get("live_trading_authorized") is not False:
               raise SystemExit("BT131 must not authorize live trading")
           if payload.get("broker_execution_mode") != "paper_only":
@@ -244,6 +252,7 @@ jobs:
           print("BT131 evidence artifact status:", payload.get("run_health_status"))
           print("BT131 input gate:", payload.get("input_pack_gate_status"))
           print("BT131 sample quality:", payload.get("sample_quality_status"))
+          print("BT131 capacity/turnover gate:", gate.get("capacity_turnover_passed"))
           PY
 
       - name: Generate BT132 strategy improvement reports
@@ -341,6 +350,7 @@ jobs:
 
           latest = Path("reports/backtests/real_data/latest")
           evidence = json.loads((latest / "real-data-backtest-evidence.json").read_text(encoding="utf-8"))
+          gate = json.loads((latest / "real-data-backtest-evidence-gate.json").read_text(encoding="utf-8"))
           improvement = json.loads((latest / "bt132-strategy-improvement-report.json").read_text(encoding="utf-8"))
           entry_variants = json.loads((latest / "bt133-entry-confirmation-variant-report.json").read_text(encoding="utf-8"))
           stop_variants = json.loads((latest / "bt134-stop-loss-variant-report.json").read_text(encoding="utf-8"))
@@ -357,6 +367,8 @@ jobs:
               "run_health_status": evidence.get("run_health_status"),
               "sample_quality_status": evidence.get("sample_quality_status"),
               "min_trade_count": evidence.get("min_trade_count"),
+              "capacity_turnover_passed": gate.get("capacity_turnover_passed"),
+              "capacity_turnover_failures": gate.get("capacity_turnover_failures", []),
               "broker_execution_mode": evidence.get("broker_execution_mode"),
               "metrics": evidence.get("metrics", {}),
               "bt132_review_status": improvement.get("review_status"),
