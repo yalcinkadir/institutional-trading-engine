@@ -40,6 +40,7 @@ def test_bt131_workflow_orchestrates_real_data_gates_in_order() -> None:
     bt9 = text.index("Run BT9 input-pack gate")
     runner = text.index("Run real-data historical entry/exit backtest")
     gate = text.index("Validate accepted real-data evidence when backtest passed")
+    reviewable = text.index("Verify evidence artifact is reviewable")
     bt132 = text.index("Generate BT132 strategy improvement reports")
     bt133 = text.index("Generate BT133 entry confirmation variant reports")
     bt134 = text.index("Generate BT134 stop-loss variant reports")
@@ -47,7 +48,7 @@ def test_bt131_workflow_orchestrates_real_data_gates_in_order() -> None:
     bt176 = text.index("Generate BT176 guarded entry confirmation experiment reports")
     persist = text.index("Persist validated backtest reports to repository")
 
-    assert ingestion < runtime_universe < generation < bt9 < runner < gate < bt132 < bt133 < bt134 < bt139 < bt176 < persist
+    assert ingestion < runtime_universe < generation < bt9 < runner < gate < reviewable < bt132 < bt133 < bt134 < bt139 < bt176 < persist
     assert "scripts/ingest_historical_polygon.py" in text
     assert "scripts/build_bt131_runtime_universe.py" in text
     assert "scripts/generate_historical_trade_plans.py" in text
@@ -100,6 +101,16 @@ def test_bt131_workflow_accepts_blocked_artifact_path_without_fake_success() -> 
     assert "test -f reports/backtests/real-data-backtest-evidence.json" in text
     assert "run_health_status" in text
     assert "input_pack_gate_status" in text
+
+
+def test_p179_workflow_blocks_insufficient_sample_before_review_reports() -> None:
+    text = _workflow_text()
+
+    assert "sample_quality_status" in text
+    assert "min_trade_count" in text
+    assert "BT131 evidence is INSUFFICIENT_SAMPLE; not review-ready" in text
+    assert text.index("Verify evidence artifact is reviewable") < text.index("Generate BT132 strategy improvement reports")
+    assert text.index("Verify evidence artifact is reviewable") < text.index("Persist validated backtest reports to repository")
 
 
 def test_bt131_workflow_generates_bt132_strategy_improvement_report() -> None:
@@ -167,6 +178,8 @@ def test_bt131_workflow_persists_validated_reports_to_repo_without_telegram() ->
     assert "bt139-bt131-sample-expansion-report.md" in text
     assert "bt133-guarded-entry-confirmation-experiment.json" in text
     assert "bt133-guarded-entry-confirmation-experiment.md" in text
+    assert "sample_quality_status" in text
+    assert "min_trade_count" in text
     assert "bt132_review_status" in text
     assert "bt132_recommendation_count" in text
     assert "bt133_final_recommendation" in text
