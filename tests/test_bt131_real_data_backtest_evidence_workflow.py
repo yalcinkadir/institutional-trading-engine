@@ -40,10 +40,12 @@ def test_bt131_workflow_orchestrates_real_data_gates_in_order() -> None:
     bt9 = text.index("Run BT9 input-pack gate")
     runner = text.index("Run real-data historical entry/exit backtest")
     gate = text.index("Validate accepted real-data evidence when backtest passed")
-    analyzer = text.index("Generate BT132 strategy improvement reports")
+    bt132 = text.index("Generate BT132 strategy improvement reports")
+    bt133 = text.index("Generate BT133 entry confirmation variant reports")
+    bt176 = text.index("Generate BT176 guarded entry confirmation experiment reports")
     persist = text.index("Persist validated backtest reports to repository")
 
-    assert ingestion < runtime_universe < generation < bt9 < runner < gate < analyzer < persist
+    assert ingestion < runtime_universe < generation < bt9 < runner < gate < bt132 < bt133 < bt176 < persist
     assert "scripts/ingest_historical_polygon.py" in text
     assert "scripts/build_bt131_runtime_universe.py" in text
     assert "scripts/generate_historical_trade_plans.py" in text
@@ -51,6 +53,8 @@ def test_bt131_workflow_orchestrates_real_data_gates_in_order() -> None:
     assert "scripts/run_historical_entry_exit_backtest.py" in text
     assert "scripts/validate_real_data_backtest_evidence_gate.py" in text
     assert "scripts/analyze_bt132_strategy_improvement.py" in text
+    assert "scripts/analyze_bt133_entry_confirmation_variants.py" in text
+    assert "scripts/analyze_bt176_guarded_entry_confirmation_experiment.py" in text
 
 
 def test_bt131_workflow_builds_and_uses_runtime_universe() -> None:
@@ -104,6 +108,26 @@ def test_bt131_workflow_generates_bt132_strategy_improvement_report() -> None:
     assert "--output-md reports/backtests/bt132-strategy-improvement-report.md" in text
 
 
+def test_bt131_workflow_generates_bt133_entry_confirmation_variants() -> None:
+    text = _workflow_text()
+
+    assert "Generate BT133 entry confirmation variant reports" in text
+    assert "scripts/analyze_bt133_entry_confirmation_variants.py" in text
+    assert "--output-json reports/backtests/bt133-entry-confirmation-variant-report.json" in text
+    assert "--output-md reports/backtests/bt133-entry-confirmation-variant-report.md" in text
+
+
+def test_bt131_workflow_generates_bt176_guarded_entry_confirmation_experiment() -> None:
+    text = _workflow_text()
+
+    assert "Generate BT176 guarded entry confirmation experiment reports" in text
+    assert "scripts/analyze_bt176_guarded_entry_confirmation_experiment.py" in text
+    assert "--variant-report reports/backtests/bt133-entry-confirmation-variant-report.json" in text
+    assert "--candidate-variant-id next_bar_close_confirmation_1bar" in text
+    assert "--output-json reports/backtests/bt133-guarded-entry-confirmation-experiment.json" in text
+    assert "--output-md reports/backtests/bt133-guarded-entry-confirmation-experiment.md" in text
+
+
 def test_bt131_workflow_persists_validated_reports_to_repo_without_telegram() -> None:
     text = _workflow_text()
 
@@ -113,11 +137,20 @@ def test_bt131_workflow_persists_validated_reports_to_repo_without_telegram() ->
     assert "reports/backtests/real_data/index.json" in text
     assert "bt132-strategy-improvement-report.json" in text
     assert "bt132-strategy-improvement-report.md" in text
+    assert "bt133-entry-confirmation-variant-report.json" in text
+    assert "bt133-entry-confirmation-variant-report.md" in text
+    assert "bt133-guarded-entry-confirmation-experiment.json" in text
+    assert "bt133-guarded-entry-confirmation-experiment.md" in text
     assert "bt132_review_status" in text
     assert "bt132_recommendation_count" in text
+    assert "bt133_final_recommendation" in text
+    assert "bt176_guard_status" in text
+    assert "bt176_candidate_variant_id" in text
+    assert "bt176_experiment_scope" in text
+    assert "bt176_production_rule_change_allowed" in text
     assert "git pull --rebase" in text
     assert "git add reports/backtests/real_data/" in text
-    assert "git commit -m \"Persist BT131/BT132 real-data backtest reports" in text
+    assert "git commit -m \"Persist BT131/BT132/BT133/BT176 real-data backtest reports" in text
     assert "git push" in text
     assert text.index("git pull --rebase") < text.index('report_dir="reports/backtests/real_data/runs/${GITHUB_RUN_ID_VALUE}"')
     assert "TELEGRAM_BOT_TOKEN" not in text
@@ -148,12 +181,14 @@ def test_bt131_workflow_preserves_research_only_safety_boundary() -> None:
     assert "live_trading_authorized" in text
     assert "broker_execution_mode" in text
     assert "paper_only" in text
+    assert "production_rule_change_allowed" in text
     forbidden_tokens = (
         "alpaca_api_key",
         "alpaca_secret",
         "broker_secret",
         "broker_execution_mode=live",
         "live_trading_authorized=true",
+        "production_rule_change_allowed=true",
     )
     lower = text.lower()
     for token in forbidden_tokens:
