@@ -35,6 +35,22 @@ REAL_DATA_SOURCE = "real_data"
 BROKER_EXECUTION_MODE = "paper_only"
 VALID_INPUT_COMPLETENESS_STATUSES = {"OK", "DEGRADED_DATA"}
 VALID_RUN_HEALTH_STATUSES = {"OK", "NO_TRADE_VALID", "DEGRADED_DATA"}
+MIN_REAL_DATA_TRADE_COUNT = 30
+INSUFFICIENT_SAMPLE_STATUS = "INSUFFICIENT_SAMPLE"
+REVIEWABLE_SAMPLE_STATUS = "REVIEWABLE_SAMPLE"
+REVIEW_READY_STATUSES = {
+    "READY_FOR_REVIEW",
+    "REVIEW_READY",
+    "REVIEWABLE_SAMPLE",
+    "PROMOTION_CANDIDATE_SAMPLE",
+}
+REVIEW_STATUS_FIELDS = (
+    "readiness_status",
+    "review_status",
+    "evidence_status",
+    "validation_status",
+    "promotion_status",
+)
 
 
 @dataclass(frozen=True)
@@ -44,6 +60,9 @@ class RealDataBacktestEvidenceGateReport:
     missing_fields: list[str] = field(default_factory=list)
     invalid_fields: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
+    observed_trade_count: int | None = None
+    min_trade_count: int = MIN_REAL_DATA_TRADE_COUNT
+    sample_quality_status: str = INSUFFICIENT_SAMPLE_STATUS
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -87,7 +106,44 @@ def _has_demo_marker(payload: dict[str, Any]) -> bool:
 
 
 def _valid_non_negative_int(value: Any) -> bool:
-    return isinstance(value, int) and value >= 0
+    return isinstance(value, int) and not isinstance(value, bool) and value >= 0
+
+
+def _int_or_none(value: Any) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float) and value.is_integer():
+        return int(value)
+    return None
+
+
+def _extract_trade_count(payload: dict[str, Any]) -> int | None:
+    """Return the trade count used by the real-data sample-size gate.
+
+    The preferred source is an explicit metric. Results length remains a
+    backward-compatible fallback for existing BT130/P121 artifacts.
+    """
+
+    metrics = payload.get("metrics")
+    if isinstance(metrics, dict):
+        for key in ("trade_count", "executed_trade_count", "total_trades", "total"):
+            count = _int_or_none(metrics.get(key))
+            if count is not None:
+                return count
+
+    results = payload.get("results")
+    if isinstance(results, list):
+        return len(results)
+
+    return _int_or_none(payload.get("accepted_plan_count"))
+
+
+def _derive_sample_quality_status(trade_count: int | None) -> str:
+    if trade_count is None or trade_count < MIN_REAL_DATA_TRADE_COUNT:
+        return INSUFFICIENT_SAMPLE_STATUS
+    return REVIEWABLE_SAMPLE_STATUS
 
 
 def validate_real_data_backtest_evidence_artifact(path: Path) -> RealDataBacktestEvidenceGateReport:
@@ -140,6 +196,22 @@ def validate_real_data_backtest_evidence_artifact(path: Path) -> RealDataBacktes
         invalid_fields.append("results")
     if "results" in payload and isinstance(payload.get("results"), list) and not payload.get("results"):
         invalid_fields.append("results_empty")
+
+    observed_trade_count = _extract_trade_count(payload)
+    sample_quality_status = _derive_sample_quality_status(observed_trade_count)
+    if observed_trade_count is None:
+        invalid_fields.append("trade_count")
+    elif observed_trade_count < MIN_REAL_DATA_TRADE_COUNT:
+        invalid_fields.append("insufficient_sample")
+        declared_sample_status = payload.get("sample_quality_status")
+        if declared_sample_status is not None and declared_sample_status != INSUFFICIENT_SAMPLE_STATUS:
+            invalid_fields.append("sample_quality_status")
+        for field_name in REVIEW_STATUS_FIELDS:
+            if payload.get(field_name) in REVIEW_READY_STATUSES:
+                invalid_fields.append(f"{field_name}_sample_size_mismatch")
+    elif payload.get("sample_quality_status") not in (None, REVIEWABLE_SAMPLE_STATUS):
+        invalid_fields.append("sample_quality_status")
+
     if payload.get("live_trading_authorized") is not False:
         invalid_fields.append("live_trading_authorized")
     if payload.get("broker_execution_mode") != BROKER_EXECUTION_MODE:
@@ -153,6 +225,9 @@ def validate_real_data_backtest_evidence_artifact(path: Path) -> RealDataBacktes
         missing_fields=missing_fields,
         invalid_fields=invalid_fields,
         errors=errors,
+        observed_trade_count=observed_trade_count,
+        min_trade_count=MIN_REAL_DATA_TRADE_COUNT,
+        sample_quality_status=sample_quality_status,
     )
 
 
@@ -173,6 +248,9 @@ def main() -> int:
     status = "PASS" if report.passed else "FAIL"
     print(f"Real-data backtest evidence gate status: {status}")
     print(f"Artifact: {report.artifact_path}")
+    print(f"Observed trade count: {report.observed_trade_count}")
+    print(f"Minimum trade count: {report.min_trade_count}")
+    print(f"Sample quality status: {report.sample_quality_status}")
     if report.missing_fields:
         print(f"Missing fields: {', '.join(report.missing_fields)}")
     if report.invalid_fields:
