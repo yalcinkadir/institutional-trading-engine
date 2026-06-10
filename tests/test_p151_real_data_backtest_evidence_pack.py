@@ -7,12 +7,26 @@ import sys
 from pathlib import Path
 
 SCRIPT = Path("scripts/build_real_data_backtest_evidence_pack.py")
+PIPELINE_METADATA = {
+    "pipeline_coupled": True,
+    "pipeline_generation_source": "scanner_signal_quality_validator_fixture",
+    "generated_signal_count": 1,
+    "validated_trade_plan_count": 1,
+    "blocked_signal_count": 0,
+    "runtime_gates_applied": [
+        "scanner",
+        "signal_generator",
+        "quality_fusion",
+        "trade_plan_validator",
+    ],
+}
 
 
 def _write_plan(path: Path) -> None:
     path.write_text(
         json.dumps(
             {
+                "metadata": PIPELINE_METADATA,
                 "plans": [
                     {
                         "signal_id": "sig_SPY_p151_real",
@@ -24,7 +38,7 @@ def _write_plan(path: Path) -> None:
                         "target_2": 106.0,
                         "source": "paper_observation_validated",
                     }
-                ]
+                ],
             }
         ),
         encoding="utf-8",
@@ -159,6 +173,8 @@ def test_p151_builds_valid_real_data_evidence_package_from_prepared_inputs(tmp_p
     assert evidence["data_source"] == "real_data"
     assert evidence["is_demo"] is False
     assert evidence["input_pack_gate_status"] == "PASSED"
+    assert evidence["pipeline_coupled"] is True
+    assert evidence["runtime_gates_applied"] == PIPELINE_METADATA["runtime_gates_applied"]
     assert evidence["accepted_plan_count"] == 1
     assert evidence["broker_execution_mode"] == "paper_only"
     assert evidence["live_trading_authorized"] is False
