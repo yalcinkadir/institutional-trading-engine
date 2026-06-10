@@ -4,8 +4,10 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
+from typing import Any
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
@@ -17,6 +19,12 @@ from src.backtesting.historical_models import HistoricalBacktestMetrics, Histori
 from src.backtesting.historical_report import write_report
 
 DEFAULT_COVERAGE_MANIFEST = "data/historical/metadata/coverage_manifest.json"
+PIPELINE_GATE_NAMES = [
+    "scanner",
+    "signal_generator",
+    "quality_fusion",
+    "trade_plan_validator",
+]
 
 
 def parse_args() -> argparse.Namespace:
@@ -53,6 +61,38 @@ def _empty_metrics() -> HistoricalBacktestMetrics:
     )
 
 
+def _read_trade_plan_payload(path: Path) -> dict[str, Any]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if isinstance(payload, list):
+        return {
+            "metadata": {},
+            "plans": payload,
+        }
+    if isinstance(payload, dict):
+        return payload
+    return {
+        "metadata": {},
+        "plans": [],
+    }
+
+
+def _plan_count(payload: dict[str, Any]) -> int:
+    raw = payload.get("plans") or payload.get("signals") or []
+    return len(raw) if isinstance(raw, list) else 0
+
+
+def _metadata(payload: dict[str, Any]) -> dict[str, Any]:
+    metadata = payload.get("metadata") or {}
+    return metadata if isinstance(metadata, dict) else {}
+
+
+def _runtime_gates(metadata: dict[str, Any]) -> list[str]:
+    raw = metadata.get("runtime_gates_applied") or []
+    if isinstance(raw, list):
+        return [str(item) for item in raw]
+    return []
+
+
 def _write_blocked_real_data_evidence(
     args: argparse.Namespace,
     *,
@@ -63,6 +103,12 @@ def _write_blocked_real_data_evidence(
     input_plan_count: int = 0,
     accepted_plan_count: int = 0,
     rejected_plan_count: int = 0,
+    pipeline_coupled: bool = False,
+    pipeline_generation_source: str = "UNKNOWN",
+    generated_signal_count: int = 0,
+    validated_trade_plan_count: int = 0,
+    blocked_signal_count: int = 0,
+    runtime_gates_applied: list[str] | None = None,
 ) -> None:
     report = HistoricalBacktestReport(
         metrics=_empty_metrics(),
@@ -84,6 +130,12 @@ def _write_blocked_real_data_evidence(
         accepted_plan_count=accepted_plan_count,
         rejected_plan_count=rejected_plan_count,
         rejection_reasons=rejection_reasons,
+        pipeline_coupled=pipeline_coupled,
+        pipeline_generation_source=pipeline_generation_source,
+        generated_signal_count=generated_signal_count,
+        validated_trade_plan_count=validated_trade_plan_count,
+        blocked_signal_count=blocked_signal_count,
+        runtime_gates_applied=runtime_gates_applied or [],
         live_trading_authorized=False,
         broker_execution_mode="paper_only",
     )
@@ -135,11 +187,67 @@ def _fail_closed_if_real_data_requested(args: argparse.Namespace) -> tuple[int |
     return None, "PASSED"
 
 
+def _fail_closed_if_real_data_not_pipeline_coupled(
+    args: argparse.Namespace,
+    *,
+    input_pack_gate_status: str,
+) -> int | None:
+    if not _real_data_requested(args):
+        return None
+
+    payload = _read_trade_plan_payload(Path(args.plans_file))
+    metadata = _metadata(payload)
+    pipeline_coupled = metadata.get("pipeline_coupled") is True
+    generation_source = str(metadata.get("pipeline_generation_source") or "UNKNOWN")
+    runtime_gates_applied = _runtime_gates(metadata)
+    missing_gates = sorted(set(PIPELINE_GATE_NAMES) - set(runtime_gates_applied))
+    input_count = _plan_count(payload)
+
+    if pipeline_coupled and not missing_gates:
+        return None
+
+    reasons = []
+    if not pipeline_coupled:
+        reasons.append("real_data_backtest_requires_pipeline_coupled_trade_plans")
+    if missing_gates:
+        reasons.append("missing_runtime_gates:" + ",".join(missing_gates))
+
+    print("Real-data backtest blocked: non_pipeline_coupled_trade_plans")
+    _write_blocked_real_data_evidence(
+        args,
+        input_pack_gate_status=input_pack_gate_status,
+        input_completeness_status="BLOCKED_NON_PIPELINE_COUPLED_PLANS",
+        run_health_status="BLOCKED",
+        rejection_reasons=[
+            {
+                "plan_index": None,
+                "signal_id": None,
+                "symbol": None,
+                "reasons": reasons,
+            }
+        ],
+        input_plan_count=input_count,
+        accepted_plan_count=0,
+        rejected_plan_count=input_count,
+        pipeline_coupled=pipeline_coupled,
+        pipeline_generation_source=generation_source,
+        generated_signal_count=int(metadata.get("generated_signal_count") or input_count or 0),
+        validated_trade_plan_count=int(metadata.get("validated_trade_plan_count") or 0),
+        blocked_signal_count=int(metadata.get("blocked_signal_count") or input_count or 0),
+        runtime_gates_applied=runtime_gates_applied,
+    )
+    return 1
+
+
 def main() -> int:
     args = parse_args()
     gate_exit, input_pack_gate_status = _fail_closed_if_real_data_requested(args)
     if gate_exit is not None:
         return gate_exit
+
+    pipeline_exit = _fail_closed_if_real_data_not_pipeline_coupled(args, input_pack_gate_status=input_pack_gate_status)
+    if pipeline_exit is not None:
+        return pipeline_exit
 
     plan_load = load_trade_plans_with_report(Path(args.plans_file))
     if _real_data_requested(args) and plan_load.report.accepted_plan_count == 0:
@@ -179,6 +287,7 @@ def main() -> int:
     print(f"Data source: {report.data_source}")
     print(f"Is demo: {report.is_demo}")
     print(f"Input pack gate: {report.input_pack_gate_status}")
+    print(f"Pipeline coupled: {report.pipeline_coupled}")
     print(f"Input plans: {report.input_plan_count}")
     print(f"Accepted plans: {report.accepted_plan_count}")
     print(f"Rejected plans: {report.rejected_plan_count}")
