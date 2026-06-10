@@ -249,6 +249,14 @@ jobs:
             --output-json reports/backtests/bt132-strategy-improvement-report.json \
             --output-md reports/backtests/bt132-strategy-improvement-report.md
 
+      - name: Generate BT133 entry confirmation variant reports
+        if: success()
+        run: |
+          python scripts/analyze_bt133_entry_confirmation_variants.py \
+            --evidence reports/backtests/real-data-backtest-evidence.json \
+            --output-json reports/backtests/bt133-entry-confirmation-variant-report.json \
+            --output-md reports/backtests/bt133-entry-confirmation-variant-report.md
+
       - name: Persist validated backtest reports to repository
         if: success()
         env:
@@ -277,6 +285,8 @@ jobs:
           cp reports/backtests/bt131-generated-trade-plans.json "$report_dir/bt131-generated-trade-plans.json" || true
           cp reports/backtests/bt132-strategy-improvement-report.json "$report_dir/bt132-strategy-improvement-report.json"
           cp reports/backtests/bt132-strategy-improvement-report.md "$report_dir/bt132-strategy-improvement-report.md"
+          cp reports/backtests/bt133-entry-confirmation-variant-report.json "$report_dir/bt133-entry-confirmation-variant-report.json"
+          cp reports/backtests/bt133-entry-confirmation-variant-report.md "$report_dir/bt133-entry-confirmation-variant-report.md"
           cp data/historical/metadata/coverage_manifest.json "$report_dir/coverage_manifest.json"
           cp data/historical/metadata/ingestion_status.json "$report_dir/ingestion_status.json"
           cp data/historical/metadata/bt131_runtime_universe.csv "$report_dir/bt131_runtime_universe.csv"
@@ -295,6 +305,7 @@ jobs:
           latest = Path("reports/backtests/real_data/latest")
           evidence = json.loads((latest / "real-data-backtest-evidence.json").read_text(encoding="utf-8"))
           improvement = json.loads((latest / "bt132-strategy-improvement-report.json").read_text(encoding="utf-8"))
+          entry_variants = json.loads((latest / "bt133-entry-confirmation-variant-report.json").read_text(encoding="utf-8"))
           index = {
               "updated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
               "github_run_id": os.environ["GITHUB_RUN_ID_VALUE"],
@@ -308,6 +319,8 @@ jobs:
               "metrics": evidence.get("metrics", {}),
               "bt132_review_status": improvement.get("review_status"),
               "bt132_recommendation_count": len(improvement.get("recommendations", [])),
+              "bt133_final_recommendation": entry_variants.get("final_recommendation"),
+              "bt133_variant_count": len(entry_variants.get("variant_results", [])),
           }
           Path("reports/backtests/real_data/index.json").write_text(json.dumps(index, indent=2, sort_keys=True) + "\n", encoding="utf-8")
           PY
@@ -317,7 +330,7 @@ jobs:
             echo "No backtest report changes to commit."
             exit 0
           fi
-          git commit -m "Persist BT131/BT132 real-data backtest reports (${GITHUB_RUN_ID_VALUE})"
+          git commit -m "Persist BT131/BT132/BT133 real-data backtest reports (${GITHUB_RUN_ID_VALUE})"
           git push
 
       - name: Upload real-data backtest evidence artifacts
