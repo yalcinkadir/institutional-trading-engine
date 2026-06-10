@@ -216,6 +216,8 @@ def _target_r_from_mfe(mfe: float | None, fallback_r: float) -> tuple[float, boo
         return 2.0, True, True
     if mfe is not None and mfe >= 1.0:
         return 1.0, True, False
+    if fallback_r < 0 and mfe is not None and mfe > 0:
+        return round(min(mfe, 0.99), 4), False, False
     return fallback_r, fallback_r > 0, fallback_r >= 2.0
 
 
@@ -347,10 +349,10 @@ def _recommend(spec: StopVariantSpec, periods: list[PeriodMetrics], baseline_per
 
 
 def _final_recommendation(results: list[VariantResult]) -> str:
-    if any(item.recommendation == RECOMMEND_PROMOTE for item in results):
-        return RECOMMEND_PROMOTE
     if any(item.recommendation == RECOMMEND_OVERFIT_RISK for item in results):
         return RECOMMEND_OVERFIT_RISK
+    if any(item.recommendation == RECOMMEND_PROMOTE for item in results):
+        return RECOMMEND_PROMOTE
     if any(item.recommendation == RECOMMEND_NEEDS_MORE_DATA for item in results):
         return RECOMMEND_NEEDS_MORE_DATA
     return RECOMMEND_KEEP_BASELINE
