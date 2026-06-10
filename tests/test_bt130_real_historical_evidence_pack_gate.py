@@ -49,6 +49,37 @@ def _write_coverage(path: Path) -> None:
     path.write_text(json.dumps({"source": "polygon", "symbols": ["SPY"]}), encoding="utf-8")
 
 
+def _capacity_snapshot(*, trade_count: int) -> dict:
+    return {
+        "run_id": f"real-data-{trade_count}-trades",
+        "strategy_id": "historical-entry-exit-v1",
+        "dataset_id": "real-data-polygon-bt130",
+        "parameter_version": "p179-real-data-min-trade-gate",
+        "evidence_type": "capacity_turnover_realism",
+        "proposed_capital_usd": 100000.0,
+        "symbol_count": 2,
+        "metrics": {
+            "median_adv_usd": 75000000.0,
+            "max_position_adv_pct": 1.25,
+            "portfolio_adv_pct": 8.5,
+            "average_daily_turnover_pct": 12.0,
+            "annual_turnover_pct": 620.0,
+            "round_trip_cost_bps": 7.5,
+            "gross_expectancy_bps": 28.0,
+            "net_expectancy_bps": 20.5,
+            "average_holding_days": 4.2,
+            "trade_count": trade_count,
+            "slippage_model_coverage_pct": 100.0,
+        },
+        "artifact_hashes": {
+            "real_data_backtest_evidence": "sha256:real-data-backtest-evidence",
+            "capacity_turnover_snapshot": "sha256:capacity-turnover-snapshot",
+        },
+        "tags": ["real_data", "public_safe", "research_only"],
+        "footer": "Research / Paper Observation Only. Execution is not authorized by this report.",
+    }
+
+
 def _real_data_evidence_payload(*, trade_count: int, status: str | None = None) -> dict:
     payload = {
         "run_id": f"real-data-{trade_count}-trades",
@@ -71,6 +102,7 @@ def _real_data_evidence_payload(*, trade_count: int, status: str | None = None) 
         "rejection_reasons": [],
         "metrics": {"total": trade_count, "trade_count": trade_count, "expectancy_r": 0.12},
         "results": [{"signal_id": f"sig_{index}", "symbol": "SPY"} for index in range(trade_count)],
+        "capacity_turnover_snapshot": _capacity_snapshot(trade_count=trade_count),
         "tags": ["real_data", "research_only"],
         "live_trading_authorized": False,
         "broker_execution_mode": "paper_only",
@@ -103,6 +135,8 @@ def test_p179_real_data_24_trade_evidence_fails_insufficient_sample_gate(tmp_pat
     assert gate.min_trade_count == 30
     assert gate.sample_quality_status == "INSUFFICIENT_SAMPLE"
     assert "insufficient_sample" in gate.invalid_fields
+    assert "capacity_turnover_realism_gate" in gate.invalid_fields
+    assert any("trade_count_floor" in failure for failure in gate.capacity_turnover_failures)
 
 
 def test_p179_insufficient_sample_cannot_claim_ready_for_review(tmp_path: Path) -> None:
@@ -117,6 +151,7 @@ def test_p179_insufficient_sample_cannot_claim_ready_for_review(tmp_path: Path) 
     assert "insufficient_sample" in gate.invalid_fields
     assert "sample_quality_status" in gate.invalid_fields
     assert "evidence_status_sample_size_mismatch" in gate.invalid_fields
+    assert "capacity_turnover_realism_gate" in gate.invalid_fields
 
 
 def test_bt130_real_data_runner_blocks_missing_coverage_manifest(tmp_path: Path) -> None:
@@ -224,6 +259,7 @@ def test_bt130_evidence_gate_rejects_plan_count_mismatch(tmp_path: Path) -> None
                 "rejection_reasons": [],
                 "metrics": {"total": 2},
                 "results": [{"signal_id": "sig"}],
+                "capacity_turnover_snapshot": _capacity_snapshot(trade_count=2),
                 "live_trading_authorized": False,
                 "broker_execution_mode": "paper_only",
             }
@@ -236,3 +272,4 @@ def test_bt130_evidence_gate_rejects_plan_count_mismatch(tmp_path: Path) -> None
     assert gate.passed is False
     assert "plan_count_mismatch" in gate.invalid_fields
     assert "rejection_reason_count_mismatch" in gate.invalid_fields
+    assert "capacity_turnover_realism_gate" in gate.invalid_fields
