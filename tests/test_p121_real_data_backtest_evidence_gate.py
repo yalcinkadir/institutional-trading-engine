@@ -106,7 +106,7 @@ def _write_plan(path: Path) -> None:
 def _write_bars(root: Path, *, malformed_volume: bool = False) -> None:
     root.mkdir(parents=True, exist_ok=True)
     if malformed_volume:
-        volume_rows = ["", "not_available", "0"]
+        volume_rows = ["not_available", "not_available", "not_available"]
     else:
         volume_rows = ["1000000", "1100000", "1200000"]
     (root / "SPY.csv").write_text(
