@@ -1,5 +1,30 @@
 # CHANGELOG
 
+## BT176 Guarded Entry Confirmation Experiment — 2026-06-10
+
+### Added
+- Added `scripts/analyze_bt176_guarded_entry_confirmation_experiment.py`.
+- Added `tests/test_bt176_guarded_entry_confirmation_experiment.py`.
+- Added `docs/operations/bt176_guarded_entry_confirmation_experiment.md`.
+
+### Changed
+- Wired BT176 into `.github/workflows/bt131_real_data_backtest_evidence.yml` after BT133 report generation.
+- The BT131 evidence workflow now persists BT176 JSON and Markdown artifacts into run-specific and latest real-data report folders.
+- The real-data backtest index now records `bt176_guard_status`, `bt176_candidate_variant_id`, `bt176_experiment_scope` and `bt176_production_rule_change_allowed`.
+- BT133 recommendation logic now checks explicit overfit risk before insufficient-sample classification.
+- Updated workflow guard tests to cover BT132, BT133 and BT176 persistence together.
+
+### Boundary
+- BT176 is research-only and paper-observation shadow-only.
+- No production entry rule is changed.
+- `broker_execution_mode=paper_only` remains explicit.
+- Promotion to production requires a separate issue with fresh forward evidence and explicit approval.
+
+### Status
+- #176: Implemented / CI-pending.
+
+---
+
 ## P148 CI-Truthful Status Claims Guard — 2026-06-08
 
 ### Added
