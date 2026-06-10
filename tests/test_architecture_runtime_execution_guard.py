@@ -15,7 +15,6 @@ CRITICAL_RUNTIME_IMPORTS = [
     "from src.reporting.cross_asset_report import build_cross_asset_report",
     "from src.reporting.report_formatter import format_report",
     "from src.signals.scanner_metrics_pipeline import normalize_scanner_metrics_map",
-    "from src.signals.signal_generator import build_signals, save_signals",
 ]
 
 CRITICAL_RUNTIME_CALLS = [
@@ -35,6 +34,10 @@ def test_arch106_report_signal_runtime_entrypoint_declares_critical_imports() ->
 
     for import_line in CRITICAL_RUNTIME_IMPORTS:
         assert import_line in source
+
+    assert "from src.signals.signal_generator import build_signals" in source
+    assert "from src.signals.signal_generator import save_signals" in source
+    assert "scanner_metrics_map=None" not in source
 
 
 def test_arch106_report_signal_path_has_runtime_execution_proof(monkeypatch, tmp_path) -> None:
