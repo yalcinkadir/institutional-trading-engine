@@ -28,7 +28,7 @@ Every PR that touches scanner, signals, quality engines, regime, risk, validator
 
 - [ ] New or changed logic maps to affected System Invariants from `docs/architecture/system-invariants.md`.
 - [ ] P0/P1 invariant violations are covered by guard or contract tests.
-- [ ] `DEGRADED` states have explicit forbidden claims and cannot behave like `PASS`.
+- [ ] DEGRADED states have explicit forbidden claims and cannot behave like `PASS`.
 - [ ] Evidence output includes `run_id`, `data_mode`, checksum/provenance and runtime trace when applicable.
 - [ ] CI evidence gate result is attached, linked or represented by a concrete validation command.
 
