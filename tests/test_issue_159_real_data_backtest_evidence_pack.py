@@ -6,6 +6,21 @@ from pathlib import Path
 from scripts import run_historical_entry_exit_backtest as runner
 
 
+PIPELINE_METADATA = {
+    "pipeline_coupled": True,
+    "pipeline_generation_source": "scanner_signal_quality_validator_fixture",
+    "generated_signal_count": 1,
+    "validated_trade_plan_count": 1,
+    "blocked_signal_count": 0,
+    "runtime_gates_applied": [
+        "scanner",
+        "signal_generator",
+        "quality_fusion",
+        "trade_plan_validator",
+    ],
+}
+
+
 def _write_universe(path: Path, symbol: str = "AAPL") -> None:
     path.write_text(
         "symbol,effective_from,effective_to,active,asset_class,exchange,source,status,reason\n"
@@ -25,6 +40,7 @@ def test_real_data_backtest_writes_blocked_evidence_when_coverage_manifest_missi
     plans_file.write_text(
         json.dumps(
             {
+                "metadata": PIPELINE_METADATA,
                 "plans": [
                     {
                         "signal_id": "real-plan-1",
@@ -35,7 +51,7 @@ def test_real_data_backtest_writes_blocked_evidence_when_coverage_manifest_missi
                         "target_1": 105.0,
                         "action": "BUY_WATCH",
                     }
-                ]
+                ],
             }
         ),
         encoding="utf-8",
@@ -104,6 +120,7 @@ def test_real_data_backtest_writes_blocked_evidence_when_all_plans_are_rejected(
     plans_file.write_text(
         json.dumps(
             {
+                "metadata": PIPELINE_METADATA,
                 "plans": [
                     {
                         "signal_id": "rejected-plan-1",
@@ -114,7 +131,7 @@ def test_real_data_backtest_writes_blocked_evidence_when_all_plans_are_rejected(
                         "target_1": 105.0,
                         "action": "BUY_WATCH",
                     }
-                ]
+                ],
             }
         ),
         encoding="utf-8",
