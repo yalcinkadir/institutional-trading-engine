@@ -138,6 +138,12 @@ class HistoricalBacktestReport:
     accepted_plan_count: int = 0
     rejected_plan_count: int = 0
     rejection_reasons: list[dict[str, Any]] = field(default_factory=list)
+    pipeline_coupled: bool = False
+    pipeline_generation_source: str = "UNKNOWN"
+    generated_signal_count: int = 0
+    validated_trade_plan_count: int = 0
+    blocked_signal_count: int = 0
+    runtime_gates_applied: list[str] = field(default_factory=list)
     live_trading_authorized: bool = False
     broker_execution_mode: str = "paper_only"
 
@@ -160,6 +166,12 @@ class HistoricalBacktestReport:
             "accepted_plan_count": self.accepted_plan_count,
             "rejected_plan_count": self.rejected_plan_count,
             "rejection_reasons": self.rejection_reasons,
+            "pipeline_coupled": self.pipeline_coupled,
+            "pipeline_generation_source": self.pipeline_generation_source,
+            "generated_signal_count": self.generated_signal_count,
+            "validated_trade_plan_count": self.validated_trade_plan_count,
+            "blocked_signal_count": self.blocked_signal_count,
+            "runtime_gates_applied": self.runtime_gates_applied,
             "metrics": self.metrics.to_dict(),
             "results": [result.to_dict() for result in self.results],
             "live_trading_authorized": self.live_trading_authorized,
