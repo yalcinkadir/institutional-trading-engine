@@ -48,7 +48,7 @@ BT130 requires real-data backtest evidence packs to include run identity, real-d
 | ID | Task | Priority | Impact | Status |
 |---|---|---:|---:|---|
 | TEST1 | Evidence-Oriented TDD Policy | P0 | Critical | Active |
-| #189 | Machine-checkable System Invariants and Logic Safety Governance | P0 | Critical | Implemented / targeted tests pending |
+| #189 | Machine-checkable System Invariants and Logic Safety Governance | P0 | Critical | Implemented / targeted guard tests documented |
 
 #189 defines machine-checkable system invariants, logic-safety severity classes, forbidden state conversions, evidence-traceability minimums and PR checklist linkage. It complements #188 Evidence Quality Gate by preventing `DEGRADED`, `UNKNOWN`, `BLOCKED`, demo/stub or missing-provenance output from being promoted as full `PASS` evidence.
 
@@ -185,8 +185,8 @@ PFA joins position-level risk attribution with forward outcome evidence. It does
 
 ## Recommended Next Remediation Order
 
-1. Validate #189 targeted guard tests and keep the system-invariant layer green.
-2. Architecture reachability + runtime execution guard (#106 / #178 alignment).
+1. Architecture reachability + runtime execution guard (#106 / #178 alignment).
+2. Evidence Quality Gate before roadmap or strategy promotion (#188/#190 de-duplication and implementation).
 3. Continue Phase B data-integrity foundation: survivorship-safe universe, second-provider cross-validation and real persisted daily observation source feed.
 4. Validate remaining CI-pending evidence workflows before upgrading status language.
 
