@@ -49,6 +49,37 @@ def _write_coverage(path: Path) -> None:
     path.write_text(json.dumps({"source": "polygon", "symbols": ["SPY"]}), encoding="utf-8")
 
 
+def _real_data_evidence_payload(*, trade_count: int, status: str | None = None) -> dict:
+    payload = {
+        "run_id": f"real-data-{trade_count}-trades",
+        "data_source": "real_data",
+        "is_demo": False,
+        "symbol_universe": ["SPY", "QQQ"],
+        "date_range": {"start": "2024-01-01", "end": "2026-06-01"},
+        "strategy_version": "historical-entry-exit-v1",
+        "input_pack_gate_status": "PASSED",
+        "input_completeness_status": "OK",
+        "run_health_status": "OK",
+        "sample_quality_status": "REVIEWABLE_SAMPLE" if trade_count >= 30 else "INSUFFICIENT_SAMPLE",
+        "min_trade_count": 30,
+        "coverage_manifest_path": "coverage.json",
+        "survivorship_universe_path": "universe.csv",
+        "trade_plans_path": "plans.json",
+        "input_plan_count": trade_count,
+        "accepted_plan_count": trade_count,
+        "rejected_plan_count": 0,
+        "rejection_reasons": [],
+        "metrics": {"total": trade_count, "trade_count": trade_count, "expectancy_r": 0.12},
+        "results": [{"signal_id": f"sig_{index}", "symbol": "SPY"} for index in range(trade_count)],
+        "tags": ["real_data", "research_only"],
+        "live_trading_authorized": False,
+        "broker_execution_mode": "paper_only",
+    }
+    if status is not None:
+        payload["evidence_status"] = status
+    return payload
+
+
 def test_bt130_loader_reports_rejected_trade_plan_reasons(tmp_path: Path) -> None:
     plans_file = tmp_path / "plans.json"
     _write_plan(plans_file, valid=False)
@@ -59,6 +90,33 @@ def test_bt130_loader_reports_rejected_trade_plan_reasons(tmp_path: Path) -> Non
     assert result.report.accepted_plan_count == 0
     assert result.report.rejected_plan_count == 1
     assert result.report.rejection_reasons[0].reasons == ["missing_stop_loss"]
+
+
+def test_p179_real_data_24_trade_evidence_fails_insufficient_sample_gate(tmp_path: Path) -> None:
+    artifact = tmp_path / "real-data-24-trades.json"
+    artifact.write_text(json.dumps(_real_data_evidence_payload(trade_count=24)), encoding="utf-8")
+
+    gate = validate_real_data_backtest_evidence_artifact(artifact)
+
+    assert gate.passed is False
+    assert gate.observed_trade_count == 24
+    assert gate.min_trade_count == 30
+    assert gate.sample_quality_status == "INSUFFICIENT_SAMPLE"
+    assert "insufficient_sample" in gate.invalid_fields
+
+
+def test_p179_insufficient_sample_cannot_claim_ready_for_review(tmp_path: Path) -> None:
+    artifact = tmp_path / "real-data-24-ready-for-review.json"
+    payload = _real_data_evidence_payload(trade_count=24, status="READY_FOR_REVIEW")
+    payload["sample_quality_status"] = "REVIEWABLE_SAMPLE"
+    artifact.write_text(json.dumps(payload), encoding="utf-8")
+
+    gate = validate_real_data_backtest_evidence_artifact(artifact)
+
+    assert gate.passed is False
+    assert "insufficient_sample" in gate.invalid_fields
+    assert "sample_quality_status" in gate.invalid_fields
+    assert "evidence_status_sample_size_mismatch" in gate.invalid_fields
 
 
 def test_bt130_real_data_runner_blocks_missing_coverage_manifest(tmp_path: Path) -> None:
@@ -95,6 +153,7 @@ def test_bt130_real_data_runner_blocks_missing_coverage_manifest(tmp_path: Path)
     assert payload["input_pack_gate_status"] == "PASSED"
     assert payload["input_completeness_status"] == "BLOCKED_MISSING_COVERAGE_MANIFEST"
     assert payload["run_health_status"] == "BLOCKED"
+    assert payload["sample_quality_status"] == "INSUFFICIENT_SAMPLE"
     assert payload["rejection_reasons"][0]["reasons"] == ["missing_coverage_manifest"]
 
 
@@ -134,6 +193,7 @@ def test_bt130_real_data_runner_blocks_fully_rejected_plans(tmp_path: Path) -> N
     assert payload["input_pack_gate_status"] == "PASSED"
     assert payload["input_completeness_status"] == "EMPTY_INPUT"
     assert payload["run_health_status"] == "BLOCKED"
+    assert payload["sample_quality_status"] == "INSUFFICIENT_SAMPLE"
     assert payload["input_plan_count"] == 1
     assert payload["accepted_plan_count"] == 0
     assert payload["rejected_plan_count"] == 1
@@ -153,6 +213,8 @@ def test_bt130_evidence_gate_rejects_plan_count_mismatch(tmp_path: Path) -> None
                 "input_pack_gate_status": "PASSED",
                 "input_completeness_status": "OK",
                 "run_health_status": "OK",
+                "sample_quality_status": "INSUFFICIENT_SAMPLE",
+                "min_trade_count": 30,
                 "coverage_manifest_path": "coverage.json",
                 "survivorship_universe_path": "universe.csv",
                 "trade_plans_path": "plans.json",
