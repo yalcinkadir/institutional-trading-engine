@@ -4,9 +4,12 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import sys
 from dataclasses import replace
+from datetime import date
 from pathlib import Path
+from statistics import median
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
@@ -17,12 +20,16 @@ from src.backtesting.historical_entry_exit_backtest import load_trade_plans_with
 from src.backtesting.historical_models import (
     HistoricalBacktestMetrics,
     HistoricalBacktestReport,
+    HistoricalBacktestResult,
     derive_sample_quality_status,
 )
 from src.backtesting.historical_report import write_report
 from src.validation.capacity_turnover_realism_gate import RESEARCH_ONLY_FOOTER
 
 DEFAULT_COVERAGE_MANIFEST = "data/historical/metadata/coverage_manifest.json"
+DEFAULT_PROPOSED_CAPITAL_USD = 100000.0
+DEFAULT_ROUND_TRIP_COST_BPS = 7.5
+TRADING_DAYS_PER_YEAR = 252
 
 
 def parse_args() -> argparse.Namespace:
@@ -38,6 +45,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--real-data", action="store_true", help="Mark output as real historical-data evidence.")
     parser.add_argument("--json-output", default="reports/backtests/historical-entry-exit-backtest.json")
     parser.add_argument("--markdown-output", default="reports/backtests/historical-entry-exit-backtest.md")
+    parser.add_argument(
+        "--proposed-capital-usd",
+        type=float,
+        default=DEFAULT_PROPOSED_CAPITAL_USD,
+        help="Research-only proposed capital used for capacity/turnover realism metrics.",
+    )
+    parser.add_argument(
+        "--round-trip-cost-bps",
+        type=float,
+        default=DEFAULT_ROUND_TRIP_COST_BPS,
+        help="Research-only round-trip cost assumption used for net expectancy bps.",
+    )
     return parser.parse_args()
 
 
@@ -59,34 +78,141 @@ def _empty_metrics() -> HistoricalBacktestMetrics:
     )
 
 
-def _build_capacity_turnover_snapshot(report: HistoricalBacktestReport) -> dict:
-    """Build the real-data capacity/turnover snapshot embedded in evidence.
+def _safe_positive_float(value: object) -> float | None:
+    try:
+        converted = float(value)
+    except (TypeError, ValueError):
+        return None
+    return converted if converted > 0 else None
 
-    Until broker-size assumptions and ADV-derived sizing are explicitly modelled,
-    the snapshot uses conservative research-only defaults and the observed trade
-    count from the evidence artifact. The downstream BT7 validator still enforces
-    all capacity, turnover, cost, holding-period, trade-count and slippage gates.
+
+def _load_symbol_adv_usd(bars_root: Path, symbol: str) -> float:
+    """Return median dollar ADV from real historical bars.
+
+    The calculation intentionally uses the same bar contract as the backtest
+    input gate: close * volume from the symbol CSV. Missing, non-positive or
+    malformed values yield 0.0 and therefore fail the downstream BT7 positive
+    scale / liquidity gates instead of silently using a fallback.
+    """
+
+    path = bars_root / f"{symbol}.csv"
+    values: list[float] = []
+    if not path.exists():
+        return 0.0
+    with path.open(newline="", encoding="utf-8") as handle:
+        for row in csv.DictReader(handle):
+            close = _safe_positive_float(row.get("close"))
+            volume = _safe_positive_float(row.get("volume"))
+            if close is None or volume is None:
+                continue
+            values.append(close * volume)
+    return round(float(median(values)), 4) if values else 0.0
+
+
+def _parse_iso_date(value: str | None) -> date | None:
+    if not value:
+        return None
+    try:
+        return date.fromisoformat(str(value)[:10])
+    except ValueError:
+        return None
+
+
+def _calendar_span_days(report: HistoricalBacktestReport) -> int:
+    start = _parse_iso_date(report.date_range.get("start"))
+    end = _parse_iso_date(report.date_range.get("end"))
+    if start is None or end is None or end < start:
+        return 1
+    return max((end - start).days + 1, 1)
+
+
+def _holding_days(results: list[HistoricalBacktestResult]) -> list[int]:
+    days: list[int] = []
+    for result in results:
+        entry = _parse_iso_date(result.entry_date)
+        exit_ = _parse_iso_date(result.exit_date)
+        if entry is None or exit_ is None or exit_ < entry:
+            continue
+        days.append(max((exit_ - entry).days, 1))
+    return days
+
+
+def _average_holding_days(results: list[HistoricalBacktestResult]) -> float:
+    values = _holding_days(results)
+    return round(sum(values) / len(values), 4) if values else 0.0
+
+
+def _gross_expectancy_bps(report: HistoricalBacktestReport) -> float:
+    """Convert average R into approximate gross bps using observed entry risk.
+
+    For each entered trade, one R is approximated as initial risk divided by the
+    observed entry price. If a trade lacks those fields, it is excluded. If no
+    entered trade has enough data, return 0.0 and let BT7 fail closed.
+    """
+
+    bps_values: list[float] = []
+    for result in report.results:
+        entry_price = _safe_positive_float(result.entry_price)
+        initial_stop = _safe_positive_float(result.initial_stop_loss)
+        if entry_price is None or initial_stop is None or initial_stop >= entry_price:
+            continue
+        one_r_bps = ((entry_price - initial_stop) / entry_price) * 10000.0
+        bps_values.append(result.r_multiple * one_r_bps)
+    return round(sum(bps_values) / len(bps_values), 4) if bps_values else 0.0
+
+
+def _build_capacity_turnover_snapshot(
+    report: HistoricalBacktestReport,
+    *,
+    bars_root: Path,
+    proposed_capital_usd: float = DEFAULT_PROPOSED_CAPITAL_USD,
+    round_trip_cost_bps: float = DEFAULT_ROUND_TRIP_COST_BPS,
+) -> dict:
+    """Build a data-derived real-data capacity/turnover snapshot.
+
+    No ADV, turnover, holding-period or expectancy defaults are used. Missing
+    or malformed real bar data produces zero-valued metrics that fail the BT7
+    capacity/turnover realism gate instead of becoming reviewable evidence.
     """
 
     trade_count = report.metrics.total
+    symbol_count = max(len(report.symbol_universe), 1)
+    symbol_advs = {symbol: _load_symbol_adv_usd(bars_root, symbol) for symbol in report.symbol_universe}
+    positive_advs = [value for value in symbol_advs.values() if value > 0]
+    median_adv_usd = round(float(median(positive_advs)), 4) if positive_advs else 0.0
+    total_adv_usd = sum(positive_advs)
+
+    per_symbol_capital = proposed_capital_usd / symbol_count if symbol_count else proposed_capital_usd
+    position_adv_pcts = [per_symbol_capital / adv * 100.0 for adv in positive_advs if adv > 0]
+    max_position_adv_pct = round(max(position_adv_pcts), 4) if position_adv_pcts else 0.0
+    portfolio_adv_pct = round(proposed_capital_usd / total_adv_usd * 100.0, 4) if total_adv_usd > 0 else 0.0
+
+    span_days = _calendar_span_days(report)
+    average_daily_turnover_pct = round((trade_count * per_symbol_capital / span_days) / proposed_capital_usd * 100.0, 4)
+    annual_turnover_pct = round(average_daily_turnover_pct * TRADING_DAYS_PER_YEAR, 4)
+
+    gross_expectancy_bps = _gross_expectancy_bps(report)
+    net_expectancy_bps = round(gross_expectancy_bps - round_trip_cost_bps, 4)
+    average_holding_days = _average_holding_days(report.results)
+
     return {
         "run_id": report.run_id,
         "strategy_id": report.strategy_version,
         "dataset_id": "real-data-historical-backtest",
         "parameter_version": report.strategy_version,
         "evidence_type": "capacity_turnover_realism",
-        "proposed_capital_usd": 100000.0,
-        "symbol_count": max(len(report.symbol_universe), 1),
+        "proposed_capital_usd": proposed_capital_usd,
+        "symbol_count": symbol_count,
         "metrics": {
-            "median_adv_usd": 75000000.0,
-            "max_position_adv_pct": 1.25,
-            "portfolio_adv_pct": 8.5,
-            "average_daily_turnover_pct": 12.0,
-            "annual_turnover_pct": 620.0,
-            "round_trip_cost_bps": 7.5,
-            "gross_expectancy_bps": max(report.metrics.expectancy_r * 100.0, 28.0),
-            "net_expectancy_bps": max(report.metrics.expectancy_r * 100.0 - 7.5, 20.5),
-            "average_holding_days": 4.2,
+            "median_adv_usd": median_adv_usd,
+            "max_position_adv_pct": max_position_adv_pct,
+            "portfolio_adv_pct": portfolio_adv_pct,
+            "average_daily_turnover_pct": average_daily_turnover_pct,
+            "annual_turnover_pct": annual_turnover_pct,
+            "round_trip_cost_bps": round_trip_cost_bps,
+            "gross_expectancy_bps": gross_expectancy_bps,
+            "net_expectancy_bps": net_expectancy_bps,
+            "average_holding_days": average_holding_days,
             "trade_count": trade_count,
             "slippage_model_coverage_pct": 100.0,
         },
@@ -94,6 +220,7 @@ def _build_capacity_turnover_snapshot(report: HistoricalBacktestReport) -> dict:
             "coverage_manifest": report.coverage_manifest_path,
             "trade_plans": report.trade_plans_path,
             "survivorship_universe": report.survivorship_universe_path,
+            "bars_root": str(bars_root),
         },
         "tags": ["real_data", "public_safe", "research_only"],
         "footer": RESEARCH_ONLY_FOOTER,
@@ -222,7 +349,15 @@ def main() -> int:
     )
     report = replace(report, sample_quality_status=derive_sample_quality_status(report.metrics.total, is_demo=is_demo))
     if not is_demo:
-        report = replace(report, capacity_turnover_snapshot=_build_capacity_turnover_snapshot(report))
+        report = replace(
+            report,
+            capacity_turnover_snapshot=_build_capacity_turnover_snapshot(
+                report,
+                bars_root=Path(args.bars_root),
+                proposed_capital_usd=args.proposed_capital_usd,
+                round_trip_cost_bps=args.round_trip_cost_bps,
+            ),
+        )
     write_report(report, json_path=Path(args.json_output), markdown_path=Path(args.markdown_output))
 
     print("Historical Entry / Stop / Exit backtest completed")
