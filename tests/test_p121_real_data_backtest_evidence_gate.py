@@ -11,7 +11,14 @@ VALIDATOR_SCRIPT = Path("scripts/validate_real_data_backtest_evidence_gate.py")
 RUNNER_SCRIPT = Path("scripts/run_historical_entry_exit_backtest.py")
 
 
-def _valid_real_payload() -> dict:
+def _results(count: int) -> list[dict]:
+    return [
+        {"signal_id": f"sig_{index}", "symbol": "SPY", "r_multiple": 1.0}
+        for index in range(count)
+    ]
+
+
+def _valid_real_payload(*, trade_count: int = 30) -> dict:
     return {
         "run_id": "real-bt-2026-06-05-001",
         "data_source": "real_data",
@@ -22,15 +29,17 @@ def _valid_real_payload() -> dict:
         "input_pack_gate_status": "PASSED",
         "input_completeness_status": "OK",
         "run_health_status": "OK",
+        "sample_quality_status": "REVIEWABLE_SAMPLE",
+        "min_trade_count": 30,
         "coverage_manifest_path": "coverage_manifest.json",
         "survivorship_universe_path": "survivorship_universe.csv",
         "trade_plans_path": "historical_trade_plans.json",
-        "input_plan_count": 1,
-        "accepted_plan_count": 1,
+        "input_plan_count": trade_count,
+        "accepted_plan_count": trade_count,
         "rejected_plan_count": 0,
         "rejection_reasons": [],
-        "metrics": {"total": 1, "expectancy_r": 0.42},
-        "results": [{"signal_id": "sig_1", "symbol": "SPY", "r_multiple": 1.0}],
+        "metrics": {"total": trade_count, "trade_count": trade_count, "expectancy_r": 0.42},
+        "results": _results(trade_count),
         "tags": ["real_data", "research_only"],
         "live_trading_authorized": False,
         "broker_execution_mode": "paper_only",
@@ -85,15 +94,17 @@ def _write_coverage_manifest(path: Path) -> None:
     path.write_text(json.dumps({"source": "polygon", "symbols": ["SPY"]}), encoding="utf-8")
 
 
-def test_p121_valid_real_data_backtest_evidence_passes(tmp_path: Path) -> None:
+def test_p121_valid_real_data_backtest_evidence_passes_when_sample_is_reviewable(tmp_path: Path) -> None:
     artifact = tmp_path / "real-data-backtest-evidence.json"
-    artifact.write_text(json.dumps(_valid_real_payload()), encoding="utf-8")
+    artifact.write_text(json.dumps(_valid_real_payload(trade_count=30)), encoding="utf-8")
 
     gate = validate_real_data_backtest_evidence_artifact(artifact)
 
     assert gate.passed is True
     assert gate.missing_fields == []
     assert gate.invalid_fields == []
+    assert gate.observed_trade_count == 30
+    assert gate.sample_quality_status == "REVIEWABLE_SAMPLE"
 
 
 def test_p121_demo_backtest_cannot_pass_as_real_evidence(tmp_path: Path) -> None:
@@ -124,7 +135,7 @@ def test_p121_missing_date_range_fails_schema(tmp_path: Path) -> None:
     assert gate.missing_fields == ["date_range"]
 
 
-def test_p121_real_data_runner_writes_valid_evidence_artifact(tmp_path: Path) -> None:
+def test_p121_real_data_runner_writes_evidence_but_gate_blocks_insufficient_sample(tmp_path: Path) -> None:
     plans = tmp_path / "plans.json"
     bars_root = tmp_path / "bars"
     universe = tmp_path / "universe.csv"
@@ -173,10 +184,16 @@ def test_p121_real_data_runner_writes_valid_evidence_artifact(tmp_path: Path) ->
     assert payload["input_pack_gate_status"] == "PASSED"
     assert payload["input_completeness_status"] == "OK"
     assert payload["run_health_status"] == "OK"
+    assert payload["sample_quality_status"] == "INSUFFICIENT_SAMPLE"
+    assert payload["min_trade_count"] == 30
     assert payload["coverage_manifest_path"] == str(coverage_manifest)
     assert payload["input_plan_count"] == 1
     assert payload["accepted_plan_count"] == 1
     assert payload["rejected_plan_count"] == 0
     assert payload["live_trading_authorized"] is False
     assert payload["broker_execution_mode"] == "paper_only"
-    assert validate_real_data_backtest_evidence_artifact(output_json).passed is True
+    gate = validate_real_data_backtest_evidence_artifact(output_json)
+    assert gate.passed is False
+    assert gate.observed_trade_count == 1
+    assert gate.sample_quality_status == "INSUFFICIENT_SAMPLE"
+    assert "insufficient_sample" in gate.invalid_fields
