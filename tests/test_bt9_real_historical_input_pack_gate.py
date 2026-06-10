@@ -9,27 +9,37 @@ from scripts.validate_bt9_real_historical_input_pack import validate_bt9_input_p
 
 VALIDATOR_SCRIPT = Path("scripts/validate_bt9_real_historical_input_pack.py")
 RUNNER_SCRIPT = Path("scripts/run_historical_entry_exit_backtest.py")
+PIPELINE_GATES = [
+    "scanner",
+    "signal_generator",
+    "quality_fusion",
+    "trade_plan_validator",
+]
 
 
-def _write_trade_plans(path: Path) -> None:
-    path.write_text(
-        json.dumps(
+def _write_trade_plans(path: Path, *, pipeline_coupled: bool = False, runtime_gates: list[str] | None = None) -> None:
+    payload = {
+        "metadata": {
+            "pipeline_coupled": pipeline_coupled,
+            "pipeline_generation_source": "runtime_pipeline_adapter" if pipeline_coupled else "deterministic_historical_generator",
+            "generated_signal_count": 1,
+            "validated_trade_plan_count": 1 if pipeline_coupled else 0,
+            "blocked_signal_count": 0 if pipeline_coupled else 1,
+            "runtime_gates_applied": runtime_gates or [],
+        },
+        "plans": [
             {
-                "plans": [
-                    {
-                        "signal_id": "bt9-plan-1",
-                        "symbol": "SPY",
-                        "signal_date": "2026-06-01",
-                        "entry_trigger": 101.0,
-                        "stop_loss": 99.0,
-                        "target_1": 104.0,
-                        "action": "BUY_WATCH",
-                    }
-                ]
+                "signal_id": "bt9-plan-1",
+                "symbol": "SPY",
+                "signal_date": "2026-06-01",
+                "entry_trigger": 101.0,
+                "stop_loss": 99.0,
+                "target_1": 104.0,
+                "action": "BUY_WATCH",
             }
-        ),
-        encoding="utf-8",
-    )
+        ],
+    }
+    path.write_text(json.dumps(payload), encoding="utf-8")
 
 
 def _write_universe(path: Path) -> None:
@@ -46,6 +56,28 @@ def _write_bars(root: Path) -> None:
         "date,open,high,low,close,volume\n"
         "2026-06-01,100,100,99,100,1000000\n"
         "2026-06-02,101,105,100,104,1100000\n",
+        encoding="utf-8",
+    )
+
+
+def _write_coverage_manifest(path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(
+            {
+                "source": "polygon",
+                "generated_at": "2026-06-01T00:00:00Z",
+                "coverage": [
+                    {
+                        "symbol": "SPY",
+                        "start_date": "2026-06-01",
+                        "end_date": "2026-06-02",
+                        "bar_count": 2,
+                        "status": "OK",
+                    }
+                ],
+            }
+        ),
         encoding="utf-8",
     )
 
@@ -137,3 +169,141 @@ def test_bt9_runner_fails_closed_and_writes_blocked_evidence_when_pack_missing(t
     assert payload["input_pack_gate_status"] == "FAILED"
     assert payload["input_completeness_status"] == "BLOCKED_INPUT_PACK"
     assert payload["run_health_status"] == "BLOCKED"
+
+
+def test_real_data_runner_blocks_trade_plans_not_generated_by_runtime_pipeline(tmp_path: Path) -> None:
+    universe = tmp_path / "universe.csv"
+    bars = tmp_path / "bars"
+    plans = tmp_path / "plans.json"
+    coverage_manifest = tmp_path / "coverage_manifest.json"
+    json_output = tmp_path / "blocked-evidence.json"
+    markdown_output = tmp_path / "blocked-evidence.md"
+    _write_universe(universe)
+    _write_bars(bars)
+    _write_coverage_manifest(coverage_manifest)
+    _write_trade_plans(plans, pipeline_coupled=False)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(RUNNER_SCRIPT),
+            "--plans-file",
+            str(plans),
+            "--bars-root",
+            str(bars),
+            "--universe",
+            str(universe),
+            "--coverage-manifest",
+            str(coverage_manifest),
+            "--real-data",
+            "--json-output",
+            str(json_output),
+            "--markdown-output",
+            str(markdown_output),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "Real-data backtest blocked: non_pipeline_coupled_trade_plans" in result.stdout
+    payload = json.loads(json_output.read_text(encoding="utf-8"))
+    assert payload["pipeline_coupled"] is False
+    assert payload["pipeline_generation_source"] == "deterministic_historical_generator"
+    assert payload["input_completeness_status"] == "BLOCKED_NON_PIPELINE_COUPLED_PLANS"
+    assert payload["run_health_status"] == "BLOCKED"
+    assert payload["rejected_plan_count"] == 1
+    assert "real_data_backtest_requires_pipeline_coupled_trade_plans" in payload["rejection_reasons"][0]["reasons"]
+
+
+def test_real_data_runner_requires_all_runtime_gates_for_pipeline_claim(tmp_path: Path) -> None:
+    universe = tmp_path / "universe.csv"
+    bars = tmp_path / "bars"
+    plans = tmp_path / "plans.json"
+    coverage_manifest = tmp_path / "coverage_manifest.json"
+    json_output = tmp_path / "blocked-evidence.json"
+    markdown_output = tmp_path / "blocked-evidence.md"
+    _write_universe(universe)
+    _write_bars(bars)
+    _write_coverage_manifest(coverage_manifest)
+    _write_trade_plans(plans, pipeline_coupled=True, runtime_gates=["scanner", "signal_generator"])
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(RUNNER_SCRIPT),
+            "--plans-file",
+            str(plans),
+            "--bars-root",
+            str(bars),
+            "--universe",
+            str(universe),
+            "--coverage-manifest",
+            str(coverage_manifest),
+            "--real-data",
+            "--json-output",
+            str(json_output),
+            "--markdown-output",
+            str(markdown_output),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 1
+    payload = json.loads(json_output.read_text(encoding="utf-8"))
+    assert payload["pipeline_coupled"] is True
+    assert payload["runtime_gates_applied"] == ["scanner", "signal_generator"]
+    assert "missing_runtime_gates:quality_fusion,trade_plan_validator" in payload["rejection_reasons"][0]["reasons"]
+
+
+def test_real_data_runner_accepts_pipeline_coupled_trade_plans_and_reports_pipeline_evidence(tmp_path: Path) -> None:
+    universe = tmp_path / "universe.csv"
+    bars = tmp_path / "bars"
+    plans = tmp_path / "plans.json"
+    coverage_manifest = tmp_path / "coverage_manifest.json"
+    json_output = tmp_path / "evidence.json"
+    markdown_output = tmp_path / "evidence.md"
+    _write_universe(universe)
+    _write_bars(bars)
+    _write_coverage_manifest(coverage_manifest)
+    _write_trade_plans(plans, pipeline_coupled=True, runtime_gates=PIPELINE_GATES)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(RUNNER_SCRIPT),
+            "--plans-file",
+            str(plans),
+            "--bars-root",
+            str(bars),
+            "--universe",
+            str(universe),
+            "--coverage-manifest",
+            str(coverage_manifest),
+            "--real-data",
+            "--json-output",
+            str(json_output),
+            "--markdown-output",
+            str(markdown_output),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0
+    payload = json.loads(json_output.read_text(encoding="utf-8"))
+    assert payload["data_source"] == "real_data"
+    assert payload["is_demo"] is False
+    assert payload["pipeline_coupled"] is True
+    assert payload["pipeline_generation_source"] == "runtime_pipeline_adapter"
+    assert payload["generated_signal_count"] == 1
+    assert payload["validated_trade_plan_count"] == 1
+    assert payload["blocked_signal_count"] == 0
+    assert payload["runtime_gates_applied"] == PIPELINE_GATES
+    assert payload["accepted_plan_count"] == 1
+    assert payload["broker_execution_mode"] == "paper_only"
+    assert payload["live_trading_authorized"] is False
