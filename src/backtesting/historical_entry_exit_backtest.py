@@ -565,6 +565,12 @@ def run_backtest(
     survivorship_universe_path: str = "",
     trade_plans_path: str = "",
     plan_load_report: HistoricalTradePlanLoadReport | None = None,
+    pipeline_coupled: bool = False,
+    pipeline_generation_source: str = "UNKNOWN",
+    generated_signal_count: int = 0,
+    validated_trade_plan_count: int = 0,
+    blocked_signal_count: int = 0,
+    runtime_gates_applied: list[str] | None = None,
 ) -> HistoricalBacktestReport:
     cache: dict[str, pd.DataFrame] = {}
     results: list[HistoricalBacktestResult] = []
@@ -615,4 +621,10 @@ def run_backtest(
         accepted_plan_count=load_report.accepted_plan_count,
         rejected_plan_count=load_report.rejected_plan_count,
         rejection_reasons=[rejection.to_dict() for rejection in load_report.rejection_reasons],
+        pipeline_coupled=pipeline_coupled,
+        pipeline_generation_source=pipeline_generation_source,
+        generated_signal_count=generated_signal_count,
+        validated_trade_plan_count=validated_trade_plan_count,
+        blocked_signal_count=blocked_signal_count,
+        runtime_gates_applied=runtime_gates_applied or [],
     )
