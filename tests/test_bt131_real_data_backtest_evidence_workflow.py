@@ -43,10 +43,11 @@ def test_bt131_workflow_orchestrates_real_data_gates_in_order() -> None:
     bt132 = text.index("Generate BT132 strategy improvement reports")
     bt133 = text.index("Generate BT133 entry confirmation variant reports")
     bt134 = text.index("Generate BT134 stop-loss variant reports")
+    bt139 = text.index("Generate BT139 sample expansion reports")
     bt176 = text.index("Generate BT176 guarded entry confirmation experiment reports")
     persist = text.index("Persist validated backtest reports to repository")
 
-    assert ingestion < runtime_universe < generation < bt9 < runner < gate < bt132 < bt133 < bt134 < bt176 < persist
+    assert ingestion < runtime_universe < generation < bt9 < runner < gate < bt132 < bt133 < bt134 < bt139 < bt176 < persist
     assert "scripts/ingest_historical_polygon.py" in text
     assert "scripts/build_bt131_runtime_universe.py" in text
     assert "scripts/generate_historical_trade_plans.py" in text
@@ -56,6 +57,7 @@ def test_bt131_workflow_orchestrates_real_data_gates_in_order() -> None:
     assert "scripts/analyze_bt132_strategy_improvement.py" in text
     assert "scripts/analyze_bt133_entry_confirmation_variants.py" in text
     assert "scripts/analyze_bt134_stop_loss_variants.py" in text
+    assert "scripts/analyze_bt139_bt131_sample_expansion.py" in text
     assert "scripts/analyze_bt176_guarded_entry_confirmation_experiment.py" in text
 
 
@@ -128,6 +130,15 @@ def test_bt131_workflow_generates_bt134_stop_loss_variants() -> None:
     assert "--output-md reports/backtests/bt134-stop-loss-variant-report.md" in text
 
 
+def test_bt131_workflow_generates_bt139_sample_expansion_report() -> None:
+    text = _workflow_text()
+
+    assert "Generate BT139 sample expansion reports" in text
+    assert "scripts/analyze_bt139_bt131_sample_expansion.py" in text
+    assert "--output-json reports/backtests/bt139-bt131-sample-expansion-report.json" in text
+    assert "--output-md reports/backtests/bt139-bt131-sample-expansion-report.md" in text
+
+
 def test_bt131_workflow_generates_bt176_guarded_entry_confirmation_experiment() -> None:
     text = _workflow_text()
 
@@ -152,6 +163,8 @@ def test_bt131_workflow_persists_validated_reports_to_repo_without_telegram() ->
     assert "bt133-entry-confirmation-variant-report.md" in text
     assert "bt134-stop-loss-variant-report.json" in text
     assert "bt134-stop-loss-variant-report.md" in text
+    assert "bt139-bt131-sample-expansion-report.json" in text
+    assert "bt139-bt131-sample-expansion-report.md" in text
     assert "bt133-guarded-entry-confirmation-experiment.json" in text
     assert "bt133-guarded-entry-confirmation-experiment.md" in text
     assert "bt132_review_status" in text
@@ -160,13 +173,19 @@ def test_bt131_workflow_persists_validated_reports_to_repo_without_telegram() ->
     assert "bt134_final_recommendation" in text
     assert "bt134_variant_count" in text
     assert "bt134_production_rule_change_allowed" in text
+    assert "bt139_evidence_quality" in text
+    assert "bt139_promotion_allowed" in text
+    assert "bt139_trade_count" in text
+    assert "bt139_symbol_count" in text
+    assert "bt139_signal_day_count" in text
+    assert "bt139_production_rule_change_allowed" in text
     assert "bt176_guard_status" in text
     assert "bt176_candidate_variant_id" in text
     assert "bt176_experiment_scope" in text
     assert "bt176_production_rule_change_allowed" in text
     assert "git pull --rebase" in text
     assert "git add reports/backtests/real_data/" in text
-    assert "git commit -m \"Persist BT131/BT132/BT133/BT134/BT176 real-data backtest reports" in text
+    assert "git commit -m \"Persist BT131/BT132/BT133/BT134/BT139/BT176 real-data backtest reports" in text
     assert "git push" in text
     assert text.index("git pull --rebase") < text.index('report_dir="reports/backtests/real_data/runs/${GITHUB_RUN_ID_VALUE}"')
     assert "TELEGRAM_BOT_TOKEN" not in text
