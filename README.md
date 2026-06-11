@@ -55,6 +55,7 @@ RGP10: latest bar timestamp ordering guard implemented and CI-green
 RGP11: signal identity float quantization implemented and CI-green
 RGP12: partial-exit lifecycle persistence implemented and CI-green
 RGP13: Runtime Proof Pack Summary Builder implemented and CI-green
+#193: Watcher lifecycle evidence writes authoritative dated summaries under `reports/watchers/lifecycle/YYYY-MM-DD.json` and `reports/watchers/lifecycle/latest.json`; zero-actionable runs are explicitly marked `NO_ACTIONABLE_SIGNALS` instead of silently succeeding.
 FCM1: Feature Connectivity Matrix Guard closed / targeted CI-wired; no repository-wide full-regression green claimed
 RPW1: Runtime Proof-Pack Artifact Writer / Retention Index closed / targeted CI-wired; no repository-wide full-regression green claimed
 DATA1: Market data quality contract blocks missing close/ATR, stale timestamps and missing source metadata before signals or reports consume them.
