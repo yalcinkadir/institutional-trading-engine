@@ -30,6 +30,25 @@ Paper Observation readiness requires fresh scheduled output and scanner datafeed
 
 Scheduled report readiness requires a non-empty dated report, non-empty latest report and, for market reports, non-empty signals plus paper-observation health evidence. Missing scheduled output is `BLOCKED` evidence, not a productive report cycle.
 
+## Phase EV — Evidence Integrity Remediation
+
+| ID | Task | Priority | Impact | Status |
+|---|---|---:|---:|---|
+| EV1 | Sharpe definition remediation | P0 | Critical | Done / CI-green |
+| EV2 | Annualization consistency remediation | P0 | Critical | Done / CI-green |
+| EV3 | Backtest execution timing fidelity | P0 | Critical | Done / CI-green |
+| EV4 | Fees and slippage fidelity | P0 | Critical | Done / CI-green |
+| EV5 | Split/dividend-adjusted price contract | P0 | Critical | Done / CI-green |
+| EV6 | Survivorship and lookahead-bias guard | P0 | Critical | Done / CI-green |
+| EV7 | Decision ranking determinism guard | P0 | Critical | Done / CI-green |
+| EV8 | Fixed-date holdout semantics | P0 | Critical | Done / CI-green |
+| EV9 | Full-suite flake review completion | P1 | High | Done / CI-green |
+| EV10 | Profit-factor infinity handling | P0 | Critical | Done / CI-green |
+| EV11 | Conservative setup scoring | P0 | Critical | Done / CI-green |
+| EV12 | Drawdown magnitude semantics | P0 | Critical | Done / CI-green |
+
+EV1-EV12 evidence-integrity remediation is tracked as completed only because the roadmap rows above are backed by targeted guard tests and the CI runtime simplification path. These rows are historical evidence-integrity status entries and do not authorize live trading, broker execution or capital allocation.
+
 ## Phase BT — Backtesting Evidence Gates
 
 | ID | Task | Priority | Impact | Status |
@@ -143,7 +162,7 @@ P132 requires runtime reports and Paper Observation evidence to expose `selectio
 | ID | Task | Priority | Impact | Status |
 |---|---|---:|---:|---|
 | P160 | Classify unclassified legacy modules before expanding runtime scope | P1 | High | Done / CI-green |
-| P161 | Dataflow Contract Matrix: Scanner → Signals → Quality → Validator → Watcher → Evidence | P1 | High | Done / CI-green |
+| P161 | Dataflow Contract Matrix: Scanner → Signals → Quality → Validator → Watcher → Evidence | P1 | Done / CI-green |
 | P164 | VIX/regime entitlement handling with volatility proxy fallback | P1 | High | Done / CI-green |
 
 P161 defines required pipeline fields, canonical `atr14` naming, allowed `atr` boundary aliasing, runtime producer/consumer ownership and fail-closed behavior. Missing critical fields must become `BLOCKED_MISSING_INPUTS`, not silent `NO_TRADE_VALID` output.
