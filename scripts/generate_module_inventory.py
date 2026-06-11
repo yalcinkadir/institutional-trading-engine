@@ -116,6 +116,35 @@ def _records_by_path(inventory: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return {record["path"]: record for record in inventory.get("modules", [])}
 
 
+def _recompute_counters(modules: list[dict[str, Any]]) -> dict[str, int]:
+    counters: dict[str, int] = {
+        "total_src_modules": 0,
+        "classified_modules": 0,
+        "unclassified_legacy_modules": 0,
+    }
+    for record in modules:
+        classification = str(record.get("classification"))
+        counters["total_src_modules"] += 1
+        if record.get("status") == "classified":
+            counters["classified_modules"] += 1
+        if classification == "unclassified_legacy":
+            counters["unclassified_legacy_modules"] += 1
+        counters[classification] = counters.get(classification, 0) + 1
+    return counters
+
+
+def _normalize_inventory_for_ignored_modules(inventory: dict[str, Any]) -> dict[str, Any]:
+    normalized = dict(inventory)
+    modules = [
+        record
+        for record in inventory.get("modules", [])
+        if str(record.get("path")) not in IGNORED_MODULES
+    ]
+    normalized["modules"] = modules
+    normalized["counters"] = _recompute_counters(modules)
+    return normalized
+
+
 def inventory_diff(expected: dict[str, Any], actual: dict[str, Any]) -> dict[str, Any]:
     expected_records = _records_by_path(expected)
     actual_records = _records_by_path(actual)
@@ -253,6 +282,8 @@ def check_inventory(
         actual = json.loads(output_path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         return False, f"ARCH106 module inventory artifact is invalid JSON: {exc}\n"
+
+    actual = _normalize_inventory_for_ignored_modules(actual)
 
     baseline_ok, baseline_message = _check_unclassified_legacy_baseline(
         inventory=expected,
