@@ -68,12 +68,13 @@ BT7: Capacity / Turnover / Realism Gate implemented and CI-green
 BT130: Real Historical Backtest Evidence Pack Gate implemented / CI-pending
 BT131: Real-data backtest evidence workflow implemented / CI-pending; valid output requires BT9 and P121/BT130 gates, otherwise a BLOCKED artifact is uploaded.
 #177: Real-data historical trade plans can now be exported through the actual Scanner → Signal Generator → Entry/Stop/Exit Quality → Trade Plan Validator path using `scripts/export_historical_trade_plans.py`; non-pipeline-coupled plans remain blocked from real-data evidence claims.
+#184: Historical real-data backtest inputs must be durable and auditable. Polygon CSV bars are persisted under `data/historical/bars/1day/*.csv`, coverage manifests include SHA256 checksums, BT9 fails on missing/mismatched input checksums, and accepted real-data evidence must include `input_checksums`.
 CER1: Capacity / Execution Realism Evidence Review Summary implemented and CI-green
 PFA1: Position-level Forward Evidence Attribution implemented and CI-green
 BT8: Backtesting Evidence Report generator implemented and CI-green
-BT9: Real historical backtesting remains fail-closed unless the input pack gate passes universe, bars, trade-plan and demo-data checks.
+BT9: Real historical backtesting remains fail-closed unless the input pack gate passes universe, bars, trade-plan, demo-data and coverage-manifest checksum checks.
 UNI1: Initial survivorship universe contract defines point-in-time symbol lifecycle validation for real backtesting.
-HIST1: Polygon historical bars ingestion writes canonical CSV bars plus coverage manifest for BT9 compatibility.
+HIST1: Polygon historical bars ingestion writes canonical CSV bars plus coverage manifest with `output_sha256` for BT9 compatibility.
 HTP1: Validated Paper Observation records can be exported into deterministic historical trade plans plus manifest for BT9 compatibility.
 P121: Real historical-data backtest evidence is only claimable after a valid `real_data` evidence artifact passes the P121 schema gate.
 EV1-EV12: evidence-integrity remediation implemented and CI-green
@@ -236,7 +237,9 @@ python scripts/export_historical_trade_plans.py \
 
 The workflow ingests Polygon historical bars when `POLYGON_API_KEY` is available, validates the BT9 real historical input pack, runs the real-data historical entry/exit backtest, validates accepted evidence through the P121/BT130 gate, and uploads JSON/Markdown artifacts.
 
-If required real inputs are missing, invalid, demo, synthetic, placeholder, public-safe or not pipeline-coupled, the workflow must write and upload a `BLOCKED` real-data evidence artifact instead of claiming productive historical evidence.
+#184 auditability rule: GitHub Actions artifacts are not the audit source of truth. A successful real-data backtest must persist the source inputs needed to reproduce it: `data/historical/bars/1day/*.csv`, `data/historical/metadata/coverage_manifest.json`, `data/historical/metadata/ingestion_status.json`, `data/historical/metadata/bt131_runtime_universe.csv`, `data/trade_plans/historical_trade_plans.json`, and `data/trade_plans/historical_trade_plans_manifest.json`. The coverage manifest must contain `output_sha256` for each bars file, BT9 must verify those checksums, and the accepted evidence artifact must expose `input_checksums`.
+
+If required real inputs are missing, invalid, checksum-mismatched, demo, synthetic, placeholder, public-safe or not pipeline-coupled, the workflow must write and upload a `BLOCKED` real-data evidence artifact instead of claiming productive historical evidence.
 
 ## Architecture Contracts
 
@@ -249,7 +252,3 @@ Missing critical downstream fields must fail closed as `BLOCKED_MISSING_INPUTS`;
 ## Regime / VIX Data Quality Policy
 
 The regime path first attempts the true Polygon VIX index ticker `I:VIX`. If that ticker is unavailable because the configured provider tier lacks entitlement, the system uses a configured volatility proxy from `VOLATILITY_PROXY_SYMBOL`, defaulting to `VIXY`.
-
-Proxy evidence is useful for Paper Observation continuity, but it is not full VIX validation. Proxy-backed regime evidence is stamped with `source=polygon_proxy`, `status=PROXY_DEGRADED`, `validation_status=DEGRADED`, `reason=VIX_PROXY_FALLBACK`, and `live_or_paper_confidence_authorized=false`.
-
-If neither true VIX nor proxy evidence is available, the system stamps `UNVALIDATED_REGIME` with `VIX_UNAVAILABLE_ENTITLEMENT` or `VIX_UNAVAILABLE`. Such runs may proceed for research visibility but do not authorize live trading, paper-confidence claims, or evidence-quality claims.
