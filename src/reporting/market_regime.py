@@ -22,6 +22,13 @@ REGIME_STATUS_PROXY_DEGRADED = "PROXY_DEGRADED"
 REGIME_STATUS_UNVALIDATED = "UNVALIDATED"
 REGIME_STATUS_BLOCKED = "BLOCKED"
 UNVALIDATED_REGIME = "UNVALIDATED_REGIME"
+BLOCKED_MARKET_REGIME_UNAVAILABLE = "BLOCKED_MARKET_REGIME_UNAVAILABLE"
+REGIME_CONFIDENCE_FULL = "FULL"
+REGIME_CONFIDENCE_DEGRADED = "DEGRADED"
+REGIME_CONFIDENCE_BLOCKED = "BLOCKED"
+REGIME_POLICY_ALLOW = "ALLOW"
+REGIME_POLICY_DEGRADE = "DEGRADE"
+REGIME_POLICY_BLOCK = "BLOCK"
 BREADTH_UNIVERSE = [
     "MSFT",
     "NVDA",
@@ -162,8 +169,8 @@ def _vix_failure_reason(vix_error: str | None) -> str:
 
 def _vix_status(vix_error: str | None) -> str:
     if vix_error and VIX_UNAVAILABLE_ENTITLEMENT in vix_error:
-        return REGIME_STATUS_UNVALIDATED
-    return REGIME_STATUS_DEGRADED
+        return REGIME_STATUS_BLOCKED
+    return REGIME_STATUS_BLOCKED
 
 
 def _synthetic_vix_from_proxy(proxy: dict) -> float:
@@ -229,10 +236,10 @@ def _vix_regime_input(
         "source": "polygon",
         "timestamp": timestamp_utc,
         "status": _vix_status(vix_error),
-        "validation_status": REGIME_STATUS_UNVALIDATED,
-        "value": NEUTRAL_FALLBACK_VIX,
+        "validation_status": REGIME_STATUS_BLOCKED,
+        "value": None,
         "fallback_used": True,
-        "fallback_value": NEUTRAL_FALLBACK_VIX,
+        "fallback_value": None,
         "reason": reason,
         "error": vix_error or "VIX input unavailable",
         "proxy_error": vix_proxy_error,
@@ -277,10 +284,10 @@ def _calculate_partial_market_score(
     if spy is None and qqq is None:
         return {
             "score": "DATA_UNAVAILABLE",
-            "regime": "Unknown",
+            "regime": BLOCKED_MARKET_REGIME_UNAVAILABLE,
         }
 
-    vix_value = float(vix_input.get("value", NEUTRAL_FALLBACK_VIX))
+    vix_value = float(vix_input.get("value") or NEUTRAL_FALLBACK_VIX)
 
     score = MarketHealthScore(
         spy_above_sma50=bool(spy and spy["above_sma50"]),
@@ -291,14 +298,54 @@ def _calculate_partial_market_score(
         breadth_percent=float(breadth.get("breadth_percent", 0)),
     ).calculate()
 
-    if vix_input.get("validation_status") == REGIME_STATUS_UNVALIDATED:
-        score["regime"] = UNVALIDATED_REGIME
+    if vix_input.get("validation_status") == REGIME_STATUS_BLOCKED:
+        score["regime"] = BLOCKED_MARKET_REGIME_UNAVAILABLE
     elif vix_input.get("status") == REGIME_STATUS_PROXY_DEGRADED:
         score["regime"] = f"{score['regime']} (VIX proxy degraded)"
     elif vix_input.get("fallback_used"):
         score["regime"] = f"{score['regime']} (VIX degraded)"
 
     return score
+
+
+def _regime_policy(
+    *,
+    vix_input: dict[str, Any],
+    index_trend_input: dict[str, Any],
+) -> dict[str, Any]:
+    if vix_input.get("validation_status") == REGIME_STATUS_BLOCKED:
+        status = REGIME_STATUS_BLOCKED
+        confidence = REGIME_CONFIDENCE_BLOCKED
+        action = REGIME_POLICY_BLOCK
+    elif index_trend_input.get("status") == REGIME_STATUS_BLOCKED:
+        status = REGIME_STATUS_BLOCKED
+        confidence = REGIME_CONFIDENCE_BLOCKED
+        action = REGIME_POLICY_BLOCK
+    elif vix_input.get("status") == REGIME_STATUS_PROXY_DEGRADED:
+        status = REGIME_STATUS_DEGRADED
+        confidence = REGIME_CONFIDENCE_DEGRADED
+        action = REGIME_POLICY_DEGRADE
+    elif index_trend_input.get("status") == REGIME_STATUS_DEGRADED:
+        status = REGIME_STATUS_DEGRADED
+        confidence = REGIME_CONFIDENCE_DEGRADED
+        action = REGIME_POLICY_DEGRADE
+    else:
+        status = REGIME_STATUS_LIVE
+        confidence = REGIME_CONFIDENCE_FULL
+        action = REGIME_POLICY_ALLOW
+
+    return {
+        "status": status,
+        "source": str(vix_input.get("source") or "unknown"),
+        "fallback_used": bool(vix_input.get("fallback_used")),
+        "confidence": confidence,
+        "action": action,
+        "reason": vix_input.get("reason"),
+        "vix_status": vix_input.get("status"),
+        "vix_validation_status": vix_input.get("validation_status"),
+        "index_trend_status": index_trend_input.get("status"),
+        "proxy_symbol": vix_input.get("proxy_symbol"),
+    }
 
 
 def _blocked_client_regime_input(timestamp_utc: str, error: str) -> dict[str, Any]:
@@ -334,21 +381,28 @@ def build_market_regime_summary(report_type: str) -> dict:
         client = PolygonClient()
     except Exception as exc:
         error = f"PolygonClient: {type(exc).__name__}: {exc}"
+        regime_input = _blocked_client_regime_input(timestamp_utc, error)
+        policy = _regime_policy(
+            vix_input=regime_input["vix"],
+            index_trend_input=regime_input["index_trend"],
+        )
         return {
             "timestamp_utc": timestamp_utc,
             "market_health_score": "DATA_UNAVAILABLE",
-            "regime": "Unknown",
+            "regime": BLOCKED_MARKET_REGIME_UNAVAILABLE,
+            "regime_policy": policy,
             "focus_areas": _focus_areas(report_type),
             "symbols": {},
             "breadth": {},
             "notes": [
                 "Polygon client could not be initialized.",
                 f"Error: {type(exc).__name__}: {exc}",
+                "Market regime is explicitly blocked because required regime inputs are unavailable.",
             ],
             "data_status": "FALLBACK",
             "regime_validation_status": REGIME_STATUS_BLOCKED,
             "errors": [error],
-            "regime_input": _blocked_client_regime_input(timestamp_utc, error),
+            "regime_input": regime_input,
         }
 
     spy, spy_error = _try_symbol_snapshot(client, "SPY")
@@ -386,7 +440,13 @@ def build_market_regime_summary(report_type: str) -> dict:
         ),
         "index_trend": _index_trend_regime_input(spy=spy, qqq=qqq, timestamp_utc=timestamp_utc),
     }
+    policy = _regime_policy(
+        vix_input=regime_input["vix"],
+        index_trend_input=regime_input["index_trend"],
+    )
     score = _calculate_partial_market_score(spy, qqq, regime_input["vix"], breadth)
+    if policy["action"] == REGIME_POLICY_BLOCK:
+        score["regime"] = BLOCKED_MARKET_REGIME_UNAVAILABLE
 
     symbols: dict[str, dict] = {}
     if spy is not None:
@@ -398,7 +458,10 @@ def build_market_regime_summary(report_type: str) -> dict:
     if vix_proxy is not None:
         symbols["VIX_PROXY"] = vix_proxy
 
-    regime_validation_status = str(regime_input["vix"].get("validation_status") or "UNKNOWN")
+    regime_validation_status = str(regime_input["vix"].get("validation_status") or REGIME_STATUS_BLOCKED)
+    if policy["action"] == REGIME_POLICY_BLOCK:
+        regime_validation_status = REGIME_STATUS_BLOCKED
+
     if regime_input["index_trend"]["status"] == REGIME_STATUS_BLOCKED:
         data_status = "FALLBACK"
     elif (
@@ -415,7 +478,11 @@ def build_market_regime_summary(report_type: str) -> dict:
         "Breadth currently uses the configured leader universe, not the full S&P 500 universe.",
     ]
 
-    if regime_input["vix"].get("status") == REGIME_STATUS_PROXY_DEGRADED:
+    if policy["action"] == REGIME_POLICY_BLOCK:
+        notes.append(
+            "Market regime is explicitly blocked because required VIX/proxy or index trend inputs are unavailable."
+        )
+    elif regime_input["vix"].get("status") == REGIME_STATUS_PROXY_DEGRADED:
         notes.append(
             "Polygon VIX index unavailable; using configured volatility proxy for degraded regime evidence."
         )
@@ -439,6 +506,7 @@ def build_market_regime_summary(report_type: str) -> dict:
         "timestamp_utc": timestamp_utc,
         "market_health_score": score["score"],
         "regime": score["regime"],
+        "regime_policy": policy,
         "regime_validation_status": regime_validation_status,
         "focus_areas": _focus_areas(report_type),
         "symbols": symbols,
