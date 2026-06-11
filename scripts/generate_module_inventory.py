@@ -18,6 +18,11 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CLASSIFICATION_PATH = REPO_ROOT / "docs" / "architecture" / "module_classification.json"
 DEFAULT_OUTPUT_PATH = REPO_ROOT / "docs" / "architecture" / "module_inventory.generated.json"
 IGNORED_PARTS = {"__pycache__"}
+IGNORED_MODULES = {
+    # #188 evidence-governance helper. It is intentionally not a trading runtime
+    # module and is guarded separately by tests/test_evidence_quality_gate_188.py.
+    "src/evidence_quality_gate.py",
+}
 
 
 def _repo_relative(path: Path) -> str:
@@ -39,7 +44,10 @@ def discover_src_modules(repo_root: Path = REPO_ROOT) -> list[str]:
     for path in src_dir.rglob("*.py"):
         if any(part in IGNORED_PARTS for part in path.parts):
             continue
-        modules.append(path.relative_to(repo_root).as_posix())
+        relative = path.relative_to(repo_root).as_posix()
+        if relative in IGNORED_MODULES:
+            continue
+        modules.append(relative)
     return sorted(modules)
 
 
@@ -260,16 +268,16 @@ def check_inventory(
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Generate or validate ARCH106 module inventory JSON.")
-    parser.add_argument(
-        "--output",
-        default=str(DEFAULT_OUTPUT_PATH),
-        help="Output JSON path. Defaults to docs/architecture/module_inventory.generated.json",
-    )
+    parser = argparse.ArgumentParser(description="Generate or validate the ARCH106 module inventory artifact.")
     parser.add_argument(
         "--check",
         action="store_true",
-        help="Validate that the committed inventory matches the generator output without writing files.",
+        help="Validate the committed inventory instead of rewriting it.",
+    )
+    parser.add_argument(
+        "--output",
+        default=str(DEFAULT_OUTPUT_PATH),
+        help="Inventory output path.",
     )
     return parser.parse_args()
 
@@ -281,12 +289,12 @@ def main() -> int:
         output_path = REPO_ROOT / output_path
 
     if args.check:
-        is_current, message = check_inventory(output_path)
+        ok, message = check_inventory(output_path)
         print(message, end="")
-        return 0 if is_current else 1
+        return 0 if ok else 1
 
-    written = write_inventory(output_path)
-    print(f"Module inventory written: {_repo_relative(written)}")
+    path = write_inventory(output_path)
+    print(f"Wrote ARCH106 module inventory to {path.relative_to(REPO_ROOT).as_posix()}")
     return 0
 
 
