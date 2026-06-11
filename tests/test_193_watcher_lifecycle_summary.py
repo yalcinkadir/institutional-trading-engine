@@ -3,12 +3,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from src.watchers.entry_exit_watcher import build_watcher_market_data_health
-from src.watchers.watcher_lifecycle_summary import (
+from scripts.watcher_lifecycle_summary import (
     NO_ACTIONABLE_SIGNALS,
     build_watcher_lifecycle_summary,
     write_watcher_lifecycle_summary,
 )
+from src.watchers.entry_exit_watcher import build_watcher_market_data_health
 
 
 def _signal(**overrides):
@@ -96,7 +96,7 @@ def test_193_watcher_lifecycle_summary_writer_creates_dated_and_latest_files(tmp
 def test_193_runner_imports_and_writes_lifecycle_summary_for_no_actionable_path() -> None:
     runner = Path("scripts/run_entry_exit_watcher.py").read_text(encoding="utf-8")
 
-    assert "from src.watchers.watcher_lifecycle_summary import write_watcher_lifecycle_summary" in runner
+    assert "from scripts.watcher_lifecycle_summary import write_watcher_lifecycle_summary" in runner
     assert "_persist_lifecycle_summary(" in runner
     assert "updates=[]" in runner
     assert "watcher_no_actionable_signals" in runner
