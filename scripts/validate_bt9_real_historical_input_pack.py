@@ -19,6 +19,21 @@ from scripts.validate_survivorship_universe import validate_survivorship_univers
 DEMO_MARKERS = {"demo", "synthetic", "public_safe", "historical_demo", "placeholder"}
 REQUIRED_BAR_COLUMNS = {"date", "open", "high", "low", "close", "volume"}
 REQUIRED_TRADE_PLAN_FIELDS = {"signal_id", "symbol", "signal_date", "entry_trigger", "stop_loss", "target_1"}
+REQUIRED_RUNTIME_GATES = [
+    "scanner",
+    "signal_generator",
+    "quality_fusion",
+    "trade_plan_validator",
+]
+ACCEPTED_PIPELINE_GENERATION_SOURCES = {
+    "runtime_pipeline_adapter",
+    "scanner_signal_quality_validator",
+}
+FORBIDDEN_PIPELINE_GENERATION_SOURCES = {
+    "validated_paper_observation_export",
+    "deterministic_historical_generator",
+    "historical_demo_generator",
+}
 
 
 @dataclass(frozen=True)
@@ -40,7 +55,7 @@ class BT9RealHistoricalInputPackReport:
 def sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+        for chunk in iter(lambda: handle.read(1024 * 1024), b=""):
             digest.update(chunk)
     return digest.hexdigest()
 
@@ -56,6 +71,44 @@ def _has_demo_marker(value: Any) -> bool:
     return False
 
 
+def _metadata_runtime_gates(metadata: dict[str, Any]) -> list[str]:
+    raw = metadata.get("runtime_gates_applied") or []
+    if isinstance(raw, list):
+        return [str(item) for item in raw]
+    return []
+
+
+def _validate_trade_plan_metadata(metadata: Any) -> list[str]:
+    """Fail closed when real-data backtest plans do not prove runtime-pipeline origin."""
+
+    if not isinstance(metadata, dict) or not metadata:
+        return ["trade_plans_missing_pipeline_metadata"]
+
+    failures: list[str] = []
+    if metadata.get("pipeline_coupled") is not True:
+        failures.append("trade_plans_not_pipeline_coupled")
+
+    runtime_gates = _metadata_runtime_gates(metadata)
+    missing_gates = sorted(set(REQUIRED_RUNTIME_GATES) - set(runtime_gates))
+    if missing_gates:
+        failures.append(f"trade_plans_missing_runtime_gates:{','.join(missing_gates)}")
+
+    generation_source = str(metadata.get("pipeline_generation_source") or "UNKNOWN")
+    if generation_source not in ACCEPTED_PIPELINE_GENERATION_SOURCES:
+        failures.append(f"trade_plans_invalid_pipeline_generation_source:{generation_source}")
+    if generation_source in FORBIDDEN_PIPELINE_GENERATION_SOURCES:
+        failures.append(f"trade_plans_forbidden_pipeline_generation_source:{generation_source}")
+
+    generated_signal_count = metadata.get("generated_signal_count")
+    validated_trade_plan_count = metadata.get("validated_trade_plan_count")
+    if generated_signal_count in (None, ""):
+        failures.append("trade_plans_missing_generated_signal_count")
+    if validated_trade_plan_count in (None, ""):
+        failures.append("trade_plans_missing_validated_trade_plan_count")
+
+    return failures
+
+
 def _read_trade_plans(path: Path) -> tuple[list[dict[str, Any]], list[str]]:
     if not path.exists():
         return [], ["missing_trade_plans_file"]
@@ -63,10 +116,20 @@ def _read_trade_plans(path: Path) -> tuple[list[dict[str, Any]], list[str]]:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         return [], [f"trade_plans_invalid_json:{exc}"]
-    raw = payload if isinstance(payload, list) else payload.get("plans") or payload.get("signals") if isinstance(payload, dict) else None
+
+    metadata: Any = {}
+    if isinstance(payload, dict):
+        metadata = payload.get("metadata")
+        raw = payload.get("plans") or payload.get("signals")
+    elif isinstance(payload, list):
+        raw = payload
+    else:
+        raw = None
+
     if not isinstance(raw, list) or not raw:
         return [], ["trade_plans_empty_or_invalid"]
-    failures: list[str] = []
+
+    failures: list[str] = _validate_trade_plan_metadata(metadata)
     plans: list[dict[str, Any]] = []
     for index, plan in enumerate(raw):
         if not isinstance(plan, dict):
