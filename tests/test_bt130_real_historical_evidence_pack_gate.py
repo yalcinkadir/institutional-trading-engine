@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import subprocess
 import sys
@@ -24,6 +25,10 @@ PIPELINE_METADATA = {
 }
 
 
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
 def _write_plan(path: Path, *, valid: bool = True, unsupported_action: bool = False) -> None:
     plan = {
         "signal_id": "sig_SPY_bt130",
@@ -40,14 +45,16 @@ def _write_plan(path: Path, *, valid: bool = True, unsupported_action: bool = Fa
     path.write_text(json.dumps({"metadata": PIPELINE_METADATA, "plans": [plan]}), encoding="utf-8")
 
 
-def _write_bars(root: Path) -> None:
+def _write_bars(root: Path) -> Path:
     root.mkdir(parents=True, exist_ok=True)
-    (root / "SPY.csv").write_text(
+    path = root / "SPY.csv"
+    path.write_text(
         "date,open,high,low,close,volume\n"
         "2026-06-01,100,100,99,100,1000000\n"
         "2026-06-02,101,105,100,104,1100000\n",
         encoding="utf-8",
     )
+    return path
 
 
 def _write_universe(path: Path) -> None:
@@ -58,8 +65,37 @@ def _write_universe(path: Path) -> None:
     )
 
 
-def _write_coverage(path: Path) -> None:
-    path.write_text(json.dumps({"source": "polygon", "symbols": ["SPY"]}), encoding="utf-8")
+def _write_coverage(path: Path, *, bars_path: Path) -> None:
+    path.write_text(
+        json.dumps(
+            {
+                "vendor": "polygon",
+                "generated_at": "2026-06-11T00:00:00Z",
+                "multiplier": 1,
+                "timespan": "day",
+                "requested_start_date": "2026-06-01",
+                "requested_end_date": "2026-06-02",
+                "symbol_count": 1,
+                "ok_symbol_count": 1,
+                "status": "ok",
+                "missing_data_summary": [],
+                "symbols": [
+                    {
+                        "symbol": "SPY",
+                        "start_date": "2026-06-01",
+                        "end_date": "2026-06-02",
+                        "bar_count": 2,
+                        "rows_fetched": 2,
+                        "status": "ok",
+                        "output_path": bars_path.as_posix(),
+                        "output_sha256": _sha256(bars_path),
+                        "missing_data_summary": [],
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
 
 
 def test_bt130_loader_reports_rejected_trade_plan_reasons(tmp_path: Path) -> None:
@@ -105,10 +141,10 @@ def test_bt130_real_data_runner_blocks_missing_coverage_manifest(tmp_path: Path)
     payload = json.loads(out.read_text(encoding="utf-8"))
     assert payload["data_source"] == "real_data"
     assert payload["is_demo"] is False
-    assert payload["input_pack_gate_status"] == "PASSED"
-    assert payload["input_completeness_status"] == "BLOCKED_MISSING_COVERAGE_MANIFEST"
+    assert payload["input_pack_gate_status"] == "FAILED"
+    assert payload["input_completeness_status"] == "BLOCKED_INPUT_PACK"
     assert payload["run_health_status"] == "BLOCKED"
-    assert payload["rejection_reasons"][0]["reasons"] == ["missing_coverage_manifest"]
+    assert any("missing_coverage_manifest" in item["reasons"] for item in payload["rejection_reasons"])
 
 
 def test_bt130_real_data_runner_blocks_fully_rejected_plans(tmp_path: Path) -> None:
@@ -118,9 +154,9 @@ def test_bt130_real_data_runner_blocks_fully_rejected_plans(tmp_path: Path) -> N
     coverage = tmp_path / "coverage.json"
     out = tmp_path / "evidence.json"
     _write_plan(plans, unsupported_action=True)
-    _write_bars(bars)
+    bars_path = _write_bars(bars)
     _write_universe(universe)
-    _write_coverage(coverage)
+    _write_coverage(coverage, bars_path=bars_path)
 
     result = subprocess.run(
         [
@@ -147,6 +183,7 @@ def test_bt130_real_data_runner_blocks_fully_rejected_plans(tmp_path: Path) -> N
     assert payload["input_pack_gate_status"] == "PASSED"
     assert payload["input_completeness_status"] == "EMPTY_INPUT"
     assert payload["run_health_status"] == "BLOCKED"
+    assert payload["input_checksums"] == {bars_path.as_posix(): _sha256(bars_path)}
     assert payload["input_plan_count"] == 1
     assert payload["accepted_plan_count"] == 0
     assert payload["rejected_plan_count"] == 1
@@ -169,6 +206,7 @@ def test_bt130_evidence_gate_rejects_plan_count_mismatch(tmp_path: Path) -> None
                 "coverage_manifest_path": "coverage.json",
                 "survivorship_universe_path": "universe.csv",
                 "trade_plans_path": "plans.json",
+                "input_checksums": {"bars/SPY.csv": "a" * 64},
                 "input_plan_count": 2,
                 "accepted_plan_count": 2,
                 "rejected_plan_count": 1,
