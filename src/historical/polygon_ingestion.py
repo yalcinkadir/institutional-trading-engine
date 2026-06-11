@@ -8,6 +8,7 @@ has pandas but no parquet engine dependency such as pyarrow or fastparquet.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import time
@@ -42,6 +43,7 @@ class HistoricalIngestionResult:
     output_path: str
     status: str
     message: str = ""
+    output_sha256: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -56,6 +58,7 @@ class HistoricalCoverageSymbol:
     rows_fetched: int
     status: str
     output_path: str
+    output_sha256: str = ""
     missing_data_summary: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
@@ -114,6 +117,14 @@ class HistoricalIngestionBatchResult:
 
 def utc_now_iso() -> str:
     return datetime.now(UTC).replace(microsecond=0).isoformat()
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def polygon_aggregate_url(symbol: str, multiplier: int, timespan: str, start_date: str, end_date: str) -> str:
@@ -208,6 +219,8 @@ def _coverage_symbol_from_result(result: HistoricalIngestionResult) -> Historica
         missing.append(result.status)
     if result.rows_written <= 0:
         missing.append("no_canonical_bars_written")
+    if result.status == "ok" and not result.output_sha256:
+        missing.append("missing_output_sha256")
     if result.message:
         missing.append(result.message)
     return HistoricalCoverageSymbol(
@@ -218,6 +231,7 @@ def _coverage_symbol_from_result(result: HistoricalIngestionResult) -> Historica
         rows_fetched=result.rows_fetched,
         status=result.status,
         output_path=result.output_path,
+        output_sha256=result.output_sha256,
         missing_data_summary=missing,
     )
 
@@ -232,7 +246,7 @@ def build_coverage_manifest(results: list[HistoricalIngestionResult]) -> Histori
     for symbol in symbols:
         for item in symbol.missing_data_summary:
             missing_data_summary.append(f"{symbol.symbol}:{item}")
-    status = "ok" if symbols and all(symbol.status == "ok" for symbol in symbols) else "degraded"
+    status = "ok" if symbols and all(symbol.status == "ok" and symbol.output_sha256 for symbol in symbols) else "degraded"
     return HistoricalCoverageManifest(
         vendor=HISTORICAL_DATA_VENDOR,
         generated_at=utc_now_iso(),
@@ -338,6 +352,7 @@ def ingest_historical_symbol(
         rows_written = merge_and_save_bars(df, output_path)
         status = "ok" if not df.empty else "empty"
         message = "" if status == "ok" else "Polygon returned no usable bars"
+        output_sha256 = sha256_file(output_path) if output_path.exists() and rows_written > 0 else ""
         result = HistoricalIngestionResult(
             symbol=symbol,
             timespan=timespan,
@@ -349,6 +364,7 @@ def ingest_historical_symbol(
             output_path=str(output_path),
             status=status,
             message=message,
+            output_sha256=output_sha256,
         )
     except Exception as exc:
         result = HistoricalIngestionResult(
