@@ -72,15 +72,15 @@ BT6: Evidence Baseline Regression Gate implemented and CI-green
 BT7: Capacity / Turnover / Realism Gate implemented and CI-green
 BT130: Real Historical Backtest Evidence Pack Gate implemented / CI-pending
 BT131: Real-data backtest evidence workflow implemented / CI-pending; valid output requires BT9 and P121/BT130 gates, otherwise a BLOCKED artifact is uploaded.
-#177: Real-data historical trade plans can now be exported through the actual Scanner → Signal Generator → Entry/Stop/Exit Quality → Trade Plan Validator path using `scripts/export_historical_trade_plans.py`; non-pipeline-coupled plans remain blocked from real-data evidence claims.
+#177: Real-data historical trade plans are accepted as strategy evidence only when exported through the canonical Scanner → Signal Generator → Entry/Stop/Exit Quality → Trade Plan Validator adapter with `pipeline_generation_source=scanner_signal_quality_validator`; validated Paper Observation exports remain research/audit artifacts and are blocked by BT9 from real-data strategy-evidence claims.
 #184: Historical real-data backtest inputs must be durable and auditable. Polygon CSV bars are persisted under `data/historical/bars/1day/*.csv`, coverage manifests include SHA256 checksums, BT9 fails on missing/mismatched input checksums, and accepted real-data evidence must include `input_checksums`.
 CER1: Capacity / Execution Realism Evidence Review Summary implemented and CI-green
 PFA1: Position-level Forward Evidence Attribution implemented and CI-green
 BT8: Backtesting Evidence Report generator implemented and CI-green
-BT9: Real historical backtesting remains fail-closed unless the input pack gate passes universe, bars, trade-plan, demo-data and coverage-manifest checksum checks.
+BT9: Real historical backtesting remains fail-closed unless the input pack gate passes universe, bars, trade-plan, demo-data, coverage-manifest checksum and #177 canonical pipeline-coupling checks.
 UNI1: Initial survivorship universe contract defines point-in-time symbol lifecycle validation for real backtesting.
 HIST1: Polygon historical bars ingestion writes canonical CSV bars plus coverage manifest with `output_sha256` for BT9 compatibility.
-HTP1: Validated Paper Observation records can be exported into deterministic historical trade plans plus manifest for BT9 compatibility.
+HTP1: Validated Paper Observation records can be exported into deterministic historical trade plans plus manifest for research-only BT9 compatibility; they are not accepted as real-data strategy evidence.
 P121: Real historical-data backtest evidence is only claimable after a valid `real_data` evidence artifact passes the P121 schema gate.
 EV1-EV12: evidence-integrity remediation implemented and CI-green
 
@@ -118,6 +118,8 @@ docs/operations/test1_evidence_oriented_tdd_policy.md
 #189 adds machine-checkable System Invariants and Logic Safety Governance.
 
 Policy documents:
+- docs/operations/system-invariants.md
+- docs/operations/logic-safety-governance.md
 
-- `docs/architecture/system-invariants.md`
-- `docs/operations/logic-safety-governance.md`
+Guard tests:
+- tests/test_system_invariants_and_logic_safety_189.py
