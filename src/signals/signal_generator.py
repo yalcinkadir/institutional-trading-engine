@@ -25,6 +25,8 @@ SIGNALS_DIR = Path("reports/signals")
 BLOCKED_SCORE_SOURCES = {"demo", "fixture", "demo_arithmetic_sequence", "public_demo"}
 BLOCKED_DATA_SOURCES = {"demo", "fixture", "public_demo"}
 BLOCKED_THRESHOLDS_VERSIONS = {"public_demo", "demo", "fixture"}
+NO_TRADE_EXPORT_DECISIONS = {"blocked", "no_trade", "rejected"}
+NO_TRADE_EXPORT_RISK_TIERS = {"NO_TRADE", "blocked", "no_trade"}
 
 
 @dataclass
@@ -210,6 +212,24 @@ def _enforce_safe_actionable_signal_artifacts(signals: list[Signal]) -> None:
         raise ValueError("unsafe actionable signal artifact: " + "; ".join(failures))
 
 
+def _export_decision_for_action(action: str, decision: str) -> str:
+    if action != "NO_TRADE":
+        return decision
+    normalized = str(decision or "").strip().lower()
+    if normalized in NO_TRADE_EXPORT_DECISIONS:
+        return normalized
+    return "blocked"
+
+
+def _export_risk_tier_for_action(action: str, risk_tier: Any) -> str:
+    text = str(risk_tier or "").strip()
+    if action != "NO_TRADE":
+        return text
+    if text in NO_TRADE_EXPORT_RISK_TIERS:
+        return text
+    return "NO_TRADE"
+
+
 def build_signals(
     decision_report: dict,
     scanner_metrics_map: dict[str, Any] | None = None,
@@ -363,14 +383,16 @@ def build_signals(
                 generated_at=now_iso,
             )
         )
+        exported_decision = _export_decision_for_action(action, decision)
+        exported_risk_tier = _export_risk_tier_for_action(action, item["risk_tier"])
 
         signals.append(Signal(
             signal_id=signal_id,
             symbol=symbol,
             action=action,
             setup_type=setup_type,
-            decision=decision,
-            risk_tier=item["risk_tier"],
+            decision=exported_decision,
+            risk_tier=exported_risk_tier,
             position_size=item["position_size_multiplier"] if action == "BUY_WATCH" else 0.0,
             close=close,
             entry_trigger=entry,
@@ -410,6 +432,7 @@ def save_signals(
     signals_dir: Path | None = None,
     data_quality: dict[str, Any] | None = None,
     governance_state: dict[str, Any] | None = None,
+    datafeed_liveness: dict[str, Any] | None = None,
 ) -> tuple[Path, Path]:
     _enforce_safe_actionable_signal_artifacts(signals)
 
@@ -433,12 +456,17 @@ def save_signals(
         "live_trading_authorized": False,
         "broker_execution_mode": "paper_only",
     }
+    datafeed_liveness_summary = datafeed_liveness or {
+        "datafeed_status": "UNKNOWN",
+        "provider_failure_reason": None,
+    }
 
     payload = {
         "generated_at": datetime.now(UTC).isoformat(),
         "date": date,
         "market_regime": signals[0].market_regime if signals else "Unknown",
         "data_quality": data_quality_summary,
+        "datafeed_liveness": datafeed_liveness_summary,
         "governance_state": governance_summary,
         "total_signals": len(signals),
         "actionable_count": len(buy_signals),
@@ -463,6 +491,14 @@ def save_signals(
         lines.append(f"- Missing provenance fields: {data_quality_summary['missing_provenance_fields']}")
     if data_quality_summary.get("stale_symbols"):
         lines.append(f"- Stale symbols: {data_quality_summary['stale_symbols']}")
+    lines.append("")
+    lines += ["## Datafeed Liveness", "", f"- Status: {datafeed_liveness_summary.get('datafeed_status', 'UNKNOWN')}"]
+    if datafeed_liveness_summary.get("provider_failure_reason"):
+        lines.append(f"- Provider failure reason: {datafeed_liveness_summary['provider_failure_reason']}")
+    if datafeed_liveness_summary.get("evidence_path"):
+        lines.append(f"- Evidence: `{datafeed_liveness_summary['evidence_path']}`")
+    if datafeed_liveness_summary.get("latest_evidence_path"):
+        lines.append(f"- Latest evidence: `{datafeed_liveness_summary['latest_evidence_path']}`")
     lines.append("")
 
     if buy_signals:
@@ -495,7 +531,7 @@ def save_signals(
     if no_trade:
         lines += ["## No-Trade / Blocked", ""]
         for s in no_trade:
-            lines.append(f"- **{s.symbol}**: {s.decision} - `{s.signal_id}` - {s.notes or 'regime/quality filter'}")
+            lines.append(f"- **{s.symbol}**: {s.decision} / {s.risk_tier} - `{s.signal_id}` - {s.notes or 'regime/quality filter'}")
         lines.append("")
 
     lines += ["---", "## Signal Validity", "- BUY_WATCH requires valid entry, stop, target and trade-plan validation."]
