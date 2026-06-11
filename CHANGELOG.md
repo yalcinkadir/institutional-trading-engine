@@ -1,5 +1,34 @@
 # CHANGELOG
 
+## VIX / Market Regime Policy #187 — 2026-06-11
+
+### Added
+- Added `tests/test_187_vix_regime_policy.py` to guard VIX available, VIX missing with proxy, VIX missing without proxy, missing index data and Polygon client failure paths.
+- Added `docs/operations/vix_regime_policy.md` as the explicit VIX/regime fallback and blocking policy.
+- Added structured `regime_policy` payloads to market-regime summaries.
+
+### Changed
+- Updated `src/reporting/market_regime.py` so market-regime summaries no longer emit unexplained `Unknown` when required regime inputs are unavailable.
+- VIX available now yields `regime_policy.action=ALLOW` and `confidence=FULL`.
+- VIX missing with proxy available yields `regime_policy.action=DEGRADE`, `confidence=DEGRADED` and `source=polygon_proxy`.
+- VIX missing without proxy, missing index trend inputs or Polygon client failure now yield `BLOCKED_MARKET_REGIME_UNAVAILABLE` and `regime_policy.action=BLOCK`.
+- Aligned existing P164 tests with the stricter #187 blocking policy.
+- Updated `README.md` with the #187 VIX/regime policy boundary.
+
+### Guardrails
+- Reports must not emit unexplained `regime: Unknown` for market-regime evidence.
+- Regime payloads expose `source`, `fallback_used`, `confidence`, `action`, VIX status and index-trend status.
+- Proxy evidence is explicitly degraded and must not be promoted as full VIX validation.
+- Missing VIX/proxy or required index trend inputs produce a deterministic blocked regime state.
+
+### Boundary
+- This is market-regime evidence-quality hardening.
+- No strategy rule, scoring threshold, entry/exit rule or broker execution capability is changed.
+- Live trading authorization: unchanged; not granted by code.
+- Repository-wide full-regression green is not claimed by this changelog entry.
+
+---
+
 ## Durable Evidence Index #181 — 2026-06-11
 
 ### Added
@@ -80,167 +109,3 @@
 - No strategy rule, scoring threshold, entry/exit rule or broker execution capability is changed.
 - Live trading authorization: unchanged; not granted by code.
 - Repository-wide full-regression green is not claimed by this changelog entry.
-
----
-
-## Signal State Consistency #194 — 2026-06-11
-
-### Added
-- Added `tests/test_194_signal_state_consistency.py` to guard the signal action/decision/risk-tier execution-state invariant.
-- Added #194 signal execution-state rules to `docs/architecture/dataflow_contract_matrix.md`.
-
-### Changed
-- Updated `README.md` with #194 signal state consistency status.
-- Documented `action` as the execution-readiness source of truth for downstream watcher, outcome, backtest and future adapter consumers.
-
-### Guardrails
-- Exported `NO_TRADE` records cannot retain `decision: approved`.
-- Exported `NO_TRADE` records cannot retain actionable risk tiers such as `tier_1`, `tier_2` or `tier_3`.
-- Exported `NO_TRADE` records must carry `position_size: 0.0` and no executable `entry_trigger`.
-- Downstream consumers must require `action == "BUY_WATCH"` before treating a signal as executable paper-observation input.
-
-### Boundary
-- This is signal-boundary and downstream-consumer safety hardening.
-- No strategy rule, scoring threshold, entry/exit rule or broker execution capability is changed.
-- Live trading authorization: unchanged; not granted by code.
-- Repository-wide full-regression green is not claimed by this changelog entry.
-
----
-
-## Report Validation Risk Tier #185 — 2026-06-11
-
-### Added
-- Added `tests/test_185_report_validation_risk_tier.py` with positive and negative guard coverage for report risk-tier validation.
-- Added machine-readable `risk_tier_evidence` to `ReportQualityResult` so report validation can expose #185 status, matched decision/risk-tier rows and explicit no-active-risk handling.
-
-### Changed
-- Updated `src/reporting/report_quality.py` so market-report validation no longer accepts a loose prose-only `Risk Tier` mention as sufficient evidence.
-- Updated `scripts/validate_report_quality.py` to print the exact report file path, canonical decision/risk-tier pattern, validation status, row count and explicit no-active-risk state.
-- Updated `README.md` with #185 report validation risk-tier gate status.
-
-### Guardrails
-- Canonical rows such as `- Decision: **approved** | Risk Tier: tier_1`, `tier_2` or `tier_3` are accepted.
-- Reports with only prose-level `Risk Tier` mentions are blocked.
-- Explicit no-active-risk reports are accepted when the report clearly states no ranked opportunities qualified for active risk and remains in No-Trade / watch mode.
-- Actionable decisions cannot carry `no_trade` risk tier.
-- Non-actionable decisions must carry `no_trade` risk tier.
-- Invalid risk-tier values are blocked.
-
-### Boundary
-- This is report-validation and evidence-governance hardening.
-- No strategy rule, scoring threshold, entry/exit rule or broker execution capability is changed.
-- Live trading authorization: unchanged; not granted by code.
-- Repository-wide full-regression green is not claimed by this changelog entry.
-
----
-
-## Scheduled Report Liveness #192 — 2026-06-11
-
-### Added
-- Added workflow-facing scheduled report liveness validation logic inside `scripts/validate_scheduled_report_liveness.py` to build canonical scheduled report liveness evidence without expanding the `src/` runtime-module inventory.
-- Added `scripts/validate_scheduled_report_liveness.py` as the workflow-facing #192 validation CLI.
-- Added `tests/test_192_scheduled_report_liveness.py` to guard missing, empty and complete scheduled report evidence paths.
-
-### Changed
-- Updated `.github/workflows/institutional-reports.yml` so scheduled reports run #192 liveness validation after report quality and paper-observation health validation.
-- Updated the report workflow to archive `reports/scheduled_report_liveness/*.json` and persist bounded liveness evidence paths with report/signals/validation outputs.
-- Updated `tests/test_po11_scheduled_daily_observation_workflow.py` with workflow-level guards proving #192 is wired into the scheduled report path.
-- Updated `README.md` and `ROADMAP.md` with the #192 scheduled report liveness rule.
-
-### Guardrails
-- A scheduled market report is not a productive report cycle unless the dated report, latest report, latest signals payload and latest paper-observation health artifact exist and are non-empty.
-- Missing or empty scheduled output is `BLOCKED` evidence, not an invisible green scheduled cycle.
-- Weekly reports are not forced to produce signals or paper-observation health evidence.
-
-### Boundary
-- This is report-liveness and evidence-governance hardening.
-- No strategy rule, scoring threshold, entry/exit rule or broker execution capability is changed.
-- Live trading authorization: unchanged; not granted by code.
-- Repository-wide full-regression green is not claimed by this changelog entry.
-
----
-
-## IP9/IP10 Public Repository Governance — 2026-06-11
-
-### Added
-- Added IP9 public-edge review governance to the PR review process.
-- Added IP10 license and research-only usage disclaimer status coverage.
-
-### Guardrails
-- Public repository changes must preserve public-demo defaults and must not expose proprietary thresholds, setup maps, scoring weights, exit profiles or production-like parameters.
-- Research/paper-only and no-live-trading language must remain intact in public-facing project files.
-
-### Boundary
-- This is public repository governance and disclosure-safety documentation.
-- No strategy rule, scoring threshold, entry/exit rule or broker execution capability is changed.
-- Live trading authorization: unchanged; not granted by code.
-
----
-
-## System Invariants and Logic Safety Governance #189 — 2026-06-11
-
-### Added
-- Added machine-checkable System Invariants and Logic Safety Governance coverage for #189.
-- Added status coverage for forbidden state conversions, logic-safety severity classes and evidence-traceability requirements.
-
-### Guardrails
-- `DEGRADED`, `BLOCKED`, `UNKNOWN`, demo/stub and missing-provenance states must not be promoted as full `PASS` evidence.
-- Logic-safety mappings require evidence commands, guard tests, contract tests, validation scripts, CI workflow results or evidence artifacts.
-
-### Boundary
-- This is logic-safety governance and evidence-traceability hardening.
-- No strategy rule, scoring threshold, entry/exit rule or broker execution capability is changed.
-- Live trading authorization: unchanged; not granted by code.
-- Repository-wide full-regression green is not claimed by this changelog entry.
-
----
-
-## Historical Real-Data Input Persistence #184 — 2026-06-11
-
-### Added
-- Added `tests/test_184_historical_input_persistence.py` to guard historical real-data input auditability.
-- Added BT9 checksum validation for persisted historical bars through `coverage_manifest.json`.
-- Added `input_checksums` to accepted and blocked real-data backtest evidence artifacts.
-- Added `docs/operations/bt184_historical_input_auditability.md` as the durable audit source-of-truth contract for accepted BT131 real-data evidence.
-- Added guard coverage proving BT131 repository persistence happens before temporary Actions artifact upload.
-
-### Changed
-- Updated Polygon historical ingestion so each successful CSV output records `output_sha256` in ingestion metadata and coverage manifests.
-- Updated `scripts/validate_bt9_real_historical_input_pack.py` so real historical input packs fail closed when coverage manifests are missing, missing `symbols[].output_sha256`, or checksum-mismatched against the actual bars file.
-- Updated `scripts/run_historical_entry_exit_backtest.py` and `src/backtesting/historical_entry_exit_backtest.py` so BT9 input checksums are propagated into real-data backtest evidence.
-- Updated `scripts/validate_real_data_backtest_evidence_gate.py` so accepted real-data evidence requires non-empty valid SHA256 `input_checksums`.
-- Updated BT131 workflow persistence so successful real-data runs commit reports plus source inputs: historical CSV bars, coverage manifest, ingestion metadata, runtime universe, historical trade plans and trade-plan manifest.
-- Updated BT9, HIST1, HTP1 and BT131 workflow tests for checksum-backed input persistence.
-- Updated `README.md` and `ROADMAP.md` with the #184 auditability rule and repository-as-source-of-truth boundary.
-
-### Guardrails
-- A real-data backtest result is not claimable if the bars file cannot be tied to a coverage manifest checksum.
-- GitHub Actions artifacts alone are not treated as the audit source of truth for successful real-data backtests.
-- Missing, empty or malformed `input_checksums` blocks accepted real-data evidence.
-- Checksum mismatches produce explicit BT9 failures rather than degraded success.
-- Accepted BT131 evidence must persist source CSVs, metadata, trade plans and evidence indexes to repository paths; temporary Actions artifacts are review aids only.
-
-### Boundary
-- This is an evidence-auditability and reproducibility layer.
-- No strategy rule, scoring threshold, entry/exit rule or broker execution capability is changed.
-- Live trading authorization: unchanged; not granted by code.
-- Repository-wide full-regression green is not claimed by this changelog entry.
-
----
-
-## CI Gate Fixes — 2026-06-11
-
-### Fixed
-- Fixed `scripts/evaluate_evidence_quality_gate.py` so direct subprocess execution can import `src.evidence_quality_gate` by adding the repository root to `sys.path`.
-- Aligned `docs/operations/evidence-quality-gate.md` with the machine-readable #188 claim tokens checked by `tests/test_evidence_quality_gate_188.py`.
-- Updated `scripts/generate_module_inventory.py` so #188 evidence-governance helper modules are excluded from ARCH106 trading-runtime inventory checks instead of increasing the unclassified legacy baseline.
-
-### Boundary
-- These are CI/governance consistency fixes.
-- No strategy rule, scoring threshold, entry/exit rule or broker execution capability is changed.
-- Live trading authorization: unchanged; not granted by code.
-- Repository-wide full-regression green is not claimed by this changelog entry.
-
----
-
-## Evidence Quality Gate #188 — 2026-06-11
