@@ -25,20 +25,28 @@ def _sha256(path: Path) -> str:
 def _write_trade_plans(
     path: Path,
     *,
-    pipeline_coupled: bool = False,
+    pipeline_coupled: bool = True,
     runtime_gates: list[str] | None = None,
     generation_source: str | None = None,
+    include_metadata: bool = True,
+    include_counts: bool = True,
 ) -> None:
+    metadata = {
+        "pipeline_coupled": pipeline_coupled,
+        "pipeline_generation_source": generation_source
+        or ("runtime_pipeline_adapter" if pipeline_coupled else "deterministic_historical_generator"),
+        "runtime_gates_applied": runtime_gates if runtime_gates is not None else PIPELINE_GATES,
+    }
+    if include_counts:
+        metadata.update(
+            {
+                "generated_signal_count": 1,
+                "validated_trade_plan_count": 1 if pipeline_coupled else 0,
+                "blocked_signal_count": 0 if pipeline_coupled else 1,
+            }
+        )
+
     payload = {
-        "metadata": {
-            "pipeline_coupled": pipeline_coupled,
-            "pipeline_generation_source": generation_source
-            or ("runtime_pipeline_adapter" if pipeline_coupled else "deterministic_historical_generator"),
-            "generated_signal_count": 1,
-            "validated_trade_plan_count": 1 if pipeline_coupled else 0,
-            "blocked_signal_count": 0 if pipeline_coupled else 1,
-            "runtime_gates_applied": runtime_gates or [],
-        },
         "plans": [
             {
                 "signal_id": "bt9-plan-1",
@@ -51,6 +59,8 @@ def _write_trade_plans(
             }
         ],
     }
+    if include_metadata:
+        payload["metadata"] = metadata
     path.write_text(json.dumps(payload), encoding="utf-8")
 
 
@@ -110,7 +120,7 @@ def _write_coverage_manifest(path: Path, *, bars_root: Path, sha256: str | None 
     )
 
 
-def test_bt9_input_pack_passes_with_valid_files(tmp_path: Path) -> None:
+def test_bt9_input_pack_passes_with_valid_pipeline_coupled_files(tmp_path: Path) -> None:
     universe = tmp_path / "universe.csv"
     bars = tmp_path / "bars"
     plans = tmp_path / "plans.json"
@@ -169,6 +179,115 @@ def test_bt9_validator_cli_fails_closed_when_pack_missing(tmp_path: Path) -> Non
     assert "BT9 real historical input pack gate status: FAIL" in result.stdout
     assert "missing_universe_file" in result.stdout
     assert "missing_trade_plans_file" in result.stdout
+
+
+def test_bt9_input_pack_blocks_missing_pipeline_metadata(tmp_path: Path) -> None:
+    universe = tmp_path / "universe.csv"
+    bars = tmp_path / "bars"
+    plans = tmp_path / "plans.json"
+    coverage_manifest = tmp_path / "coverage_manifest.json"
+    _write_universe(universe)
+    _write_bars(bars)
+    _write_coverage_manifest(coverage_manifest, bars_root=bars)
+    _write_trade_plans(plans, include_metadata=False)
+
+    report = validate_bt9_input_pack(
+        universe_path=universe,
+        bars_root=bars,
+        trade_plans_path=plans,
+        coverage_manifest_path=coverage_manifest,
+    )
+
+    assert report.passed is False
+    assert "trade_plans_missing_pipeline_metadata" in report.failures
+
+
+def test_bt9_input_pack_blocks_non_pipeline_coupled_metadata(tmp_path: Path) -> None:
+    universe = tmp_path / "universe.csv"
+    bars = tmp_path / "bars"
+    plans = tmp_path / "plans.json"
+    coverage_manifest = tmp_path / "coverage_manifest.json"
+    _write_universe(universe)
+    _write_bars(bars)
+    _write_coverage_manifest(coverage_manifest, bars_root=bars)
+    _write_trade_plans(plans, pipeline_coupled=False)
+
+    report = validate_bt9_input_pack(
+        universe_path=universe,
+        bars_root=bars,
+        trade_plans_path=plans,
+        coverage_manifest_path=coverage_manifest,
+    )
+
+    assert report.passed is False
+    assert "trade_plans_not_pipeline_coupled" in report.failures
+    assert "trade_plans_invalid_pipeline_generation_source:deterministic_historical_generator" in report.failures
+    assert "trade_plans_forbidden_pipeline_generation_source:deterministic_historical_generator" in report.failures
+
+
+def test_bt9_input_pack_blocks_missing_runtime_gates(tmp_path: Path) -> None:
+    universe = tmp_path / "universe.csv"
+    bars = tmp_path / "bars"
+    plans = tmp_path / "plans.json"
+    coverage_manifest = tmp_path / "coverage_manifest.json"
+    _write_universe(universe)
+    _write_bars(bars)
+    _write_coverage_manifest(coverage_manifest, bars_root=bars)
+    _write_trade_plans(plans, runtime_gates=["scanner", "signal_generator"])
+
+    report = validate_bt9_input_pack(
+        universe_path=universe,
+        bars_root=bars,
+        trade_plans_path=plans,
+        coverage_manifest_path=coverage_manifest,
+    )
+
+    assert report.passed is False
+    assert "trade_plans_missing_runtime_gates:quality_fusion,trade_plan_validator" in report.failures
+
+
+def test_bt9_input_pack_blocks_forbidden_observation_export_source(tmp_path: Path) -> None:
+    universe = tmp_path / "universe.csv"
+    bars = tmp_path / "bars"
+    plans = tmp_path / "plans.json"
+    coverage_manifest = tmp_path / "coverage_manifest.json"
+    _write_universe(universe)
+    _write_bars(bars)
+    _write_coverage_manifest(coverage_manifest, bars_root=bars)
+    _write_trade_plans(plans, generation_source="validated_paper_observation_export")
+
+    report = validate_bt9_input_pack(
+        universe_path=universe,
+        bars_root=bars,
+        trade_plans_path=plans,
+        coverage_manifest_path=coverage_manifest,
+    )
+
+    assert report.passed is False
+    assert "trade_plans_invalid_pipeline_generation_source:validated_paper_observation_export" in report.failures
+    assert "trade_plans_forbidden_pipeline_generation_source:validated_paper_observation_export" in report.failures
+
+
+def test_bt9_input_pack_blocks_missing_pipeline_counts(tmp_path: Path) -> None:
+    universe = tmp_path / "universe.csv"
+    bars = tmp_path / "bars"
+    plans = tmp_path / "plans.json"
+    coverage_manifest = tmp_path / "coverage_manifest.json"
+    _write_universe(universe)
+    _write_bars(bars)
+    _write_coverage_manifest(coverage_manifest, bars_root=bars)
+    _write_trade_plans(plans, include_counts=False)
+
+    report = validate_bt9_input_pack(
+        universe_path=universe,
+        bars_root=bars,
+        trade_plans_path=plans,
+        coverage_manifest_path=coverage_manifest,
+    )
+
+    assert report.passed is False
+    assert "trade_plans_missing_generated_signal_count" in report.failures
+    assert "trade_plans_missing_validated_trade_plan_count" in report.failures
 
 
 def test_bt9_runner_fails_closed_and_writes_blocked_evidence_when_pack_missing(tmp_path: Path) -> None:
@@ -249,16 +368,13 @@ def test_real_data_runner_blocks_trade_plans_not_generated_by_runtime_pipeline(t
     )
 
     assert result.returncode == 1
-    assert "Real-data backtest blocked: non_canonical_pipeline_trade_plans" in result.stdout
+    assert "BT9 real historical input pack gate status: FAIL" in result.stdout
     payload = json.loads(json_output.read_text(encoding="utf-8"))
-    assert payload["pipeline_coupled"] is False
-    assert payload["pipeline_generation_source"] == "deterministic_historical_generator"
-    assert payload["input_completeness_status"] == "BLOCKED_NON_PIPELINE_COUPLED_PLANS"
+    assert payload["input_pack_gate_status"] == "FAILED"
+    assert payload["input_completeness_status"] == "BLOCKED_INPUT_PACK"
     assert payload["run_health_status"] == "BLOCKED"
-    assert payload["rejected_plan_count"] == 1
-    assert payload["input_checksums"]
-    assert "real_data_backtest_requires_pipeline_coupled_trade_plans" in payload["rejection_reasons"][0]["reasons"]
-    assert "forbidden_pipeline_generation_source:deterministic_historical_generator" in payload["rejection_reasons"][0]["reasons"]
+    assert "trade_plans_not_pipeline_coupled" in payload["rejection_reasons"][0]["reasons"]
+    assert "trade_plans_forbidden_pipeline_generation_source:deterministic_historical_generator" in payload["rejection_reasons"][0]["reasons"]
 
 
 def test_real_data_runner_requires_all_runtime_gates_for_pipeline_claim(tmp_path: Path) -> None:
@@ -298,9 +414,8 @@ def test_real_data_runner_requires_all_runtime_gates_for_pipeline_claim(tmp_path
 
     assert result.returncode == 1
     payload = json.loads(json_output.read_text(encoding="utf-8"))
-    assert payload["pipeline_coupled"] is True
-    assert payload["runtime_gates_applied"] == ["scanner", "signal_generator"]
-    assert "missing_runtime_gates:quality_fusion,trade_plan_validator" in payload["rejection_reasons"][0]["reasons"]
+    assert payload["input_pack_gate_status"] == "FAILED"
+    assert "trade_plans_missing_runtime_gates:quality_fusion,trade_plan_validator" in payload["rejection_reasons"][0]["reasons"]
 
 
 def test_real_data_runner_blocks_validated_observation_export_as_strategy_evidence(tmp_path: Path) -> None:
@@ -345,9 +460,8 @@ def test_real_data_runner_blocks_validated_observation_export_as_strategy_eviden
 
     assert result.returncode == 1
     payload = json.loads(json_output.read_text(encoding="utf-8"))
-    assert payload["pipeline_coupled"] is True
-    assert payload["pipeline_generation_source"] == "validated_paper_observation_export"
-    assert "forbidden_pipeline_generation_source:validated_paper_observation_export" in payload["rejection_reasons"][0]["reasons"]
+    assert payload["input_pack_gate_status"] == "FAILED"
+    assert "trade_plans_forbidden_pipeline_generation_source:validated_paper_observation_export" in payload["rejection_reasons"][0]["reasons"]
 
 
 def test_real_data_runner_accepts_pipeline_coupled_trade_plans_and_reports_pipeline_evidence(tmp_path: Path) -> None:
