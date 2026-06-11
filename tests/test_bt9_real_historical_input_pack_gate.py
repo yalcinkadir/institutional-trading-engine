@@ -22,11 +22,18 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def _write_trade_plans(path: Path, *, pipeline_coupled: bool = False, runtime_gates: list[str] | None = None) -> None:
+def _write_trade_plans(
+    path: Path,
+    *,
+    pipeline_coupled: bool = False,
+    runtime_gates: list[str] | None = None,
+    generation_source: str | None = None,
+) -> None:
     payload = {
         "metadata": {
             "pipeline_coupled": pipeline_coupled,
-            "pipeline_generation_source": "runtime_pipeline_adapter" if pipeline_coupled else "deterministic_historical_generator",
+            "pipeline_generation_source": generation_source
+            or ("runtime_pipeline_adapter" if pipeline_coupled else "deterministic_historical_generator"),
             "generated_signal_count": 1,
             "validated_trade_plan_count": 1 if pipeline_coupled else 0,
             "blocked_signal_count": 0 if pipeline_coupled else 1,
@@ -242,7 +249,7 @@ def test_real_data_runner_blocks_trade_plans_not_generated_by_runtime_pipeline(t
     )
 
     assert result.returncode == 1
-    assert "Real-data backtest blocked: non_pipeline_coupled_trade_plans" in result.stdout
+    assert "Real-data backtest blocked: non_canonical_pipeline_trade_plans" in result.stdout
     payload = json.loads(json_output.read_text(encoding="utf-8"))
     assert payload["pipeline_coupled"] is False
     assert payload["pipeline_generation_source"] == "deterministic_historical_generator"
@@ -251,6 +258,7 @@ def test_real_data_runner_blocks_trade_plans_not_generated_by_runtime_pipeline(t
     assert payload["rejected_plan_count"] == 1
     assert payload["input_checksums"]
     assert "real_data_backtest_requires_pipeline_coupled_trade_plans" in payload["rejection_reasons"][0]["reasons"]
+    assert "forbidden_pipeline_generation_source:deterministic_historical_generator" in payload["rejection_reasons"][0]["reasons"]
 
 
 def test_real_data_runner_requires_all_runtime_gates_for_pipeline_claim(tmp_path: Path) -> None:
@@ -293,6 +301,53 @@ def test_real_data_runner_requires_all_runtime_gates_for_pipeline_claim(tmp_path
     assert payload["pipeline_coupled"] is True
     assert payload["runtime_gates_applied"] == ["scanner", "signal_generator"]
     assert "missing_runtime_gates:quality_fusion,trade_plan_validator" in payload["rejection_reasons"][0]["reasons"]
+
+
+def test_real_data_runner_blocks_validated_observation_export_as_strategy_evidence(tmp_path: Path) -> None:
+    universe = tmp_path / "universe.csv"
+    bars = tmp_path / "bars"
+    plans = tmp_path / "plans.json"
+    coverage_manifest = tmp_path / "coverage_manifest.json"
+    json_output = tmp_path / "blocked-evidence.json"
+    markdown_output = tmp_path / "blocked-evidence.md"
+    _write_universe(universe)
+    _write_bars(bars)
+    _write_coverage_manifest(coverage_manifest, bars_root=bars)
+    _write_trade_plans(
+        plans,
+        pipeline_coupled=True,
+        runtime_gates=PIPELINE_GATES,
+        generation_source="validated_paper_observation_export",
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(RUNNER_SCRIPT),
+            "--plans-file",
+            str(plans),
+            "--bars-root",
+            str(bars),
+            "--universe",
+            str(universe),
+            "--coverage-manifest",
+            str(coverage_manifest),
+            "--real-data",
+            "--json-output",
+            str(json_output),
+            "--markdown-output",
+            str(markdown_output),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 1
+    payload = json.loads(json_output.read_text(encoding="utf-8"))
+    assert payload["pipeline_coupled"] is True
+    assert payload["pipeline_generation_source"] == "validated_paper_observation_export"
+    assert "forbidden_pipeline_generation_source:validated_paper_observation_export" in payload["rejection_reasons"][0]["reasons"]
 
 
 def test_real_data_runner_accepts_pipeline_coupled_trade_plans_and_reports_pipeline_evidence(tmp_path: Path) -> None:
