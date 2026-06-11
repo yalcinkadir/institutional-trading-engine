@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import sys
 from dataclasses import asdict, dataclass, field
@@ -26,12 +27,22 @@ class BT9RealHistoricalInputPackReport:
     universe_path: str
     bars_root: str
     trade_plans_path: str
+    coverage_manifest_path: str = ""
     symbols: list[str] = field(default_factory=list)
     date_range: dict[str, str] = field(default_factory=dict)
+    input_checksums: dict[str, str] = field(default_factory=dict)
     failures: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def _has_demo_marker(value: Any) -> bool:
@@ -70,16 +81,72 @@ def _read_trade_plans(path: Path) -> tuple[list[dict[str, Any]], list[str]]:
     return plans, failures
 
 
-def _validate_bars(bars_root: Path, symbols: list[str]) -> tuple[dict[str, str], list[str]]:
-    if not bars_root.exists():
-        return {}, ["missing_bars_root"]
+def _load_coverage_manifest(path: Path | None) -> tuple[dict[str, Any], list[str]]:
+    if path is None:
+        return {}, ["missing_coverage_manifest_argument"]
+    if not path.exists():
+        return {}, ["missing_coverage_manifest"]
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        return {}, [f"coverage_manifest_invalid_json:{exc}"]
+    if not isinstance(payload, dict):
+        return {}, ["coverage_manifest_not_object"]
+    return payload, []
+
+
+def _manifest_records_by_symbol(manifest: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], list[str]]:
+    raw_symbols = manifest.get("symbols")
+    if not isinstance(raw_symbols, list) or not raw_symbols:
+        return {}, ["coverage_manifest_symbols_empty_or_invalid"]
     failures: list[str] = []
+    records: dict[str, dict[str, Any]] = {}
+    for index, item in enumerate(raw_symbols):
+        if not isinstance(item, dict):
+            failures.append(f"coverage_manifest_symbol_{index}_not_object")
+            continue
+        symbol = str(item.get("symbol") or "").upper()
+        if not symbol:
+            failures.append(f"coverage_manifest_symbol_{index}_missing_symbol")
+            continue
+        records[symbol] = item
+    return records, failures
+
+
+def _validate_bars(
+    bars_root: Path,
+    symbols: list[str],
+    *,
+    coverage_manifest_path: Path | None,
+) -> tuple[dict[str, str], dict[str, str], list[str]]:
+    if not bars_root.exists():
+        return {}, {}, ["missing_bars_root"]
+    manifest, manifest_failures = _load_coverage_manifest(coverage_manifest_path)
+    manifest_records, record_failures = _manifest_records_by_symbol(manifest) if manifest else ({}, [])
+    failures: list[str] = manifest_failures + record_failures
+    input_checksums: dict[str, str] = {}
     all_dates: list[str] = []
     for symbol in symbols:
         path = bars_root / f"{symbol}.csv"
         if not path.exists():
             failures.append(f"missing_bars:{symbol}")
             continue
+        actual_sha256 = sha256_file(path)
+        input_checksums[path.as_posix()] = actual_sha256
+        manifest_record = manifest_records.get(symbol)
+        if manifest_record is None:
+            failures.append(f"coverage_manifest_missing_symbol:{symbol}")
+        else:
+            expected_path = str(manifest_record.get("output_path") or "")
+            expected_sha256 = str(manifest_record.get("output_sha256") or "")
+            if not expected_path:
+                failures.append(f"coverage_manifest_missing_output_path:{symbol}")
+            elif Path(expected_path).as_posix() != path.as_posix():
+                failures.append(f"coverage_manifest_output_path_mismatch:{symbol}:{expected_path}")
+            if not expected_sha256:
+                failures.append(f"coverage_manifest_missing_output_sha256:{symbol}")
+            elif expected_sha256 != actual_sha256:
+                failures.append(f"coverage_manifest_checksum_mismatch:{symbol}")
         with path.open(newline="", encoding="utf-8") as handle:
             rows = list(csv.DictReader(handle))
         if not rows:
@@ -97,10 +164,16 @@ def _validate_bars(bars_root: Path, symbols: list[str]) -> tuple[dict[str, str],
                 failures.append(f"bars_incomplete_row:{symbol}:{row_index}")
             all_dates.append(str(row.get("date")))
     all_dates = sorted(date for date in all_dates if date)
-    return ({"start": all_dates[0], "end": all_dates[-1]} if all_dates else {}), failures
+    return ( {"start": all_dates[0], "end": all_dates[-1]} if all_dates else {}, input_checksums, failures )
 
 
-def validate_bt9_input_pack(*, universe_path: Path, bars_root: Path, trade_plans_path: Path) -> BT9RealHistoricalInputPackReport:
+def validate_bt9_input_pack(
+    *,
+    universe_path: Path,
+    bars_root: Path,
+    trade_plans_path: Path,
+    coverage_manifest_path: Path | None = Path("data/historical/metadata/coverage_manifest.json"),
+) -> BT9RealHistoricalInputPackReport:
     plans, trade_plan_failures = _read_trade_plans(trade_plans_path)
     plan_symbols = sorted({str(plan.get("symbol") or "").upper() for plan in plans if plan.get("symbol")})
     signal_dates = sorted(str(plan.get("signal_date")) for plan in plans if plan.get("signal_date"))
@@ -113,15 +186,21 @@ def validate_bt9_input_pack(*, universe_path: Path, bars_root: Path, trade_plans
         end_date=requested_end,
     )
     requested_symbols = sorted(set(universe_report.active_symbols) | set(plan_symbols))
-    date_range, bar_failures = _validate_bars(bars_root, requested_symbols)
+    date_range, input_checksums, bar_failures = _validate_bars(
+        bars_root,
+        requested_symbols,
+        coverage_manifest_path=coverage_manifest_path,
+    )
     failures = universe_report.failures + trade_plan_failures + bar_failures
     return BT9RealHistoricalInputPackReport(
         passed=not failures,
         universe_path=universe_path.as_posix(),
         bars_root=bars_root.as_posix(),
         trade_plans_path=trade_plans_path.as_posix(),
+        coverage_manifest_path=coverage_manifest_path.as_posix() if coverage_manifest_path else "",
         symbols=requested_symbols,
         date_range=date_range,
+        input_checksums=input_checksums,
         failures=failures,
     )
 
@@ -131,6 +210,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--universe", default="data/universe/survivorship_universe.csv")
     parser.add_argument("--bars-root", default="data/historical/bars/1day")
     parser.add_argument("--trade-plans", default="data/trade_plans/historical_trade_plans.json")
+    parser.add_argument("--coverage-manifest", default="data/historical/metadata/coverage_manifest.json")
     parser.add_argument("--report-output", default="reports/backtests/bt9-real-historical-input-pack-gate.json")
     return parser.parse_args()
 
@@ -141,10 +221,11 @@ def main() -> int:
         universe_path=Path(args.universe),
         bars_root=Path(args.bars_root),
         trade_plans_path=Path(args.trade_plans),
+        coverage_manifest_path=Path(args.coverage_manifest),
     )
     output = Path(args.report_output)
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(report.to_dict(), indent=2), encoding="utf-8")
+    output.write_text(json.dumps(report.to_dict(), indent=2, sort_keys=True), encoding="utf-8")
     status = "PASS" if report.passed else "FAIL"
     print(f"BT9 real historical input pack gate status: {status}")
     if report.failures:
