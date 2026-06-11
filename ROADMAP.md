@@ -2,7 +2,7 @@
 
 Status date: 2026-06-11
 
-Current state: TEST1 Evidence-Oriented TDD Policy is active. EV1-EV12 evidence-integrity remediation is implemented and CI-green. CI runtime simplification is implemented and CI-green. PO128 and PO129 silent-failure/dataflow guards are implemented and CI-green. W1 Entry/Exit Watcher Git-Write Decoupling is implemented and CI-green. P132 Scanner Runtime Boundary is implemented and CI-green. P160 module classification baseline is completed. P161 Dataflow Contract Matrix is implemented and CI-green. P164 VIX/regime entitlement handling with volatility proxy fallback is implemented and CI-green. P166 productive daily Paper Observation evidence producer is implemented / CI-pending. #191 Scanner datafeed liveness gate is implemented / targeted guard tests documented. #192 Scheduled report liveness gate is implemented / targeted guard tests documented. #185 report validation risk-tier gate is implemented / targeted guard tests documented. BT130 Real Historical Backtest Evidence Pack Gate is implemented / CI-pending. #177 real-data backtest pipeline coupling is implemented / CI-green. #184 historical real-data input persistence is implemented / targeted guard tests documented. PortfolioState fail-closed fixture migration (#102), JWT fail-closed migration (#103), FCM1/RPW1 CI-wired backlog status (#104), runtime reachability guard (#178), Evidence Quality Gate (#188), and Logic Safety Governance (#189) are validated at documentation/test-guard level.
+Current state: TEST1 Evidence-Oriented TDD Policy is active. EV1-EV12 evidence-integrity remediation is implemented and CI-green. CI runtime simplification is implemented and CI-green. PO128 and PO129 silent-failure/dataflow guards are implemented and CI-green. W1 Entry/Exit Watcher Git-Write Decoupling is implemented and CI-green. P132 Scanner Runtime Boundary is implemented and CI-green. P160 module classification baseline is completed. P161 Dataflow Contract Matrix is implemented and CI-green. P164 VIX/regime entitlement handling with volatility proxy fallback is implemented and CI-green. P166 productive daily Paper Observation evidence producer is implemented / CI-pending. #191 Scanner datafeed liveness gate is implemented / targeted guard tests documented. #192 Scheduled report liveness gate is implemented / targeted guard tests documented. #185 report validation risk-tier gate is implemented / targeted guard tests documented. #186 outcome tracking blocks empty/invalid upstream signal windows from outcome-learning claims. BT130 Real Historical Backtest Evidence Pack Gate is implemented / CI-pending. #177 real-data backtest pipeline coupling is implemented / CI-green. #184 historical real-data input persistence is implemented / targeted guard tests documented. PortfolioState fail-closed fixture migration (#102), JWT fail-closed migration (#103), FCM1/RPW1 CI-wired backlog status (#104), runtime reachability guard (#178), Evidence Quality Gate (#188), and Logic Safety Governance (#189) are validated at documentation/test-guard level.
 
 The system remains research / decision-support / paper-observation only. Real-money execution is not authorized by code.
 
@@ -31,6 +31,8 @@ Paper Observation readiness requires fresh scheduled output and scanner datafeed
 Scheduled report readiness requires a non-empty dated report, non-empty latest report and, for market reports, non-empty signals plus paper-observation health evidence. Missing scheduled output is `BLOCKED` evidence, not a productive report cycle.
 
 Report validation readiness requires structured decision/risk-tier rows or an explicit no-active-risk state. Prose-only `Risk Tier` mentions, invalid tier values or actionable decisions with `no_trade` risk tier are blocked.
+
+Outcome tracking readiness requires at least one valid upstream signal. Production runs with zero valid signals must be `BLOCKED_NO_VALID_SIGNALS`; explicit local/demo no-data runs must be `DEMO_NO_DATA`; neither state may claim outcome learning, expectancy learning or strategy evidence.
 
 ## Phase EV — Evidence Integrity Remediation
 
@@ -159,6 +161,7 @@ Guard tests:
 | #191 | Restore Scanner datafeed liveness for Paper Observation | P0 | Critical | Implemented / targeted guard tests documented |
 | #192 | Scheduled Report Liveness | P0 | Critical | Implemented / targeted guard tests documented |
 | #185 | Report Validation Risk Tier | P0 | Critical | Implemented / targeted guard tests documented |
+| #186 | Outcome Tracking Block bei leeren Signalen | P0 | Critical | Implemented / targeted guard tests documented |
 
 P166 makes the scheduled PO11 workflow produce `reports/daily_evidence/<observation_date>.json` before PO11 validates it. The producer embeds selection mode, selected symbols, run-health status, data-quality status, paper-only safety boundary and VIX/regime provenance. Runtime evidence is uploaded as Actions artifacts and is not committed back to `main`.
 
@@ -167,6 +170,16 @@ P166 makes the scheduled PO11 workflow produce `reports/daily_evidence/<observat
 #192 makes scheduled report liveness explicit. The institutional reports workflow now writes `reports/scheduled_report_liveness/<date>-<type>-liveness.json` and `reports/scheduled_report_liveness/latest-scheduled-report-liveness.json`. Market reports are `PASSED` only when the dated report, latest report, latest signals payload and latest paper-observation health evidence are present and non-empty. Missing or empty scheduled output becomes `BLOCKED` evidence instead of an invisible green scheduled cycle.
 
 #185 makes report risk-tier validation explicit. Market-report quality validation accepts canonical rows matching `- Decision: **<decision>** | Risk Tier: <tier>` for `tier_1`, `tier_2`, `tier_3` or `no_trade`, or a canonical explicit no-active-risk state. Prose-only mentions, invalid tier values, actionable `no_trade` tiers and non-actionable non-`no_trade` tiers are blocked.
+
+#186 makes outcome tracking fail-closed at the evidence level when upstream signal files are empty or invalid. Outcome manifests now differentiate `SUCCESS`, `BLOCKED_NO_VALID_SIGNALS`, `DEMO_NO_DATA` and `BLOCKED_MISSING_INPUTS`, include scanned/valid/invalid signal counters, expose upstream dependency status, and block expectancy/outcome-learning claims unless valid upstream signals exist.
+
+#186 guard tests:
+
+- `tests/test_p165_outcome_pipeline_verifiable_artifacts.py`
+- `scripts/generate_outcomes.py`
+- `scripts/augment_outcome_manifest_p165.py`
+- `scripts/validate_outcome_manifest_p165.py`
+- `.github/workflows/outcome-tracking.yml`
 
 #185 guard tests:
 
