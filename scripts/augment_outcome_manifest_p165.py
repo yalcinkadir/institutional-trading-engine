@@ -9,8 +9,8 @@ from typing import Any
 
 EVALUATED_CLASSIFICATIONS = {"WIN", "LOSS", "NEUTRAL"}
 EVALUABLE_STATUSES = {"TRIGGERED", "TARGET_1_HIT", "TARGET_2_HIT", "STOP_HIT"}
-BLOCKED_STATUSES = {"BLOCKED_MISSING_INPUTS"}
-EMPTY_STATUSES = {"NO_ELIGIBLE_SIGNALS"}
+BLOCKED_STATUSES = {"BLOCKED_MISSING_INPUTS", "BLOCKED_NO_VALID_SIGNALS"}
+EMPTY_STATUSES = {"DEMO_NO_DATA"}
 
 
 def _load_json(path: Path) -> Any:
@@ -77,21 +77,34 @@ def augment_manifest(outcomes_dir: Path) -> dict[str, Any]:
 
     if status in BLOCKED_STATUSES | EMPTY_STATUSES:
         manifest.setdefault("total_input_signals", 0)
+        manifest.setdefault("scanned_signal_files", 0)
+        manifest.setdefault("valid_signal_count", 0)
+        manifest.setdefault("invalid_signal_count", 0)
         manifest["evaluable_signal_count"] = 0
         manifest["evaluated_outcome_count"] = 0
-        manifest["skipped_count"] = 0
+        manifest["skipped_count"] = int(manifest.get("invalid_signal_count") or 0)
+        manifest["outcome_learning_claim_allowed"] = False
     else:
         manifest["total_input_signals"] = max(int(manifest.get("total_input_signals") or 0), metrics["total_input_signals"])
+        manifest["valid_signal_count"] = int(manifest.get("valid_signal_count") or metrics["evaluable_signal_count"])
+        manifest.setdefault("invalid_signal_count", 0)
+        manifest.setdefault("scanned_signal_files", 0)
         manifest["evaluable_signal_count"] = metrics["evaluable_signal_count"]
         manifest["evaluated_outcome_count"] = metrics["evaluated_outcome_count"]
         manifest["skipped_count"] = metrics["skipped_count"]
+        manifest["outcome_learning_claim_allowed"] = (
+            status == "SUCCESS"
+            and int(manifest.get("valid_signal_count") or 0) > 0
+        )
 
     existing_reasons = set(manifest.get("skip_reasons") or [])
     manifest["skip_reasons"] = sorted(existing_reasons | set(metrics["skip_reasons"]))
-    manifest["manifest_contract_version"] = "p165.v1"
+    manifest["manifest_contract_version"] = "p165.v2_186"
     manifest["augmented_at_utc"] = datetime.now(UTC).isoformat()
     manifest["live_trading_authorized"] = False
     manifest["broker_execution_mode"] = "paper_only"
+    manifest.setdefault("mode", "production")
+    manifest.setdefault("upstream_dependency_status", "UNKNOWN")
 
     artifact_date = str(manifest.get("artifact_date") or datetime.now(UTC).date().isoformat())
     manifest["artifact_date"] = artifact_date
@@ -103,12 +116,12 @@ def augment_manifest(outcomes_dir: Path) -> dict[str, Any]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Augment P165 outcome run manifest with evidence counters.")
+    parser = argparse.ArgumentParser(description="Augment P165/#186 outcome run manifest with evidence counters.")
     parser.add_argument("--outcomes-dir", type=Path, default=Path("reports/outcomes"))
     args = parser.parse_args()
 
     manifest = augment_manifest(args.outcomes_dir)
-    print(f"P165 manifest status={manifest.get('run_status')} evaluated={manifest.get('evaluated_outcome_count')}")
+    print(f"outcome manifest status={manifest.get('run_status')} valid={manifest.get('valid_signal_count')} evaluated={manifest.get('evaluated_outcome_count')}")
     return 0
 
 
