@@ -4,12 +4,13 @@
 
 Generate historical `BUY_WATCH` trade plans for backtesting while keeping a hard boundary between baseline/demo testing and real strategy-evidence claims.
 
-This document now defines two different paths:
+This document now defines three different paths:
 
 1. baseline/demo historical plan generation from OHLCV bars
-2. #177 scanner-coupled real-data plan export through the active Scanner → Signal Generator → Quality Engines → Trade Plan Validator path
+2. validated Paper Observation export for research/audit continuity
+3. #177 scanner-coupled real-data plan export through the active Scanner → Signal Generator → Quality Engines → Trade Plan Validator path
 
-The second path is the only acceptable route for real-data strategy evidence.
+Only the third path is acceptable for real-data strategy evidence.
 
 ## Evidence boundary
 
@@ -31,7 +32,7 @@ This path can support operational stability, fill-model smoke tests and determin
 
 It must **not** be used to claim that the live Scanner → Signal Generator → Quality/Fusion → Trade Plan Validator pipeline has been validated.
 
-### 2. Pipeline-coupled real-data evidence
+### 2. Validated Paper Observation export
 
 Uses:
 
@@ -39,10 +40,37 @@ Uses:
 scripts/export_historical_trade_plans.py
 ```
 
-The exporter accepts either:
+Input shape:
 
-1. already validated Paper Observation records with runtime-gate proof, or
-2. a #177 pipeline payload containing:
+```text
+observations[] / signals[] / records[]
+```
+
+Status:
+
+```text
+research_only / paper-observation continuity / not accepted as real-data strategy evidence by BT9
+```
+
+This path may export already validated Paper Observation records when they contain non-demo provenance and runtime-gate annotations. It exists to preserve audit continuity and to support research-only replay checks.
+
+Important #177 rule:
+
+```text
+validated_paper_observation_export != scanner_signal_quality_validator
+```
+
+A validated observation export must not be promoted into real-data strategy evidence merely because records contain `pipeline_coupled: true` or `runtime_gates_applied` metadata. The BT9 real historical input pack gate rejects this path for real-data strategy evidence.
+
+### 3. Pipeline-coupled real-data evidence
+
+Uses:
+
+```text
+scripts/export_historical_trade_plans.py
+```
+
+The exporter accepts a #177 pipeline payload containing:
 
 ```text
 decision_report
@@ -198,9 +226,7 @@ python scripts/generate_historical_trade_plans.py \
 
 Use this command for deterministic baseline testing only.
 
-## Pipeline-coupled export commands
-
-### From validated Paper Observation records
+## Research-only Paper Observation export command
 
 ```bash
 python scripts/export_historical_trade_plans.py \
@@ -209,9 +235,9 @@ python scripts/export_historical_trade_plans.py \
   --manifest data/trade_plans/historical_trade_plans_manifest.json
 ```
 
-The source observations must be validated, non-demo, and runtime-gate annotated. Missing runtime-gate proof fails export rather than producing ambiguous evidence.
+The source observations must be validated, non-demo, and runtime-gate annotated. Missing runtime-gate proof fails export rather than producing ambiguous evidence. Even when this export succeeds, BT9 must not accept it as real-data strategy evidence because it is not generated from the canonical `scanner_signal_quality_validator` adapter.
 
-### From #177 Scanner → Signal → Quality → Validator payload
+## Pipeline-coupled export command
 
 ```bash
 python scripts/export_historical_trade_plans.py \
@@ -222,6 +248,19 @@ python scripts/export_historical_trade_plans.py \
 
 This is the canonical adapter for real-data backtest coupling. It executes `build_signals()` and exports only validated `BUY_WATCH` signals.
 
+## BT9 real-data gate rule
+
+The BT9 real historical input pack gate accepts real-data strategy evidence only when trade-plan metadata satisfies all of the following:
+
+```text
+pipeline_coupled == true
+pipeline_generation_source == scanner_signal_quality_validator
+runtime_gates_applied includes scanner, signal_generator, quality_fusion, trade_plan_validator
+validated_trade_plan_count > 0
+```
+
+Lists without metadata, baseline generator output, and validated Paper Observation exports are blocked from real-data strategy-evidence claims.
+
 ## Workflow integration
 
 The workflow below may still use the deterministic generator for baseline edge-evidence experiments:
@@ -230,7 +269,7 @@ The workflow below may still use the deterministic generator for baseline edge-e
 Edge Evidence From Polygon Artifact
 ```
 
-The workflow below must use validated observations or a #177 pipeline payload for real-data strategy evidence:
+The workflow below must use a #177 pipeline payload for real-data strategy evidence:
 
 ```text
 BT131 Real Data Backtest Evidence
@@ -239,9 +278,9 @@ BT131 Real Data Backtest Evidence
 BT131 behavior:
 
 ```text
-source_observations present and valid -> export pipeline-coupled plans -> run BT9 -> run backtest
-source_observations missing          -> write BLOCKED_MISSING_VALIDATED_OBSERVATIONS artifact
-source_observations invalid          -> export fails -> downstream evidence remains BLOCKED
+#177 pipeline payload present and valid -> export scanner_signal_quality_validator plans -> run BT9 -> run backtest
+#177 pipeline payload missing            -> write BLOCKED_MISSING_PIPELINE_PAYLOAD artifact
+#177 pipeline payload invalid            -> export fails -> downstream evidence remains BLOCKED
 ```
 
 This keeps backtesting operationally stable while preventing false strategy-evidence claims.
@@ -261,13 +300,37 @@ target_1 = entry + 2R
 target_2 = entry + 3R
 ```
 
-This is a testable baseline, not a claim of edge.
+This rule is deterministic and reproducible. It is not a claim that the runtime strategy stack has been validated.
 
-## Tests
+## Guard tests
 
-```bash
-pytest tests/test_generate_historical_trade_plans.py -q
-pytest tests/test_htp1_historical_trade_plan_export.py -q
-pytest tests/test_edge_evidence_from_polygon_artifact_workflow.py -q
-pytest tests/test_bt131_real_data_backtest_evidence_workflow.py -q
+The current guard coverage lives in:
+
+```text
+tests/test_htp1_historical_trade_plan_export.py
+tests/test_bt131_real_data_backtest_evidence_workflow.py
+tests/test_bt130_real_historical_backtest_evidence_pack.py
+```
+
+Required #177 guard behavior:
+
+```text
+non-pipeline trade plans cannot be used for real-data evidence
+fixture-declared pipeline metadata from observation exports is rejected by BT9
+missing runtime gates fail closed
+missing ATR/source/provenance fails closed
+pipeline-coupled export remains BT9-compatible
+```
+
+## Current boundary
+
+This system still does not authorize live trading.
+
+All generated backtest evidence remains:
+
+```text
+research_only
+paper_only
+not investment advice
+live_trading_authorized: false
 ```
