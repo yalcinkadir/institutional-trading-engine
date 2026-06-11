@@ -1,5 +1,35 @@
 # CHANGELOG
 
+## Historical Real-Data Input Persistence #184 — 2026-06-11
+
+### Added
+- Added `tests/test_184_historical_input_persistence.py` to guard historical real-data input auditability.
+- Added BT9 checksum validation for persisted historical bars through `coverage_manifest.json`.
+- Added `input_checksums` to accepted and blocked real-data backtest evidence artifacts.
+
+### Changed
+- Updated Polygon historical ingestion so each successful CSV output records `output_sha256` in ingestion metadata and coverage manifests.
+- Updated `scripts/validate_bt9_real_historical_input_pack.py` so real historical input packs fail closed when coverage manifests are missing, missing `symbols[].output_sha256`, or checksum-mismatched against the actual bars file.
+- Updated `scripts/run_historical_entry_exit_backtest.py` and `src/backtesting/historical_entry_exit_backtest.py` so BT9 input checksums are propagated into real-data backtest evidence.
+- Updated `scripts/validate_real_data_backtest_evidence_gate.py` so accepted real-data evidence requires non-empty valid SHA256 `input_checksums`.
+- Updated BT131 workflow persistence so successful real-data runs commit reports plus source inputs: historical CSV bars, coverage manifest, ingestion metadata, runtime universe, historical trade plans and trade-plan manifest.
+- Updated BT9, HIST1, HTP1 and BT131 workflow tests for checksum-backed input persistence.
+- Updated `README.md` and `ROADMAP.md` with the #184 auditability rule.
+
+### Guardrails
+- A real-data backtest result is not claimable if the bars file cannot be tied to a coverage manifest checksum.
+- GitHub Actions artifacts alone are not treated as the audit source of truth for successful real-data backtests.
+- Missing, empty or malformed `input_checksums` blocks accepted real-data evidence.
+- Checksum mismatches produce explicit BT9 failures rather than degraded success.
+
+### Boundary
+- This is an evidence-auditability and reproducibility layer.
+- No strategy rule, scoring threshold, entry/exit rule or broker execution capability is changed.
+- Live trading authorization: unchanged; not granted by code.
+- Repository-wide full-regression green is not claimed by this changelog entry.
+
+---
+
 ## CI Gate Fixes — 2026-06-11
 
 ### Fixed
