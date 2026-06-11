@@ -3,7 +3,7 @@
 ## Watcher Lifecycle Evidence #193 — 2026-06-11
 
 ### Added
-- Added `src/watchers/watcher_lifecycle_summary.py` to build deterministic, lightweight watcher lifecycle summaries.
+- Added `scripts/watcher_lifecycle_summary.py` to build deterministic, lightweight watcher lifecycle summaries without growing the ARCH106 `src/` module baseline.
 - Added dated and latest lifecycle summary outputs:
   - `reports/watchers/lifecycle/YYYY-MM-DD.json`
   - `reports/watchers/lifecycle/latest.json`
@@ -12,6 +12,7 @@
 
 ### Changed
 - Updated `scripts/run_entry_exit_watcher.py` so every successful watcher cycle writes lifecycle summary evidence, including cycles with zero actionable open signals.
+- Moved watcher lifecycle summary writing out of `src/` and into the runner/script evidence layer to keep ARCH106 production-module ratchet stable.
 - Updated `README.md` and `ROADMAP.md` with the #193 watcher lifecycle evidence boundary.
 
 ### Guardrails
