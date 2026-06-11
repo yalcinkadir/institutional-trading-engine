@@ -121,6 +121,7 @@ def test_192_report_workflow_validates_scheduled_report_liveness_after_health_ga
     assert "--latest-file \"$LATEST_FILE\"" in text
     assert "--signals-file reports/signals/latest-signals.json" in text
     assert "--paper-health-file reports/validation/latest-paper-observation-health.json" in text
+    assert "--report-root \".\"" in text
     assert "--run-date \"$RUN_DATE\"" in text
 
 
@@ -128,6 +129,21 @@ def test_192_report_workflow_persists_and_uploads_scheduled_liveness_evidence() 
     text = _report_workflow_text()
 
     assert "git add reports/scheduled_report_liveness/*.json" in text
+    assert "git add reports/health/report-liveness-latest.json" in text
     assert "Upload scheduled report liveness artifact" in text
     assert "scheduled-report-liveness-${{ steps.report_type.outputs.run_timestamp }}" in text
-    assert "path: reports/scheduled_report_liveness/*.json" in text
+    assert "reports/scheduled_report_liveness/*.json" in text
+    assert "reports/health/report-liveness-latest.json" in text
+
+
+def test_192_report_workflow_writes_evidence_before_failing_liveness_gate() -> None:
+    text = _report_workflow_text()
+
+    liveness_index = text.index("Validate scheduled report liveness")
+    commit_index = text.index("Commit all outputs to repository")
+    enforce_index = text.index("Enforce scheduled report liveness gate")
+
+    assert liveness_index < commit_index < enforce_index
+    assert "SCHEDULED_REPORT_LIVENESS_EXIT_CODE" in text
+    assert "Evidence was written before failing the workflow" in text
+    assert "git add \"$REPORT_FILE\" \"$LATEST_FILE\" 2>/dev/null || true" in text
