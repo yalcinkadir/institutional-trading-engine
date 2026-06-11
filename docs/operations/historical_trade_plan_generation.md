@@ -2,22 +2,16 @@
 
 ## Purpose
 
-Generate deterministic historical `BUY_WATCH` trade plans from daily OHLCV bars.
+Generate historical `BUY_WATCH` trade plans for backtesting while keeping a hard boundary between baseline/demo testing and real strategy-evidence claims.
 
-This generator is a **research/demo baseline utility**, not the canonical real-data strategy-evidence path.
+This document now defines two different paths:
 
-It remains useful for:
+1. baseline/demo historical plan generation from OHLCV bars
+2. #177 scanner-coupled real-data plan export through the active Scanner → Signal Generator → Quality Engines → Trade Plan Validator path
 
-- simulator smoke tests
-- fill-model regression tests
-- deterministic local experimentation
-- public-safe examples where no strategy-evidence claim is made
-
-It must **not** be used to claim that the live Scanner → Signal Generator → Quality/Fusion → Trade Plan Validator pipeline has been validated.
+The second path is the only acceptable route for real-data strategy evidence.
 
 ## Evidence boundary
-
-There are now two distinct paths:
 
 ### 1. Baseline / demo historical plan generation
 
@@ -33,7 +27,9 @@ Status:
 research_only / baseline / not pipeline-coupled
 ```
 
-This path can support operational stability and regression testing, but it is **not** real strategy evidence.
+This path can support operational stability, fill-model smoke tests and deterministic regression tests, but it is **not** real strategy evidence.
+
+It must **not** be used to claim that the live Scanner → Signal Generator → Quality/Fusion → Trade Plan Validator pipeline has been validated.
 
 ### 2. Pipeline-coupled real-data evidence
 
@@ -43,22 +39,55 @@ Uses:
 scripts/export_historical_trade_plans.py
 ```
 
-with validated Paper Observation records that already prove:
+The exporter accepts either:
+
+1. already validated Paper Observation records with runtime-gate proof, or
+2. a #177 pipeline payload containing:
+
+```text
+decision_report
+scanner_metrics_map / scanner_metrics
+market_regime
+```
+
+For #177 payloads, the exporter calls:
+
+```text
+src.signals.signal_generator.build_signals()
+```
+
+That means historical trade plans are not created by a separate simplified generator. They are derived through:
+
+```text
+Scanner metrics
+  -> Signal Generator
+  -> Entry Quality
+  -> Stop-Loss Quality
+  -> Exit Target Quality
+  -> Trade Plan Validator
+  -> Historical Trade Plan Export
+```
+
+A pipeline-coupled export must include:
 
 ```text
 pipeline_coupled: true
+pipeline_generation_source: scanner_signal_quality_validator
 runtime_gates_applied:
   - scanner
   - signal_generator
   - quality_fusion
   - trade_plan_validator
+generated_signal_count
+validated_trade_plan_count
+blocked_signal_count
 ```
 
-Only this path may produce trade-plan files for BT131 real-data evidence.
-
-If validated observations are missing, BT131 should remain operationally stable by writing a reviewable `BLOCKED` artifact, not by silently falling back to this deterministic generator.
+If scanner fields, ATR, source provenance, data status, entry/stop/target validation, or demo-provenance checks fail, the exporter writes a manifest with failures and does not write a trade-plan output file.
 
 ## Input
+
+### Baseline input
 
 A directory of daily bar CSV files:
 
@@ -70,6 +99,47 @@ Required CSV columns:
 
 ```text
 date,open,high,low,close,volume
+```
+
+### #177 pipeline input
+
+A JSON file with this shape:
+
+```json
+{
+  "market_regime": "Bullish",
+  "decision_report": {
+    "decisions": [
+      {
+        "symbol": "SPY",
+        "decision": "approved",
+        "setup_type": "momentum_breakout",
+        "risk_tier": "tier_1",
+        "position_size_multiplier": 1.0,
+        "setup_score": 82.0,
+        "regime_alignment": 0.9,
+        "score_source": "scanner_runtime",
+        "data_source": "polygon",
+        "thresholds_version": "v1_real_runtime"
+      }
+    ]
+  },
+  "scanner_metrics_map": {
+    "SPY": {
+      "close": 100.0,
+      "high": 100.5,
+      "low": 98.5,
+      "atr14": 1.0,
+      "rvol": 1.2,
+      "vwap": 99.5,
+      "swing_low_3bar": 99.0,
+      "data_status": "OK",
+      "source": "polygon",
+      "source_timestamp": "2026-06-01T21:00:00Z",
+      "fallback_level": "none"
+    }
+  }
+}
 ```
 
 ## Output
@@ -85,7 +155,7 @@ metadata
 plans[]
 ```
 
-For baseline generation, metadata describes the generator summary. For pipeline-coupled real-data evidence, metadata must include:
+For pipeline-coupled real-data evidence, metadata must include:
 
 ```text
 pipeline_coupled
@@ -102,7 +172,6 @@ Each plan includes:
 signal_id
 symbol
 signal_date
-action
 entry_trigger
 stop_loss
 target_1
@@ -112,6 +181,7 @@ entry_type
 setup_type
 stop_model
 exit_model
+provenance
 ```
 
 ## Local baseline command
@@ -128,7 +198,9 @@ python scripts/generate_historical_trade_plans.py \
 
 Use this command for deterministic baseline testing only.
 
-## Pipeline-coupled export command
+## Pipeline-coupled export commands
+
+### From validated Paper Observation records
 
 ```bash
 python scripts/export_historical_trade_plans.py \
@@ -137,7 +209,18 @@ python scripts/export_historical_trade_plans.py \
   --manifest data/trade_plans/historical_trade_plans_manifest.json
 ```
 
-The source observations must be validated, non-demo, and runtime-gate annotated. Missing runtime-gate proof should fail export rather than producing ambiguous evidence.
+The source observations must be validated, non-demo, and runtime-gate annotated. Missing runtime-gate proof fails export rather than producing ambiguous evidence.
+
+### From #177 Scanner → Signal → Quality → Validator payload
+
+```bash
+python scripts/export_historical_trade_plans.py \
+  --source reports/backtests/scanner_signal_quality_validator_input.json \
+  --output data/trade_plans/historical_trade_plans.json \
+  --manifest data/trade_plans/historical_trade_plans_manifest.json
+```
+
+This is the canonical adapter for real-data backtest coupling. It executes `build_signals()` and exports only validated `BUY_WATCH` signals.
 
 ## Workflow integration
 
@@ -147,7 +230,7 @@ The workflow below may still use the deterministic generator for baseline edge-e
 Edge Evidence From Polygon Artifact
 ```
 
-The workflow below must use validated observations for real-data strategy evidence:
+The workflow below must use validated observations or a #177 pipeline payload for real-data strategy evidence:
 
 ```text
 BT131 Real Data Backtest Evidence
@@ -161,7 +244,7 @@ source_observations missing          -> write BLOCKED_MISSING_VALIDATED_OBSERVAT
 source_observations invalid          -> export fails -> downstream evidence remains BLOCKED
 ```
 
-This keeps Backtesting operationally stable while preventing false strategy-evidence claims.
+This keeps backtesting operationally stable while preventing false strategy-evidence claims.
 
 ## Strategy rule for baseline generator
 
