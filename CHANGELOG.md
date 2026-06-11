@@ -1,5 +1,27 @@
 # CHANGELOG
 
+## Backtest Runtime Pipeline Coupling #177 — 2026-06-11
+
+### Changed
+- Hardened `scripts/validate_bt9_real_historical_input_pack.py` so BT9 real-data input validation now requires canonical #177 pipeline metadata before a backtest input pack can pass as strategy evidence.
+- Updated `tests/test_htp1_historical_trade_plan_export.py` with a guard proving fixture-declared pipeline metadata from validated observation exports is rejected by BT9.
+- Updated `docs/operations/historical_trade_plan_generation.md` to separate baseline/demo generation, Paper Observation research export and canonical Scanner → Signal → Quality → Validator real-data evidence.
+- Updated `README.md` to clarify that real-data strategy evidence requires `pipeline_generation_source=scanner_signal_quality_validator`.
+
+### Guardrails
+- Trade plans without metadata are blocked from real-data strategy evidence.
+- Trade plans with `pipeline_generation_source=validated_paper_observation_export` are blocked from real-data strategy evidence even when records contain `pipeline_coupled: true` metadata.
+- BT9 requires `pipeline_coupled == true`, `pipeline_generation_source == scanner_signal_quality_validator`, all required runtime gates and a positive `validated_trade_plan_count`.
+- Validated Paper Observation exports remain available for research/audit continuity but cannot be promoted into real-data strategy evidence.
+
+### Boundary
+- This is evidence-boundary and backtest-input hardening.
+- No strategy rule, scoring threshold, entry/exit rule or broker execution capability is changed.
+- Live trading authorization: unchanged; not granted by code.
+- Repository-wide full-regression green is not claimed by this changelog entry.
+
+---
+
 ## Signal State Consistency #194 — 2026-06-11
 
 ### Added
@@ -158,35 +180,3 @@
 ---
 
 ## Evidence Quality Gate #188 — 2026-06-11
-
-### Added
-- Added `docs/operations/evidence-quality-gate.md`.
-- Added `src/evidence_quality_gate.py`.
-- Added `scripts/evaluate_evidence_quality_gate.py`.
-- Added `tests/test_evidence_quality_gate_188.py`.
-
-### Changed
-- Updated `README.md` with #188 Evidence Quality Gate status, policy links, machine-readable CLI example and targeted guard command.
-- Updated `ROADMAP.md` to add #188 as implemented / targeted guard tests documented and remove #188/#190 from the next remediation order.
-- Closed #190 as duplicate of #188.
-
-### Guardrails
-- Roadmap-stable, strategy-promotion, production-grade evidence, paper-confidence, backtesting-promotion, decision-stack-validation and live-readiness claims must pass the Evidence Quality Gate first.
-- Demo, stub, synthetic, placeholder or degraded evidence cannot support promotion claims.
-- Required promotion evidence includes `run_id`, `data_mode`, `provenance`, `checksum_or_manifest`, `runtime_trace` and `promotion_claim`.
-- The gate tracks evidence-critical blockers #177, #178, #181, #184, #185, #186 and #187.
-- The gate returns machine-readable `PASS`, `DEGRADED` or `BLOCKED` output with exact blocker reasons and issue references.
-
-### Boundary
-- This is an evidence-governance and guard-test layer.
-- It does not claim that all evidence-critical blockers are solved.
-- It does not claim repository-wide full-regression green.
-- It does not authorize live trading, broker execution or capital allocation.
-
----
-
-## Runtime Reachability Guard #178 — 2026-06-11
-
-### Added
-- Added `docs/architecture/decision_critical_runtime_reachability.json`.
-- Added `tests/test_runtime_reachability_guard_178.py`.
