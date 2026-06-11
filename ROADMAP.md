@@ -2,7 +2,7 @@
 
 Status date: 2026-06-11
 
-Current state: TEST1 Evidence-Oriented TDD Policy is active. EV1-EV12 evidence-integrity remediation is implemented and CI-green. CI runtime simplification is implemented and CI-green. PO128 and PO129 silent-failure/dataflow guards are implemented and CI-green. W1 Entry/Exit Watcher Git-Write Decoupling is implemented and CI-green. P132 Scanner Runtime Boundary is implemented and CI-green. P160 module classification baseline is completed. P161 Dataflow Contract Matrix is implemented and CI-green. P164 VIX/regime entitlement handling with volatility proxy fallback is implemented and CI-green. P166 productive daily Paper Observation evidence producer is implemented / CI-pending. #191 Scanner datafeed liveness gate is implemented / targeted guard tests documented. #192 Scheduled report liveness gate is implemented / targeted guard tests documented. #185 report validation risk-tier gate is implemented / targeted guard tests documented. #186 outcome tracking blocks empty/invalid upstream signal windows from outcome-learning claims. BT130 Real Historical Backtest Evidence Pack Gate is implemented / CI-green. #177 real-data backtest pipeline coupling is implemented / CI-green. #184 historical real-data input persistence is implemented / targeted guard tests documented. PortfolioState fail-closed fixture migration (#102), JWT fail-closed migration (#103), FCM1/RPW1 CI-wired backlog status (#104), runtime reachability guard (#178), Evidence Quality Gate (#188), and Logic Safety Governance (#189) are validated at documentation/test-guard level.
+Current state: TEST1 Evidence-Oriented TDD Policy is active. EV1-EV12 evidence-integrity remediation is implemented and CI-green. CI runtime simplification is implemented and CI-green. PO128 and PO129 silent-failure/dataflow guards are implemented and CI-green. W1 Entry/Exit Watcher Git-Write Decoupling is implemented and CI-green. P132 Scanner Runtime Boundary is implemented and CI-green. P160 module classification baseline is completed. P161 Dataflow Contract Matrix is implemented and CI-green. P164 VIX/regime entitlement handling with volatility proxy fallback is implemented and CI-green. P166 productive daily Paper Observation evidence producer is implemented / CI-pending. #191 Scanner datafeed liveness gate is implemented / targeted guard tests documented. #192 Scheduled report liveness gate is implemented / targeted guard tests documented. #185 report validation risk-tier gate is implemented / targeted guard tests documented. #186 outcome tracking blocks empty/invalid upstream signal windows from outcome-learning claims. BT130 Real Historical Backtest Evidence Pack Gate is implemented / CI-green. #177 real-data backtest pipeline coupling is implemented / CI-green. #184 historical real-data input persistence is implemented / targeted guard tests documented. #193 watcher lifecycle evidence is implemented / targeted guard tests documented. PortfolioState fail-closed fixture migration (#102), JWT fail-closed migration (#103), FCM1/RPW1 CI-wired backlog status (#104), runtime reachability guard (#178), Evidence Quality Gate (#188), and Logic Safety Governance (#189) are validated at documentation/test-guard level.
 
 The system remains research / decision-support / paper-observation only. Real-money execution is not authorized by code.
 
@@ -37,6 +37,8 @@ Outcome tracking readiness requires at least one valid upstream signal. Producti
 Real-data strategy-evidence backtests require canonical Scanner → Signal Generator → Entry/Stop/Exit Quality → Trade Plan Validator metadata. Observation exports, deterministic generators and demo generators are research/audit inputs only and must be blocked by BT9 from strategy-evidence claims.
 
 Accepted real-data backtest evidence must treat the repository as the durable audit source of truth. GitHub Actions artifacts are review aids only; accepted BT131 source CSVs, manifests, runtime universe, trade plans and evidence indexes must be persisted with checksums under repository paths.
+
+Watcher lifecycle runs must write repo-visible dated lifecycle summaries under `reports/watchers/lifecycle/`. A cycle with zero actionable open signals must be explicit `NO_ACTIONABLE_SIGNALS`, not silent success.
 
 ## Phase EV — Evidence Integrity Remediation
 
@@ -73,8 +75,17 @@ EV1-EV12 evidence-integrity remediation is tracked as completed only because the
 | RGP10 | Latest bar timestamp ordering guard | P0 | Critical | Done / CI-green |
 | RGP11 | Signal identity float quantization | P0 | Critical | Done / CI-green |
 | RGP12 | Partial-exit lifecycle persistence | P0 | Critical | Done / CI-green |
+| #193 | Watcher Lifecycle Evidence | P1 | High | Implemented / targeted guard tests documented |
 
 RGP1-RGP12 runtime governance proofs are post-review status entries. They do not authorize live trading, broker execution or capital allocation.
+
+#193 makes the watcher lifecycle path repo-visible through deterministic dated summaries under `reports/watchers/lifecycle/YYYY-MM-DD.json` plus `reports/watchers/lifecycle/latest.json`. The authoritative lifecycle summary complements `data/signal_lifecycle.jsonl`; zero-actionable runs are explicitly marked `NO_ACTIONABLE_SIGNALS` and include the original signal-file checksum reference.
+
+#193 contract and guards:
+
+- `docs/operations/watcher_lifecycle_evidence.md`
+- `src/watchers/watcher_lifecycle_summary.py`
+- `tests/test_193_watcher_lifecycle_summary.py`
 
 ## Phase BT — Backtesting Evidence Gates
 
