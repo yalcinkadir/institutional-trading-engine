@@ -55,6 +55,7 @@ RPW1: Runtime Proof-Pack Artifact Writer / Retention Index closed / targeted CI-
 DATA1: Market data quality contract blocks missing close/ATR, stale timestamps and missing source metadata before signals or reports consume them.
 P161: Dataflow Contract Matrix defines Scanner → Signals → Quality → Validator → Watcher → Evidence required fields, canonical ATR naming and fail-closed missing-field behavior.
 P164: VIX/regime evidence first uses Polygon `I:VIX`; if unavailable because of provider entitlement, it falls back to configured volatility proxy `VOLATILITY_PROXY_SYMBOL` defaulting to `VIXY` and stamps `PROXY_DEGRADED` provenance.
+#178: Runtime reachability guard adds `docs/architecture/decision_critical_runtime_reachability.json` and `tests/test_runtime_reachability_guard_178.py` so decision-critical modules are either runtime-connected with proof or explicitly classified as non-runtime research/quarantine/test/deprecated.
 #189: System Invariants and Logic Safety Governance implemented as machine-checkable documentation/test guards; `DEGRADED`, `BLOCKED`, `UNKNOWN`, demo/stub and missing-provenance states must not be promoted as full `PASS` evidence.
 
 Backtesting / Evidence:
@@ -130,6 +131,25 @@ Relevant guard tests:
 ```bash
 pytest tests/test_system_invariants.py tests/test_logic_safety_state_matrix.py tests/test_evidence_traceability_contract.py -q
 ```
+
+## Runtime Reachability Governance
+
+#178 adds a decision-critical runtime reachability registry:
+
+- `docs/architecture/decision_critical_runtime_reachability.json`
+
+The registry separates active runtime modules from research, quarantine, test-only or deprecated modules. A decision-critical module may claim `runtime_active`, `decision_stack_validated`, `module_complete`, `strategy_validated`, `paper_confidence_authorized` or `live_ready` only when it has a runtime entry point and a guard-test proof.
+
+Relevant guard test:
+
+```bash
+pytest tests/test_runtime_reachability_guard_178.py -q
+```
+
+Current boundary:
+
+- Active runtime-connected examples include `src/reporting/decision_report.py`, `src/signals/signal_generator.py` and `src/signals/trade_plan_validator.py`.
+- `src/decision_confidence.py`, `src/data_quality_engine.py`, `src/event_risk_engine.py` and `src/liquidity_volatility_engine.py` remain explicitly non-runtime research helpers until promoted with runtime execution proof.
 
 ## Paper Observation Evidence Process
 
