@@ -86,6 +86,9 @@ jobs:
           fi
 
           LATEST_FILE="reports/generated/${REPORT_TYPE}-report.md"
+          SCHEDULED_LIVENESS_FILE="reports/scheduled_report_liveness/${RUN_DATE}-${REPORT_TYPE}-liveness.json"
+          SCHEDULED_LIVENESS_LATEST="reports/scheduled_report_liveness/latest-scheduled-report-liveness.json"
+          REPORT_LIVENESS_HEALTH="reports/health/report-liveness-latest.json"
 
           echo "report_type=${REPORT_TYPE}" >> "$GITHUB_OUTPUT"
           echo "report_file=${REPORT_FILE}" >> "$GITHUB_OUTPUT"
@@ -100,6 +103,9 @@ jobs:
           echo "RUN_DATE=${RUN_DATE}" >> "$GITHUB_ENV"
           echo "RUN_TIMESTAMP=${RUN_TIMESTAMP}" >> "$GITHUB_ENV"
           echo "HEALTH_RUN_TIMESTAMP=${HEALTH_RUN_TIMESTAMP}" >> "$GITHUB_ENV"
+          echo "SCHEDULED_LIVENESS_FILE=${SCHEDULED_LIVENESS_FILE}" >> "$GITHUB_ENV"
+          echo "SCHEDULED_LIVENESS_LATEST=${SCHEDULED_LIVENESS_LATEST}" >> "$GITHUB_ENV"
+          echo "REPORT_LIVENESS_HEALTH=${REPORT_LIVENESS_HEALTH}" >> "$GITHUB_ENV"
 
       - name: Generate report (+ signals)
         shell: bash
@@ -174,8 +180,7 @@ jobs:
           git add "$REPORT_FILE" "$LATEST_FILE" 2>/dev/null || true
           git add reports/signals/*.json reports/signals/*.md 2>/dev/null || true
           git add reports/validation/*.json reports/validation/*.md 2>/dev/null || true
-          git add reports/scheduled_report_liveness/*.json 2>/dev/null || true
-          git add reports/health/report-liveness-latest.json 2>/dev/null || true
+          git add "$SCHEDULED_LIVENESS_FILE" "$SCHEDULED_LIVENESS_LATEST" "$REPORT_LIVENESS_HEALTH" 2>/dev/null || true
           git add data/ 2>/dev/null || true
 
           if git diff --cached --quiet; then
