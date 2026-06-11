@@ -1,12 +1,11 @@
 {
   "broker_execution_mode": "paper_only",
   "capital_allocation_authorized": false,
-  "commit_sha": "8ae74c50bc7582d803e34a18b4bc890a2b5b124a",
+  "commit_sha": "b2c683878c2f115523826fc7d2fa4452aa9d549f",
   "consecutive_miss_block_threshold_business_days": 2,
   "current_run_state": "WORKFLOW_RAN_VALIDATED",
   "errors": [
     "premarket_stale_or_missing:6",
-    "postmarket_stale_or_missing:7",
     "daily_evidence_stale_or_missing:2"
   ],
   "file_evidence": {
@@ -14,9 +13,9 @@
       "exists": true,
       "is_file": true,
       "non_empty": true,
-      "path": "reports/generated/intraday-report.md",
+      "path": "reports/generated/postmarket-report.md",
       "required": true,
-      "size_bytes": 3730
+      "size_bytes": 3741
     },
     "paper_health_file": {
       "exists": true,
@@ -24,15 +23,15 @@
       "non_empty": true,
       "path": "reports/validation/latest-paper-observation-health.json",
       "required": true,
-      "size_bytes": 1652
+      "size_bytes": 1653
     },
     "report_file": {
       "exists": true,
       "is_file": true,
       "non_empty": true,
-      "path": "reports/intraday/2026-06-11-intraday.md",
+      "path": "reports/postmarket/2026-06-11-postmarket.md",
       "required": true,
-      "size_bytes": 3730
+      "size_bytes": 3741
     },
     "signals_file": {
       "exists": true,
@@ -57,10 +56,10 @@
       "latest_output_path": "reports/intraday/2026-06-11-intraday.md"
     },
     "postmarket": {
-      "business_days_without_fresh_output": 7,
-      "freshness_status": "REPORT_LIVENESS_BLOCKED",
-      "latest_output_date": "2026-06-02",
-      "latest_output_path": "reports/postmarket/2026-06-02-postmarket.md"
+      "business_days_without_fresh_output": 0,
+      "freshness_status": "REPORT_LIVENESS_OK",
+      "latest_output_date": "2026-06-11",
+      "latest_output_path": "reports/postmarket/2026-06-11-postmarket.md"
     },
     "premarket": {
       "business_days_without_fresh_output": 6,
@@ -76,16 +75,16 @@
     }
   },
   "issue": "#192",
-  "latest_file": "reports/generated/intraday-report.md",
+  "latest_file": "reports/generated/postmarket-report.md",
   "live_trading_authorized": false,
   "liveness_status": "REPORT_LIVENESS_BLOCKED",
   "paper_health_file": "reports/validation/latest-paper-observation-health.json",
   "productive_report_cycle": false,
-  "report_file": "reports/intraday/2026-06-11-intraday.md",
+  "report_file": "reports/postmarket/2026-06-11-postmarket.md",
   "report_liveness_status": "REPORT_LIVENESS_BLOCKED",
-  "report_type": "intraday",
+  "report_type": "postmarket",
   "run_date": "2026-06-11",
-  "run_timestamp": "2026-06-11T16:27:42Z",
+  "run_timestamp": "2026-06-11T21:46:11Z",
   "scheduled_report_status": "BLOCKED",
   "schema_version": "scheduled_report_liveness.v1",
   "signals_file": "reports/signals/latest-signals.json",
