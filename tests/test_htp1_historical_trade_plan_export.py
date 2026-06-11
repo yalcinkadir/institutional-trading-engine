@@ -200,7 +200,7 @@ def test_htp1_rejects_observations_missing_runtime_gates(tmp_path: Path) -> None
     assert not (tmp_path / "historical_trade_plans.json").exists()
 
 
-def test_htp1_valid_observations_export_deterministic_trade_plans(tmp_path: Path) -> None:
+def test_htp1_valid_observations_export_deterministic_research_trade_plans(tmp_path: Path) -> None:
     source = tmp_path / "observations.json"
     output = tmp_path / "historical_trade_plans.json"
     manifest = tmp_path / "manifest.json"
@@ -333,7 +333,8 @@ def test_177_pipeline_export_is_bt9_compatible(tmp_path: Path) -> None:
     assert bt9_report.input_checksums
 
 
-def test_htp1_export_is_bt9_compatible(tmp_path: Path) -> None:
+def test_177_bt9_blocks_fixture_metadata_pipeline_coupling_from_observation_export(tmp_path: Path) -> None:
+    """Fixture metadata must not be enough for real-data strategy evidence."""
     source = tmp_path / "observations.json"
     output = tmp_path / "data/trade_plans/historical_trade_plans.json"
     manifest = tmp_path / "data/trade_plans/historical_trade_plans_manifest.json"
@@ -366,6 +367,6 @@ def test_htp1_export_is_bt9_compatible(tmp_path: Path) -> None:
     )
 
     assert export_report.passed is True
-    assert bt9_report.passed is True
-    assert bt9_report.symbols == ["SPY"]
-    assert bt9_report.input_checksums
+    assert export_report.pipeline_generation_source == "validated_paper_observation_export"
+    assert bt9_report.passed is False
+    assert "trade_plans_invalid_pipeline_generation_source:validated_paper_observation_export" in bt9_report.failures
