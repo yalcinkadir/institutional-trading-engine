@@ -2,7 +2,7 @@
 
 Status date: 2026-06-11
 
-Current state: TEST1 Evidence-Oriented TDD Policy is active. EV1-EV12 evidence-integrity remediation is implemented and CI-green. CI runtime simplification is implemented and CI-green. PO128 and PO129 silent-failure/dataflow guards are implemented and CI-green. W1 Entry/Exit Watcher Git-Write Decoupling is implemented and CI-green. P132 Scanner Runtime Boundary is implemented and CI-green. P160 module classification baseline is completed. P161 Dataflow Contract Matrix is implemented and CI-green. P164 VIX/regime entitlement handling with volatility proxy fallback is implemented and CI-green. P166 productive daily Paper Observation evidence producer is implemented / CI-pending. BT130 Real Historical Backtest Evidence Pack Gate is implemented / CI-pending. #177 real-data backtest pipeline coupling is implemented / CI-green. #184 historical real-data input persistence is implemented / targeted guard tests documented. PortfolioState fail-closed fixture migration (#102), JWT fail-closed migration (#103), FCM1/RPW1 CI-wired backlog status (#104), runtime reachability guard (#178), Evidence Quality Gate (#188), and Logic Safety Governance (#189) are validated at documentation/test-guard level.
+Current state: TEST1 Evidence-Oriented TDD Policy is active. EV1-EV12 evidence-integrity remediation is implemented and CI-green. CI runtime simplification is implemented and CI-green. PO128 and PO129 silent-failure/dataflow guards are implemented and CI-green. W1 Entry/Exit Watcher Git-Write Decoupling is implemented and CI-green. P132 Scanner Runtime Boundary is implemented and CI-green. P160 module classification baseline is completed. P161 Dataflow Contract Matrix is implemented and CI-green. P164 VIX/regime entitlement handling with volatility proxy fallback is implemented and CI-green. P166 productive daily Paper Observation evidence producer is implemented / CI-pending. #191 Scanner datafeed liveness gate is implemented / targeted guard tests documented. BT130 Real Historical Backtest Evidence Pack Gate is implemented / CI-pending. #177 real-data backtest pipeline coupling is implemented / CI-green. #184 historical real-data input persistence is implemented / targeted guard tests documented. PortfolioState fail-closed fixture migration (#102), JWT fail-closed migration (#103), FCM1/RPW1 CI-wired backlog status (#104), runtime reachability guard (#178), Evidence Quality Gate (#188), and Logic Safety Governance (#189) are validated at documentation/test-guard level.
 
 The system remains research / decision-support / paper-observation only. Real-money execution is not authorized by code.
 
@@ -25,6 +25,8 @@ Unknown, degraded, blocked, failed, demo/stub/synthetic or missing-provenance st
 Decision-critical modules must either be runtime-connected with an execution proof or explicitly classified as non-runtime research/quarantine/test/deprecated. Non-runtime modules must not be used for architecture maturity, strategy-validation or live-readiness claims.
 
 Roadmap-stable, strategy-promotion, production-grade evidence, paper-confidence, backtesting-promotion, decision-stack-validation and live-readiness claims must pass the #188 Evidence Quality Gate first.
+
+Paper Observation readiness requires fresh scheduled output and scanner datafeed liveness. A scheduled run with `DATAFEED_BLOCKED` is scheduled-but-blocked evidence, not productive observation.
 
 ## Phase BT — Backtesting Evidence Gates
 
@@ -112,8 +114,11 @@ Guard tests:
 | PO13 | Monthly Paper Observation Review Pack | P0 | Critical | Done / CI-green |
 | PO14 | Forward Evidence Quality Gate | P0 | Critical | Done / CI-green |
 | P166 | Productive daily Paper Observation evidence producer with VIX/regime provenance | P0 | Critical | Implemented / CI-pending |
+| #191 | Restore Scanner datafeed liveness for Paper Observation | P0 | Critical | Implemented / targeted guard tests documented |
 
 P166 makes the scheduled PO11 workflow produce `reports/daily_evidence/<observation_date>.json` before PO11 validates it. The producer embeds selection mode, selected symbols, run-health status, data-quality status, paper-only safety boundary and VIX/regime provenance. Runtime evidence is uploaded as Actions artifacts and is not committed back to `main`.
+
+#191 makes scanner datafeed liveness an explicit Paper Observation readiness gate. If all tracked symbols have missing/non-numeric `close` values, missing required bars, provider failures or unusable scanner metrics, the run is `DATAFEED_BLOCKED`. The active report path writes `reports/health/<date>-datafeed-liveness.json` and `reports/health/datafeed-liveness-latest.json`, propagates `datafeed_status` and `provider_failure_reason` into signal artifacts, and prevents blocked datafeed runs from being counted as productive observation cycles.
 
 ## Phase P132 — Scanner Runtime Boundary
 
