@@ -130,8 +130,15 @@ def build_scheduled_report_liveness_artifact(
     elif current_run_state == CURRENT_RUN_MISSING:
         errors.append("workflow_did_not_produce_or_persist_current_output")
 
-    status = STATUS_PASSED if not errors else STATUS_BLOCKED
-    report_liveness_status = REPORT_LIVENESS_OK if status == STATUS_PASSED else REPORT_LIVENESS_BLOCKED
+    if errors:
+        status = STATUS_BLOCKED
+        report_liveness_status = REPORT_LIVENESS_BLOCKED
+    elif warnings:
+        status = STATUS_DEGRADED
+        report_liveness_status = REPORT_LIVENESS_DEGRADED
+    else:
+        status = STATUS_PASSED
+        report_liveness_status = REPORT_LIVENESS_OK
     artifact_path = build_scheduled_report_liveness_artifact_path(normalized_report_type or "unknown", date_value)
     latest_artifact_path = SCHEDULED_REPORT_LIVENESS_ROOT / "latest-scheduled-report-liveness.json"
 
@@ -168,7 +175,7 @@ def build_scheduled_report_liveness_artifact(
     }
 
     return ScheduledReportLivenessResult(
-        valid=status == STATUS_PASSED,
+        valid=status != STATUS_BLOCKED,
         artifact_path=str(artifact_path),
         latest_artifact_path=str(latest_artifact_path),
         artifact=artifact,
