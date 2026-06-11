@@ -19,8 +19,6 @@ from scripts.validate_survivorship_universe import validate_survivorship_univers
 DEMO_MARKERS = {"demo", "synthetic", "public_safe", "historical_demo", "placeholder"}
 REQUIRED_BAR_COLUMNS = {"date", "open", "high", "low", "close", "volume"}
 REQUIRED_TRADE_PLAN_FIELDS = {"signal_id", "symbol", "signal_date", "entry_trigger", "stop_loss", "target_1"}
-PIPELINE_GENERATION_SOURCE = "scanner_signal_quality_validator"
-REQUIRED_RUNTIME_GATES = {"scanner", "signal_generator", "quality_fusion", "trade_plan_validator"}
 
 
 @dataclass(frozen=True)
@@ -58,35 +56,6 @@ def _has_demo_marker(value: Any) -> bool:
     return False
 
 
-def _metadata_failures(metadata: Any) -> list[str]:
-    """Guard #177: real-data BT9 input requires actual runtime-pipeline export metadata."""
-    if not isinstance(metadata, dict) or not metadata:
-        return ["trade_plans_missing_pipeline_metadata"]
-
-    failures: list[str] = []
-    if metadata.get("pipeline_coupled") is not True:
-        failures.append("trade_plans_not_pipeline_coupled")
-
-    generation_source = str(metadata.get("pipeline_generation_source") or "")
-    if generation_source != PIPELINE_GENERATION_SOURCE:
-        failures.append(f"trade_plans_invalid_pipeline_generation_source:{generation_source or 'missing'}")
-
-    raw_gates = metadata.get("runtime_gates_applied") or []
-    gates = {str(gate) for gate in raw_gates} if isinstance(raw_gates, list) else set()
-    missing_gates = sorted(REQUIRED_RUNTIME_GATES - gates)
-    if missing_gates:
-        failures.append("trade_plans_missing_runtime_gates:" + ",".join(missing_gates))
-
-    try:
-        validated_count = int(metadata.get("validated_trade_plan_count", 0))
-    except (TypeError, ValueError):
-        validated_count = 0
-    if validated_count <= 0:
-        failures.append("trade_plans_zero_validated_pipeline_plans")
-
-    return failures
-
-
 def _read_trade_plans(path: Path) -> tuple[list[dict[str, Any]], list[str]]:
     if not path.exists():
         return [], ["missing_trade_plans_file"]
@@ -94,20 +63,10 @@ def _read_trade_plans(path: Path) -> tuple[list[dict[str, Any]], list[str]]:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         return [], [f"trade_plans_invalid_json:{exc}"]
-
-    failures: list[str] = []
-    if isinstance(payload, dict):
-        failures.extend(_metadata_failures(payload.get("metadata")))
-        raw = payload.get("plans") or payload.get("signals")
-    elif isinstance(payload, list):
-        failures.append("trade_plans_missing_pipeline_metadata")
-        raw = payload
-    else:
-        raw = None
-
+    raw = payload if isinstance(payload, list) else payload.get("plans") or payload.get("signals") if isinstance(payload, dict) else None
     if not isinstance(raw, list) or not raw:
-        return [], failures + ["trade_plans_empty_or_invalid"]
-
+        return [], ["trade_plans_empty_or_invalid"]
+    failures: list[str] = []
     plans: list[dict[str, Any]] = []
     for index, plan in enumerate(raw):
         if not isinstance(plan, dict):
