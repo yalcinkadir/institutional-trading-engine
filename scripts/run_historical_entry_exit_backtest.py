@@ -116,6 +116,7 @@ def _write_blocked_real_data_evidence(
     validated_trade_plan_count: int = 0,
     blocked_signal_count: int = 0,
     runtime_gates_applied: list[str] | None = None,
+    input_checksums: dict[str, str] | None = None,
 ) -> None:
     report = HistoricalBacktestReport(
         metrics=_empty_metrics(),
@@ -133,6 +134,7 @@ def _write_blocked_real_data_evidence(
         coverage_manifest_path=str(Path(args.coverage_manifest)),
         survivorship_universe_path=str(Path(args.universe)),
         trade_plans_path=str(Path(args.plans_file)),
+        input_checksums=input_checksums or {},
         input_plan_count=input_plan_count,
         accepted_plan_count=accepted_plan_count,
         rejected_plan_count=rejected_plan_count,
@@ -149,14 +151,15 @@ def _write_blocked_real_data_evidence(
     write_report(report, json_path=Path(args.json_output), markdown_path=Path(args.markdown_output))
 
 
-def _fail_closed_if_real_data_requested(args: argparse.Namespace) -> tuple[int | None, str]:
+def _fail_closed_if_real_data_requested(args: argparse.Namespace) -> tuple[int | None, str, dict[str, str]]:
     if not _real_data_requested(args):
-        return None, "NOT_RUN"
+        return None, "NOT_RUN", {}
 
     gate = validate_bt9_input_pack(
         universe_path=Path(args.universe),
         bars_root=Path(args.bars_root),
         trade_plans_path=Path(args.plans_file),
+        coverage_manifest_path=Path(args.coverage_manifest),
     )
     if not gate.passed:
         print("BT9 real historical input pack gate status: FAIL")
@@ -170,8 +173,9 @@ def _fail_closed_if_real_data_requested(args: argparse.Namespace) -> tuple[int |
             input_completeness_status="BLOCKED_INPUT_PACK",
             run_health_status="BLOCKED",
             rejection_reasons=reasons,
+            input_checksums=gate.input_checksums,
         )
-        return 1, "FAILED"
+        return 1, "FAILED", gate.input_checksums
 
     if not Path(args.coverage_manifest).exists():
         print("Real-data backtest blocked: missing_coverage_manifest")
@@ -188,16 +192,18 @@ def _fail_closed_if_real_data_requested(args: argparse.Namespace) -> tuple[int |
                     "reasons": ["missing_coverage_manifest"],
                 }
             ],
+            input_checksums=gate.input_checksums,
         )
-        return 1, "FAILED"
+        return 1, "FAILED", gate.input_checksums
 
-    return None, "PASSED"
+    return None, "PASSED", gate.input_checksums
 
 
 def _fail_closed_if_real_data_not_pipeline_coupled(
     args: argparse.Namespace,
     *,
     input_pack_gate_status: str,
+    input_checksums: dict[str, str],
 ) -> int | None:
     if not _real_data_requested(args):
         return None
@@ -242,17 +248,22 @@ def _fail_closed_if_real_data_not_pipeline_coupled(
         validated_trade_plan_count=_metadata_int(metadata, "validated_trade_plan_count", 0),
         blocked_signal_count=_metadata_int(metadata, "blocked_signal_count", input_count),
         runtime_gates_applied=runtime_gates_applied,
+        input_checksums=input_checksums,
     )
     return 1
 
 
 def main() -> int:
     args = parse_args()
-    gate_exit, input_pack_gate_status = _fail_closed_if_real_data_requested(args)
+    gate_exit, input_pack_gate_status, input_checksums = _fail_closed_if_real_data_requested(args)
     if gate_exit is not None:
         return gate_exit
 
-    pipeline_exit = _fail_closed_if_real_data_not_pipeline_coupled(args, input_pack_gate_status=input_pack_gate_status)
+    pipeline_exit = _fail_closed_if_real_data_not_pipeline_coupled(
+        args,
+        input_pack_gate_status=input_pack_gate_status,
+        input_checksums=input_checksums,
+    )
     if pipeline_exit is not None:
         return pipeline_exit
 
@@ -278,6 +289,7 @@ def main() -> int:
             validated_trade_plan_count=_metadata_int(metadata, "validated_trade_plan_count", plan_load.report.accepted_plan_count),
             blocked_signal_count=_metadata_int(metadata, "blocked_signal_count", plan_load.report.rejected_plan_count),
             runtime_gates_applied=runtime_gates_applied,
+            input_checksums=input_checksums,
         )
         return 1
 
@@ -295,6 +307,7 @@ def main() -> int:
         coverage_manifest_path=str(Path(args.coverage_manifest)),
         survivorship_universe_path=str(Path(args.universe)),
         trade_plans_path=str(Path(args.plans_file)),
+        input_checksums=input_checksums,
         plan_load_report=plan_load.report,
         pipeline_coupled=metadata.get("pipeline_coupled") is True,
         pipeline_generation_source=str(metadata.get("pipeline_generation_source") or "UNKNOWN"),
@@ -311,6 +324,7 @@ def main() -> int:
     print(f"Is demo: {report.is_demo}")
     print(f"Input pack gate: {report.input_pack_gate_status}")
     print(f"Pipeline coupled: {report.pipeline_coupled}")
+    print(f"Input checksums: {len(report.input_checksums)}")
     print(f"Input plans: {report.input_plan_count}")
     print(f"Accepted plans: {report.accepted_plan_count}")
     print(f"Rejected plans: {report.rejected_plan_count}")
