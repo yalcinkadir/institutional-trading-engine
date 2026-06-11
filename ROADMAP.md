@@ -2,7 +2,7 @@
 
 Status date: 2026-06-11
 
-Current state: TEST1 Evidence-Oriented TDD Policy is active. EV1-EV12 evidence-integrity remediation is implemented and CI-green. CI runtime simplification is implemented and CI-green. PO128 and PO129 silent-failure/dataflow guards are implemented and CI-green. W1 Entry/Exit Watcher Git-Write Decoupling is implemented and CI-green. P132 Scanner Runtime Boundary is implemented and CI-green. P160 module classification baseline is completed. P161 Dataflow Contract Matrix is implemented and CI-green. P164 VIX/regime entitlement handling with volatility proxy fallback is implemented and CI-green. P166 productive daily Paper Observation evidence producer is implemented / CI-pending. BT130 Real Historical Backtest Evidence Pack Gate is implemented / CI-pending. PortfolioState fail-closed fixture migration (#102), JWT fail-closed migration (#103), FCM1/RPW1 CI-wired backlog status (#104), and Logic Safety Governance (#189) are validated at documentation/test-guard level.
+Current state: TEST1 Evidence-Oriented TDD Policy is active. EV1-EV12 evidence-integrity remediation is implemented and CI-green. CI runtime simplification is implemented and CI-green. PO128 and PO129 silent-failure/dataflow guards are implemented and CI-green. W1 Entry/Exit Watcher Git-Write Decoupling is implemented and CI-green. P132 Scanner Runtime Boundary is implemented and CI-green. P160 module classification baseline is completed. P161 Dataflow Contract Matrix is implemented and CI-green. P164 VIX/regime entitlement handling with volatility proxy fallback is implemented and CI-green. P166 productive daily Paper Observation evidence producer is implemented / CI-pending. BT130 Real Historical Backtest Evidence Pack Gate is implemented / CI-pending. PortfolioState fail-closed fixture migration (#102), JWT fail-closed migration (#103), FCM1/RPW1 CI-wired backlog status (#104), runtime reachability guard (#178), and Logic Safety Governance (#189) are validated at documentation/test-guard level.
 
 The system remains research / decision-support / paper-observation only. Real-money execution is not authorized by code.
 
@@ -21,6 +21,8 @@ Scheduled runtime workflows must not mutate the main branch with generated artif
 Static Paper Observation watchlists must be labelled with `selection_mode=static_watchlist` and must not be represented as dynamic scanner evidence or trading-edge proof.
 
 Unknown, degraded, blocked, failed, demo/stub/synthetic or missing-provenance states must not be promoted as full `PASS`, strategy validation, production-grade evidence or live-readiness.
+
+Decision-critical modules must either be runtime-connected with an execution proof or explicitly classified as non-runtime research/quarantine/test/deprecated. Non-runtime modules must not be used for architecture maturity, strategy-validation or live-readiness claims.
 
 ## Phase BT — Backtesting Evidence Gates
 
@@ -48,7 +50,14 @@ BT130 requires real-data backtest evidence packs to include run identity, real-d
 | ID | Task | Priority | Impact | Status |
 |---|---|---:|---:|---|
 | TEST1 | Evidence-Oriented TDD Policy | P0 | Critical | Active |
+| #178 | Decision-critical Runtime Reachability Guard | P0 | Critical | Implemented / targeted guard tests documented |
 | #189 | Machine-checkable System Invariants and Logic Safety Governance | P0 | Critical | Implemented / targeted guard tests documented |
+
+#178 defines a decision-critical runtime reachability registry at `docs/architecture/decision_critical_runtime_reachability.json`. It prevents decision-quality modules from being counted as active runtime architecture unless they have a runtime entry point and guard-test proof. `src/decision_confidence.py`, `src/data_quality_engine.py`, `src/event_risk_engine.py` and `src/liquidity_volatility_engine.py` are explicitly non-runtime research helpers until promoted with execution proof.
+
+#178 guard test:
+
+- `tests/test_runtime_reachability_guard_178.py`
 
 #189 defines machine-checkable system invariants, logic-safety severity classes, forbidden state conversions, evidence-traceability minimums and PR checklist linkage. It complements #188 Evidence Quality Gate by preventing `DEGRADED`, `UNKNOWN`, `BLOCKED`, demo/stub or missing-provenance output from being promoted as full `PASS` evidence.
 
@@ -182,13 +191,13 @@ PFA joins position-level risk attribution with forward outcome evidence. It does
 - #132: Scanner Runtime Boundary validated and closed. Runtime reports and Paper Observation evidence must expose `selection_mode`; static watchlists remain research setup only and cannot claim dynamic scanner breadth or trading-edge proof.
 - #160: Module classification baseline validated and closed. Pipeline-relevant modules have explicit classification, and the architecture inventory is regenerated under guard.
 - #164: VIX/regime entitlement handling validated and closed. The Paper Observation/report regime path attempts true `I:VIX`, falls back to `VOLATILITY_PROXY_SYMBOL`/`VIXY` with degraded proxy provenance, and fails visible as `UNVALIDATED_REGIME` if neither true VIX nor proxy evidence is available.
+- #178: Runtime reachability guard implemented at documentation/test-guard level. Decision-critical modules are registered in `docs/architecture/decision_critical_runtime_reachability.json`; active modules require runtime entrypoint plus guard proof, while non-runtime helpers have explicit forbidden architecture/evidence claims.
 
 ## Recommended Next Remediation Order
 
-1. Architecture reachability + runtime execution guard (#106 / #178 alignment).
-2. Evidence Quality Gate before roadmap or strategy promotion (#188/#190 de-duplication and implementation).
-3. Continue Phase B data-integrity foundation: survivorship-safe universe, second-provider cross-validation and real persisted daily observation source feed.
-4. Validate remaining CI-pending evidence workflows before upgrading status language.
+1. Evidence Quality Gate before roadmap or strategy promotion (#188/#190 de-duplication and implementation).
+2. Continue Phase B data-integrity foundation: survivorship-safe universe, second-provider cross-validation and real persisted daily observation source feed.
+3. Validate remaining CI-pending evidence workflows before upgrading status language.
 
 ## Safety Boundary
 
