@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -21,10 +22,55 @@ PIPELINE_METADATA = {
 }
 
 
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
 def _write_universe(path: Path, symbol: str = "AAPL") -> None:
     path.write_text(
         "symbol,effective_from,effective_to,active,asset_class,exchange,source,status,reason\n"
         f"{symbol},2020-01-01,,true,equity,NASDAQ,initial_universe,active,issue 159 test universe\n",
+        encoding="utf-8",
+    )
+
+
+def _write_bars(path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "date,open,high,low,close,volume\n2026-01-03,100,102,99,101,1000\n",
+        encoding="utf-8",
+    )
+
+
+def _write_coverage_manifest(path: Path, *, bars_path: Path, symbol: str = "AAPL") -> None:
+    path.write_text(
+        json.dumps(
+            {
+                "vendor": "polygon",
+                "generated_at": "2026-06-11T00:00:00Z",
+                "multiplier": 1,
+                "timespan": "day",
+                "requested_start_date": "2026-01-02",
+                "requested_end_date": "2026-01-03",
+                "symbol_count": 1,
+                "ok_symbol_count": 1,
+                "status": "ok",
+                "missing_data_summary": [],
+                "symbols": [
+                    {
+                        "symbol": symbol,
+                        "start_date": "2026-01-02",
+                        "end_date": "2026-01-03",
+                        "bar_count": 1,
+                        "rows_fetched": 1,
+                        "status": "ok",
+                        "output_path": bars_path.as_posix(),
+                        "output_sha256": _sha256(bars_path),
+                        "missing_data_summary": [],
+                    }
+                ],
+            }
+        ),
         encoding="utf-8",
     )
 
@@ -56,11 +102,7 @@ def test_real_data_backtest_writes_blocked_evidence_when_coverage_manifest_missi
         ),
         encoding="utf-8",
     )
-    bars_root.mkdir(parents=True)
-    (bars_root / "AAPL.csv").write_text(
-        "date,open,high,low,close,volume\n2026-01-03,100,102,99,101,1000\n",
-        encoding="utf-8",
-    )
+    _write_bars(bars_root / "AAPL.csv")
     _write_universe(universe)
 
     monkeypatch.setattr(
@@ -93,8 +135,8 @@ def test_real_data_backtest_writes_blocked_evidence_when_coverage_manifest_missi
     assert payload["run_id"] == "issue-159-missing-coverage"
     assert payload["data_source"] == "real_data"
     assert payload["is_demo"] is False
-    assert payload["input_pack_gate_status"] == "PASSED"
-    assert payload["input_completeness_status"] == "BLOCKED_MISSING_COVERAGE_MANIFEST"
+    assert payload["input_pack_gate_status"] == "FAILED"
+    assert payload["input_completeness_status"] == "BLOCKED_INPUT_PACK"
     assert payload["run_health_status"] == "BLOCKED"
     assert payload["coverage_manifest_path"] == str(coverage_manifest)
     assert payload["survivorship_universe_path"] == str(universe)
@@ -106,7 +148,8 @@ def test_real_data_backtest_writes_blocked_evidence_when_coverage_manifest_missi
     assert payload["broker_execution_mode"] == "paper_only"
     assert payload["metrics"]["total"] == 0
     assert payload["results"] == []
-    assert payload["rejection_reasons"][0]["reasons"] == ["missing_coverage_manifest"]
+    flat_reasons = [reason for item in payload["rejection_reasons"] for reason in item["reasons"]]
+    assert "missing_coverage_manifest" in flat_reasons
 
 
 def test_real_data_backtest_writes_blocked_evidence_when_all_plans_are_rejected(monkeypatch, tmp_path: Path) -> None:
@@ -136,13 +179,10 @@ def test_real_data_backtest_writes_blocked_evidence_when_all_plans_are_rejected(
         ),
         encoding="utf-8",
     )
-    bars_root.mkdir(parents=True)
-    (bars_root / "AAPL.csv").write_text(
-        "date,open,high,low,close,volume\n2026-01-03,100,102,99,101,1000\n",
-        encoding="utf-8",
-    )
+    bars_path = bars_root / "AAPL.csv"
+    _write_bars(bars_path)
     _write_universe(universe)
-    coverage_manifest.write_text(json.dumps({"symbols": ["AAPL"]}), encoding="utf-8")
+    _write_coverage_manifest(coverage_manifest, bars_path=bars_path)
 
     monkeypatch.setattr(
         runner,
@@ -174,6 +214,7 @@ def test_real_data_backtest_writes_blocked_evidence_when_all_plans_are_rejected(
     assert payload["input_pack_gate_status"] == "PASSED"
     assert payload["input_completeness_status"] == "EMPTY_INPUT"
     assert payload["run_health_status"] == "BLOCKED"
+    assert payload["input_checksums"] == {bars_path.as_posix(): _sha256(bars_path)}
     assert payload["input_plan_count"] == 1
     assert payload["accepted_plan_count"] == 0
     assert payload["rejected_plan_count"] == 1
