@@ -1,5 +1,31 @@
 # CHANGELOG
 
+## Scheduled Report Liveness #192 — 2026-06-11
+
+### Added
+- Added `src/operations/scheduled_report_liveness.py` to build canonical scheduled report liveness evidence.
+- Added `scripts/validate_scheduled_report_liveness.py` as the workflow-facing #192 validation CLI.
+- Added `tests/test_192_scheduled_report_liveness.py` to guard missing, empty and complete scheduled report evidence paths.
+
+### Changed
+- Updated `.github/workflows/institutional-reports.yml` so scheduled reports run #192 liveness validation after report quality and paper-observation health validation.
+- Updated the report workflow to archive `reports/scheduled_report_liveness/*.json` and commit liveness evidence with report/signals/validation outputs.
+- Updated `tests/test_po11_scheduled_daily_observation_workflow.py` with workflow-level guards proving #192 is wired into the scheduled report path.
+- Updated `README.md` and `ROADMAP.md` with the #192 scheduled report liveness rule.
+
+### Guardrails
+- A scheduled market report is not a productive report cycle unless the dated report, latest report, latest signals payload and latest paper-observation health artifact exist and are non-empty.
+- Missing or empty scheduled output is `BLOCKED` evidence, not an invisible green scheduled cycle.
+- Weekly reports are not forced to produce signals or paper-observation health evidence.
+
+### Boundary
+- This is report-liveness and evidence-governance hardening.
+- No strategy rule, scoring threshold, entry/exit rule or broker execution capability is changed.
+- Live trading authorization: unchanged; not granted by code.
+- Repository-wide full-regression green is not claimed by this changelog entry.
+
+---
+
 ## Historical Real-Data Input Persistence #184 — 2026-06-11
 
 ### Added
@@ -78,85 +104,3 @@
 ### Added
 - Added `docs/architecture/decision_critical_runtime_reachability.json`.
 - Added `tests/test_runtime_reachability_guard_178.py`.
-
-### Changed
-- Updated `README.md` with #178 runtime reachability governance, targeted guard command and current module boundary.
-- Updated `ROADMAP.md` to add #178 as implemented / targeted guard tests documented and remove #178 from the next remediation order.
-
-### Guardrails
-- Decision-critical modules must either be `runtime_connected` with a runtime entry point plus guard-test proof, or explicitly classified as `experimental`, `quarantine`, `test_only` or `deprecated`.
-- Non-runtime decision helpers must not support claims such as `decision_stack_validated`, `runtime_active`, `module_complete`, `strategy_validated`, `paper_confidence_authorized` or `live_ready`.
-- `src/decision_confidence.py`, `src/data_quality_engine.py`, `src/event_risk_engine.py` and `src/liquidity_volatility_engine.py` are explicitly classified as non-runtime research helpers until promoted with runtime execution proof.
-
-### Boundary
-- This is a registry, documentation and guard-test closure.
-- No strategy rule, scoring threshold, entry/exit rule or broker execution capability is changed.
-- Live trading authorization: unchanged; not granted by code.
-- Repository-wide full-regression green is not claimed by this changelog entry.
-
----
-
-## Logic Safety Governance #189 — 2026-06-11
-
-### Added
-- Added `docs/architecture/system-invariants.md`.
-- Added `docs/operations/logic-safety-governance.md`.
-- Added `tests/test_system_invariants.py`.
-- Added `tests/test_logic_safety_state_matrix.py`.
-- Added `tests/test_evidence_traceability_contract.py`.
-
-### Changed
-- Updated `.github/pull_request_template.md` with a Logic Safety Governance section.
-- Updated `README.md` to document #189, System Invariants and the targeted guard test command.
-- Updated `ROADMAP.md` to add #189 as a P0 machine-checkable logic-safety governance layer.
-
-### Guardrails
-- System invariants now define severity classes `P0_BLOCKER`, `P1_DEGRADED` and `P2_WARNING`.
-- The logic-safety state matrix blocks promotion of `UNKNOWN`, `DEGRADED`, `BLOCKED`, demo/stub/synthetic or missing-provenance output as full `PASS` evidence.
-- Evidence traceability now requires run identity, data mode, source/provenance, checksum or artifact hash, pipeline/generator version and runtime trace where applicable.
-- PRs touching decision/evidence logic must map changes to affected invariants and link a concrete evidence or test command.
-
-### Boundary
-- This is a governance and guard-test layer.
-- No strategy rule, scoring threshold, entry/exit rule or broker execution capability is changed.
-- Live trading authorization: unchanged; not granted by code.
-- Repository-wide full-regression green is not claimed by this changelog entry.
-
----
-
-## IP9/IP10 Public Repository Governance — 2026-06-10
-
-### Added
-- Added public-edge review language for PRs touching strategy, scoring, thresholds, exits, reports or evidence artifacts.
-- Added license/disclaimer governance around research-only, paper-observation-only and no-live-trading boundaries.
-
-### Guardrails
-- Public repository changes must not expose proprietary thresholds, setup maps, scoring weights, exit profiles or production-like parameters.
-- Public-safe defaults, synthetic fixtures and demo evidence remain separated from production-grade claims.
-- Generated reports, raw evidence, provider extracts, ranked opportunity output and local artifacts must not be committed unless explicitly allowed by artifact policy.
-
-### Boundary
-- This is public repository hygiene and IP-boundary governance.
-- It does not authorize live trading, broker execution or capital allocation.
-
----
-
-## FCM1 / RPW1 CI-wired Backlog Closure #104 — 2026-06-11
-
-### Verified
-- #104 was already closed/completed on GitHub.
-- FCM1 has implementation, guard tests and dedicated targeted CI workflow wiring.
-- RPW1 has implementation, guard tests and dedicated targeted CI workflow wiring.
-- Closure evidence is documented in `docs/operations/fcm1_rpw1_connectivity_proof_pack_retention_closure_2026_06_03.md`.
-
-### Changed
-- Updated FCM1/RPW1 closure evidence from `implemented / CI-wired` to `closed / targeted CI-wired evidence verified`.
-- Updated `ROADMAP.md` so #104 is no longer listed as the next open remediation item.
-- Updated `README.md` so FCM1/RPW1 are represented as targeted feature closures, not stale open CI-wired backlog items.
-- Recommended next remediation order now starts with #106.
-
-### Boundary
-- This is a targeted feature closure.
-- Repository-wide full-regression green is not claimed by this changelog entry.
-- Live trading authorization: unchanged; not granted by code.
-- Broker execution: unchanged; remains paper-only infrastructure.
