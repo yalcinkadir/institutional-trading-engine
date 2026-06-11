@@ -171,7 +171,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add "$REPORT_FILE" "$LATEST_FILE"
+          git add "$REPORT_FILE" "$LATEST_FILE" 2>/dev/null || true
           git add reports/signals/*.json reports/signals/*.md 2>/dev/null || true
           git add reports/validation/*.json reports/validation/*.md 2>/dev/null || true
           git add reports/scheduled_report_liveness/*.json 2>/dev/null || true
