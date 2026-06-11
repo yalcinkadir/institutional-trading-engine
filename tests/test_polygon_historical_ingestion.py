@@ -15,6 +15,20 @@ from src.historical.polygon_ingestion import (
     polygon_aggregate_url,
 )
 
+PIPELINE_METADATA = {
+    "pipeline_coupled": True,
+    "pipeline_generation_source": "scanner_signal_quality_validator",
+    "generated_signal_count": 1,
+    "validated_trade_plan_count": 1,
+    "blocked_signal_count": 0,
+    "runtime_gates_applied": [
+        "scanner",
+        "signal_generator",
+        "quality_fusion",
+        "trade_plan_validator",
+    ],
+}
+
 
 class MockResponse:
     def __init__(self, payload, status_code: int = 200):
@@ -274,6 +288,7 @@ def test_hist1_output_is_compatible_with_bt9_input_pack(tmp_path: Path) -> None:
     plans.write_text(
         json.dumps(
             {
+                "metadata": PIPELINE_METADATA,
                 "plans": [
                     {
                         "signal_id": "sig_spy_1",
@@ -283,7 +298,7 @@ def test_hist1_output_is_compatible_with_bt9_input_pack(tmp_path: Path) -> None:
                         "stop_loss": 99.0,
                         "target_1": 105.0,
                     }
-                ]
+                ],
             }
         ),
         encoding="utf-8",
