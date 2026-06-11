@@ -84,7 +84,7 @@ RGP1-RGP12 runtime governance proofs are post-review status entries. They do not
 #193 contract and guards:
 
 - `docs/operations/watcher_lifecycle_evidence.md`
-- `src/watchers/watcher_lifecycle_summary.py`
+- `scripts/watcher_lifecycle_summary.py`
 - `tests/test_193_watcher_lifecycle_summary.py`
 
 ## Phase BT — Backtesting Evidence Gates
