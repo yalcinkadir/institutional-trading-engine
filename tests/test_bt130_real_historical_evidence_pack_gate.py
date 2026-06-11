@@ -12,7 +12,7 @@ from src.backtesting.historical_entry_exit_backtest import load_trade_plans_with
 RUNNER_SCRIPT = Path("scripts/run_historical_entry_exit_backtest.py")
 PIPELINE_METADATA = {
     "pipeline_coupled": True,
-    "pipeline_generation_source": "scanner_signal_quality_validator_fixture",
+    "pipeline_generation_source": "scanner_signal_quality_validator",
     "generated_signal_count": 1,
     "validated_trade_plan_count": 1,
     "blocked_signal_count": 0,
