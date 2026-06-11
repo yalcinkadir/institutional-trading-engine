@@ -1,5 +1,32 @@
 # CHANGELOG
 
+## Report Validation Risk Tier #185 — 2026-06-11
+
+### Added
+- Added `tests/test_185_report_validation_risk_tier.py` with positive and negative guard coverage for report risk-tier validation.
+- Added machine-readable `risk_tier_evidence` to `ReportQualityResult` so report validation can expose #185 status, matched decision/risk-tier rows and explicit no-active-risk handling.
+
+### Changed
+- Updated `src/reporting/report_quality.py` so market-report validation no longer accepts a loose prose-only `Risk Tier` mention as sufficient evidence.
+- Updated `scripts/validate_report_quality.py` to print the exact report file path, canonical decision/risk-tier pattern, validation status, row count and explicit no-active-risk state.
+- Updated `README.md` with #185 report validation risk-tier gate status.
+
+### Guardrails
+- Canonical rows such as `- Decision: **approved** | Risk Tier: tier_1`, `tier_2` or `tier_3` are accepted.
+- Reports with only prose-level `Risk Tier` mentions are blocked.
+- Explicit no-active-risk reports are accepted when the report clearly states no ranked opportunities qualified for active risk and remains in No-Trade / watch mode.
+- Actionable decisions cannot carry `no_trade` risk tier.
+- Non-actionable decisions must carry `no_trade` risk tier.
+- Invalid risk-tier values are blocked.
+
+### Boundary
+- This is report-validation and evidence-governance hardening.
+- No strategy rule, scoring threshold, entry/exit rule or broker execution capability is changed.
+- Live trading authorization: unchanged; not granted by code.
+- Repository-wide full-regression green is not claimed by this changelog entry.
+
+---
+
 ## Scheduled Report Liveness #192 — 2026-06-11
 
 ### Added
