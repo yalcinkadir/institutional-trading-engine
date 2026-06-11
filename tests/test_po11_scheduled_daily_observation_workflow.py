@@ -3,10 +3,15 @@ from __future__ import annotations
 from pathlib import Path
 
 WORKFLOW_PATH = Path(".github/workflows/po11_daily_observation.yml")
+REPORT_WORKFLOW_PATH = Path(".github/workflows/institutional-reports.yml")
 
 
 def _workflow_text() -> str:
     return WORKFLOW_PATH.read_text(encoding="utf-8")
+
+
+def _report_workflow_text() -> str:
+    return REPORT_WORKFLOW_PATH.read_text(encoding="utf-8")
 
 
 def test_po11_workflow_exists() -> None:
@@ -102,3 +107,27 @@ def test_po11_workflow_does_not_reference_live_broker_or_secrets() -> None:
 
     for token in forbidden_tokens:
         assert token not in text
+
+
+def test_192_report_workflow_validates_scheduled_report_liveness_after_health_gate() -> None:
+    text = _report_workflow_text()
+
+    health_index = text.index("Validate paper observation health")
+    liveness_index = text.index("Validate scheduled report liveness")
+
+    assert health_index < liveness_index
+    assert "scripts/validate_scheduled_report_liveness.py" in text
+    assert "--report-file \"$REPORT_FILE\"" in text
+    assert "--latest-file \"$LATEST_FILE\"" in text
+    assert "--signals-file reports/signals/latest-signals.json" in text
+    assert "--paper-health-file reports/validation/latest-paper-observation-health.json" in text
+    assert "--run-date \"$RUN_DATE\"" in text
+
+
+def test_192_report_workflow_persists_and_uploads_scheduled_liveness_evidence() -> None:
+    text = _report_workflow_text()
+
+    assert "git add reports/scheduled_report_liveness/*.json" in text
+    assert "Upload scheduled report liveness artifact" in text
+    assert "scheduled-report-liveness-${{ steps.report_type.outputs.run_timestamp }}" in text
+    assert "path: reports/scheduled_report_liveness/*.json" in text
