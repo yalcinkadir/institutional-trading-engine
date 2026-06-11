@@ -46,7 +46,7 @@ def test_bt131_workflow_orchestrates_real_data_gates_in_order() -> None:
     bt134 = text.index("Generate BT134 stop-loss variant reports")
     bt139 = text.index("Generate BT139 sample expansion reports")
     bt176 = text.index("Generate BT176 guarded entry confirmation experiment reports")
-    persist = text.index("Persist validated backtest reports to repository")
+    persist = text.index("Persist validated backtest reports and source inputs to repository")
 
     assert ingestion < runtime_universe < observation_export < missing_observations < bt9 < runner < gate < bt132 < bt133 < bt134 < bt139 < bt176 < persist
     assert "scripts/ingest_historical_polygon.py" in text
@@ -67,7 +67,8 @@ def test_bt131_workflow_builds_and_uses_runtime_universe() -> None:
     text = _workflow_text()
 
     assert "runtime_universe=\"data/historical/metadata/bt131_runtime_universe.csv\"" in text
-    assert "--coverage-manifest data/historical/metadata/coverage_manifest.json" in text
+    assert "coverage_manifest=\"data/historical/metadata/coverage_manifest.json\"" in text
+    assert "--coverage-manifest \"${{ steps.runtime.outputs.coverage_manifest }}\"" in text
     assert "--output \"${{ steps.runtime.outputs.runtime_universe }}\"" in text
     assert "bt131-runtime-universe.json" in text
     assert "--universe \"${{ steps.runtime.outputs.runtime_universe }}\"" in text
@@ -94,6 +95,7 @@ def test_bt131_workflow_blocks_real_data_evidence_when_validated_observations_ar
     assert "BLOCKED_MISSING_VALIDATED_OBSERVATIONS" in text
     assert "missing_validated_observations_for_pipeline_coupled_backtest" in text
     assert "source_observations is required for pipeline-coupled BT131 real-data evidence" in text
+    assert '"input_checksums": {}' in text
     assert "historical_trade_plan_generation_exit_code" not in text
     assert "bt131-generated-trade-plans.json" not in text
 
@@ -115,6 +117,16 @@ def test_bt131_workflow_accepts_blocked_artifact_path_without_fake_success() -> 
     assert "test -f reports/backtests/real-data-backtest-evidence.json" in text
     assert "run_health_status" in text
     assert "input_pack_gate_status" in text
+
+
+def test_bt131_workflow_requires_input_checksums_for_accepted_input_pack() -> None:
+    text = _workflow_text()
+
+    assert "input_checksums" in text
+    assert "BT131 accepted input pack must include input_checksums" in text
+    assert "input_checksum_count" in text
+    assert "input_checksums = evidence.get(\"input_checksums\", {})" in text
+    assert "BT131 input checksums:" in text
 
 
 def test_bt131_workflow_generates_bt132_strategy_improvement_report() -> None:
@@ -165,10 +177,10 @@ def test_bt131_workflow_generates_bt176_guarded_entry_confirmation_experiment() 
     assert "--output-md reports/backtests/bt133-guarded-entry-confirmation-experiment.md" in text
 
 
-def test_bt131_workflow_persists_validated_reports_to_repo_without_telegram() -> None:
+def test_bt131_workflow_persists_validated_reports_and_inputs_to_repo_without_telegram() -> None:
     text = _workflow_text()
 
-    assert "Persist validated backtest reports to repository" in text
+    assert "Persist validated backtest reports and source inputs to repository" in text
     assert "reports/backtests/real_data/runs/${GITHUB_RUN_ID_VALUE}" in text
     assert "reports/backtests/real_data/latest" in text
     assert "reports/backtests/real_data/index.json" in text
@@ -182,6 +194,7 @@ def test_bt131_workflow_persists_validated_reports_to_repo_without_telegram() ->
     assert "bt139-bt131-sample-expansion-report.md" in text
     assert "bt133-guarded-entry-confirmation-experiment.json" in text
     assert "bt133-guarded-entry-confirmation-experiment.md" in text
+    assert "historical_trade_plans_manifest.json" in text
     assert "bt132_review_status" in text
     assert "bt132_recommendation_count" in text
     assert "bt133_final_recommendation" in text
@@ -200,7 +213,8 @@ def test_bt131_workflow_persists_validated_reports_to_repo_without_telegram() ->
     assert "bt176_production_rule_change_allowed" in text
     assert "git pull --rebase" in text
     assert "git add reports/backtests/real_data/" in text
-    assert "git commit -m \"Persist BT131/BT132/BT133/BT134/BT139/BT176 real-data backtest reports" in text
+    assert "git add data/historical/bars/1day/*.csv data/historical/metadata/*.json data/historical/metadata/*.csv data/trade_plans/*.json data/trade_plans/*manifest*.json" in text
+    assert "git commit -m \"Persist BT131 real-data backtest reports and source inputs" in text
     assert "git push" in text
     assert text.index("git pull --rebase") < text.index('report_dir="reports/backtests/real_data/runs/${GITHUB_RUN_ID_VALUE}"')
     assert "TELEGRAM_BOT_TOKEN" not in text
@@ -218,6 +232,7 @@ def test_bt131_workflow_uploads_reviewable_evidence_artifacts() -> None:
     assert "reports/backtests/real_data/**/*.json" in text
     assert "reports/backtests/real_data/**/*.md" in text
     assert "reports/backtests/real_data/**/*.csv" in text
+    assert "data/historical/bars/1day/*.csv" in text
     assert "data/historical/metadata/*.json" in text
     assert "data/historical/metadata/*.csv" in text
     assert "data/trade_plans/*.json" in text
