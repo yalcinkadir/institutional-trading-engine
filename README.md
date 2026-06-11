@@ -73,7 +73,7 @@ BT7: Capacity / Turnover / Realism Gate implemented and CI-green
 BT130: Real Historical Backtest Evidence Pack Gate implemented and CI-green
 BT131: Real-data backtest evidence workflow implemented and CI-green; valid output requires BT9 and P121/BT130 gates, otherwise a BLOCKED artifact is uploaded.
 #177: Real-data historical trade plans are accepted as strategy evidence only when exported through the canonical Scanner → Signal Generator → Entry/Stop/Exit Quality → Trade Plan Validator adapter with `pipeline_generation_source=scanner_signal_quality_validator`; validated Paper Observation exports remain research/audit artifacts and are blocked by BT9 from real-data strategy-evidence claims.
-#184: Historical real-data backtest inputs must be durable and auditable. Polygon CSV bars are persisted under `data/historical/bars/1day/*.csv`, coverage manifests include SHA256 checksums, BT9 fails on missing/mismatched input checksums, and accepted real-data evidence must include `input_checksums`.
+#184: Historical real-data backtest inputs must be durable and auditable. The repository, not expiring GitHub Actions artifacts, is the audit source of truth for accepted BT131 evidence; Polygon CSV bars, coverage manifests, runtime universe, trade plans and manifests must be persisted under `data/historical/` and `data/trade_plans/`, with accepted evidence carrying non-empty `input_checksums`.
 CER1: Capacity / Execution Realism Evidence Review Summary implemented and CI-green
 PFA1: Position-level Forward Evidence Attribution implemented and CI-green
 BT8: Backtesting Evidence Report generator implemented and CI-green
