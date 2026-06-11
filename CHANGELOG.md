@@ -1,5 +1,29 @@
 # CHANGELOG
 
+## Signal State Consistency #194 — 2026-06-11
+
+### Added
+- Added `tests/test_194_signal_state_consistency.py` to guard the signal action/decision/risk-tier execution-state invariant.
+- Added #194 signal execution-state rules to `docs/architecture/dataflow_contract_matrix.md`.
+
+### Changed
+- Updated `README.md` with #194 signal state consistency status.
+- Documented `action` as the execution-readiness source of truth for downstream watcher, outcome, backtest and future adapter consumers.
+
+### Guardrails
+- Exported `NO_TRADE` records cannot retain `decision: approved`.
+- Exported `NO_TRADE` records cannot retain actionable risk tiers such as `tier_1`, `tier_2` or `tier_3`.
+- Exported `NO_TRADE` records must carry `position_size: 0.0` and no executable `entry_trigger`.
+- Downstream consumers must require `action == "BUY_WATCH"` before treating a signal as executable paper-observation input.
+
+### Boundary
+- This is signal-boundary and downstream-consumer safety hardening.
+- No strategy rule, scoring threshold, entry/exit rule or broker execution capability is changed.
+- Live trading authorization: unchanged; not granted by code.
+- Repository-wide full-regression green is not claimed by this changelog entry.
+
+---
+
 ## Report Validation Risk Tier #185 — 2026-06-11
 
 ### Added
