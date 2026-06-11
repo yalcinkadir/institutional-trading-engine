@@ -9,7 +9,7 @@ from scripts import run_historical_entry_exit_backtest as runner
 
 PIPELINE_METADATA = {
     "pipeline_coupled": True,
-    "pipeline_generation_source": "scanner_signal_quality_validator_fixture",
+    "pipeline_generation_source": "scanner_signal_quality_validator",
     "generated_signal_count": 1,
     "validated_trade_plan_count": 1,
     "blocked_signal_count": 0,
