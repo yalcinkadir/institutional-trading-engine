@@ -80,6 +80,7 @@ jobs:
         run: |
           mkdir -p reports/backtests
           mkdir -p data/historical/metadata
+          mkdir -p data/historical/bars/1day
           mkdir -p data/trade_plans
 
       - name: Resolve runtime inputs
@@ -95,6 +96,7 @@ jobs:
         run: |
           end_date="${INPUT_END_DATE:-$(date -u +%F)}"
           runtime_universe="data/historical/metadata/bt131_runtime_universe.csv"
+          coverage_manifest="data/historical/metadata/coverage_manifest.json"
           echo "symbols=${INPUT_SYMBOLS}" >> "$GITHUB_OUTPUT"
           echo "start_date=${INPUT_START_DATE}" >> "$GITHUB_OUTPUT"
           echo "end_date=${end_date}" >> "$GITHUB_OUTPUT"
@@ -103,6 +105,7 @@ jobs:
           echo "plans_file=${INPUT_PLANS_FILE}" >> "$GITHUB_OUTPUT"
           echo "source_observations=${INPUT_SOURCE_OBSERVATIONS}" >> "$GITHUB_OUTPUT"
           echo "runtime_universe=${runtime_universe}" >> "$GITHUB_OUTPUT"
+          echo "coverage_manifest=${coverage_manifest}" >> "$GITHUB_OUTPUT"
 
       - name: Ingest historical Polygon bars when API key is available
         if: ${{ inputs.source_observations != '' }}
@@ -118,7 +121,7 @@ jobs:
             --symbols "${{ steps.runtime.outputs.symbols }}" \
             --start-date "${{ steps.runtime.outputs.start_date }}" \
             --end-date "${{ steps.runtime.outputs.end_date }}" \
-            --coverage-manifest-path data/historical/metadata/coverage_manifest.json \
+            --coverage-manifest-path "${{ steps.runtime.outputs.coverage_manifest }}" \
             --metadata-path data/historical/metadata/ingestion_status.json \
             --output-root data/historical \
             --json > reports/backtests/bt131-historical-ingestion.json
@@ -131,7 +134,7 @@ jobs:
         run: |
           set +e
           python scripts/build_bt131_runtime_universe.py \
-            --coverage-manifest data/historical/metadata/coverage_manifest.json \
+            --coverage-manifest "${{ steps.runtime.outputs.coverage_manifest }}" \
             --output "${{ steps.runtime.outputs.runtime_universe }}" \
             --summary-output reports/backtests/bt131-runtime-universe.json
           status=$?
@@ -193,6 +196,7 @@ jobs:
               "coverage_manifest_path": "data/historical/metadata/coverage_manifest.json",
               "survivorship_universe_path": "data/historical/metadata/bt131_runtime_universe.csv",
               "trade_plans_path": "data/trade_plans/historical_trade_plans.json",
+              "input_checksums": {},
               "input_plan_count": 0,
               "accepted_plan_count": 0,
               "rejected_plan_count": 0,
@@ -231,6 +235,7 @@ jobs:
             --universe "${{ steps.runtime.outputs.runtime_universe }}" \
             --bars-root data/historical/bars/1day \
             --trade-plans "${{ steps.runtime.outputs.plans_file }}" \
+            --coverage-manifest "${{ steps.runtime.outputs.coverage_manifest }}" \
             --report-output reports/backtests/bt9-real-historical-input-pack-gate.json
           status=$?
           echo "bt9_exit_code=${status}" >> reports/backtests/bt131-runtime-status.env
@@ -248,7 +253,7 @@ jobs:
             --plans-file "${{ steps.runtime.outputs.plans_file }}" \
             --bars-root data/historical/bars/1day \
             --universe "${{ steps.runtime.outputs.runtime_universe }}" \
-            --coverage-manifest data/historical/metadata/coverage_manifest.json \
+            --coverage-manifest "${{ steps.runtime.outputs.coverage_manifest }}" \
             --json-output reports/backtests/real-data-backtest-evidence.json \
             --markdown-output reports/backtests/real-data-backtest-evidence.md
           status=$?
@@ -284,6 +289,7 @@ jobs:
               "input_pack_gate_status",
               "input_completeness_status",
               "run_health_status",
+              "input_checksums",
               "live_trading_authorized",
               "broker_execution_mode",
           ]
@@ -294,6 +300,10 @@ jobs:
               raise SystemExit("BT131 evidence must be data_source=real_data")
           if payload.get("is_demo") is not False:
               raise SystemExit("BT131 evidence must not be demo")
+          if payload.get("run_health_status") not in {"BLOCKED", "OK", "NO_TRADE_VALID", "DEGRADED_DATA"}:
+              raise SystemExit("BT131 run health must be explicit")
+          if payload.get("input_pack_gate_status") == "PASSED" and not payload.get("input_checksums"):
+              raise SystemExit("BT131 accepted input pack must include input_checksums")
           if payload.get("live_trading_authorized") is not False:
               raise SystemExit("BT131 must not authorize live trading")
           if payload.get("broker_execution_mode") != "paper_only":
@@ -301,6 +311,7 @@ jobs:
 
           print("BT131 evidence artifact status:", payload.get("run_health_status"))
           print("BT131 input gate:", payload.get("input_pack_gate_status"))
+          print("BT131 input checksums:", len(payload.get("input_checksums", {})))
           PY
 
       - name: Generate BT132 strategy improvement reports
@@ -345,7 +356,7 @@ jobs:
             --output-json reports/backtests/bt133-guarded-entry-confirmation-experiment.json \
             --output-md reports/backtests/bt133-guarded-entry-confirmation-experiment.md
 
-      - name: Persist validated backtest reports to repository
+      - name: Persist validated backtest reports and source inputs to repository
         if: success()
         env:
           RUN_ID: ${{ steps.runtime.outputs.run_id }}
@@ -380,10 +391,11 @@ jobs:
           cp reports/backtests/bt139-bt131-sample-expansion-report.md "$report_dir/bt139-bt131-sample-expansion-report.md"
           cp reports/backtests/bt133-guarded-entry-confirmation-experiment.json "$report_dir/bt133-guarded-entry-confirmation-experiment.json"
           cp reports/backtests/bt133-guarded-entry-confirmation-experiment.md "$report_dir/bt133-guarded-entry-confirmation-experiment.md"
-          cp data/historical/metadata/coverage_manifest.json "$report_dir/coverage_manifest.json"
+          cp "${{ steps.runtime.outputs.coverage_manifest }}" "$report_dir/coverage_manifest.json"
           cp data/historical/metadata/ingestion_status.json "$report_dir/ingestion_status.json"
           cp data/historical/metadata/bt131_runtime_universe.csv "$report_dir/bt131_runtime_universe.csv"
           cp "${{ steps.runtime.outputs.plans_file }}" "$report_dir/historical_trade_plans.json"
+          cp data/trade_plans/historical_trade_plans_manifest.json "$report_dir/historical_trade_plans_manifest.json"
 
           rm -rf "$latest_dir"
           mkdir -p "$latest_dir"
@@ -402,6 +414,7 @@ jobs:
           stop_variants = json.loads((latest / "bt134-stop-loss-variant-report.json").read_text(encoding="utf-8"))
           sample_expansion = json.loads((latest / "bt139-bt131-sample-expansion-report.json").read_text(encoding="utf-8"))
           guarded_entry = json.loads((latest / "bt133-guarded-entry-confirmation-experiment.json").read_text(encoding="utf-8"))
+          input_checksums = evidence.get("input_checksums", {})
           index = {
               "updated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
               "github_run_id": os.environ["GITHUB_RUN_ID_VALUE"],
@@ -412,6 +425,8 @@ jobs:
               "input_completeness_status": evidence.get("input_completeness_status"),
               "run_health_status": evidence.get("run_health_status"),
               "broker_execution_mode": evidence.get("broker_execution_mode"),
+              "input_checksum_count": len(input_checksums),
+              "input_checksums": input_checksums,
               "metrics": evidence.get("metrics", {}),
               "bt132_review_status": improvement.get("review_status"),
               "bt132_recommendation_count": len(improvement.get("recommendations", [])),
@@ -435,11 +450,12 @@ jobs:
           PY
 
           git add reports/backtests/real_data/
+          git add data/historical/bars/1day/*.csv data/historical/metadata/*.json data/historical/metadata/*.csv data/trade_plans/*.json data/trade_plans/*manifest*.json
           if git diff --cached --quiet; then
-            echo "No backtest report changes to commit."
+            echo "No backtest report/input changes to commit."
             exit 0
           fi
-          git commit -m "Persist BT131/BT132/BT133/BT134/BT139/BT176 real-data backtest reports (${GITHUB_RUN_ID_VALUE})"
+          git commit -m "Persist BT131 real-data backtest reports and source inputs (${GITHUB_RUN_ID_VALUE})"
           git push
 
       - name: Upload real-data backtest evidence artifacts
@@ -453,6 +469,7 @@ jobs:
             reports/backtests/real_data/**/*.json
             reports/backtests/real_data/**/*.md
             reports/backtests/real_data/**/*.csv
+            data/historical/bars/1day/*.csv
             data/historical/metadata/*.json
             data/historical/metadata/*.csv
             data/trade_plans/*.json
