@@ -7,6 +7,8 @@ Polygon for actionable signals, evaluates lifecycle events and persists:
 - reports/alerts/YYYY-MM-DD-alerts.json
 - reports/alerts/latest-alerts.json
 - reports/runtime/entry_exit_watcher_market_data_health.json
+- reports/watchers/lifecycle/YYYY-MM-DD.json
+- reports/watchers/lifecycle/latest.json
 - data/signal_lifecycle.jsonl
 - updated reports/signals/latest-signals.json
 
@@ -43,6 +45,7 @@ from src.watchers.entry_exit_watcher import (
     save_updated_signal_file,
     write_watcher_market_data_health_artifact,
 )
+from src.watchers.watcher_lifecycle_summary import write_watcher_lifecycle_summary
 
 
 class WatcherRuntimeConfigurationError(RuntimeError):
@@ -158,6 +161,25 @@ def _validate_runtime(signals_file: Path, days: int) -> None:
     _extract_signal_records(payload)
 
 
+def _persist_lifecycle_summary(
+    *,
+    signals: list[dict[str, Any]],
+    updates: list,
+    health,
+    cycle_id: str,
+    signals_file: Path,
+) -> tuple[Path, Path]:
+    dated_path, latest_path = write_watcher_lifecycle_summary(
+        signals=signals,
+        updates=updates,
+        health=health,
+        cycle_id=cycle_id,
+        signals_file=signals_file,
+    )
+    print(f"Watcher lifecycle summary written: {dated_path}, {latest_path}")
+    return dated_path, latest_path
+
+
 def main() -> int:
     args = parse_args()
     signals_file = Path(args.signals_file)
@@ -227,13 +249,25 @@ def main() -> int:
             health,
             artifact_path=health_artifact,
         )
+        dated_lifecycle_summary, latest_lifecycle_summary = _persist_lifecycle_summary(
+            signals=signals,
+            updates=[],
+            health=health,
+            cycle_id=cycle_id,
+            signals_file=signals_file,
+        )
         print(f"Watcher market-data health: {health.status} ({written_health_artifact})")
         _log(
             level="INFO",
             event_type="watcher_no_actionable_signals",
             message="No actionable open signals found.",
             cycle_id=cycle_id,
-            context={"signals": len(signals), "health_artifact": str(written_health_artifact)},
+            context={
+                "signals": len(signals),
+                "health_artifact": str(written_health_artifact),
+                "lifecycle_summary": str(dated_lifecycle_summary),
+                "latest_lifecycle_summary": str(latest_lifecycle_summary),
+            },
         )
         return 0
 
@@ -284,12 +318,25 @@ def main() -> int:
     )
 
     alerts, updates, updated_signals = evaluate_signals(signals, price_map)
+    dated_lifecycle_summary, latest_lifecycle_summary = _persist_lifecycle_summary(
+        signals=signals,
+        updates=updates,
+        health=health,
+        cycle_id=cycle_id,
+        signals_file=signals_file,
+    )
     _log(
         level="INFO",
         event_type="watcher_evaluation_completed",
         message="Watcher evaluation completed.",
         cycle_id=cycle_id,
-        context={"alerts": len(alerts), "updates": len(updates), "price_symbols": len(price_map)},
+        context={
+            "alerts": len(alerts),
+            "updates": len(updates),
+            "price_symbols": len(price_map),
+            "lifecycle_summary": str(dated_lifecycle_summary),
+            "latest_lifecycle_summary": str(latest_lifecycle_summary),
+        },
     )
 
     if alerts:
@@ -313,6 +360,8 @@ def main() -> int:
                 "alerts_path": str(alerts_path),
                 "latest_path": str(latest_path),
                 "lifecycle_path": str(lifecycle_path),
+                "lifecycle_summary": str(dated_lifecycle_summary),
+                "latest_lifecycle_summary": str(latest_lifecycle_summary),
             },
         )
     else:
@@ -323,7 +372,11 @@ def main() -> int:
             event_type="watcher_no_events_detected",
             message="No entry/exit events detected.",
             cycle_id=cycle_id,
-            context={"updated_signals": len(updated_signals)},
+            context={
+                "updated_signals": len(updated_signals),
+                "lifecycle_summary": str(dated_lifecycle_summary),
+                "latest_lifecycle_summary": str(latest_lifecycle_summary),
+            },
         )
 
     if health.status == BLOCKED:
@@ -333,7 +386,10 @@ def main() -> int:
             event_type="watcher_market_data_health_blocked",
             message="Watcher blocked because active stop/exit risk could not be evaluated.",
             cycle_id=cycle_id,
-            context={"health_artifact": str(written_health_artifact)},
+            context={
+                "health_artifact": str(written_health_artifact),
+                "lifecycle_summary": str(dated_lifecycle_summary),
+            },
         )
         return 3
 
@@ -342,7 +398,12 @@ def main() -> int:
         event_type="watcher_runner_completed",
         message="Entry/exit watcher runner completed.",
         cycle_id=cycle_id,
-        context={"alerts": len(alerts), "updates": len(updates), "health_status": health.status},
+        context={
+            "alerts": len(alerts),
+            "updates": len(updates),
+            "health_status": health.status,
+            "lifecycle_summary": str(dated_lifecycle_summary),
+        },
     )
     return 0
 
