@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -8,6 +9,40 @@ from scripts.validate_bt9_real_historical_input_pack import validate_bt9_input_p
 
 
 RUNTIME_GATES = ["scanner", "signal_generator", "quality_fusion", "trade_plan_validator"]
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _write_bt9_coverage_manifest(path: Path, *, bars_path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "vendor": "polygon",
+        "generated_at": "2026-06-11T00:00:00Z",
+        "multiplier": 1,
+        "timespan": "day",
+        "requested_start_date": "2026-06-01",
+        "requested_end_date": "2026-06-12",
+        "symbol_count": 1,
+        "ok_symbol_count": 1,
+        "status": "ok",
+        "missing_data_summary": [],
+        "symbols": [
+            {
+                "symbol": "SPY",
+                "start_date": "2026-06-01",
+                "end_date": "2026-06-12",
+                "bar_count": 2,
+                "rows_fetched": 2,
+                "status": "ok",
+                "output_path": bars_path.as_posix(),
+                "output_sha256": _sha256(bars_path),
+                "missing_data_summary": [],
+            }
+        ],
+    }
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
 
 
 def _valid_record(**overrides):
@@ -265,6 +300,7 @@ def test_177_pipeline_export_is_bt9_compatible(tmp_path: Path) -> None:
     manifest = tmp_path / "data/trade_plans/historical_trade_plans_manifest.json"
     universe = tmp_path / "data/universe/survivorship_universe.csv"
     bars_root = tmp_path / "data/historical/bars/1day"
+    coverage_manifest = tmp_path / "data/historical/metadata/coverage_manifest.json"
     _write_pipeline_source(source)
     export_report = export_historical_trade_plans(source_path=source, output_path=output, manifest_path=manifest)
     universe.parent.mkdir(parents=True, exist_ok=True)
@@ -274,19 +310,27 @@ def test_177_pipeline_export_is_bt9_compatible(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     bars_root.mkdir(parents=True, exist_ok=True)
-    (bars_root / "SPY.csv").write_text(
+    bars_path = bars_root / "SPY.csv"
+    bars_path.write_text(
         "date,open,high,low,close,volume\n"
         "2026-06-11,100,101,99,100,1000000\n"
         "2026-06-12,101,105,100,104,1100000\n",
         encoding="utf-8",
     )
+    _write_bt9_coverage_manifest(coverage_manifest, bars_path=bars_path)
 
-    bt9_report = validate_bt9_input_pack(universe_path=universe, bars_root=bars_root, trade_plans_path=output)
+    bt9_report = validate_bt9_input_pack(
+        universe_path=universe,
+        bars_root=bars_root,
+        trade_plans_path=output,
+        coverage_manifest_path=coverage_manifest,
+    )
 
     assert export_report.passed is True
     assert export_report.pipeline_generation_source == "scanner_signal_quality_validator"
     assert bt9_report.passed is True
     assert bt9_report.symbols == ["SPY"]
+    assert bt9_report.input_checksums
 
 
 def test_htp1_export_is_bt9_compatible(tmp_path: Path) -> None:
@@ -295,6 +339,7 @@ def test_htp1_export_is_bt9_compatible(tmp_path: Path) -> None:
     manifest = tmp_path / "data/trade_plans/historical_trade_plans_manifest.json"
     universe = tmp_path / "data/universe/survivorship_universe.csv"
     bars_root = tmp_path / "data/historical/bars/1day"
+    coverage_manifest = tmp_path / "data/historical/metadata/coverage_manifest.json"
     _write_source(source, [_valid_record()])
     export_report = export_historical_trade_plans(source_path=source, output_path=output, manifest_path=manifest)
     universe.parent.mkdir(parents=True, exist_ok=True)
@@ -304,15 +349,23 @@ def test_htp1_export_is_bt9_compatible(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     bars_root.mkdir(parents=True, exist_ok=True)
-    (bars_root / "SPY.csv").write_text(
+    bars_path = bars_root / "SPY.csv"
+    bars_path.write_text(
         "date,open,high,low,close,volume\n"
         "2026-06-01,100,101,99,100,1000000\n"
         "2026-06-02,101,105,100,104,1100000\n",
         encoding="utf-8",
     )
+    _write_bt9_coverage_manifest(coverage_manifest, bars_path=bars_path)
 
-    bt9_report = validate_bt9_input_pack(universe_path=universe, bars_root=bars_root, trade_plans_path=output)
+    bt9_report = validate_bt9_input_pack(
+        universe_path=universe,
+        bars_root=bars_root,
+        trade_plans_path=output,
+        coverage_manifest_path=coverage_manifest,
+    )
 
     assert export_report.passed is True
     assert bt9_report.passed is True
     assert bt9_report.symbols == ["SPY"]
+    assert bt9_report.input_checksums
