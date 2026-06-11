@@ -56,6 +56,7 @@ DATA1: Market data quality contract blocks missing close/ATR, stale timestamps a
 P161: Dataflow Contract Matrix defines Scanner → Signals → Quality → Validator → Watcher → Evidence required fields, canonical ATR naming and fail-closed missing-field behavior.
 P164: VIX/regime evidence first uses Polygon `I:VIX`; if unavailable because of provider entitlement, it falls back to configured volatility proxy `VOLATILITY_PROXY_SYMBOL` defaulting to `VIXY` and stamps `PROXY_DEGRADED` provenance.
 #178: Runtime reachability guard adds `docs/architecture/decision_critical_runtime_reachability.json` and `tests/test_runtime_reachability_guard_178.py` so decision-critical modules are either runtime-connected with proof or explicitly classified as non-runtime research/quarantine/test/deprecated.
+#188: Evidence Quality Gate adds `docs/operations/evidence-quality-gate.md`, `src/evidence_quality_gate.py`, `scripts/evaluate_evidence_quality_gate.py` and `tests/test_evidence_quality_gate_188.py` so roadmap, strategy, paper-confidence, production-grade evidence and live-readiness claims are blocked unless evidence quality is proven.
 #189: System Invariants and Logic Safety Governance implemented as machine-checkable documentation/test guards; `DEGRADED`, `BLOCKED`, `UNKNOWN`, demo/stub and missing-provenance states must not be promoted as full `PASS` evidence.
 
 Backtesting / Evidence:
@@ -150,6 +151,30 @@ Current boundary:
 
 - Active runtime-connected examples include `src/reporting/decision_report.py`, `src/signals/signal_generator.py` and `src/signals/trade_plan_validator.py`.
 - `src/decision_confidence.py`, `src/data_quality_engine.py`, `src/event_risk_engine.py` and `src/liquidity_volatility_engine.py` remain explicitly non-runtime research helpers until promoted with runtime execution proof.
+
+## Evidence Quality Gate
+
+#188 adds a cross-cutting Evidence Quality Gate:
+
+- `docs/operations/evidence-quality-gate.md`
+- `src/evidence_quality_gate.py`
+- `scripts/evaluate_evidence_quality_gate.py`
+
+The gate returns `PASS`, `DEGRADED` or `BLOCKED`. It blocks roadmap-stable, strategy-promotion, production-grade evidence, paper-confidence, backtesting-promotion, decision-stack-validation and live-readiness claims when evidence is demo/stub/synthetic/placeholder/degraded, missing provenance, not runtime-coupled, not durably indexed or still blocked by evidence-critical issues.
+
+Relevant guard test:
+
+```bash
+pytest tests/test_evidence_quality_gate_188.py -q
+```
+
+Machine-readable CLI example:
+
+```bash
+python scripts/evaluate_evidence_quality_gate.py --input path/to/evidence_gate_input.json --output reports/evidence_quality_gate_result.json
+```
+
+Boundary: This gate does not authorize live trading, broker execution or capital allocation. It only prevents false promotion claims until evidence quality, durability, runtime reachability and provenance are proven.
 
 ## Paper Observation Evidence Process
 
