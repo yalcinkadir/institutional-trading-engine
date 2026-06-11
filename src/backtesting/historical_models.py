@@ -134,6 +134,7 @@ class HistoricalBacktestReport:
     coverage_manifest_path: str = ""
     survivorship_universe_path: str = ""
     trade_plans_path: str = ""
+    input_checksums: dict[str, str] = field(default_factory=dict)
     input_plan_count: int = 0
     accepted_plan_count: int = 0
     rejected_plan_count: int = 0
@@ -162,6 +163,7 @@ class HistoricalBacktestReport:
             "coverage_manifest_path": self.coverage_manifest_path,
             "survivorship_universe_path": self.survivorship_universe_path,
             "trade_plans_path": self.trade_plans_path,
+            "input_checksums": self.input_checksums,
             "input_plan_count": self.input_plan_count,
             "accepted_plan_count": self.accepted_plan_count,
             "rejected_plan_count": self.rejected_plan_count,
