@@ -12,7 +12,7 @@ VALIDATOR_SCRIPT = Path("scripts/validate_real_data_backtest_evidence_gate.py")
 RUNNER_SCRIPT = Path("scripts/run_historical_entry_exit_backtest.py")
 PIPELINE_METADATA = {
     "pipeline_coupled": True,
-    "pipeline_generation_source": "scanner_signal_quality_validator_fixture",
+    "pipeline_generation_source": "scanner_signal_quality_validator",
     "generated_signal_count": 1,
     "validated_trade_plan_count": 1,
     "blocked_signal_count": 0,
@@ -75,7 +75,7 @@ def _write_plan(path: Path) -> None:
                         "valid_until": "2026-06-04",
                         "entry_type": "breakout",
                         "setup_type": "momentum_breakout",
-                        "source": "paper_observation_validated",
+                        "source": "scanner_signal_quality_validator",
                     }
                 ],
             }
