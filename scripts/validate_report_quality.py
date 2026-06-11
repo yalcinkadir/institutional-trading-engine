@@ -9,7 +9,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from src.reporting.report_quality import validate_report_quality
+from src.reporting.report_quality import RISK_TIER_DECISION_LINE_RE, validate_report_quality
 
 
 def parse_args() -> argparse.Namespace:
@@ -24,6 +24,10 @@ def main() -> int:
     args = parse_args()
     report_path = Path(args.file)
 
+    print(f"Validation file: {report_path}")
+    print("Risk Tier field check: markdown decision row `- Decision: **<decision>** | Risk Tier: <tier>`")
+    print(f"Risk Tier pattern: {RISK_TIER_DECISION_LINE_RE.pattern}")
+
     if not report_path.exists():
         print(f"ERROR: Report file does not exist: {report_path}", file=sys.stderr)
         return 1
@@ -34,6 +38,10 @@ def main() -> int:
     print(f"Report type: {result.report_type}")
     print(f"Quality score: {result.score}")
     print(f"Passed: {result.passed}")
+    if result.risk_tier_evidence:
+        print(f"Risk Tier validation status: {result.risk_tier_evidence.get('status')}")
+        print(f"Risk Tier rows found: {result.risk_tier_evidence.get('decision_risk_tier_row_count')}")
+        print(f"Explicit no-active-risk state: {result.risk_tier_evidence.get('explicit_no_active_risk')}")
 
     if result.warnings:
         print("\nWarnings:")
