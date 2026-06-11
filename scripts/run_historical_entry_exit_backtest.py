@@ -25,6 +25,15 @@ PIPELINE_GATE_NAMES = [
     "quality_fusion",
     "trade_plan_validator",
 ]
+ACCEPTED_PIPELINE_GENERATION_SOURCES = {
+    "runtime_pipeline_adapter",
+    "scanner_signal_quality_validator",
+}
+FORBIDDEN_REAL_DATA_GENERATION_SOURCES = {
+    "validated_paper_observation_export",
+    "deterministic_historical_generator",
+    "historical_demo_generator",
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -216,7 +225,10 @@ def _fail_closed_if_real_data_not_pipeline_coupled(
     missing_gates = sorted(set(PIPELINE_GATE_NAMES) - set(runtime_gates_applied))
     input_count = _plan_count(payload)
 
-    if pipeline_coupled and not missing_gates:
+    generation_source_allowed = generation_source in ACCEPTED_PIPELINE_GENERATION_SOURCES
+    generation_source_forbidden = generation_source in FORBIDDEN_REAL_DATA_GENERATION_SOURCES
+
+    if pipeline_coupled and not missing_gates and generation_source_allowed:
         return None
 
     reasons = []
@@ -224,8 +236,12 @@ def _fail_closed_if_real_data_not_pipeline_coupled(
         reasons.append("real_data_backtest_requires_pipeline_coupled_trade_plans")
     if missing_gates:
         reasons.append("missing_runtime_gates:" + ",".join(missing_gates))
+    if generation_source_forbidden:
+        reasons.append(f"forbidden_pipeline_generation_source:{generation_source}")
+    elif not generation_source_allowed:
+        reasons.append(f"unsupported_pipeline_generation_source:{generation_source}")
 
-    print("Real-data backtest blocked: non_pipeline_coupled_trade_plans")
+    print("Real-data backtest blocked: non_canonical_pipeline_trade_plans")
     _write_blocked_real_data_evidence(
         args,
         input_pack_gate_status=input_pack_gate_status,
@@ -330,12 +346,12 @@ def main() -> int:
     print(f"Rejected plans: {report.rejected_plan_count}")
     print(f"Plans: {report.metrics.total}")
     print(f"Entry hit rate: {report.metrics.entry_hit_rate:.2%}")
-    print(f"Target 1 hit rate: {report.metrics.target_1_hit_rate:.2%}")
-    print(f"Target 2 hit rate: {report.metrics.target_2_hit_rate:.2%}")
     print(f"Stop hit rate: {report.metrics.stop_hit_rate:.2%}")
-    print(f"Expectancy R: {report.metrics.expectancy_r:.4f}")
-    print(f"JSON: {args.json_output}")
-    print(f"Markdown: {args.markdown_output}")
+    print(f"Target 1 hit rate: {report.metrics.target_1_hit_rate:.2%}")
+    print(f"Average R: {report.metrics.average_r:.2f}")
+    print(f"Expectancy R: {report.metrics.expectancy_r:.2f}")
+    print(f"JSON report: {args.json_output}")
+    print(f"Markdown report: {args.markdown_output}")
     return 0
 
 
