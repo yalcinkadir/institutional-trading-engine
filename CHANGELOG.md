@@ -1,5 +1,33 @@
 # CHANGELOG
 
+## Watcher Lifecycle Evidence #193 — 2026-06-11
+
+### Added
+- Added `src/watchers/watcher_lifecycle_summary.py` to build deterministic, lightweight watcher lifecycle summaries.
+- Added dated and latest lifecycle summary outputs:
+  - `reports/watchers/lifecycle/YYYY-MM-DD.json`
+  - `reports/watchers/lifecycle/latest.json`
+- Added `tests/test_193_watcher_lifecycle_summary.py` to prove lifecycle summaries are written for zero-actionable/no-trade watcher runs.
+- Added `docs/operations/watcher_lifecycle_evidence.md` as the authoritative lifecycle evidence contract.
+
+### Changed
+- Updated `scripts/run_entry_exit_watcher.py` so every successful watcher cycle writes lifecycle summary evidence, including cycles with zero actionable open signals.
+- Updated `README.md` and `ROADMAP.md` with the #193 watcher lifecycle evidence boundary.
+
+### Guardrails
+- A watcher cycle with zero actionable open signals is explicitly marked `NO_ACTIONABLE_SIGNALS`.
+- Silent watcher success is not accepted as signal-level forward evidence.
+- Lifecycle summaries include the original signal file path and SHA256 checksum reference.
+- `data/signal_lifecycle.jsonl` remains a mutable event log; the repo-visible authoritative summary is under `reports/watchers/lifecycle/`.
+
+### Boundary
+- This is watcher evidence/auditability hardening.
+- No strategy rule, scoring threshold, entry/exit rule or broker execution capability is changed.
+- Live trading authorization: unchanged; not granted by code.
+- Repository-wide full-regression green is not claimed by this changelog entry.
+
+---
+
 ## Backtest Runtime Pipeline Coupling #177 — 2026-06-11
 
 ### Changed
