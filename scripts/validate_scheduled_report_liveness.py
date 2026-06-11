@@ -27,6 +27,7 @@ def parse_args() -> argparse.Namespace:
         default="reports/validation/latest-paper-observation-health.json",
         help="Latest paper observation health JSON required for market reports.",
     )
+    parser.add_argument("--report-root", default=".", help="Repository/report root used for family freshness scanning.")
     parser.add_argument("--report-dir", default="reports/scheduled_report_liveness", help="Reserved for workflow clarity; output path remains canonical.")
     parser.add_argument("--run-timestamp", default=os.environ.get("HEALTH_RUN_TIMESTAMP") or os.environ.get("RUN_TIMESTAMP"))
     parser.add_argument("--workflow-name", default=os.environ.get("GITHUB_WORKFLOW"))
@@ -47,10 +48,13 @@ def main() -> int:
         workflow_name=args.workflow_name,
         commit_sha=args.commit_sha,
         run_date=args.run_date,
+        report_root=args.report_root,
     )
     write_scheduled_report_liveness_artifact(result=result)
 
     print(f"Scheduled report liveness status: {result.artifact['scheduled_report_status']}")
+    print(f"Report liveness status: {result.artifact['report_liveness_status']}")
+    print(f"Current run state: {result.artifact['current_run_state']}")
     print(f"Report type: {result.artifact['report_type']}")
     print(f"Artifact: {result.artifact_path}")
     print(f"Latest artifact: {result.latest_artifact_path}")
