@@ -1,17 +1,33 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
 SCHEDULED_REPORT_LIVENESS_ROOT = Path("reports/scheduled_report_liveness")
+HEALTH_REPORT_LIVENESS_LATEST = Path("reports/health/report-liveness-latest.json")
 STATUS_PASSED = "PASSED"
+STATUS_DEGRADED = "DEGRADED"
 STATUS_BLOCKED = "BLOCKED"
+REPORT_LIVENESS_OK = "REPORT_LIVENESS_OK"
+REPORT_LIVENESS_DEGRADED = "REPORT_LIVENESS_DEGRADED"
+REPORT_LIVENESS_BLOCKED = "REPORT_LIVENESS_BLOCKED"
+CURRENT_RUN_VALIDATED = "WORKFLOW_RAN_VALIDATED"
+CURRENT_RUN_INCOMPLETE = "WORKFLOW_RAN_BUT_VALIDATION_FAILED_OR_INCOMPLETE"
+CURRENT_RUN_MISSING = "NO_CURRENT_OUTPUT_PERSISTED"
 MARKET_REPORT_TYPES = {"premarket", "intraday", "postmarket"}
 WEEKLY_REPORT_TYPES = {"weekly"}
 VALID_REPORT_TYPES = MARKET_REPORT_TYPES | WEEKLY_REPORT_TYPES
+REPORT_FAMILY_PATTERNS = {
+    "signals": (Path("reports/signals"), re.compile(r"^(\d{4}-\d{2}-\d{2})-signals\.json$")),
+    "premarket": (Path("reports/premarket"), re.compile(r"^(\d{4}-\d{2}-\d{2})-premarket\.md$")),
+    "intraday": (Path("reports/intraday"), re.compile(r"^(\d{4}-\d{2}-\d{2})-intraday\.md$")),
+    "postmarket": (Path("reports/postmarket"), re.compile(r"^(\d{4}-\d{2}-\d{2})-postmarket\.md$")),
+    "daily_evidence": (Path("reports/daily_evidence"), re.compile(r"^(\d{4}-\d{2}-\d{2})\.json$")),
+}
 
 
 @dataclass(frozen=True)
@@ -39,13 +55,15 @@ def build_scheduled_report_liveness_artifact(
     workflow_name: str | None = None,
     commit_sha: str | None = None,
     run_date: str | None = None,
+    report_root: str | Path = ".",
+    consecutive_miss_block_threshold: int = 2,
 ) -> ScheduledReportLivenessResult:
     """Build #192 scheduled report liveness evidence.
 
     A scheduled report is live only when the expected scheduled artifact exists,
-    is non-empty, and its downstream evidence exists. Market reports must also
-    have signals and paper-observation health evidence; weekly reports do not
-    produce signals and are validated only through report/latest-file evidence.
+    is non-empty, and its downstream evidence exists. The gate also scans the
+    persisted report families and blocks after two business days without fresh
+    output so old reports cannot make the system look alive.
     """
 
     normalized_report_type = str(report_type or "").strip().lower()
@@ -59,6 +77,7 @@ def build_scheduled_report_liveness_artifact(
     latest_path = Path(latest_file) if latest_file is not None else None
     signals_path = Path(signals_file) if signals_file is not None else None
     health_path = Path(paper_health_file) if paper_health_file is not None else None
+    root = Path(report_root)
 
     report_state = _file_state(report_path)
     latest_state = _file_state(latest_path) if latest_path is not None else {"required": False, "exists": False}
@@ -86,8 +105,33 @@ def build_scheduled_report_liveness_artifact(
         if health_path is not None and not health_path.exists():
             warnings.append("weekly_paper_health_file_configured_but_missing")
 
-    status = STATUS_PASSED if not errors else STATUS_BLOCKED
     date_value = run_date or datetime.now(UTC).date().isoformat()
+    freshness = build_report_family_freshness_summary(
+        report_root=root,
+        run_date=date_value,
+        consecutive_miss_block_threshold=consecutive_miss_block_threshold,
+    )
+    for family, state in freshness.items():
+        status = state["freshness_status"]
+        if status == REPORT_LIVENESS_BLOCKED:
+            errors.append(f"{family}_stale_or_missing:{state['business_days_without_fresh_output']}")
+        elif status == REPORT_LIVENESS_DEGRADED:
+            warnings.append(f"{family}_one_business_day_without_fresh_output")
+
+    current_run_state = _derive_current_run_state(
+        report_state=report_state,
+        latest_state=latest_state,
+        signals_state=signals_state,
+        health_state=health_state,
+        report_type=normalized_report_type,
+    )
+    if current_run_state == CURRENT_RUN_INCOMPLETE:
+        errors.append("workflow_ran_but_validation_failed_or_incomplete")
+    elif current_run_state == CURRENT_RUN_MISSING:
+        errors.append("workflow_did_not_produce_or_persist_current_output")
+
+    status = STATUS_PASSED if not errors else STATUS_BLOCKED
+    report_liveness_status = REPORT_LIVENESS_OK if status == STATUS_PASSED else REPORT_LIVENESS_BLOCKED
     artifact_path = build_scheduled_report_liveness_artifact_path(normalized_report_type or "unknown", date_value)
     latest_artifact_path = SCHEDULED_REPORT_LIVENESS_ROOT / "latest-scheduled-report-liveness.json"
 
@@ -95,11 +139,15 @@ def build_scheduled_report_liveness_artifact(
         "schema_version": "scheduled_report_liveness.v1",
         "issue": "#192",
         "scheduled_report_status": status,
-        "liveness_status": status,
+        "liveness_status": report_liveness_status,
+        "report_liveness_status": report_liveness_status,
+        "current_run_state": current_run_state,
         "report_type": normalized_report_type or "UNKNOWN",
+        "run_date": date_value,
         "run_timestamp": run_timestamp or _now_iso(),
         "workflow_name": workflow_name or "UNKNOWN",
         "commit_sha": commit_sha or "UNKNOWN",
+        "consecutive_miss_block_threshold_business_days": consecutive_miss_block_threshold,
         "report_file": str(report_path),
         "latest_file": str(latest_path) if latest_path is not None else None,
         "signals_file": str(signals_path) if signals_path is not None else None,
@@ -110,6 +158,7 @@ def build_scheduled_report_liveness_artifact(
             "signals_file": signals_state,
             "paper_health_file": health_state,
         },
+        "freshness_by_family": freshness,
         "errors": tuple(errors),
         "warnings": tuple(warnings),
         "productive_report_cycle": status == STATUS_PASSED,
@@ -127,6 +176,37 @@ def build_scheduled_report_liveness_artifact(
     )
 
 
+def build_report_family_freshness_summary(
+    *,
+    report_root: str | Path,
+    run_date: str,
+    consecutive_miss_block_threshold: int = 2,
+) -> dict[str, dict[str, Any]]:
+    root = Path(report_root)
+    run_day = date.fromisoformat(run_date)
+    summary: dict[str, dict[str, Any]] = {}
+    for family, (relative_dir, pattern) in REPORT_FAMILY_PATTERNS.items():
+        latest_day, latest_path = _latest_dated_file(root / relative_dir, pattern)
+        if latest_day is None:
+            missed = consecutive_miss_block_threshold
+            status = REPORT_LIVENESS_BLOCKED
+        else:
+            missed = _business_days_between_exclusive_start(latest_day, run_day)
+            if missed <= 0:
+                status = REPORT_LIVENESS_OK
+            elif missed >= consecutive_miss_block_threshold:
+                status = REPORT_LIVENESS_BLOCKED
+            else:
+                status = REPORT_LIVENESS_DEGRADED
+        summary[family] = {
+            "freshness_status": status,
+            "latest_output_date": latest_day.isoformat() if latest_day is not None else None,
+            "latest_output_path": str(latest_path) if latest_path is not None else None,
+            "business_days_without_fresh_output": missed,
+        }
+    return summary
+
+
 def write_scheduled_report_liveness_artifact(
     *,
     result: ScheduledReportLivenessResult,
@@ -134,11 +214,67 @@ def write_scheduled_report_liveness_artifact(
 ) -> ScheduledReportLivenessResult:
     artifact_path = Path(result.artifact_path)
     latest_path = Path(result.latest_artifact_path)
+    health_latest_path = HEALTH_REPORT_LIVENESS_LATEST
     artifact_path.parent.mkdir(parents=True, exist_ok=True)
+    health_latest_path.parent.mkdir(parents=True, exist_ok=True)
     payload = json.dumps(result.artifact, indent=indent, sort_keys=True) + "\n"
     artifact_path.write_text(payload, encoding="utf-8")
     latest_path.write_text(payload, encoding="utf-8")
+    health_latest_path.write_text(payload, encoding="utf-8")
     return result
+
+
+def _derive_current_run_state(
+    *,
+    report_state: dict[str, Any],
+    latest_state: dict[str, Any],
+    signals_state: dict[str, Any],
+    health_state: dict[str, Any],
+    report_type: str,
+) -> str:
+    required_states = [report_state, latest_state]
+    if report_type in MARKET_REPORT_TYPES:
+        required_states.extend([signals_state, health_state])
+    any_exists = any(state.get("exists") for state in required_states)
+    all_ready = all(state.get("exists") and state.get("is_file") and state.get("non_empty") for state in required_states)
+    if all_ready:
+        return CURRENT_RUN_VALIDATED
+    if any_exists:
+        return CURRENT_RUN_INCOMPLETE
+    return CURRENT_RUN_MISSING
+
+
+def _latest_dated_file(directory: Path, pattern: re.Pattern[str]) -> tuple[date | None, Path | None]:
+    if not directory.exists():
+        return None, None
+    latest_day: date | None = None
+    latest_path: Path | None = None
+    for path in directory.iterdir():
+        if not path.is_file():
+            continue
+        match = pattern.match(path.name)
+        if not match:
+            continue
+        try:
+            parsed = date.fromisoformat(match.group(1))
+        except ValueError:
+            continue
+        if latest_day is None or parsed > latest_day:
+            latest_day = parsed
+            latest_path = path
+    return latest_day, latest_path
+
+
+def _business_days_between_exclusive_start(start: date, end: date) -> int:
+    if start >= end:
+        return 0
+    count = 0
+    cursor = start + timedelta(days=1)
+    while cursor <= end:
+        if cursor.weekday() < 5:
+            count += 1
+        cursor += timedelta(days=1)
+    return count
 
 
 def _file_state(path: Path | None) -> dict[str, Any]:
