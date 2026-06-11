@@ -33,6 +33,7 @@ P124: Silent-failure run health gate distinguishes valid no-trade, degraded data
 P166: Productive daily Paper Observation producer writes canonical `reports/daily_evidence/<date>.json` before PO11 validation and includes VIX/regime provenance.
 #191: Scanner datafeed liveness gate classifies all-null close/missing-bar runs as `DATAFEED_BLOCKED` and writes repo-visible liveness evidence under `reports/health/`.
 #192: Scheduled report liveness gate writes `reports/scheduled_report_liveness/<date>-<type>-liveness.json`, requires non-empty scheduled report/latest artifacts, requires signals and paper-health evidence for market reports, and blocks missing scheduled output from being counted as a productive report cycle.
+#185: Report validation risk-tier gate requires structured decision/risk-tier evidence or an explicit no-active-risk state; prose-only `Risk Tier` mentions are blocked by `tests/test_185_report_validation_risk_tier.py`.
 
 Runtime Governance:
 GOV1-GOV10: runtime / pre-live governance hardening implemented and CI-green
