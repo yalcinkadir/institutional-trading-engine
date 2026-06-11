@@ -128,8 +128,10 @@ def test_192_report_workflow_validates_scheduled_report_liveness_after_health_ga
 def test_192_report_workflow_persists_and_uploads_scheduled_liveness_evidence() -> None:
     text = _report_workflow_text()
 
-    assert "git add reports/scheduled_report_liveness/*.json" in text
-    assert "git add reports/health/report-liveness-latest.json" in text
+    assert 'SCHEDULED_LIVENESS_FILE="reports/scheduled_report_liveness/${RUN_DATE}-${REPORT_TYPE}-liveness.json"' in text
+    assert 'SCHEDULED_LIVENESS_LATEST="reports/scheduled_report_liveness/latest-scheduled-report-liveness.json"' in text
+    assert 'REPORT_LIVENESS_HEALTH="reports/health/report-liveness-latest.json"' in text
+    assert 'git add "$SCHEDULED_LIVENESS_FILE" "$SCHEDULED_LIVENESS_LATEST" "$REPORT_LIVENESS_HEALTH" 2>/dev/null || true' in text
     assert "Upload scheduled report liveness artifact" in text
     assert "scheduled-report-liveness-${{ steps.report_type.outputs.run_timestamp }}" in text
     assert "reports/scheduled_report_liveness/*.json" in text
