@@ -140,6 +140,8 @@
 - Added `tests/test_184_historical_input_persistence.py` to guard historical real-data input auditability.
 - Added BT9 checksum validation for persisted historical bars through `coverage_manifest.json`.
 - Added `input_checksums` to accepted and blocked real-data backtest evidence artifacts.
+- Added `docs/operations/bt184_historical_input_auditability.md` as the durable audit source-of-truth contract for accepted BT131 real-data evidence.
+- Added guard coverage proving BT131 repository persistence happens before temporary Actions artifact upload.
 
 ### Changed
 - Updated Polygon historical ingestion so each successful CSV output records `output_sha256` in ingestion metadata and coverage manifests.
@@ -148,13 +150,14 @@
 - Updated `scripts/validate_real_data_backtest_evidence_gate.py` so accepted real-data evidence requires non-empty valid SHA256 `input_checksums`.
 - Updated BT131 workflow persistence so successful real-data runs commit reports plus source inputs: historical CSV bars, coverage manifest, ingestion metadata, runtime universe, historical trade plans and trade-plan manifest.
 - Updated BT9, HIST1, HTP1 and BT131 workflow tests for checksum-backed input persistence.
-- Updated `README.md` and `ROADMAP.md` with the #184 auditability rule.
+- Updated `README.md` and `ROADMAP.md` with the #184 auditability rule and repository-as-source-of-truth boundary.
 
 ### Guardrails
 - A real-data backtest result is not claimable if the bars file cannot be tied to a coverage manifest checksum.
 - GitHub Actions artifacts alone are not treated as the audit source of truth for successful real-data backtests.
 - Missing, empty or malformed `input_checksums` blocks accepted real-data evidence.
 - Checksum mismatches produce explicit BT9 failures rather than degraded success.
+- Accepted BT131 evidence must persist source CSVs, metadata, trade plans and evidence indexes to repository paths; temporary Actions artifacts are review aids only.
 
 ### Boundary
 - This is an evidence-auditability and reproducibility layer.
