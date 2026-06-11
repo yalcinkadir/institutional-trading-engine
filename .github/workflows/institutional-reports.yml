@@ -148,6 +148,7 @@ jobs:
         if: always()
         shell: bash
         run: |
+          set +e
           python scripts/validate_scheduled_report_liveness.py \
             --report-type "$REPORT_TYPE" \
             --report-file "$REPORT_FILE" \
@@ -159,8 +160,12 @@ jobs:
             --workflow-name "${GITHUB_WORKFLOW}" \
             --commit-sha "${GITHUB_SHA}" \
             --run-date "$RUN_DATE"
+          liveness_exit_code=$?
+          echo "SCHEDULED_REPORT_LIVENESS_EXIT_CODE=${liveness_exit_code}" >> "$GITHUB_ENV"
+          exit 0
 
       - name: Commit all outputs to repository
+        if: always()
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
@@ -239,6 +244,15 @@ jobs:
           path: reports/
           if-no-files-found: error
           retention-days: 90
+
+      - name: Enforce scheduled report liveness gate
+        if: always()
+        shell: bash
+        run: |
+          if [ "${SCHEDULED_REPORT_LIVENESS_EXIT_CODE:-1}" != "0" ]; then
+            echo "Scheduled report liveness gate blocked. Evidence was written before failing the workflow."
+            exit "${SCHEDULED_REPORT_LIVENESS_EXIT_CODE:-1}"
+          fi
 
       - name: Build Telegram summary
         if: env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_CHAT_ID != ''
