@@ -31,6 +31,7 @@ P120: Productive Paper Observation evidence remains gated until schema-valid dur
 P122: Paper Observation health gate blocks blind observation output when close/ATR/regime/scanner metrics indicate infrastructure failure.
 P124: Silent-failure run health gate distinguishes valid no-trade, degraded data, fallback/demo and failed runs before reports, Paper Observation or backtests are treated as successful.
 P166: Productive daily Paper Observation producer writes canonical `reports/daily_evidence/<date>.json` before PO11 validation and includes VIX/regime provenance.
+#191: Scanner datafeed liveness gate classifies all-null close/missing-bar runs as `DATAFEED_BLOCKED` and writes repo-visible liveness evidence under `reports/health/`.
 
 Runtime Governance:
 GOV1-GOV10: runtime / pre-live governance hardening implemented and CI-green
@@ -192,6 +193,10 @@ Live trading authorization: not granted by code
 Productive Paper Observation evidence is produced by `scripts/produce_daily_observation_evidence_p166.py` and written to `reports/daily_evidence/<observation_date>.json` before PO11 validation.
 
 The scheduled PO11 workflow runs the P166 producer, validates the generated evidence through the existing daily observation record path, uploads `reports/daily_evidence/*.json`, and then uploads the PO11 automation artifact. Runtime evidence is not committed back to `main`.
+
+#191 adds a scanner datafeed liveness gate for the active market-report and signal path. A scheduled run with all tracked symbols missing `close` values or required bars is `DATAFEED_BLOCKED`, not productive Paper Observation evidence. Blocked liveness runs must expose `datafeed_status`, `provider_failure_reason`, blocked symbols and a repo-visible liveness record under `reports/health/<date>-datafeed-liveness.json` plus `reports/health/datafeed-liveness-latest.json`.
+
+A scheduled workflow can therefore be "scheduled but blocked" when market-data liveness fails. Only runs with usable scanner prices and non-blocked datafeed liveness may be counted as productive observation cycles.
 
 PO14 adds a forward-evidence quality gate for monthly Paper Observation packs.
 CER1 adds capacity/execution realism review.
