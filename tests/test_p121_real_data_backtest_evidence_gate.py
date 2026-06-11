@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import subprocess
 import sys
@@ -24,6 +25,10 @@ PIPELINE_METADATA = {
 }
 
 
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
 def _valid_real_payload() -> dict:
     payload = {
         "run_id": "real-bt-2026-06-05-001",
@@ -38,6 +43,7 @@ def _valid_real_payload() -> dict:
         "coverage_manifest_path": "coverage_manifest.json",
         "survivorship_universe_path": "survivorship_universe.csv",
         "trade_plans_path": "historical_trade_plans.json",
+        "input_checksums": {"bars/SPY.csv": "a" * 64},
         "input_plan_count": 1,
         "accepted_plan_count": 1,
         "rejected_plan_count": 0,
@@ -78,15 +84,17 @@ def _write_plan(path: Path) -> None:
     )
 
 
-def _write_bars(root: Path) -> None:
+def _write_bars(root: Path) -> Path:
     root.mkdir(parents=True, exist_ok=True)
-    (root / "SPY.csv").write_text(
+    path = root / "SPY.csv"
+    path.write_text(
         "date,open,high,low,close,volume\n"
         "2026-06-01,100,100,99,100,1000000\n"
         "2026-06-02,101,105,100,104,1100000\n"
         "2026-06-03,104,106,103,105,1200000\n",
         encoding="utf-8",
     )
+    return path
 
 
 def _write_universe(path: Path) -> None:
@@ -97,8 +105,37 @@ def _write_universe(path: Path) -> None:
     )
 
 
-def _write_coverage_manifest(path: Path) -> None:
-    path.write_text(json.dumps({"source": "polygon", "symbols": ["SPY"]}), encoding="utf-8")
+def _write_coverage_manifest(path: Path, *, bars_path: Path) -> None:
+    path.write_text(
+        json.dumps(
+            {
+                "vendor": "polygon",
+                "generated_at": "2026-06-11T00:00:00Z",
+                "multiplier": 1,
+                "timespan": "day",
+                "requested_start_date": "2026-06-01",
+                "requested_end_date": "2026-06-03",
+                "symbol_count": 1,
+                "ok_symbol_count": 1,
+                "status": "ok",
+                "missing_data_summary": [],
+                "symbols": [
+                    {
+                        "symbol": "SPY",
+                        "start_date": "2026-06-01",
+                        "end_date": "2026-06-03",
+                        "bar_count": 3,
+                        "rows_fetched": 3,
+                        "status": "ok",
+                        "output_path": bars_path.as_posix(),
+                        "output_sha256": _sha256(bars_path),
+                        "missing_data_summary": [],
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
 
 
 def test_p121_valid_real_data_backtest_evidence_passes(tmp_path: Path) -> None:
@@ -148,9 +185,9 @@ def test_p121_real_data_runner_writes_valid_evidence_artifact(tmp_path: Path) ->
     output_json = tmp_path / "real-data-backtest-evidence.json"
     output_md = tmp_path / "real-data-backtest-evidence.md"
     _write_plan(plans)
-    _write_bars(bars_root)
+    bars_path = _write_bars(bars_root)
     _write_universe(universe)
-    _write_coverage_manifest(coverage_manifest)
+    _write_coverage_manifest(coverage_manifest, bars_path=bars_path)
 
     result = subprocess.run(
         [
@@ -177,7 +214,7 @@ def test_p121_real_data_runner_writes_valid_evidence_artifact(tmp_path: Path) ->
         check=False,
     )
 
-    assert result.returncode == 0
+    assert result.returncode == 0, result.stdout + result.stderr
     assert output_json.exists()
     assert output_md.exists()
     payload = json.loads(output_json.read_text(encoding="utf-8"))
@@ -190,6 +227,7 @@ def test_p121_real_data_runner_writes_valid_evidence_artifact(tmp_path: Path) ->
     assert payload["input_completeness_status"] == "OK"
     assert payload["run_health_status"] == "OK"
     assert payload["coverage_manifest_path"] == str(coverage_manifest)
+    assert payload["input_checksums"] == {bars_path.as_posix(): _sha256(bars_path)}
     assert payload["pipeline_coupled"] is True
     assert payload["runtime_gates_applied"] == PIPELINE_METADATA["runtime_gates_applied"]
     assert payload["input_plan_count"] == 1
