@@ -3,13 +3,13 @@
 ## Scheduled Report Liveness #192 — 2026-06-11
 
 ### Added
-- Added `src/operations/scheduled_report_liveness.py` to build canonical scheduled report liveness evidence.
+- Added workflow-facing scheduled report liveness validation logic inside `scripts/validate_scheduled_report_liveness.py` to build canonical scheduled report liveness evidence without expanding the `src/` runtime-module inventory.
 - Added `scripts/validate_scheduled_report_liveness.py` as the workflow-facing #192 validation CLI.
 - Added `tests/test_192_scheduled_report_liveness.py` to guard missing, empty and complete scheduled report evidence paths.
 
 ### Changed
 - Updated `.github/workflows/institutional-reports.yml` so scheduled reports run #192 liveness validation after report quality and paper-observation health validation.
-- Updated the report workflow to archive `reports/scheduled_report_liveness/*.json` and commit liveness evidence with report/signals/validation outputs.
+- Updated the report workflow to archive `reports/scheduled_report_liveness/*.json` and persist bounded liveness evidence paths with report/signals/validation outputs.
 - Updated `tests/test_po11_scheduled_daily_observation_workflow.py` with workflow-level guards proving #192 is wired into the scheduled report path.
 - Updated `README.md` and `ROADMAP.md` with the #192 scheduled report liveness rule.
 
@@ -20,6 +20,41 @@
 
 ### Boundary
 - This is report-liveness and evidence-governance hardening.
+- No strategy rule, scoring threshold, entry/exit rule or broker execution capability is changed.
+- Live trading authorization: unchanged; not granted by code.
+- Repository-wide full-regression green is not claimed by this changelog entry.
+
+---
+
+## IP9/IP10 Public Repository Governance — 2026-06-11
+
+### Added
+- Added IP9 public-edge review governance to the PR review process.
+- Added IP10 license and research-only usage disclaimer status coverage.
+
+### Guardrails
+- Public repository changes must preserve public-demo defaults and must not expose proprietary thresholds, setup maps, scoring weights, exit profiles or production-like parameters.
+- Research/paper-only and no-live-trading language must remain intact in public-facing project files.
+
+### Boundary
+- This is public repository governance and disclosure-safety documentation.
+- No strategy rule, scoring threshold, entry/exit rule or broker execution capability is changed.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
+## System Invariants and Logic Safety Governance #189 — 2026-06-11
+
+### Added
+- Added machine-checkable System Invariants and Logic Safety Governance coverage for #189.
+- Added status coverage for forbidden state conversions, logic-safety severity classes and evidence-traceability requirements.
+
+### Guardrails
+- `DEGRADED`, `BLOCKED`, `UNKNOWN`, demo/stub and missing-provenance states must not be promoted as full `PASS` evidence.
+- Logic-safety mappings require evidence commands, guard tests, contract tests, validation scripts, CI workflow results or evidence artifacts.
+
+### Boundary
+- This is logic-safety governance and evidence-traceability hardening.
 - No strategy rule, scoring threshold, entry/exit rule or broker execution capability is changed.
 - Live trading authorization: unchanged; not granted by code.
 - Repository-wide full-regression green is not claimed by this changelog entry.
