@@ -52,17 +52,33 @@ jobs:
       - name: Generate outcome reports
         run: |
           DAYS="${{ github.event.inputs.days || '7' }}"
-          python scripts/generate_outcomes.py --days "$DAYS"
+          python scripts/generate_outcomes.py --days "$DAYS" --mode production
 
-      - name: Augment P165 outcome manifest
+      - name: Augment P165/#186 outcome manifest
         run: |
           python scripts/augment_outcome_manifest_p165.py --outcomes-dir reports/outcomes
 
-      - name: Validate P165 outcome manifest
+      - name: Validate P165/#186 outcome manifest
         run: |
           python scripts/validate_outcome_manifest_p165.py --manifest reports/outcomes/outcome-run-manifest.json
 
+      - name: Check outcome learning eligibility
+        id: outcome_manifest
+        shell: bash
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          from pathlib import Path
+          manifest = json.loads(Path("reports/outcomes/outcome-run-manifest.json").read_text(encoding="utf-8"))
+          allowed = bool(manifest.get("outcome_learning_claim_allowed"))
+          print(f"allowed={'true' if allowed else 'false'}")
+          print(f"run_status={manifest.get('run_status')}")
+          print(f"valid_signal_count={manifest.get('valid_signal_count')}")
+          print(f"evaluated_outcome_count={manifest.get('evaluated_outcome_count')}")
+          PY
+
       - name: Run expectancy learning pipeline
+        if: steps.outcome_manifest.outputs.allowed == 'true'
         shell: bash
         run: |
           if [[ -f data/decision_log.csv ]]; then
@@ -80,6 +96,11 @@ jobs:
           else
             echo "No decision log found. Skipping expectancy learning."
           fi
+
+      - name: Skip expectancy learning for blocked/no-data outcome runs
+        if: steps.outcome_manifest.outputs.allowed != 'true'
+        run: |
+          echo "Outcome learning skipped. run_status=${{ steps.outcome_manifest.outputs.run_status }} valid_signal_count=${{ steps.outcome_manifest.outputs.valid_signal_count }} evaluated_outcome_count=${{ steps.outcome_manifest.outputs.evaluated_outcome_count }}"
 
       - name: Upload outcome artifacts
         if: always()
