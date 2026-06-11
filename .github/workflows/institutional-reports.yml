@@ -90,12 +90,14 @@ jobs:
           echo "report_type=${REPORT_TYPE}" >> "$GITHUB_OUTPUT"
           echo "report_file=${REPORT_FILE}" >> "$GITHUB_OUTPUT"
           echo "latest_file=${LATEST_FILE}" >> "$GITHUB_OUTPUT"
+          echo "run_date=${RUN_DATE}" >> "$GITHUB_OUTPUT"
           echo "run_timestamp=${RUN_TIMESTAMP}" >> "$GITHUB_OUTPUT"
           echo "health_run_timestamp=${HEALTH_RUN_TIMESTAMP}" >> "$GITHUB_OUTPUT"
 
           echo "REPORT_TYPE=${REPORT_TYPE}" >> "$GITHUB_ENV"
           echo "REPORT_FILE=${REPORT_FILE}" >> "$GITHUB_ENV"
           echo "LATEST_FILE=${LATEST_FILE}" >> "$GITHUB_ENV"
+          echo "RUN_DATE=${RUN_DATE}" >> "$GITHUB_ENV"
           echo "RUN_TIMESTAMP=${RUN_TIMESTAMP}" >> "$GITHUB_ENV"
           echo "HEALTH_RUN_TIMESTAMP=${HEALTH_RUN_TIMESTAMP}" >> "$GITHUB_ENV"
 
@@ -142,6 +144,21 @@ jobs:
             --workflow-name "${GITHUB_WORKFLOW}" \
             --commit-sha "${GITHUB_SHA}"
 
+      - name: Validate scheduled report liveness
+        if: always()
+        shell: bash
+        run: |
+          python scripts/validate_scheduled_report_liveness.py \
+            --report-type "$REPORT_TYPE" \
+            --report-file "$REPORT_FILE" \
+            --latest-file "$LATEST_FILE" \
+            --signals-file reports/signals/latest-signals.json \
+            --paper-health-file reports/validation/latest-paper-observation-health.json \
+            --run-timestamp "$HEALTH_RUN_TIMESTAMP" \
+            --workflow-name "${GITHUB_WORKFLOW}" \
+            --commit-sha "${GITHUB_SHA}" \
+            --run-date "$RUN_DATE"
+
       - name: Commit all outputs to repository
         shell: bash
         run: |
@@ -151,6 +168,7 @@ jobs:
           git add "$REPORT_FILE" "$LATEST_FILE"
           git add reports/signals/*.json reports/signals/*.md 2>/dev/null || true
           git add reports/validation/*.json reports/validation/*.md 2>/dev/null || true
+          git add reports/scheduled_report_liveness/*.json 2>/dev/null || true
           git add data/ 2>/dev/null || true
 
           if git diff --cached --quiet; then
@@ -198,6 +216,15 @@ jobs:
             reports/validation/paper_observation_health.md
             reports/validation/latest-paper-observation-health.json
           if-no-files-found: error
+          retention-days: 90
+
+      - name: Upload scheduled report liveness artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scheduled-report-liveness-${{ steps.report_type.outputs.run_timestamp }}
+          path: reports/scheduled_report_liveness/*.json
+          if-no-files-found: warn
           retention-days: 90
 
       - name: Upload full reports archive artifact
