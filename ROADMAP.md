@@ -36,6 +36,8 @@ Outcome tracking readiness requires at least one valid upstream signal. Producti
 
 Real-data strategy-evidence backtests require canonical Scanner → Signal Generator → Entry/Stop/Exit Quality → Trade Plan Validator metadata. Observation exports, deterministic generators and demo generators are research/audit inputs only and must be blocked by BT9 from strategy-evidence claims.
 
+Accepted real-data backtest evidence must treat the repository as the durable audit source of truth. GitHub Actions artifacts are review aids only; accepted BT131 source CSVs, manifests, runtime universe, trade plans and evidence indexes must be persisted with checksums under repository paths.
+
 ## Phase EV — Evidence Integrity Remediation
 
 | ID | Task | Priority | Impact | Status |
@@ -86,7 +88,11 @@ BT130 requires real-data backtest evidence packs to include run identity, real-d
 
 #177 requires real-data historical trade plans to prove canonical runtime-pipeline origin before they can be counted as strategy evidence. BT9 requires `pipeline_coupled=true`, all runtime gates (`scanner`, `signal_generator`, `quality_fusion`, `trade_plan_validator`), canonical `pipeline_generation_source` (`scanner_signal_quality_validator` or `runtime_pipeline_adapter`) and generated/validated count metadata. Validated Paper Observation exports, deterministic historical generators and demo generators remain research/audit artifacts and are blocked from real-data strategy-evidence claims.
 
-#184 requires successful real-data historical backtests to persist the source inputs needed to reproduce the run. Polygon bars must be stored as canonical CSV files under `data/historical/bars/1day/*.csv`; coverage manifests must include `symbols[].output_sha256`; BT9 must fail closed on missing or mismatched checksums; accepted evidence artifacts must include `input_checksums`; and the BT131 workflow must persist reports plus source inputs instead of relying only on transient GitHub Actions artifacts.
+#184 requires successful real-data historical backtests to persist the source inputs needed to reproduce the run. The repository is the durable audit source of truth; GitHub Actions artifacts are review aids only. Polygon bars must be stored as canonical CSV files under `data/historical/bars/1day/*.csv`; coverage manifests must include `symbols[].output_sha256`; BT9 must fail closed on missing or mismatched checksums; accepted evidence artifacts must include non-empty `input_checksums`; and the BT131 workflow must persist reports plus source inputs before uploading temporary review artifacts.
+
+#184 audit contract:
+
+- `docs/operations/bt184_historical_input_auditability.md`
 
 #177/#184 guard tests:
 
