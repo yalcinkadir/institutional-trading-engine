@@ -1,5 +1,33 @@
 # CHANGELOG
 
+## Evidence Quality Gate #188 — 2026-06-11
+
+### Added
+- Added `docs/operations/evidence-quality-gate.md`.
+- Added `src/evidence_quality_gate.py`.
+- Added `scripts/evaluate_evidence_quality_gate.py`.
+- Added `tests/test_evidence_quality_gate_188.py`.
+
+### Changed
+- Updated `README.md` with #188 Evidence Quality Gate status, policy links, machine-readable CLI example and targeted guard command.
+- Updated `ROADMAP.md` to add #188 as implemented / targeted guard tests documented and remove #188/#190 from the next remediation order.
+- Closed #190 as duplicate of #188.
+
+### Guardrails
+- Roadmap-stable, strategy-promotion, production-grade evidence, paper-confidence, backtesting-promotion, decision-stack-validation and live-readiness claims must pass the Evidence Quality Gate first.
+- Demo, stub, synthetic, placeholder or degraded evidence cannot support promotion claims.
+- Required promotion evidence includes `run_id`, `data_mode`, `provenance`, `checksum_or_manifest`, `runtime_trace` and `promotion_claim`.
+- The gate tracks evidence-critical blockers #177, #178, #181, #184, #185, #186 and #187.
+- The gate returns machine-readable `PASS`, `DEGRADED` or `BLOCKED` output with exact blocker reasons and issue references.
+
+### Boundary
+- This is an evidence-governance and guard-test layer.
+- It does not claim that all evidence-critical blockers are solved.
+- It does not claim repository-wide full-regression green.
+- It does not authorize live trading, broker execution or capital allocation.
+
+---
+
 ## Runtime Reachability Guard #178 — 2026-06-11
 
 ### Added
@@ -70,33 +98,3 @@
 - Repository-wide full-regression green is not claimed by this changelog entry.
 - Live trading authorization: unchanged; not granted by code.
 - Broker execution: unchanged; remains paper-only infrastructure.
-
----
-
-## JWT Fail-Closed Migration #103 — 2026-06-11
-
-### Added
-- Added `docs/operations/jwt_fail_closed_migration_103.md` as closure evidence for the JWT authentication safety boundary.
-
-### Verified
-- Existing JWT implementation refuses missing or blank `INSTITUTIONAL_JWT_SECRET`.
-- Token creation and validation both fail closed when the JWT secret is not configured.
-- Protected API routes return explicit authentication/configuration failures instead of accepting requests.
-- Existing guard coverage is documented for `tests/test_jwt_auth.py` and `tests/test_security_layer.py`.
-
-### Changed
-- Updated `ROADMAP.md` so #103 is no longer listed as the next open remediation item.
-- Recommended next remediation order now starts with #104, then #106.
-
-### Boundary
-- Live trading authorization: unchanged; not granted by code.
-- Broker execution: unchanged; not authorized by this closure.
-
----
-
-## BT176 Guarded Entry Confirmation Experiment — 2026-06-10
-
-### Added
-- Added `scripts/analyze_bt176_guarded_entry_confirmation_experiment.py`.
-- Added `tests/test_bt176_guarded_entry_confirmation_experiment.py`.
-- Added `docs/operations/bt176_guarded_entry_confirmation_experiment.md`.
