@@ -1,0 +1,54 @@
+{
+  "actionable_count": 0,
+  "commit_sha": "8ae74c50bc7582d803e34a18b4bc890a2b5b124a",
+  "data_provenance": {
+    "data_quality_status": "OK",
+    "data_statuses": [
+      "OK"
+    ],
+    "fallback_levels": [
+      "primary"
+    ],
+    "market_data_failures": {},
+    "signal_payload_version": "UNKNOWN",
+    "source_timestamps": [
+      "2026-06-11T16:28:20.890262+00:00",
+      "2026-06-11T16:28:23.969409+00:00",
+      "2026-06-11T16:28:26.908370+00:00",
+      "2026-06-11T16:28:35.637601+00:00",
+      "2026-06-11T16:28:40.084132+00:00",
+      "2026-06-11T16:28:43.629697+00:00",
+      "2026-06-11T16:28:46.839505+00:00",
+      "2026-06-11T16:28:57.303056+00:00"
+    ],
+    "sources": [
+      "polygon"
+    ]
+  },
+  "data_quality_status": "OK",
+  "degradation_reasons": [],
+  "governance_state": {
+    "active_path": "scripts/generate_report.py::_build_market_payload",
+    "approval_granted": true,
+    "broker_execution_mode": "paper_only",
+    "evaluated_at": "2026-06-11T16:28:11.632553+00:00",
+    "governance_status": "PASSED",
+    "kill_switch_active": false,
+    "live_trading_authorized": false,
+    "reasons": [],
+    "report_type": "premarket",
+    "stage": "active_report_path_governance"
+  },
+  "issues": [],
+  "market_regime": "Bullish (VIX proxy degraded)",
+  "observation_health_status": "NO_TRADE_VALID",
+  "passed": true,
+  "run_timestamp": "2026-06-11T16:27:42Z",
+  "total_signals": 8,
+  "valid_close_count": 8,
+  "valid_core_close_count": 1,
+  "warnings": [
+    "No actionable signals, but market data health is valid; treat as normal no-trade day, not infrastructure failure."
+  ],
+  "workflow_name": "Institutional Reports"
+}
