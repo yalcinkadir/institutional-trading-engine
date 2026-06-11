@@ -2,7 +2,7 @@
 
 Status date: 2026-06-11
 
-Current state: TEST1 Evidence-Oriented TDD Policy is active. EV1-EV12 evidence-integrity remediation is implemented and CI-green. CI runtime simplification is implemented and CI-green. PO128 and PO129 silent-failure/dataflow guards are implemented and CI-green. W1 Entry/Exit Watcher Git-Write Decoupling is implemented and CI-green. P132 Scanner Runtime Boundary is implemented and CI-green. P160 module classification baseline is completed. P161 Dataflow Contract Matrix is implemented and CI-green. P164 VIX/regime entitlement handling with volatility proxy fallback is implemented and CI-green. P166 productive daily Paper Observation evidence producer is implemented / CI-pending. BT130 Real Historical Backtest Evidence Pack Gate is implemented / CI-pending. PortfolioState fail-closed fixture migration (#102), JWT fail-closed migration (#103), FCM1/RPW1 CI-wired backlog status (#104), runtime reachability guard (#178), and Logic Safety Governance (#189) are validated at documentation/test-guard level.
+Current state: TEST1 Evidence-Oriented TDD Policy is active. EV1-EV12 evidence-integrity remediation is implemented and CI-green. CI runtime simplification is implemented and CI-green. PO128 and PO129 silent-failure/dataflow guards are implemented and CI-green. W1 Entry/Exit Watcher Git-Write Decoupling is implemented and CI-green. P132 Scanner Runtime Boundary is implemented and CI-green. P160 module classification baseline is completed. P161 Dataflow Contract Matrix is implemented and CI-green. P164 VIX/regime entitlement handling with volatility proxy fallback is implemented and CI-green. P166 productive daily Paper Observation evidence producer is implemented / CI-pending. BT130 Real Historical Backtest Evidence Pack Gate is implemented / CI-pending. PortfolioState fail-closed fixture migration (#102), JWT fail-closed migration (#103), FCM1/RPW1 CI-wired backlog status (#104), runtime reachability guard (#178), Evidence Quality Gate (#188), and Logic Safety Governance (#189) are validated at documentation/test-guard level.
 
 The system remains research / decision-support / paper-observation only. Real-money execution is not authorized by code.
 
@@ -23,6 +23,8 @@ Static Paper Observation watchlists must be labelled with `selection_mode=static
 Unknown, degraded, blocked, failed, demo/stub/synthetic or missing-provenance states must not be promoted as full `PASS`, strategy validation, production-grade evidence or live-readiness.
 
 Decision-critical modules must either be runtime-connected with an execution proof or explicitly classified as non-runtime research/quarantine/test/deprecated. Non-runtime modules must not be used for architecture maturity, strategy-validation or live-readiness claims.
+
+Roadmap-stable, strategy-promotion, production-grade evidence, paper-confidence, backtesting-promotion, decision-stack-validation and live-readiness claims must pass the #188 Evidence Quality Gate first.
 
 ## Phase BT — Backtesting Evidence Gates
 
@@ -51,6 +53,7 @@ BT130 requires real-data backtest evidence packs to include run identity, real-d
 |---|---|---:|---:|---|
 | TEST1 | Evidence-Oriented TDD Policy | P0 | Critical | Active |
 | #178 | Decision-critical Runtime Reachability Guard | P0 | Critical | Implemented / targeted guard tests documented |
+| #188 | Evidence Quality Gate before roadmap or strategy promotion | P0 | Critical | Implemented / targeted guard tests documented |
 | #189 | Machine-checkable System Invariants and Logic Safety Governance | P0 | Critical | Implemented / targeted guard tests documented |
 
 #178 defines a decision-critical runtime reachability registry at `docs/architecture/decision_critical_runtime_reachability.json`. It prevents decision-quality modules from being counted as active runtime architecture unless they have a runtime entry point and guard-test proof. `src/decision_confidence.py`, `src/data_quality_engine.py`, `src/event_risk_engine.py` and `src/liquidity_volatility_engine.py` are explicitly non-runtime research helpers until promoted with execution proof.
@@ -58,6 +61,14 @@ BT130 requires real-data backtest evidence packs to include run identity, real-d
 #178 guard test:
 
 - `tests/test_runtime_reachability_guard_178.py`
+
+#188 defines a cross-cutting Evidence Quality Gate at `docs/operations/evidence-quality-gate.md`. It blocks roadmap-stable, strategy-promotion, production-grade evidence, paper-confidence, backtesting-promotion, decision-stack-validation and live-readiness claims unless evidence quality, durability, runtime reachability, historical input reproducibility, report validation, empty/no-signal classification and VIX/regime provenance are proven.
+
+#188 implementation and guard tests:
+
+- `src/evidence_quality_gate.py`
+- `scripts/evaluate_evidence_quality_gate.py`
+- `tests/test_evidence_quality_gate_188.py`
 
 #189 defines machine-checkable system invariants, logic-safety severity classes, forbidden state conversions, evidence-traceability minimums and PR checklist linkage. It complements #188 Evidence Quality Gate by preventing `DEGRADED`, `UNKNOWN`, `BLOCKED`, demo/stub or missing-provenance output from being promoted as full `PASS` evidence.
 
@@ -186,18 +197,19 @@ PFA joins position-level risk attribution with forward outcome evidence. It does
 ## Closed Remediation Items
 
 - #102: PortfolioState fail-closed fixture migration validated and closed. Runtime remains fail-closed for missing or non-boolean `governance_valid`; test fixtures that need a valid state set `governance_valid=true`; committed default `data/portfolio_state.json` remains `governance_valid=false` until real paper/broker state exists.
-- #103: JWT fail-closed migration validated and closed. Missing or blank `INSTITUTIONAL_JWT_SECRET` blocks token creation and validation; protected API routes fail closed with explicit authentication/configuration errors; closure evidence is documented in `docs/operations/jwt_fail_closed_migration_103.md`.
+- #103: JWT fail-closed migration validated and closed. Missing or blank `INSTITUTIONAL_JWT_SECRET` blocks token creation and validation; protected API routes return explicit authentication/configuration failures instead of accepting requests; closure evidence is documented in `docs/operations/jwt_fail_closed_migration_103.md`.
 - #104: FCM1/RPW1 CI-wired backlog status validated and closed. Feature connectivity and runtime proof-pack retention have guard tests, dedicated targeted CI wiring, closure evidence and a paper-only safety boundary; no repository-wide full-regression green is claimed.
 - #132: Scanner Runtime Boundary validated and closed. Runtime reports and Paper Observation evidence must expose `selection_mode`; static watchlists remain research setup only and cannot claim dynamic scanner breadth or trading-edge proof.
 - #160: Module classification baseline validated and closed. Pipeline-relevant modules have explicit classification, and the architecture inventory is regenerated under guard.
 - #164: VIX/regime entitlement handling validated and closed. The Paper Observation/report regime path attempts true `I:VIX`, falls back to `VOLATILITY_PROXY_SYMBOL`/`VIXY` with degraded proxy provenance, and fails visible as `UNVALIDATED_REGIME` if neither true VIX nor proxy evidence is available.
 - #178: Runtime reachability guard implemented at documentation/test-guard level. Decision-critical modules are registered in `docs/architecture/decision_critical_runtime_reachability.json`; active modules require runtime entrypoint plus guard proof, while non-runtime helpers have explicit forbidden architecture/evidence claims.
+- #188: Evidence Quality Gate implemented at documentation/test-guard level. The gate is documented in `docs/operations/evidence-quality-gate.md`, evaluated by `src/evidence_quality_gate.py` / `scripts/evaluate_evidence_quality_gate.py`, and guarded by `tests/test_evidence_quality_gate_188.py`.
 
 ## Recommended Next Remediation Order
 
-1. Evidence Quality Gate before roadmap or strategy promotion (#188/#190 de-duplication and implementation).
-2. Continue Phase B data-integrity foundation: survivorship-safe universe, second-provider cross-validation and real persisted daily observation source feed.
-3. Validate remaining CI-pending evidence workflows before upgrading status language.
+1. Continue Phase B data-integrity foundation: survivorship-safe universe, second-provider cross-validation and real persisted daily observation source feed.
+2. Validate remaining CI-pending evidence workflows before upgrading status language.
+3. Continue unresolved evidence-critical blockers referenced by #188, especially #177, #181, #184, #185, #186 and #187.
 
 ## Safety Boundary
 
