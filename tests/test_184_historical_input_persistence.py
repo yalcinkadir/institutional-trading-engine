@@ -7,6 +7,9 @@ from pathlib import Path
 from scripts.validate_bt9_real_historical_input_pack import validate_bt9_input_pack
 from scripts.validate_real_data_backtest_evidence_gate import validate_real_data_backtest_evidence_artifact
 
+AUDIT_CONTRACT_PATH = Path("docs/operations/bt184_historical_input_auditability.md")
+BT131_WORKFLOW_PATH = Path(".github/workflows/bt131_real_data_backtest_evidence.yml")
+
 
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -202,3 +205,28 @@ def test_184_real_data_evidence_gate_accepts_valid_input_checksums(tmp_path: Pat
     report = validate_real_data_backtest_evidence_artifact(evidence)
 
     assert report.passed, report.to_dict()
+
+
+def test_184_audit_contract_documents_repository_as_source_of_truth() -> None:
+    text = AUDIT_CONTRACT_PATH.read_text(encoding="utf-8")
+
+    assert "GitHub Actions artifacts are review aids. They are not the durable audit source of truth." in text
+    assert "The repository is the durable source of truth" in text
+    assert "data/historical/bars/1day/*.csv" in text
+    assert "data/historical/metadata/coverage_manifest.json" in text
+    assert "data/trade_plans/historical_trade_plans.json" in text
+    assert "reports/backtests/real_data/runs/<github_run_id>/real-data-backtest-evidence.json" in text
+    assert "reports/backtests/real_data/index.json" in text
+
+
+def test_184_bt131_workflow_persists_source_inputs_not_only_artifacts() -> None:
+    text = BT131_WORKFLOW_PATH.read_text(encoding="utf-8")
+
+    assert "Persist validated backtest reports and source inputs to repository" in text
+    assert "git add data/historical/bars/1day/*.csv" in text
+    assert "data/historical/metadata/*.json" in text
+    assert "data/historical/metadata/*.csv" in text
+    assert "data/trade_plans/*.json" in text
+    assert "git push" in text
+    assert "actions/upload-artifact@v4" in text
+    assert text.index("Persist validated backtest reports and source inputs to repository") < text.index("Upload real-data backtest evidence artifacts")
