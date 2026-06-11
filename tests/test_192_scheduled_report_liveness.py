@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from src.operations.scheduled_report_liveness import (
+from scripts.validate_scheduled_report_liveness import (
     CURRENT_RUN_INCOMPLETE,
     CURRENT_RUN_MISSING,
     REPORT_LIVENESS_BLOCKED,
