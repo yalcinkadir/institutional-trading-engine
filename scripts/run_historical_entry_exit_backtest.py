@@ -172,16 +172,21 @@ def _fail_closed_if_real_data_requested(args: argparse.Namespace) -> tuple[int |
     )
     if not gate.passed:
         print("BT9 real historical input pack gate status: FAIL")
-        reasons: list[dict] = []
         for failure in gate.failures:
             print(f"- {failure}")
-            reasons.append({"plan_index": None, "signal_id": None, "symbol": None, "reasons": [failure]})
         _write_blocked_real_data_evidence(
             args,
             input_pack_gate_status="FAILED",
             input_completeness_status="BLOCKED_INPUT_PACK",
             run_health_status="BLOCKED",
-            rejection_reasons=reasons,
+            rejection_reasons=[
+                {
+                    "plan_index": None,
+                    "signal_id": None,
+                    "symbol": None,
+                    "reasons": list(gate.failures),
+                }
+            ],
             input_checksums=gate.input_checksums,
         )
         return 1, "FAILED", gate.input_checksums
@@ -334,8 +339,7 @@ def main() -> int:
     )
     write_report(report, json_path=Path(args.json_output), markdown_path=Path(args.markdown_output))
 
-    print("Historical Entry / Stop / Exit backtest completed")
-    print(f"Run ID: {report.run_id}")
+    print("Historical Entry / Stop / Exit backtest complete")
     print(f"Data source: {report.data_source}")
     print(f"Is demo: {report.is_demo}")
     print(f"Input pack gate: {report.input_pack_gate_status}")
