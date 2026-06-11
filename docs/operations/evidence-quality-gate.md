@@ -17,15 +17,17 @@ This gate implements the project rule:
 
 ## Scope
 
-The gate applies before any of these claims are made:
+The gate applies before any of these machine-readable claim types are made:
 
-- roadmap phase marked stable
-- strategy promotion
-- production-grade evidence claim
-- paper-confidence authorization
-- backtesting evidence promotion
-- live-readiness claim
-- decision-stack maturity claim
+- `roadmap_stable`
+- `strategy_promotion`
+- `production_grade_evidence`
+- `paper_confidence_authorized`
+- `backtesting_evidence_promotion`
+- `live_ready`
+- `decision_stack_validated`
+
+Human-readable equivalents include roadmap phase marked stable, strategy promotion, production-grade evidence claim, paper-confidence authorization, backtesting evidence promotion, live-readiness claim and decision-stack maturity claim.
 
 ## Required evidence dimensions
 
