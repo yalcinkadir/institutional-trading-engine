@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import subprocess
@@ -20,6 +21,10 @@ PIPELINE_METADATA = {
         "trade_plan_validator",
     ],
 }
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def _write_plan(path: Path) -> None:
@@ -45,15 +50,17 @@ def _write_plan(path: Path) -> None:
     )
 
 
-def _write_bars(root: Path) -> None:
+def _write_bars(root: Path) -> Path:
     root.mkdir(parents=True, exist_ok=True)
-    (root / "SPY.csv").write_text(
+    path = root / "SPY.csv"
+    path.write_text(
         "date,open,high,low,close,volume\n"
         "2026-06-01,100,100,99,100,1000000\n"
         "2026-06-02,101,105,100,104,1100000\n"
         "2026-06-03,104,106,103,106,1200000\n",
         encoding="utf-8",
     )
+    return path
 
 
 def _write_universe(path: Path) -> None:
@@ -64,21 +71,32 @@ def _write_universe(path: Path) -> None:
     )
 
 
-def _write_coverage(path: Path) -> None:
+def _write_coverage(path: Path, *, bars_path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
         json.dumps(
             {
                 "vendor": "polygon",
+                "generated_at": "2026-06-11T00:00:00Z",
+                "multiplier": 1,
+                "timespan": "day",
                 "status": "ok",
                 "requested_start_date": "2026-06-01",
                 "requested_end_date": "2026-06-03",
+                "symbol_count": 1,
+                "ok_symbol_count": 1,
+                "missing_data_summary": [],
                 "symbols": [
                     {
                         "symbol": "SPY",
+                        "start_date": "2026-06-01",
+                        "end_date": "2026-06-03",
                         "status": "ok",
                         "bar_count": 3,
-                        "output_path": "bars/SPY.csv",
+                        "rows_fetched": 3,
+                        "output_path": bars_path.as_posix(),
+                        "output_sha256": _sha256(bars_path),
+                        "missing_data_summary": [],
                     }
                 ],
             }
@@ -128,9 +146,9 @@ def test_p151_builds_valid_real_data_evidence_package_from_prepared_inputs(tmp_p
     coverage = tmp_path / "coverage.json"
     output_dir = tmp_path / "pack"
     _write_plan(plans)
-    _write_bars(bars)
+    bars_path = _write_bars(bars)
     _write_universe(universe)
-    _write_coverage(coverage)
+    _write_coverage(coverage, bars_path=bars_path)
 
     result = subprocess.run(
         [
@@ -161,7 +179,7 @@ def test_p151_builds_valid_real_data_evidence_package_from_prepared_inputs(tmp_p
         check=False,
     )
 
-    assert result.returncode == 0
+    assert result.returncode == 0, result.stdout + result.stderr
     package = json.loads((output_dir / "real-data-backtest-evidence-package.json").read_text(encoding="utf-8"))
     evidence = json.loads((output_dir / "real-data-backtest-evidence.json").read_text(encoding="utf-8"))
 
@@ -173,6 +191,7 @@ def test_p151_builds_valid_real_data_evidence_package_from_prepared_inputs(tmp_p
     assert evidence["data_source"] == "real_data"
     assert evidence["is_demo"] is False
     assert evidence["input_pack_gate_status"] == "PASSED"
+    assert evidence["input_checksums"] == {bars_path.as_posix(): _sha256(bars_path)}
     assert evidence["pipeline_coupled"] is True
     assert evidence["runtime_gates_applied"] == PIPELINE_METADATA["runtime_gates_applied"]
     assert evidence["accepted_plan_count"] == 1
