@@ -1,5 +1,37 @@
 # CHANGELOG
 
+## Durable Evidence Index #181 — 2026-06-11
+
+### Added
+- Added `tests/test_181_durable_evidence_index.py` to guard durable Paper Observation evidence-index behavior.
+- Added `docs/operations/durable_evidence_index.md` as the #181 durable evidence-index contract.
+- Extended `reports/daily_observation_automation/review_index.json` semantics with schema `paper_observation_durable_evidence_index.v1`.
+
+### Changed
+- Extended `src/operations/daily_observation_artifact_review_index.py` so PO12 review indexes now preserve durable audit metadata for #181:
+  - workflow run id
+  - artifact pointer
+  - artifact checksum field
+  - data mode
+  - degradation flags
+  - durable status
+  - no-trade-valid classification
+- Updated `README.md` with the #181/PO12 durable evidence-index boundary.
+
+### Guardrails
+- GitHub Actions artifacts are explicitly not treated as the durable audit source of truth.
+- Large runtime artifacts remain blocked from being committed to `main` by default.
+- Missing metadata is made explicit with `UNKNOWN` / `not_available` instead of silently omitted.
+- Durable statuses distinguish `SUCCESS`, `BLOCKED`, `DEGRADED`, `FAILED` and `NO_TRADE_VALID`.
+
+### Boundary
+- This is Paper Observation evidence-retention and auditability hardening.
+- No strategy rule, scoring threshold, entry/exit rule or broker execution capability is changed.
+- Live trading authorization: unchanged; not granted by code.
+- Repository-wide full-regression green is not claimed by this changelog entry.
+
+---
+
 ## Watcher Lifecycle Evidence #193 — 2026-06-11
 
 ### Added
