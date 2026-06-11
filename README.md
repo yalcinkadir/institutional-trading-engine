@@ -24,7 +24,7 @@ PO8: Daily Observation Review Summary implemented and CI-green
 PO9: Paper Observation Review Gate implemented and CI-green
 PO10: Daily Observation Automation Runner implemented and CI-green
 PO11: Scheduled Daily Observation Workflow implemented and CI-green
-PO12: Daily Observation Artifact Retention & Review Index implemented and CI-green
+PO12/#181: Durable Daily Observation Artifact Review Index implemented; `reports/daily_observation_automation/review_index.json` records long-term Paper Observation audit metadata, durable statuses, workflow run ids, data mode, degradation flags, artifact pointers and checksum fields without treating GitHub Actions artifacts as the audit source of truth.
 PO13: Monthly Paper Observation Review Pack implemented and CI-green
 PO14: Forward Evidence Quality Gate implemented and CI-green
 P120: Productive Paper Observation evidence remains gated until schema-valid durable observation artifacts are produced and CI-green.
