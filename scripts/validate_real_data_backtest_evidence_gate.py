@@ -20,6 +20,7 @@ REQUIRED_FIELDS = [
     "coverage_manifest_path",
     "survivorship_universe_path",
     "trade_plans_path",
+    "input_checksums",
     "input_plan_count",
     "accepted_plan_count",
     "rejected_plan_count",
@@ -90,6 +91,22 @@ def _valid_non_negative_int(value: Any) -> bool:
     return isinstance(value, int) and value >= 0
 
 
+def _valid_sha256(value: Any) -> bool:
+    if not isinstance(value, str):
+        return False
+    text = value.strip().lower()
+    return len(text) == 64 and all(char in "0123456789abcdef" for char in text)
+
+
+def _valid_input_checksums(value: Any) -> bool:
+    if not isinstance(value, dict) or not value:
+        return False
+    for path, digest in value.items():
+        if not _non_empty_string(path) or not _valid_sha256(digest):
+            return False
+    return True
+
+
 def validate_real_data_backtest_evidence_artifact(path: Path) -> RealDataBacktestEvidenceGateReport:
     payload, errors = _load_payload(path)
     if payload is None:
@@ -119,6 +136,8 @@ def validate_real_data_backtest_evidence_artifact(path: Path) -> RealDataBacktes
     for field_name in ("coverage_manifest_path", "survivorship_universe_path", "trade_plans_path"):
         if field_name in payload and not _non_empty_string(payload.get(field_name)):
             invalid_fields.append(field_name)
+    if "input_checksums" in payload and not _valid_input_checksums(payload.get("input_checksums")):
+        invalid_fields.append("input_checksums")
     for field_name in ("input_plan_count", "accepted_plan_count", "rejected_plan_count"):
         if field_name in payload and not _valid_non_negative_int(payload.get(field_name)):
             invalid_fields.append(field_name)
