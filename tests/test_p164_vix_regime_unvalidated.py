@@ -54,6 +54,11 @@ def test_vix_entitlement_error_uses_proxy_when_available(monkeypatch) -> None:
     assert vix_input["fallback_used"] is True
     assert vix_input["live_or_paper_confidence_authorized"] is False
 
+    assert summary["regime_policy"]["source"] == "polygon_proxy"
+    assert summary["regime_policy"]["fallback_used"] is True
+    assert summary["regime_policy"]["confidence"] == "DEGRADED"
+    assert summary["regime_policy"]["action"] == "DEGRADE"
+
     assert "SPY" in summary["symbols"]
     assert "QQQ" in summary["symbols"]
     assert "VIX" not in summary["symbols"]
@@ -62,13 +67,16 @@ def test_vix_entitlement_error_uses_proxy_when_available(monkeypatch) -> None:
     assert any("proxy" in note.lower() for note in summary["notes"])
 
 
-def test_vix_entitlement_error_without_proxy_remains_unvalidated(monkeypatch) -> None:
+def test_vix_entitlement_error_without_proxy_blocks_regime_policy(monkeypatch) -> None:
     monkeypatch.setattr(mr, "PolygonClient", _NoProxyPolygonClient)
 
     summary = mr.build_market_regime_summary("postmarket")
 
-    assert summary["regime"] == mr.UNVALIDATED_REGIME
-    assert summary["regime_validation_status"] == mr.REGIME_STATUS_UNVALIDATED
+    assert summary["regime"] == mr.BLOCKED_MARKET_REGIME_UNAVAILABLE
+    assert summary["regime_validation_status"] == mr.REGIME_STATUS_BLOCKED
     assert summary["regime_input"]["vix"]["reason"] == mr.VIX_UNAVAILABLE_ENTITLEMENT
+    assert summary["regime_policy"]["status"] == mr.REGIME_STATUS_BLOCKED
+    assert summary["regime_policy"]["action"] == "BLOCK"
+    assert summary["regime_policy"]["confidence"] == "BLOCKED"
     assert "VIX_PROXY" not in summary["symbols"]
-    assert any("UNVALIDATED" in note for note in summary["notes"])
+    assert any("blocked" in note.lower() for note in summary["notes"])
