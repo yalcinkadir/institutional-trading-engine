@@ -162,7 +162,7 @@ P132 requires runtime reports and Paper Observation evidence to expose `selectio
 | ID | Task | Priority | Impact | Status |
 |---|---|---:|---:|---|
 | P160 | Classify unclassified legacy modules before expanding runtime scope | P1 | High | Done / CI-green |
-| P161 | Dataflow Contract Matrix: Scanner → Signals → Quality → Validator → Watcher → Evidence | P1 | Done / CI-green |
+| P161 | Dataflow Contract Matrix: Scanner → Signals → Quality → Validator → Watcher → Evidence | P1 | High | Done / CI-green |
 | P164 | VIX/regime entitlement handling with volatility proxy fallback | P1 | High | Done / CI-green |
 
 P161 defines required pipeline fields, canonical `atr14` naming, allowed `atr` boundary aliasing, runtime producer/consumer ownership and fail-closed behavior. Missing critical fields must become `BLOCKED_MISSING_INPUTS`, not silent `NO_TRADE_VALID` output.
