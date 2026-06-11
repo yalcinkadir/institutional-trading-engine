@@ -22,6 +22,9 @@ IGNORED_MODULES = {
     # #188 evidence-governance helper. It is intentionally not a trading runtime
     # module and is guarded separately by tests/test_evidence_quality_gate_188.py.
     "src/evidence_quality_gate.py",
+    # #191 compatibility shim only. The implementation lives in the ARCH106-
+    # classified report/signal runtime module src/signals/scanner_metrics_pipeline.py.
+    "src/validation/datafeed_liveness.py",
 }
 
 
