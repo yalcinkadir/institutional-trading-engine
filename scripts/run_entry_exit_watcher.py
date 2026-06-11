@@ -30,6 +30,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
+from scripts.watcher_lifecycle_summary import write_watcher_lifecycle_summary
 from src.data.polygon_client import PolygonClient
 from src.signals.signal_status import ACTIONABLE_SIGNAL_ACTIONS, is_terminal_signal_status
 from src.structured_logging import emit_structured_log
@@ -45,7 +46,6 @@ from src.watchers.entry_exit_watcher import (
     save_updated_signal_file,
     write_watcher_market_data_health_artifact,
 )
-from src.watchers.watcher_lifecycle_summary import write_watcher_lifecycle_summary
 
 
 class WatcherRuntimeConfigurationError(RuntimeError):
