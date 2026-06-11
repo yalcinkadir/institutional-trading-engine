@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## CI Gate Fixes — 2026-06-11
+
+### Fixed
+- Fixed `scripts/evaluate_evidence_quality_gate.py` so direct subprocess execution can import `src.evidence_quality_gate` by adding the repository root to `sys.path`.
+- Aligned `docs/operations/evidence-quality-gate.md` with the machine-readable #188 claim tokens checked by `tests/test_evidence_quality_gate_188.py`.
+- Updated `scripts/generate_module_inventory.py` so #188 evidence-governance helper modules are excluded from ARCH106 trading-runtime inventory checks instead of increasing the unclassified legacy baseline.
+
+### Boundary
+- These are CI/governance consistency fixes.
+- No strategy rule, scoring threshold, entry/exit rule or broker execution capability is changed.
+- Live trading authorization: unchanged; not granted by code.
+- Repository-wide full-regression green is not claimed by this changelog entry.
+
+---
+
 ## Evidence Quality Gate #188 — 2026-06-11
 
 ### Added
@@ -76,6 +91,23 @@
 - No strategy rule, scoring threshold, entry/exit rule or broker execution capability is changed.
 - Live trading authorization: unchanged; not granted by code.
 - Repository-wide full-regression green is not claimed by this changelog entry.
+
+---
+
+## IP9/IP10 Public Repository Governance — 2026-06-10
+
+### Added
+- Added public-edge review language for PRs touching strategy, scoring, thresholds, exits, reports or evidence artifacts.
+- Added license/disclaimer governance around research-only, paper-observation-only and no-live-trading boundaries.
+
+### Guardrails
+- Public repository changes must not expose proprietary thresholds, setup maps, scoring weights, exit profiles or production-like parameters.
+- Public-safe defaults, synthetic fixtures and demo evidence remain separated from production-grade claims.
+- Generated reports, raw evidence, provider extracts, ranked opportunity output and local artifacts must not be committed unless explicitly allowed by artifact policy.
+
+### Boundary
+- This is public repository hygiene and IP-boundary governance.
+- It does not authorize live trading, broker execution or capital allocation.
 
 ---
 
