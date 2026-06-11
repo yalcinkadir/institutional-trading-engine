@@ -26,6 +26,11 @@ from src.reporting.weekly_summary import build_weekly_summary
 from src.signals.intraday_vwap import enrich_metrics_with_vwap
 from src.signals.scanner_metrics_pipeline import normalize_scanner_metrics_map
 from src.signals.structure_levels import latest_confirmed_swing_low_3bar
+from src.validation.datafeed_liveness import (
+    DATAFEED_BLOCKED,
+    build_datafeed_liveness_record,
+    write_datafeed_liveness_record,
+)
 
 VALID_REPORT_TYPES = {"premarket", "intraday", "postmarket", "weekly"}
 MARKET_REPORT_TYPES = {"premarket", "intraday", "postmarket"}
@@ -204,11 +209,24 @@ def _derive_market_run_health(decision_payload: dict[str, Any]) -> dict[str, Any
             "reasons": sorted(set(reasons)),
         }
 
+    datafeed_liveness = decision_payload.get("datafeed_liveness") if isinstance(decision_payload.get("datafeed_liveness"), dict) else {}
+    datafeed_status = str(datafeed_liveness.get("datafeed_status") or "UNKNOWN").upper()
     scanner_status = str(
         (decision_payload.get("scanner_data_quality") or {}).get("data_quality_status") or "UNKNOWN"
     ).upper()
     signal_status = str(decision_payload.get("signal_generation_status") or "UNKNOWN").upper()
     signals = list(decision_payload.get("signals") or [])
+
+    if datafeed_status == DATAFEED_BLOCKED:
+        reasons.append("datafeed_blocked")
+        provider_reason = datafeed_liveness.get("provider_failure_reason")
+        if provider_reason:
+            reasons.append(f"provider_failure_{str(provider_reason).lower()}")
+        return {
+            "run_health_status": RUN_HEALTH_FAILED,
+            "success_status": "FAILED",
+            "reasons": sorted(set(reasons)),
+        }
 
     if signal_status in {SIGNAL_GENERATION_STATUS_FAILED, SIGNAL_GENERATION_STATUS_BLOCKED_DATA_QUALITY}:
         reasons.append("signal_generation_failed")
@@ -236,6 +254,8 @@ def _derive_market_run_health(decision_payload: dict[str, Any]) -> dict[str, Any
 
     if scanner_status == "DEGRADED":
         reasons.append("scanner_data_quality_degraded")
+    if datafeed_status == "DATAFEED_DEGRADED":
+        reasons.append("datafeed_degraded")
 
     demo_or_fixture = any(
         str(_signal_attr(signal, "data_source", "")).lower() in {"demo", "fixture", "public_demo", "historical_demo"}
@@ -255,7 +275,7 @@ def _derive_market_run_health(decision_payload: dict[str, Any]) -> dict[str, Any
 
     actionable_count = sum(1 for signal in signals if _signal_attr(signal, "action") == "BUY_WATCH")
     if reasons:
-        status = RUN_HEALTH_DEGRADED_DATA if "scanner_data_quality_degraded" in reasons else RUN_HEALTH_FALLBACK_ACTIVE
+        status = RUN_HEALTH_DEGRADED_DATA if any(reason in reasons for reason in {"scanner_data_quality_degraded", "datafeed_degraded"}) else RUN_HEALTH_FALLBACK_ACTIVE
         return {
             "run_health_status": status,
             "success_status": "DEGRADED",
@@ -434,6 +454,26 @@ def _set_signal_generation_status(
     decision_report["signal_generation_health"] = evidence
 
 
+def _write_datafeed_liveness(
+    *,
+    scanner_metrics_map: dict[str, dict[str, Any]],
+    scanner_data_quality: dict[str, Any],
+    decision_payload: dict[str, Any],
+    decision_report: dict[str, Any],
+) -> dict[str, Any]:
+    record = build_datafeed_liveness_record(
+        scanner_metrics_map=scanner_metrics_map,
+        scanner_data_quality=scanner_data_quality,
+    )
+    dated_path, latest_path = write_datafeed_liveness_record(record)
+    liveness = record.to_dict()
+    liveness["evidence_path"] = str(dated_path)
+    liveness["latest_evidence_path"] = str(latest_path)
+    decision_payload["datafeed_liveness"] = liveness
+    decision_report["datafeed_liveness"] = liveness
+    return liveness
+
+
 def _build_market_payload(report_type: str) -> tuple[dict, dict | None]:
     market_regime = build_market_regime_summary(report_type)
     screener = build_screener_snapshot(report_type)
@@ -474,12 +514,24 @@ def _build_market_payload(report_type: str) -> tuple[dict, dict | None]:
         raw_scanner_metrics,
         _decision_symbols(decision_report),
     )
+    scanner_data_quality = scanner_diagnostics.as_summary()
     decision_payload["scanner_metrics_diagnostics"] = scanner_diagnostics
-    decision_payload["scanner_data_quality"] = scanner_diagnostics.as_summary()
-    decision_report["scanner_data_quality"] = scanner_diagnostics.as_summary()
+    decision_payload["scanner_data_quality"] = scanner_data_quality
+    decision_report["scanner_data_quality"] = scanner_data_quality
+    datafeed_liveness = _write_datafeed_liveness(
+        scanner_metrics_map=scanner_metrics_map,
+        scanner_data_quality=scanner_data_quality,
+        decision_payload=decision_payload,
+        decision_report=decision_report,
+    )
     if scanner_diagnostics.has_warnings:
         for warning in scanner_diagnostics.warning_lines():
             print(f"WARNING: {warning}")
+    if datafeed_liveness["datafeed_status"] == DATAFEED_BLOCKED:
+        print(
+            "WARNING: datafeed_liveness_blocked: "
+            f"{datafeed_liveness.get('provider_failure_reason') or 'unknown_provider_failure'}"
+        )
 
     try:
         _enforce_scanner_data_quality(scanner_diagnostics)
@@ -487,6 +539,7 @@ def _build_market_payload(report_type: str) -> tuple[dict, dict | None]:
         evidence = {
             "stage": "signal_generation",
             "status": SIGNAL_GENERATION_STATUS_BLOCKED_DATA_QUALITY,
+            "datafeed_liveness": datafeed_liveness,
             "governance_state": governance_state,
             "live_trading_authorized": False,
             "broker_execution_mode": "paper_only",
@@ -497,6 +550,9 @@ def _build_market_payload(report_type: str) -> tuple[dict, dict | None]:
             status=SIGNAL_GENERATION_STATUS_BLOCKED_DATA_QUALITY,
             evidence=evidence,
         )
+        run_health = _derive_market_run_health(decision_payload)
+        decision_payload["run_health"] = run_health
+        decision_report["run_health"] = run_health
         raise
 
     try:
@@ -567,6 +623,7 @@ def generate_signals(decision_payload: dict) -> None:
             date_str=datetime.now(UTC).strftime("%Y-%m-%d"),
             data_quality=decision_payload.get("scanner_data_quality"),
             governance_state=decision_payload.get("governance_state"),
+            datafeed_liveness=decision_payload.get("datafeed_liveness"),
         )
         current_status = str(decision_payload.get("signal_generation_status") or "UNKNOWN").upper()
         if current_status not in {SIGNAL_GENERATION_STATUS_BLOCKED_GOVERNANCE, SIGNAL_GENERATION_STATUS_BLOCKED_DATA_QUALITY}:
