@@ -49,6 +49,25 @@ Scheduled report readiness requires a non-empty dated report, non-empty latest r
 
 EV1-EV12 evidence-integrity remediation is tracked as completed only because the roadmap rows above are backed by targeted guard tests and the CI runtime simplification path. These rows are historical evidence-integrity status entries and do not authorize live trading, broker execution or capital allocation.
 
+## Phase RGP — Runtime Governance Proofs
+
+| ID | Task | Priority | Impact | Status |
+|---|---|---:|---:|---|
+| RGP1 | Missing/invalid PortfolioState fail-closed proof | P0 | Critical | Done / CI-green |
+| RGP2 | Runtime governance approval gate | P0 | Critical | Done / CI-green |
+| RGP3 | Stale PortfolioState approval blocking | P0 | Critical | Done / CI-green |
+| RGP4 | Actionable signal provider-fetch failure blocking | P0 | Critical | Done / CI-green |
+| RGP5 | Critical STOP/EXIT alert ordering guard | P0 | Critical | Done / CI-green |
+| RGP6 | Strict critical notification failure handling | P0 | Critical | Done / CI-green |
+| RGP7 | Repo-writing workflow serialization/retry guard | P0 | Critical | Done / CI-green |
+| RGP8 | Alert/evidence artifact upload-on-failure guard | P0 | Critical | Done / CI-green |
+| RGP9 | Signal lifecycle status source of truth | P0 | Critical | Done / CI-green |
+| RGP10 | Latest bar timestamp ordering guard | P0 | Critical | Done / CI-green |
+| RGP11 | Signal identity float quantization | P0 | Critical | Done / CI-green |
+| RGP12 | Partial-exit lifecycle persistence | P0 | Critical | Done / CI-green |
+
+RGP1-RGP12 runtime governance proofs are post-review status entries. They do not authorize live trading, broker execution or capital allocation.
+
 ## Phase BT — Backtesting Evidence Gates
 
 | ID | Task | Priority | Impact | Status |
@@ -89,7 +108,7 @@ BT130 requires real-data backtest evidence packs to include run identity, real-d
 | #188 | Evidence Quality Gate before roadmap or strategy promotion | P0 | Critical | Implemented / targeted guard tests documented |
 | #189 | Machine-checkable System Invariants and Logic Safety Governance | P0 | Critical | Implemented / targeted guard tests documented |
 
-#178 defines a decision-critical runtime reachability registry at `docs/architecture/decision_critical_runtime_reachability.json`. It prevents decision-quality modules from being counted as active runtime architecture unless they have a runtime entry point and guard-test proof. `src/decision_confidence.py`, `src/data_quality_engine.py`, `src/event_risk_engine.py` and `src/liquidity_volatility_engine.py` are explicitly non-runtime research helpers until promoted with execution proof.
+#178 Runtime reachability defines a decision-critical runtime reachability registry at `docs/architecture/decision_critical_runtime_reachability.json`. It prevents decision-quality modules from being counted as active runtime architecture unless they have a runtime entry point and guard-test proof. `src/decision_confidence.py`, `src/data_quality_engine.py`, `src/event_risk_engine.py` and `src/liquidity_volatility_engine.py` are explicitly non-runtime research helpers until promoted with execution proof.
 
 #178 guard test:
 
