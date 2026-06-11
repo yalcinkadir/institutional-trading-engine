@@ -10,7 +10,7 @@ from pathlib import Path
 SCRIPT = Path("scripts/build_real_data_backtest_evidence_pack.py")
 PIPELINE_METADATA = {
     "pipeline_coupled": True,
-    "pipeline_generation_source": "scanner_signal_quality_validator_fixture",
+    "pipeline_generation_source": "scanner_signal_quality_validator",
     "generated_signal_count": 1,
     "validated_trade_plan_count": 1,
     "blocked_signal_count": 0,
@@ -41,7 +41,7 @@ def _write_plan(path: Path) -> None:
                         "stop_loss": 99.0,
                         "target_1": 104.0,
                         "target_2": 106.0,
-                        "source": "paper_observation_validated",
+                        "source": "scanner_signal_quality_validator",
                     }
                 ],
             }
