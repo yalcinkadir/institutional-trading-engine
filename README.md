@@ -67,6 +67,7 @@ BT6: Evidence Baseline Regression Gate implemented and CI-green
 BT7: Capacity / Turnover / Realism Gate implemented and CI-green
 BT130: Real Historical Backtest Evidence Pack Gate implemented / CI-pending
 BT131: Real-data backtest evidence workflow implemented / CI-pending; valid output requires BT9 and P121/BT130 gates, otherwise a BLOCKED artifact is uploaded.
+#177: Real-data historical trade plans can now be exported through the actual Scanner → Signal Generator → Entry/Stop/Exit Quality → Trade Plan Validator path using `scripts/export_historical_trade_plans.py`; non-pipeline-coupled plans remain blocked from real-data evidence claims.
 CER1: Capacity / Execution Realism Evidence Review Summary implemented and CI-green
 PFA1: Position-level Forward Evidence Attribution implemented and CI-green
 BT8: Backtesting Evidence Report generator implemented and CI-green
@@ -199,7 +200,20 @@ RPW1 adds a deterministic runtime proof-pack artifact writer and retention index
 
 ## Backtesting Evidence Process
 
-BT131 provides a manual GitHub Actions workflow for real-data backtest evidence generation:
+BT131 provides a manual GitHub Actions workflow for real-data evidence generation. Valid real-data evidence requires pipeline-coupled trade plans. The canonical #177 path is:
+
+```text
+Scanner metrics
+  -> Signal Generator
+  -> Entry Quality
+  -> Stop-Loss Quality
+  -> Exit Target Quality
+  -> Trade Plan Validator
+  -> Historical Trade Plans
+  -> Real-Data Historical Entry/Exit Backtest
+```
+
+Example workflow command:
 
 ```bash
 gh workflow run bt131_real_data_backtest_evidence.yml \
@@ -208,12 +222,21 @@ gh workflow run bt131_real_data_backtest_evidence.yml \
   -f end_date=2026-06-09 \
   -f run_id=bt131-real-data-manual \
   -f strategy_version=historical-entry-exit-v1 \
-  -f plans_file=data/trade_plans/historical_trade_plans.json
+  -f source_observations=reports/paper_observation/validated_observations.json
+```
+
+Pipeline-coupled local export command:
+
+```bash
+python scripts/export_historical_trade_plans.py \
+  --source reports/backtests/scanner_signal_quality_validator_input.json \
+  --output data/trade_plans/historical_trade_plans.json \
+  --manifest data/trade_plans/historical_trade_plans_manifest.json
 ```
 
 The workflow ingests Polygon historical bars when `POLYGON_API_KEY` is available, validates the BT9 real historical input pack, runs the real-data historical entry/exit backtest, validates accepted evidence through the P121/BT130 gate, and uploads JSON/Markdown artifacts.
 
-If required real inputs are missing, invalid, demo, synthetic, placeholder or public-safe, the workflow must write and upload a `BLOCKED` real-data evidence artifact instead of claiming productive historical evidence.
+If required real inputs are missing, invalid, demo, synthetic, placeholder, public-safe or not pipeline-coupled, the workflow must write and upload a `BLOCKED` real-data evidence artifact instead of claiming productive historical evidence.
 
 ## Architecture Contracts
 
