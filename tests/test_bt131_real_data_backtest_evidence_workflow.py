@@ -105,7 +105,8 @@ def test_bt131_workflow_forces_real_data_and_blocks_demo_claims() -> None:
 
     assert "--real-data" in text
     assert "--data-source real_data" in text
-    assert "data_source=real_data" in text
+    assert 'payload.get("data_source") != "real_data"' in text
+    assert "BT131 evidence must be data_source=real_data" in text
     assert "must not be demo" in text
     assert "historical_demo" not in text
 
