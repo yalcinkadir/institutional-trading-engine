@@ -13,8 +13,13 @@ Important:
 Untriggered or expired signals are not counted as trading losses. They are
 tracked separately as signal-quality information.
 
+#186 guard:
+Production outcome tracking is blocked when the upstream signal window has zero
+valid signals. Empty/no-data local runs must use --mode demo and are stamped as
+DEMO_NO_DATA so they cannot be confused with outcome-learning evidence.
+
 Usage:
-    python scripts/generate_outcomes.py [--days 7]
+    python scripts/generate_outcomes.py [--days 7] [--mode production|demo]
 """
 
 from __future__ import annotations
@@ -41,6 +46,9 @@ WIN_THRESHOLD = 1.0    # % gain to classify as WIN
 LOSS_THRESHOLD = -1.0  # % loss to classify as LOSS
 TRIGGERED_STATUSES = {"TRIGGERED", "TARGET_1_HIT", "TARGET_2_HIT", "STOP_HIT"}
 NON_TRADE_STATUSES = {"EXPIRED", "UNTRIGGERED"}
+VALID_SIGNAL_ACTIONS = {"BUY_WATCH"}
+PRODUCTION_MODE = "production"
+DEMO_MODE = "demo"
 
 
 def extract_signals(text: str) -> list[str]:
@@ -99,6 +107,25 @@ def _entry_price(signal: dict) -> float:
         or _safe_float(signal.get("close"))
         or 0.0
     )
+
+
+def _signal_invalid_reasons(signal: dict) -> list[str]:
+    reasons: list[str] = []
+    action = str(signal.get("action") or "").upper()
+    symbol = str(signal.get("symbol") or "").strip()
+
+    if action not in VALID_SIGNAL_ACTIONS:
+        reasons.append("non_actionable_signal")
+    if not symbol:
+        reasons.append("missing_symbol")
+    if _safe_float(signal.get("close")) is None and _safe_float(signal.get("entry_trigger")) is None:
+        reasons.append("missing_price_anchor")
+
+    return reasons
+
+
+def _is_valid_signal(signal: dict) -> bool:
+    return not _signal_invalid_reasons(signal)
 
 
 def fetch_real_outcomes(
@@ -182,15 +209,16 @@ def fetch_real_outcomes(
     }
 
 
-def load_signal_files(days: int = 7, signals_dir: Path | None = None) -> list[tuple[str, list[dict]]]:
-    """
-    Load signal JSON files from the last N days.
-
-    Returns: list of (date_str, signals_list)
-    """
+def scan_signal_files(days: int = 7, signals_dir: Path | None = None) -> dict[str, Any]:
+    """Scan the signal window and keep both eligibility and invalid-input evidence."""
     src = signals_dir or SIGNALS_DIR
     cutoff = (datetime.now(UTC).date() - timedelta(days=days)).isoformat()
-    result = []
+    batches: list[tuple[str, list[dict]]] = []
+    skip_reasons: set[str] = set()
+    scanned_signal_files = 0
+    total_input_signals = 0
+    valid_signal_count = 0
+    invalid_signal_count = 0
 
     for json_file in sorted(src.glob("*-signals.json")):
         if json_file.stem == "latest-signals":
@@ -198,16 +226,64 @@ def load_signal_files(days: int = 7, signals_dir: Path | None = None) -> list[tu
         date_str = json_file.stem.replace("-signals", "")
         if date_str < cutoff:
             continue
+
+        scanned_signal_files += 1
         try:
             payload = json.loads(json_file.read_text(encoding="utf-8"))
-            signals = payload.get("signals", [])
-            actionable = [s for s in signals if s.get("action") == "BUY_WATCH"]
-            if actionable:
-                result.append((date_str, actionable))
         except Exception:
+            invalid_signal_count += 1
+            skip_reasons.add("invalid_signal_json")
             continue
 
-    return result
+        signals = payload.get("signals", [])
+        if not isinstance(signals, list):
+            invalid_signal_count += 1
+            skip_reasons.add("signals_payload_not_list")
+            continue
+
+        total_input_signals += len(signals)
+        valid_signals: list[dict] = []
+        for signal in signals:
+            if not isinstance(signal, dict):
+                invalid_signal_count += 1
+                skip_reasons.add("invalid_signal_record")
+                continue
+
+            reasons = _signal_invalid_reasons(signal)
+            if reasons:
+                invalid_signal_count += 1
+                skip_reasons.update(reasons)
+                continue
+
+            valid_signal_count += 1
+            valid_signals.append(signal)
+
+        if valid_signals:
+            batches.append((date_str, valid_signals))
+
+    if scanned_signal_files == 0:
+        skip_reasons.add("no_signal_files_in_window")
+    elif valid_signal_count == 0:
+        skip_reasons.add("no_valid_signals_in_window")
+
+    return {
+        "batches": batches,
+        "scanned_signal_files": scanned_signal_files,
+        "signal_batch_count": len(batches),
+        "total_input_signals": total_input_signals,
+        "valid_signal_count": valid_signal_count,
+        "invalid_signal_count": invalid_signal_count,
+        "skip_reasons": sorted(skip_reasons),
+    }
+
+
+def load_signal_files(days: int = 7, signals_dir: Path | None = None) -> list[tuple[str, list[dict]]]:
+    """
+    Load valid signal JSON files from the last N days.
+
+    Returns: list of (date_str, valid_signals_list)
+    """
+    return list(scan_signal_files(days=days, signals_dir=signals_dir)["batches"])
 
 
 def _outcome_for_non_trade_signal(date_str: str, sig: dict, lifecycle_status: str) -> dict:
@@ -314,6 +390,11 @@ def _write_run_manifest(
     total_input_signals: int,
     total_evaluated: int,
     skip_reasons: list[str],
+    scanned_signal_files: int = 0,
+    valid_signal_count: int = 0,
+    invalid_signal_count: int = 0,
+    upstream_dependency_status: str = "UNKNOWN",
+    mode: str = PRODUCTION_MODE,
     outcomes_dir: Path | None = None,
 ) -> Path:
     """Write a run-level manifest so CI can distinguish empty/blocked runs from no-run."""
@@ -322,11 +403,17 @@ def _write_run_manifest(
     manifest = {
         "run_status": run_status,
         "run_timestamp_utc": datetime.now(UTC).isoformat(),
+        "mode": mode,
         "days_evaluated": days_evaluated,
+        "scanned_signal_files": scanned_signal_files,
         "signal_batch_count": signal_batch_count,
         "total_input_signals": total_input_signals,
+        "valid_signal_count": valid_signal_count,
+        "invalid_signal_count": invalid_signal_count,
         "total_evaluated": total_evaluated,
         "skip_reasons": skip_reasons,
+        "upstream_dependency_status": upstream_dependency_status,
+        "outcome_learning_claim_allowed": run_status == "SUCCESS" and valid_signal_count > 0,
     }
     path = out / "outcome-run-manifest.json"
     path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
@@ -341,6 +428,8 @@ def main() -> int:
     )
     parser.add_argument("--days", type=int, default=7,
                         help="Number of past days to evaluate signals for.")
+    parser.add_argument("--mode", choices=[PRODUCTION_MODE, DEMO_MODE], default=PRODUCTION_MODE,
+                        help="Run mode. Production blocks zero-valid-signal outcome learning; demo stamps DEMO_NO_DATA.")
     parser.add_argument("--signals-dir", type=Path, default=None,
                         help="Override signals input directory (default: reports/signals).")
     parser.add_argument("--outcomes-dir", type=Path, default=None,
@@ -364,21 +453,33 @@ def main() -> int:
             total_input_signals=0,
             total_evaluated=0,
             skip_reasons=["signals_directory_missing"],
+            scanned_signal_files=0,
+            valid_signal_count=0,
+            invalid_signal_count=0,
+            upstream_dependency_status="MISSING_SIGNAL_DIRECTORY",
+            mode=args.mode,
             outcomes_dir=outcomes_dir,
         )
-        return 1
+        return 0
 
-    signal_batches = load_signal_files(days=args.days, signals_dir=signals_dir)
+    scan = scan_signal_files(days=args.days, signals_dir=signals_dir)
+    signal_batches = scan["batches"]
 
-    if not signal_batches:
-        print(f"NO_ELIGIBLE_SIGNALS: no signal files found in the last {args.days} days.")
+    if int(scan["valid_signal_count"]) == 0:
+        run_status = "DEMO_NO_DATA" if args.mode == DEMO_MODE else "BLOCKED_NO_VALID_SIGNALS"
+        print(f"{run_status}: no valid upstream signals found in the last {args.days} days.")
         _write_run_manifest(
-            run_status="NO_ELIGIBLE_SIGNALS",
+            run_status=run_status,
             days_evaluated=args.days,
-            signal_batch_count=0,
-            total_input_signals=0,
+            signal_batch_count=int(scan["signal_batch_count"]),
+            total_input_signals=int(scan["total_input_signals"]),
             total_evaluated=0,
-            skip_reasons=["no_signal_files_in_window"],
+            skip_reasons=list(scan["skip_reasons"]),
+            scanned_signal_files=int(scan["scanned_signal_files"]),
+            valid_signal_count=0,
+            invalid_signal_count=int(scan["invalid_signal_count"]),
+            upstream_dependency_status="NO_VALID_SIGNAL_INPUTS",
+            mode=args.mode,
             outcomes_dir=outcomes_dir,
         )
         return 0
@@ -391,7 +492,7 @@ def main() -> int:
     total_processed = 0
 
     for date_str, signals in signal_batches:
-        print(f"Processing signals for {date_str} ({len(signals)} actionable)...")
+        print(f"Processing signals for {date_str} ({len(signals)} valid)...")
         outcomes = []
 
         for sig in signals:
@@ -440,15 +541,19 @@ def main() -> int:
         write_outcome_reports(outcomes, date_str, outcomes_dir=outcomes_dir)
         print(f"  → outcomes written for {date_str}")
 
-    total_input = sum(len(sigs) for _, sigs in signal_batches)
-    print(f"Done. Processed {total_processed} signals across {len(signal_batches)} days.")
+    print(f"Done. Processed {total_processed} valid signals across {len(signal_batches)} days.")
     _write_run_manifest(
-        run_status="OK",
+        run_status="SUCCESS",
         days_evaluated=args.days,
         signal_batch_count=len(signal_batches),
-        total_input_signals=total_input,
+        total_input_signals=int(scan["total_input_signals"]),
         total_evaluated=total_processed,
-        skip_reasons=[],
+        skip_reasons=list(scan["skip_reasons"]),
+        scanned_signal_files=int(scan["scanned_signal_files"]),
+        valid_signal_count=int(scan["valid_signal_count"]),
+        invalid_signal_count=int(scan["invalid_signal_count"]),
+        upstream_dependency_status="VALID_SIGNAL_INPUTS_PRESENT",
+        mode=args.mode,
         outcomes_dir=outcomes_dir,
     )
     return 0
