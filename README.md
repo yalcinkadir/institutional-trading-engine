@@ -34,6 +34,7 @@ P166: Productive daily Paper Observation producer writes canonical `reports/dail
 #191: Scanner datafeed liveness gate classifies all-null close/missing-bar runs as `DATAFEED_BLOCKED` and writes repo-visible liveness evidence under `reports/health/`.
 #192: Scheduled report liveness gate writes `reports/scheduled_report_liveness/<date>-<type>-liveness.json`, requires non-empty scheduled report/latest artifacts, requires signals and paper-health evidence for market reports, and blocks missing scheduled output from being counted as a productive report cycle.
 #185: Report validation risk-tier gate requires structured decision/risk-tier evidence or an explicit no-active-risk state; prose-only `Risk Tier` mentions are blocked by `tests/test_185_report_validation_risk_tier.py`.
+#186: Outcome tracking differentiates `SUCCESS`, `BLOCKED_NO_VALID_SIGNALS`, `DEMO_NO_DATA` and `BLOCKED_MISSING_INPUTS`; production outcome learning is not claimable when upstream signal files are empty, invalid or contain zero valid signals.
 
 Runtime Governance:
 GOV1-GOV10: runtime / pre-live governance hardening implemented and CI-green
