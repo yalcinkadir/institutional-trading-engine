@@ -2,7 +2,7 @@
 
 Status date: 2026-06-11
 
-Current state: TEST1 Evidence-Oriented TDD Policy is active. EV1-EV12 evidence-integrity remediation is implemented and CI-green. CI runtime simplification is implemented and CI-green. PO128 and PO129 silent-failure/dataflow guards are implemented and CI-green. W1 Entry/Exit Watcher Git-Write Decoupling is implemented and CI-green. P132 Scanner Runtime Boundary is implemented and CI-green. P160 module classification baseline is completed. P161 Dataflow Contract Matrix is implemented and CI-green. P164 VIX/regime entitlement handling with volatility proxy fallback is implemented and CI-green. P166 productive daily Paper Observation evidence producer is implemented / CI-pending. BT130 Real Historical Backtest Evidence Pack Gate is implemented / CI-pending. PortfolioState fail-closed fixture migration (#102), JWT fail-closed migration (#103), FCM1/RPW1 CI-wired backlog status (#104), runtime reachability guard (#178), Evidence Quality Gate (#188), and Logic Safety Governance (#189) are validated at documentation/test-guard level.
+Current state: TEST1 Evidence-Oriented TDD Policy is active. EV1-EV12 evidence-integrity remediation is implemented and CI-green. CI runtime simplification is implemented and CI-green. PO128 and PO129 silent-failure/dataflow guards are implemented and CI-green. W1 Entry/Exit Watcher Git-Write Decoupling is implemented and CI-green. P132 Scanner Runtime Boundary is implemented and CI-green. P160 module classification baseline is completed. P161 Dataflow Contract Matrix is implemented and CI-green. P164 VIX/regime entitlement handling with volatility proxy fallback is implemented and CI-green. P166 productive daily Paper Observation evidence producer is implemented / CI-pending. BT130 Real Historical Backtest Evidence Pack Gate is implemented / CI-pending. #177 real-data backtest pipeline coupling is implemented / CI-green. #184 historical real-data input persistence is implemented / targeted guard tests documented. PortfolioState fail-closed fixture migration (#102), JWT fail-closed migration (#103), FCM1/RPW1 CI-wired backlog status (#104), runtime reachability guard (#178), Evidence Quality Gate (#188), and Logic Safety Governance (#189) are validated at documentation/test-guard level.
 
 The system remains research / decision-support / paper-observation only. Real-money execution is not authorized by code.
 
@@ -14,9 +14,9 @@ Safety-relevant fixes and external review findings require a guard test first.
 
 Committed public report examples must remain synthetic/public-safe.
 
-No real-data backtest claim without a complete, validated evidence pack.
+No real-data backtest claim without a complete, validated evidence pack and persisted source inputs with checksums/manifests.
 
-Scheduled runtime workflows must not mutate the main branch with generated artifacts. Runtime evidence belongs in CI artifacts, retention indexes or explicitly governed evidence stores.
+Scheduled runtime workflows must not mutate the main branch with generated artifacts unless an explicit evidence-persistence workflow owns that behavior and commits only reviewable, checksum-backed evidence inputs and reports.
 
 Static Paper Observation watchlists must be labelled with `selection_mode=static_watchlist` and must not be represented as dynamic scanner evidence or trading-edge proof.
 
@@ -31,8 +31,18 @@ Roadmap-stable, strategy-promotion, production-grade evidence, paper-confidence,
 | ID | Task | Priority | Impact | Status |
 |---|---|---:|---:|---|
 | BT130 | Real Historical Backtest Evidence Pack Gate | P1 | High | Implemented / CI-pending |
+| #184 | Persist historical real-data backtest inputs for auditability | P0 | Critical | Implemented / targeted guard tests documented |
 
 BT130 requires real-data backtest evidence packs to include run identity, real-data source declaration, `is_demo=false`, symbol universe, date range, strategy version, input-pack gate status, coverage manifest path, survivorship universe path, trade-plan path, plan input/accepted/rejected counts, rejection reasons, metrics, results, and paper-only execution boundaries.
+
+#184 requires successful real-data historical backtests to persist the source inputs needed to reproduce the run. Polygon bars must be stored as canonical CSV files under `data/historical/bars/1day/*.csv`; coverage manifests must include `symbols[].output_sha256`; BT9 must fail closed on missing or mismatched checksums; accepted evidence artifacts must include `input_checksums`; and the BT131 workflow must persist reports plus source inputs instead of relying only on transient GitHub Actions artifacts.
+
+#184 guard tests:
+
+- `tests/test_184_historical_input_persistence.py`
+- `tests/test_bt9_real_historical_input_pack_gate.py`
+- `tests/test_polygon_historical_ingestion.py`
+- `tests/test_bt131_real_data_backtest_evidence_workflow.py`
 
 ## Phase IP — Public Repository Governance
 
@@ -202,14 +212,16 @@ PFA joins position-level risk attribution with forward outcome evidence. It does
 - #132: Scanner Runtime Boundary validated and closed. Runtime reports and Paper Observation evidence must expose `selection_mode`; static watchlists remain research setup only and cannot claim dynamic scanner breadth or trading-edge proof.
 - #160: Module classification baseline validated and closed. Pipeline-relevant modules have explicit classification, and the architecture inventory is regenerated under guard.
 - #164: VIX/regime entitlement handling validated and closed. The Paper Observation/report regime path attempts true `I:VIX`, falls back to `VOLATILITY_PROXY_SYMBOL`/`VIXY` with degraded proxy provenance, and fails visible as `UNVALIDATED_REGIME` if neither true VIX nor proxy evidence is available.
+- #177: Real-data backtest pipeline coupling phase 1 implemented and CI-green. Historical trade plans can be exported through the Scanner → Signal → Quality → Validator path; non-pipeline-coupled plans remain blocked from real-data evidence claims.
 - #178: Runtime reachability guard implemented at documentation/test-guard level. Decision-critical modules are registered in `docs/architecture/decision_critical_runtime_reachability.json`; active modules require runtime entrypoint plus guard proof, while non-runtime helpers have explicit forbidden architecture/evidence claims.
+- #184: Historical real-data input persistence implemented at checksum/auditability guard level. BT9 verifies coverage-manifest SHA256 checksums against persisted bars, accepted evidence exposes `input_checksums`, and BT131 persists source inputs plus reports.
 - #188: Evidence Quality Gate implemented at documentation/test-guard level. The gate is documented in `docs/operations/evidence-quality-gate.md`, evaluated by `src/evidence_quality_gate.py` / `scripts/evaluate_evidence_quality_gate.py`, and guarded by `tests/test_evidence_quality_gate_188.py`.
 
 ## Recommended Next Remediation Order
 
-1. Continue Phase B data-integrity foundation: survivorship-safe universe, second-provider cross-validation and real persisted daily observation source feed.
-2. Validate remaining CI-pending evidence workflows before upgrading status language.
-3. Continue unresolved evidence-critical blockers referenced by #188, especially #177, #181, #184, #185, #186 and #187.
+1. Continue unresolved evidence-critical blockers referenced by #188, especially #181, #185, #186 and #187.
+2. Continue Phase B data-integrity foundation: survivorship-safe universe, second-provider cross-validation and real persisted daily observation source feed.
+3. Validate remaining CI-pending evidence workflows before upgrading status language.
 
 ## Safety Boundary
 
