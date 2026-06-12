@@ -4,13 +4,13 @@
 
 ### Added
 - Added `tests/test_200_decision_engine_consistency.py`.
-- Added `src/decision_engine_consistency.py`.
 - Added `docs/operations/decision_engine_consistency.md`.
 
 ### Contract
 - Exact match field: `boundary`.
 - Boundaries: `actionable_bullish`, `watch_or_neutral`, `defensive_or_blocked`.
 - Allowed differences: confidence score, probability distribution, position size and risk tier.
+- The boundary adapter lives in the contract test to avoid adding a new unclassified production module under `src/`.
 
 ---
 
