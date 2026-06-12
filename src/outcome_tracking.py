@@ -42,6 +42,13 @@ class DecisionRecord:
     mae: float | None = None
 
 
+@dataclass(frozen=True)
+class DecisionRecordsReadResult:
+    ok: bool
+    records: list[dict[str, Any]]
+    audit_event: dict[str, Any] | None = None
+
+
 FIELDNAMES = [field.name for field in fields(DecisionRecord)]
 
 
@@ -139,7 +146,7 @@ def _read_jsonl_records(input_path: Path) -> list[dict[str, Any]]:
 def read_decision_records(
     path: str | Path,
     *,
-    audit_errors: list[dict[str, str | None]] | None = None,
+    audit_errors: list[dict[str, Any]] | None = None,
     reader: Callable[[Path], list[dict[str, Any]]] | None = None,
 ) -> list[dict[str, Any]]:
     """
@@ -163,7 +170,7 @@ def read_decision_records(
             return _read_jsonl_records(input_path)
 
         return _read_csv_records(input_path)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - #198 exposes degraded read errors as audit metadata.
         if audit_errors is not None:
             audit_errors.append(
                 build_exception_audit_event(
@@ -175,6 +182,22 @@ def read_decision_records(
                 )
             )
         return []
+
+
+def read_decision_records_with_audit(
+    path: str | Path,
+    *,
+    trace_id: str | None = None,
+    reader: Callable[[Path], list[dict[str, Any]]] | None = None,
+) -> DecisionRecordsReadResult:
+    audit_errors: list[dict[str, Any]] = []
+    records = read_decision_records(path, audit_errors=audit_errors, reader=reader)
+    if audit_errors:
+        audit_event = dict(audit_errors[0])
+        if trace_id:
+            audit_event["trace_id"] = trace_id
+        return DecisionRecordsReadResult(ok=False, records=records, audit_event=audit_event)
+    return DecisionRecordsReadResult(ok=True, records=records)
 
 
 def calculate_basic_expectancy(records: list[dict[str, Any]], result_field: str = "result_5d") -> dict[str, float | int]:
