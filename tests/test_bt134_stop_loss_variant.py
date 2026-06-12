@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from src.backtesting.bt134_stop_loss_variant import (
+from scripts.bt134_stop_loss_variant import (
     BT134_REQUIRED_VARIANT_GROUPS,
     build_bt134_report,
     persist_bt134_report,
