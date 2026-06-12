@@ -14,7 +14,9 @@ import json
 from dataclasses import asdict, dataclass, fields
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
+
+from src.exception_audit import build_exception_audit_event
 
 
 @dataclass(frozen=True)
@@ -134,7 +136,12 @@ def _read_jsonl_records(input_path: Path) -> list[dict[str, Any]]:
     return records
 
 
-def read_decision_records(path: str | Path) -> list[dict[str, Any]]:
+def read_decision_records(
+    path: str | Path,
+    *,
+    audit_errors: list[dict[str, str | None]] | None = None,
+    reader: Callable[[Path], list[dict[str, Any]]] | None = None,
+) -> list[dict[str, Any]]:
     """
     Read decision records from CSV or JSONL.
 
@@ -150,11 +157,23 @@ def read_decision_records(path: str | Path) -> list[dict[str, Any]]:
     suffix = input_path.suffix.lower()
 
     try:
+        if reader is not None:
+            return reader(input_path)
         if suffix == ".jsonl":
             return _read_jsonl_records(input_path)
 
         return _read_csv_records(input_path)
-    except Exception:
+    except Exception as exc:
+        if audit_errors is not None:
+            audit_errors.append(
+                build_exception_audit_event(
+                    exc,
+                    stage="outcome_tracking.read_decision_records",
+                    behavior="degraded_empty_records",
+                    component="outcome_tracking",
+                    rationale="Outcome reads may degrade to an empty record set only when the exception is exposed as audit metadata.",
+                )
+            )
         return []
 
 
@@ -170,7 +189,6 @@ def calculate_basic_expectancy(records: list[dict[str, Any]], result_field: str 
             numeric_results.append(float(value))
         except (TypeError, ValueError):
             continue
-
     if not numeric_results:
         return {
             "count": 0,
