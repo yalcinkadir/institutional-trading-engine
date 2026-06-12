@@ -1,11 +1,10 @@
 {
   "broker_execution_mode": "paper_only",
   "capital_allocation_authorized": false,
-  "commit_sha": "b2c683878c2f115523826fc7d2fa4452aa9d549f",
+  "commit_sha": "4e3bef48132b495e2ebf934407c681caa474796e",
   "consecutive_miss_block_threshold_business_days": 2,
   "current_run_state": "WORKFLOW_RAN_VALIDATED",
   "errors": [
-    "premarket_stale_or_missing:6",
     "daily_evidence_stale_or_missing:2"
   ],
   "file_evidence": {
@@ -13,9 +12,9 @@
       "exists": true,
       "is_file": true,
       "non_empty": true,
-      "path": "reports/generated/postmarket-report.md",
+      "path": "reports/generated/premarket-report.md",
       "required": true,
-      "size_bytes": 3741
+      "size_bytes": 3624
     },
     "paper_health_file": {
       "exists": true,
@@ -23,15 +22,15 @@
       "non_empty": true,
       "path": "reports/validation/latest-paper-observation-health.json",
       "required": true,
-      "size_bytes": 1653
+      "size_bytes": 1659
     },
     "report_file": {
       "exists": true,
       "is_file": true,
       "non_empty": true,
-      "path": "reports/postmarket/2026-06-11-postmarket.md",
+      "path": "reports/premarket/2026-06-12-premarket.md",
       "required": true,
-      "size_bytes": 3741
+      "size_bytes": 3624
     },
     "signals_file": {
       "exists": true,
@@ -39,7 +38,7 @@
       "non_empty": true,
       "path": "reports/signals/latest-signals.json",
       "required": true,
-      "size_bytes": 12358
+      "size_bytes": 13092
     }
   },
   "freshness_by_family": {
@@ -50,44 +49,47 @@
       "latest_output_path": null
     },
     "intraday": {
-      "business_days_without_fresh_output": 0,
-      "freshness_status": "REPORT_LIVENESS_OK",
+      "business_days_without_fresh_output": 1,
+      "freshness_status": "REPORT_LIVENESS_DEGRADED",
       "latest_output_date": "2026-06-11",
       "latest_output_path": "reports/intraday/2026-06-11-intraday.md"
     },
     "postmarket": {
-      "business_days_without_fresh_output": 0,
-      "freshness_status": "REPORT_LIVENESS_OK",
+      "business_days_without_fresh_output": 1,
+      "freshness_status": "REPORT_LIVENESS_DEGRADED",
       "latest_output_date": "2026-06-11",
       "latest_output_path": "reports/postmarket/2026-06-11-postmarket.md"
     },
     "premarket": {
-      "business_days_without_fresh_output": 6,
-      "freshness_status": "REPORT_LIVENESS_BLOCKED",
-      "latest_output_date": "2026-06-03",
-      "latest_output_path": "reports/premarket/2026-06-03-premarket.md"
+      "business_days_without_fresh_output": 0,
+      "freshness_status": "REPORT_LIVENESS_OK",
+      "latest_output_date": "2026-06-12",
+      "latest_output_path": "reports/premarket/2026-06-12-premarket.md"
     },
     "signals": {
       "business_days_without_fresh_output": 0,
       "freshness_status": "REPORT_LIVENESS_OK",
-      "latest_output_date": "2026-06-11",
-      "latest_output_path": "reports/signals/2026-06-11-signals.json"
+      "latest_output_date": "2026-06-12",
+      "latest_output_path": "reports/signals/2026-06-12-signals.json"
     }
   },
   "issue": "#192",
-  "latest_file": "reports/generated/postmarket-report.md",
+  "latest_file": "reports/generated/premarket-report.md",
   "live_trading_authorized": false,
   "liveness_status": "REPORT_LIVENESS_BLOCKED",
   "paper_health_file": "reports/validation/latest-paper-observation-health.json",
   "productive_report_cycle": false,
-  "report_file": "reports/postmarket/2026-06-11-postmarket.md",
+  "report_file": "reports/premarket/2026-06-12-premarket.md",
   "report_liveness_status": "REPORT_LIVENESS_BLOCKED",
-  "report_type": "postmarket",
-  "run_date": "2026-06-11",
-  "run_timestamp": "2026-06-11T21:46:11Z",
+  "report_type": "premarket",
+  "run_date": "2026-06-12",
+  "run_timestamp": "2026-06-12T13:43:23Z",
   "scheduled_report_status": "BLOCKED",
   "schema_version": "scheduled_report_liveness.v1",
   "signals_file": "reports/signals/latest-signals.json",
-  "warnings": [],
+  "warnings": [
+    "intraday_one_business_day_without_fresh_output",
+    "postmarket_one_business_day_without_fresh_output"
+  ],
   "workflow_name": "Institutional Reports"
 }
