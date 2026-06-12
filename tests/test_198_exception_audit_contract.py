@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from src.exception_audit import build_exception_audit_event, safe_call
 from src.outcome_tracking import read_decision_records_with_audit
 
@@ -55,24 +53,26 @@ def test_198_safe_call_returns_structured_degraded_result() -> None:
 
 
 def test_198_outcome_reader_exposes_audit_metadata_for_read_errors(tmp_path: Path) -> None:
-    broken_path = tmp_path / "broken.jsonl"
-    broken_path.write_text("{}", encoding="utf-8")
-    broken_path.chmod(0)
+    input_path = tmp_path / "decision_log.csv"
+    input_path.write_text("symbol,decision\nAAPL,approved\n", encoding="utf-8")
 
-    try:
-        result = read_decision_records_with_audit(broken_path, trace_id="outcome-read-198")
-    finally:
-        broken_path.chmod(0o644)
+    def broken_reader(_path: Path) -> list[dict[str, object]]:
+        raise OSError("forced read failure")
 
-    if result.ok:
-        pytest.skip("Platform permissions allowed the file read; chmod failure path not available here.")
+    result = read_decision_records_with_audit(
+        input_path,
+        trace_id="outcome-read-198",
+        reader=broken_reader,
+    )
 
+    assert result.ok is False
     assert result.records == []
     assert result.audit_event is not None
     assert result.audit_event["stage"] == "outcome_tracking.read_decision_records"
     assert result.audit_event["trace_id"] == "outcome-read-198"
-    assert result.audit_event["error_class"]
-    assert result.audit_event["error_message"]
+    assert result.audit_event["error_class"] == "OSError"
+    assert result.audit_event["error_message"] == "forced read failure"
+    assert result.audit_event["policy"] == "EXPLICIT_EXCEPTION_AUDIT"
 
 
 def test_198_active_broad_exception_handlers_have_policy_marker() -> None:
