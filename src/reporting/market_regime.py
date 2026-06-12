@@ -6,6 +6,7 @@ from statistics import mean
 from typing import Any
 
 from src.data.polygon_client import PolygonClient
+from src.exception_audit import build_exception_audit_event, format_exception_audit_summary
 from src.indicators.technical_indicators import calculate_atr, sma
 from src.scoring.market_health_score import MarketHealthScore
 
@@ -97,7 +98,7 @@ def _is_vix_entitlement_error(ticker: str, exc: Exception | str | None) -> bool:
 def _try_symbol_snapshot(client: PolygonClient, ticker: str) -> tuple[dict | None, str | None]:
     try:
         return _safe_symbol_snapshot(client, ticker), None
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - symbol-level snapshot failures degrade into explicit error metadata
         if _is_vix_entitlement_error(ticker, exc):
             return None, (
                 f"{ticker}: {VIX_UNAVAILABLE_ENTITLEMENT}: "
@@ -376,11 +377,20 @@ def build_market_regime_summary(report_type: str) -> dict:
     now = datetime.now(UTC)
     timestamp_utc = now.isoformat()
     errors: list[str] = []
+    exception_audit: list[dict[str, str | None]] = []
 
     try:
         client = PolygonClient()
-    except Exception as exc:
-        error = f"PolygonClient: {type(exc).__name__}: {exc}"
+    except Exception as exc:  # noqa: BLE001 - client construction failure must fail closed with audit metadata
+        audit = build_exception_audit_event(
+            exc,
+            stage="reporting.market_regime.PolygonClient",
+            behavior="fail_closed_blocked_regime",
+            component="reporting.market_regime",
+            rationale="Market regime cannot be validated without a market-data client.",
+        )
+        exception_audit.append(audit)
+        error = format_exception_audit_summary(audit)
         regime_input = _blocked_client_regime_input(timestamp_utc, error)
         policy = _regime_policy(
             vix_input=regime_input["vix"],
@@ -396,12 +406,13 @@ def build_market_regime_summary(report_type: str) -> dict:
             "breadth": {},
             "notes": [
                 "Polygon client could not be initialized.",
-                f"Error: {type(exc).__name__}: {exc}",
+                f"Error: {audit['error_class']}: {audit['error_message']}",
                 "Market regime is explicitly blocked because required regime inputs are unavailable.",
             ],
             "data_status": "FALLBACK",
             "regime_validation_status": REGIME_STATUS_BLOCKED,
             "errors": [error],
+            "exception_audit": exception_audit,
             "regime_input": regime_input,
         }
 
@@ -419,14 +430,22 @@ def build_market_regime_summary(report_type: str) -> dict:
 
     try:
         breadth = _calculate_breadth(client)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - breadth failure may degrade only with explicit audit metadata
+        audit = build_exception_audit_event(
+            exc,
+            stage="reporting.market_regime.breadth",
+            behavior="degraded_continue",
+            component="reporting.market_regime",
+            rationale="Breadth can degrade to zero coverage only when errors are explicit in report evidence.",
+        )
+        exception_audit.append(audit)
         breadth = {
             "universe_size": 0,
             "above_sma50": 0,
             "breadth_percent": 0.0,
-            "failed_symbols": [f"Breadth: {type(exc).__name__}: {exc}"],
+            "failed_symbols": [format_exception_audit_summary(audit)],
         }
-        errors.append(f"Breadth: {type(exc).__name__}: {exc}")
+        errors.append(format_exception_audit_summary(audit))
 
     errors.extend(breadth.get("failed_symbols", []))
 
@@ -514,5 +533,6 @@ def build_market_regime_summary(report_type: str) -> dict:
         "notes": notes,
         "data_status": data_status,
         "errors": errors[:20],
+        "exception_audit": exception_audit,
         "regime_input": regime_input,
     }
