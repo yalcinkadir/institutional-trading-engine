@@ -8,11 +8,13 @@ Issue: #170
 
 BT134 is research-only. It compares stop-loss variants on the same evidence family and does not change production stop rules.
 
-## Module
+## Research script
 
 ```text
-src/backtesting/bt134_stop_loss_variant.py
+scripts/bt134_stop_loss_variant.py
 ```
+
+This intentionally lives under `scripts/` instead of `src/` because BT134 is a research-only analyzer, not a production runtime module.
 
 ## Required variant groups
 
