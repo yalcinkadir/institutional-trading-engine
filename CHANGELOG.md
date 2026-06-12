@@ -59,3 +59,5 @@ History marker retained.
 ## Evidence Quality Gate #188 — 2026-06-11
 
 History marker retained.
+
+live trading
