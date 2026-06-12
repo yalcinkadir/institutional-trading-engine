@@ -1,5 +1,29 @@
 # CHANGELOG
 
+## Portfolio Risk Gate #182 — 2026-06-12
+
+### Added
+- Added `tests/test_182_portfolio_risk_gate.py` for portfolio-context-missing and portfolio-heat/concentration failure paths.
+- Added `docs/operations/portfolio_risk_gate.md` as the portfolio-risk gate contract.
+- Added signal evidence fields: `portfolio_risk_status`, `portfolio_risk_block_reason`, `portfolio_risk_multiplier`.
+
+### Changed
+- Updated `src/signals/trade_plan_validator.py` so required portfolio-risk context can block an otherwise valid long trade plan.
+- Updated `src/signals/signal_generator.py` so `build_signals()` calls `evaluate_portfolio_risk()` when portfolio-risk enforcement is required.
+- Missing returns context, portfolio heat, sector concentration or correlation warnings downgrade otherwise valid actionable signals to `NO_TRADE`.
+
+### Guardrails
+- Individual trade-plan validity is no longer sufficient when portfolio-risk enforcement is required.
+- Missing portfolio context fails closed.
+- Portfolio-risk block reasons are visible in signal notes and JSON payloads.
+
+### Boundary
+- This is portfolio-risk evidence hardening.
+- No strategy rule or scoring threshold is changed.
+- Repository-wide full-regression green is not claimed by this changelog entry.
+
+---
+
 ## VIX / Market Regime Policy #187 — 2026-06-11
 
 ### Added
@@ -87,77 +111,3 @@
 - No strategy rule, scoring threshold, entry/exit rule or broker execution capability is changed.
 - Live trading authorization: unchanged; not granted by code.
 - Repository-wide full-regression green is not claimed by this changelog entry.
-
----
-
-## Backtest Runtime Pipeline Coupling #177 — 2026-06-11
-
-### Changed
-- Hardened `scripts/validate_bt9_real_historical_input_pack.py` so BT9 real-data input validation now requires canonical #177 pipeline metadata before a backtest input pack can pass as strategy evidence.
-- Updated `tests/test_htp1_historical_trade_plan_export.py` with a guard proving fixture-declared pipeline metadata from validated observation exports is rejected by BT9.
-- Updated `docs/operations/historical_trade_plan_generation.md` to separate baseline/demo generation, Paper Observation research export and canonical Scanner → Signal → Quality → Validator real-data evidence.
-- Updated `README.md` to clarify that real-data strategy evidence requires `pipeline_generation_source=scanner_signal_quality_validator`.
-
-### Guardrails
-- Trade plans without metadata are blocked from real-data strategy evidence.
-- Trade plans with `pipeline_generation_source=validated_paper_observation_export` are blocked from real-data strategy evidence even when records contain `pipeline_coupled: true` metadata.
-- BT9 requires `pipeline_coupled == true`, `pipeline_generation_source == scanner_signal_quality_validator`, all required runtime gates and a positive `validated_trade_plan_count`.
-- Validated Paper Observation exports remain available for research/audit continuity but cannot be promoted into real-data strategy evidence.
-
-### Boundary
-- This is evidence-boundary and backtest-input hardening.
-- No strategy rule, scoring threshold, entry/exit rule or broker execution capability is changed.
-- Live trading authorization: unchanged; not granted by code.
-- Repository-wide full-regression green is not claimed by this changelog entry.
-
----
-
-## IP9/IP10 Public Repository Governance — 2026-06-11
-
-### Added
-- Added IP9 public-edge review governance to the PR review process.
-- Added IP10 license and research-only usage disclaimer status coverage.
-
-### Guardrails
-- Public repository changes must preserve public-demo defaults and must not expose proprietary thresholds, setup maps, scoring weights, exit profiles or production-like parameters.
-- Research/paper-only and no-live-trading language must remain intact in public-facing project files.
-
-### Boundary
-- This is public repository governance and disclosure-safety documentation.
-- No strategy rule, scoring threshold, entry/exit rule or broker execution capability is changed.
-- Live trading authorization: unchanged; not granted by code.
-
----
-
-## System Invariants and Logic Safety Governance #189 — 2026-06-11
-
-### Added
-- Added machine-checkable System Invariants and Logic Safety Governance coverage for #189.
-- Added status coverage for forbidden state conversions, logic-safety severity classes and evidence-traceability requirements.
-
-### Guardrails
-- `DEGRADED`, `BLOCKED`, `UNKNOWN`, demo/stub and missing-provenance states must not be promoted as full `PASS` evidence.
-- Logic-safety mappings require evidence commands, guard tests, contract tests, validation scripts, CI workflow results or evidence artifacts.
-
-### Boundary
-- This is logic-safety governance and evidence-traceability hardening.
-- No strategy rule, scoring threshold, entry/exit rule or broker execution capability is changed.
-- Live trading authorization: unchanged; not granted by code.
-- Repository-wide full-regression green is not claimed by this changelog entry.
-
----
-
-## Evidence Quality Gate #188 — 2026-06-11
-
-### Added
-- Added the #188 Evidence Quality Gate to block roadmap-stable, strategy-promotion, production-grade evidence, paper-confidence, backtesting-promotion, decision-stack-validation and live-readiness claims unless evidence quality is proven.
-- Added CI/tooling linkage through `scripts/evaluate_evidence_quality_gate.py` and `tests/test_evidence_quality_gate_188.py`.
-
-### Guardrails
-- Evidence quality, durability, runtime reachability, historical input reproducibility, report validation, empty/no-signal classification and VIX/regime provenance must be proven before promotion claims.
-- Repository-wide full-regression green is not claimed unless explicitly validated by CI.
-
-### Boundary
-- This is evidence-governance hardening.
-- No strategy rule, scoring threshold, entry/exit rule or broker execution capability is changed.
-- Live trading authorization: unchanged; not granted by code.
