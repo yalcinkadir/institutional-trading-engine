@@ -13,12 +13,12 @@ data-quality diagnostics so callers can block, degrade, report, or alert.
 from __future__ import annotations
 
 import json
-import math
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+from src.validation.historical_edge_validation import coerce_finite_float
 
 REQUIRED_SIGNAL_METRICS = ("close", "atr14")
 REQUIRED_PROVENANCE_FIELDS = ("source", "source_timestamp", "fallback_level")
@@ -140,15 +140,7 @@ class DatafeedLivenessRecord:
 
 
 def _safe_float(value: Any) -> float | None:
-    if value is None:
-        return None
-    try:
-        result = float(value)
-    except (TypeError, ValueError):
-        return None
-    if math.isnan(result) or math.isinf(result):
-        return None
-    return result
+    return coerce_finite_float(value)
 
 
 def _safe_text(value: Any) -> str | None:
@@ -181,66 +173,61 @@ def _staleness_reason(
     parsed = _parse_timestamp(source_timestamp)
     if parsed is None:
         return "invalid_source_timestamp"
-    threshold = timedelta(minutes=max_staleness_minutes)
-    if now_utc - parsed > threshold:
-        return "source_timestamp_too_old"
-    if parsed - now_utc > timedelta(minutes=5):
+    age = now_utc - parsed
+    if age < timedelta(0):
         return "source_timestamp_in_future"
+    if age > timedelta(minutes=max_staleness_minutes):
+        return f"stale_source_timestamp:{int(age.total_seconds() // 60)}m"
     return None
 
 
-def normalize_symbol_metrics(metrics: dict[str, Any] | None) -> dict[str, Any] | None:
-    """Normalize a raw scanner metrics row for signal generation.
+def classify_provider_failure(metrics: dict[str, Any]) -> str | None:
+    kind = str(metrics.get("data_failure_kind") or "").upper()
+    status_code = metrics.get("provider_status_code")
+    message = str(metrics.get("data_failure_message") or "").lower()
 
-    Numeric values are converted to floats where possible. Pandas `NA`, NaN and
-    infinity are converted to `None`. Non-numeric labels, provenance fields, and
-    canonical market-data failure fields are preserved.
-    """
-    if not metrics:
+    if kind in {"MISSING_API_KEY", "NO_API_KEY"}:
+        return PROVIDER_FAILURE_MISSING_API_KEY
+    if kind in {"RATE_LIMIT", "TOO_MANY_REQUESTS"} or status_code == 429:
+        return PROVIDER_FAILURE_PROVIDER_LIMIT
+    if kind in {"AUTH_FORBIDDEN", "FORBIDDEN", "UNAUTHORIZED"} or status_code in {401, 403}:
+        return PROVIDER_FAILURE_PROVIDER_FORBIDDEN
+    if kind in {"EMPTY_BARS", "EMPTY_RESPONSE"}:
+        return PROVIDER_FAILURE_EMPTY_RESPONSE
+    if kind in {"SCHEMA_MISMATCH", "PARSE_ERROR"}:
+        return PROVIDER_FAILURE_SCHEMA_MISMATCH
+    if kind:
+        return PROVIDER_FAILURE_UNKNOWN
+    if "api key" in message or "missing" in message:
+        return PROVIDER_FAILURE_MISSING_API_KEY
+    if "rate" in message or "limit" in message:
+        return PROVIDER_FAILURE_PROVIDER_LIMIT
+    if "forbidden" in message or "unauthorized" in message:
+        return PROVIDER_FAILURE_PROVIDER_FORBIDDEN
+    return None
+
+
+def _market_data_failure_details(metrics: dict[str, Any]) -> dict[str, Any] | None:
+    failure_reason = classify_provider_failure(metrics)
+    if failure_reason is None:
         return None
-
-    normalized: dict[str, Any] = {}
-    for key in (*REQUIRED_SIGNAL_METRICS, *OPTIONAL_SIGNAL_METRICS):
-        if key not in metrics:
-            continue
-        if key == "entry_type":
-            normalized[key] = metrics.get(key)
-        else:
-            normalized[key] = _safe_float(metrics.get(key))
-
-    for key in PROVENANCE_FIELDS:
-        if key in metrics:
-            normalized[key] = _safe_text(metrics.get(key))
-
-    if "provider_status_code" in metrics:
-        normalized["provider_status_code"] = _safe_float(metrics.get("provider_status_code"))
-    for key in ("data_failure_kind", "data_failure_message"):
-        if key in metrics:
-            normalized[key] = _safe_text(metrics.get(key))
-
-    if "symbol" in metrics:
-        normalized["symbol"] = metrics.get("symbol")
-    if "warnings" in metrics:
-        normalized["warnings"] = metrics.get("warnings") or []
-
-    return normalized
+    return {
+        "kind": metrics.get("data_failure_kind") or failure_reason,
+        "reason": failure_reason,
+        "message": metrics.get("data_failure_message"),
+        "status_code": metrics.get("provider_status_code"),
+    }
 
 
 def normalize_scanner_metrics_map(
-    scanner_metrics_map: dict[str, Any] | None,
-    expected_symbols: list[str],
+    metrics_map: dict[str, dict[str, Any]] | None,
+    required_symbols: list[str] | tuple[str, ...],
     *,
     now_utc: datetime | None = None,
     max_staleness_minutes: int = DEFAULT_MAX_STALENESS_MINUTES,
 ) -> tuple[dict[str, dict[str, Any]], ScannerMetricsDiagnostics]:
-    """Normalize scanner metrics map and return diagnostics.
-
-    Missing or incomplete metrics are not fatal here. They are made visible through
-    diagnostics so callers can block, degrade, report, or alert without silently
-    hiding operational data-quality problems.
-    """
-    source = scanner_metrics_map or {}
-    now = (now_utc or datetime.now(UTC)).astimezone(UTC)
+    now_utc = now_utc or datetime.now(UTC)
+    raw_map = metrics_map or {}
     normalized: dict[str, dict[str, Any]] = {}
     missing_symbols: list[str] = []
     missing_required_fields: dict[str, list[str]] = {}
@@ -248,59 +235,52 @@ def normalize_scanner_metrics_map(
     stale_symbols: dict[str, str] = {}
     market_data_failures: dict[str, dict[str, Any]] = {}
 
-    for symbol in expected_symbols:
-        row = normalize_symbol_metrics(source.get(symbol))
-        if row is None:
+    for symbol in required_symbols:
+        raw_metrics = raw_map.get(symbol)
+        if not raw_metrics:
             missing_symbols.append(symbol)
+            normalized[symbol] = {}
             continue
 
-        failure_kind = row.get("data_failure_kind")
-        if failure_kind:
-            market_data_failures[symbol] = {
-                "kind": failure_kind,
-                "message": row.get("data_failure_message"),
-                "status_code": row.get("provider_status_code"),
-            }
+        row = dict(raw_metrics)
+        numeric_required_missing: list[str] = []
+        for field_name in REQUIRED_SIGNAL_METRICS:
+            row[field_name] = _safe_float(row.get(field_name))
+            if row[field_name] is None:
+                numeric_required_missing.append(field_name)
+        for field_name in OPTIONAL_SIGNAL_METRICS:
+            if field_name in row:
+                row[field_name] = _safe_float(row.get(field_name))
 
-        missing_fields = [
-            field for field in REQUIRED_SIGNAL_METRICS
-            if row.get(field) is None
-        ]
-        if missing_fields:
-            missing_required_fields[symbol] = missing_fields
+        provenance_missing = [field_name for field_name in REQUIRED_PROVENANCE_FIELDS if not _safe_text(row.get(field_name))]
+        failure_detail = _market_data_failure_details(row)
+        if failure_detail is not None:
+            market_data_failures[symbol] = failure_detail
+        if numeric_required_missing:
+            missing_required_fields[symbol] = numeric_required_missing
+        if provenance_missing:
+            missing_provenance_fields[symbol] = provenance_missing
 
-        missing_provenance = [
-            field for field in REQUIRED_PROVENANCE_FIELDS
-            if row.get(field) is None
-        ]
-        if missing_provenance:
-            missing_provenance_fields[symbol] = missing_provenance
-
-        if row.get("source_timestamp") is not None:
-            stale_reason = _staleness_reason(
-                row.get("source_timestamp"),
-                now_utc=now,
-                max_staleness_minutes=max_staleness_minutes,
-            )
-            if stale_reason:
-                stale_symbols[symbol] = stale_reason
-
-        if missing_fields or failure_kind:
-            row["data_status"] = "BLOCKED"
-        elif missing_provenance or symbol in stale_symbols:
-            row["data_status"] = "DEGRADED"
-        else:
-            row["data_status"] = row.get("data_status") or "OK"
+        stale_reason = _staleness_reason(
+            row.get("source_timestamp"),
+            now_utc=now_utc,
+            max_staleness_minutes=max_staleness_minutes,
+        )
+        if stale_reason is not None:
+            stale_symbols[symbol] = stale_reason
 
         normalized[symbol] = row
 
     valid_symbols = sum(
-        1 for symbol in expected_symbols
-        if symbol in normalized and symbol not in missing_required_fields and symbol not in market_data_failures
+        1
+        for symbol in required_symbols
+        if symbol in normalized
+        and symbol not in missing_symbols
+        and symbol not in missing_required_fields
+        and symbol not in market_data_failures
     )
-
     diagnostics = ScannerMetricsDiagnostics(
-        total_symbols=len(expected_symbols),
+        total_symbols=len(required_symbols),
         valid_symbols=valid_symbols,
         missing_symbols=missing_symbols,
         missing_required_fields=missing_required_fields,
@@ -312,149 +292,55 @@ def normalize_scanner_metrics_map(
 
 
 def build_datafeed_liveness_record(
+    normalized: dict[str, dict[str, Any]],
+    diagnostics: ScannerMetricsDiagnostics,
     *,
-    scanner_metrics_map: dict[str, dict[str, Any]] | None,
-    scanner_data_quality: dict[str, Any] | None,
-    checked_at: str | None = None,
+    checked_at: datetime | None = None,
 ) -> DatafeedLivenessRecord:
-    """Classify scanner market-data liveness for Paper Observation.
-
-    A run where every tracked symbol has `close=None` is infrastructure-blocked
-    evidence, not a productive Paper Observation cycle.
-    """
-    metrics = scanner_metrics_map or {}
-    data_quality = scanner_data_quality or {}
-    total_symbols = _safe_int(data_quality.get("total_symbols"), len(metrics))
-    valid_symbols = _safe_int(data_quality.get("valid_symbols"), 0)
-    valid_close_count = sum(1 for row in metrics.values() if _is_number((row or {}).get("close")))
-    missing_required_fields = _dict_of_lists(data_quality.get("missing_required_fields"))
-    provider_failures = _dict_of_dicts(data_quality.get("market_data_failures"))
-    blocked_symbols = sorted(
-        {
-            *(symbol for symbol, fields in missing_required_fields.items() if "close" in fields),
-            *provider_failures.keys(),
-            *(symbol for symbol, row in metrics.items() if not _is_number((row or {}).get("close"))),
-        }
+    checked = (checked_at or datetime.now(UTC)).isoformat()
+    total = diagnostics.total_symbols
+    valid_close_count = sum(
+        1
+        for metrics in normalized.values()
+        if _safe_float(metrics.get("close")) is not None
     )
-    all_close_missing = total_symbols > 0 and valid_close_count == 0
-    data_quality_status = str(data_quality.get("data_quality_status") or "UNKNOWN").upper()
-    provider_failure_reason = _derive_provider_failure_reason(
-        data_quality=data_quality,
-        provider_failures=provider_failures,
-        missing_required_fields=missing_required_fields,
-        all_close_missing=all_close_missing,
-    )
-
+    all_close_missing = total > 0 and valid_close_count == 0
+    provider_reasons = sorted({detail["reason"] for detail in diagnostics.market_data_failures.values()})
+    provider_failure_reason = ",".join(provider_reasons) if provider_reasons else None
+    datafeed_status = DATAFEED_OK
     notes: list[str] = []
-    if all_close_missing:
-        notes.append("all tracked symbols have missing/non-numeric close")
-    if provider_failure_reason:
-        notes.append(f"provider_failure_reason={provider_failure_reason}")
-    if data_quality_status not in {"OK", "DEGRADED", "BLOCKED"}:
-        notes.append(f"unknown data_quality_status={data_quality_status}")
 
-    if all_close_missing or data_quality_status in {"BLOCKED", "UNKNOWN", "FAILED"}:
-        status = DATAFEED_BLOCKED
-    elif data_quality_status == "DEGRADED" or valid_symbols < total_symbols:
-        status = DATAFEED_DEGRADED
-    else:
-        status = DATAFEED_OK
+    if diagnostics.market_data_failures:
+        datafeed_status = DATAFEED_BLOCKED
+        notes.append("provider_failures_present")
+    elif all_close_missing:
+        datafeed_status = DATAFEED_BLOCKED
+        provider_failure_reason = provider_failure_reason or PROVIDER_FAILURE_SCHEMA_MISMATCH
+        notes.append("all_close_values_missing")
+    elif diagnostics.missing_required_fields:
+        datafeed_status = DATAFEED_DEGRADED
+        notes.append("missing_required_fields")
+    elif diagnostics.stale_symbols or diagnostics.missing_provenance_fields:
+        datafeed_status = DATAFEED_DEGRADED
+        notes.append("provenance_or_freshness_warning")
 
     return DatafeedLivenessRecord(
-        datafeed_status=status,
+        datafeed_status=datafeed_status,
         provider_failure_reason=provider_failure_reason,
-        total_symbols=total_symbols,
+        total_symbols=total,
         valid_close_count=valid_close_count,
         all_close_missing=all_close_missing,
-        valid_symbols=valid_symbols,
-        data_quality_status=data_quality_status,
-        checked_at=checked_at or datetime.now(UTC).isoformat(),
-        blocked_symbols=blocked_symbols,
-        provider_failures=provider_failures,
-        missing_required_fields=missing_required_fields,
+        valid_symbols=diagnostics.valid_symbols,
+        data_quality_status=diagnostics.data_quality_status,
+        checked_at=checked,
+        blocked_symbols=sorted(set(diagnostics.missing_symbols) | set(diagnostics.missing_required_fields) | set(diagnostics.market_data_failures)),
+        provider_failures=diagnostics.market_data_failures,
+        missing_required_fields=diagnostics.missing_required_fields,
         notes=notes,
     )
 
 
-def write_datafeed_liveness_record(
-    record: DatafeedLivenessRecord,
-    *,
-    output_dir: Path = Path("reports/health"),
-    date_str: str | None = None,
-) -> tuple[Path, Path]:
-    output_dir.mkdir(parents=True, exist_ok=True)
-    date = date_str or datetime.now(UTC).strftime("%Y-%m-%d")
-    dated_path = output_dir / f"{date}-datafeed-liveness.json"
-    latest_path = output_dir / "datafeed-liveness-latest.json"
-    payload = json.dumps(record.to_dict(), indent=2, sort_keys=True) + "\n"
-    dated_path.write_text(payload, encoding="utf-8")
-    latest_path.write_text(payload, encoding="utf-8")
-    return dated_path, latest_path
-
-
-def _derive_provider_failure_reason(
-    *,
-    data_quality: dict[str, Any],
-    provider_failures: dict[str, dict[str, Any]],
-    missing_required_fields: dict[str, list[str]],
-    all_close_missing: bool,
-) -> str | None:
-    raw_reasons = " ".join(
-        str(value or "")
-        for failure in provider_failures.values()
-        for value in (failure.get("kind"), failure.get("message"), failure.get("status_code"))
-    ).lower()
-    raw_reasons += " " + str(data_quality.get("provider_failure_reason") or "").lower()
-
-    if "missing_api_key" in raw_reasons or "api key" in raw_reasons or "polygon_api_key" in raw_reasons:
-        return PROVIDER_FAILURE_MISSING_API_KEY
-    if "429" in raw_reasons or "rate" in raw_reasons or "limit" in raw_reasons:
-        return PROVIDER_FAILURE_PROVIDER_LIMIT
-    if "403" in raw_reasons or "401" in raw_reasons or "forbidden" in raw_reasons or "unauthorized" in raw_reasons:
-        return PROVIDER_FAILURE_PROVIDER_FORBIDDEN
-    if "empty" in raw_reasons or "no results" in raw_reasons:
-        return PROVIDER_FAILURE_EMPTY_RESPONSE
-    if provider_failures:
-        return PROVIDER_FAILURE_UNKNOWN
-    if all_close_missing and missing_required_fields:
-        return PROVIDER_FAILURE_SCHEMA_MISMATCH
-    if all_close_missing:
-        return PROVIDER_FAILURE_EMPTY_RESPONSE
-    return None
-
-
-def _is_number(value: Any) -> bool:
-    if isinstance(value, bool) or value is None:
-        return False
-    try:
-        number = float(value)
-    except (TypeError, ValueError):
-        return False
-    return number == number and number not in {float("inf"), float("-inf")}
-
-
-def _safe_int(value: Any, fallback: int) -> int:
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return fallback
-
-
-def _dict_of_lists(value: Any) -> dict[str, list[str]]:
-    if not isinstance(value, dict):
-        return {}
-    result: dict[str, list[str]] = {}
-    for key, raw_list in value.items():
-        if isinstance(raw_list, list):
-            result[str(key)] = [str(item) for item in raw_list]
-    return result
-
-
-def _dict_of_dicts(value: Any) -> dict[str, dict[str, Any]]:
-    if not isinstance(value, dict):
-        return {}
-    result: dict[str, dict[str, Any]] = {}
-    for key, raw_dict in value.items():
-        if isinstance(raw_dict, dict):
-            result[str(key)] = dict(raw_dict)
-    return result
+def write_datafeed_liveness_record(record: DatafeedLivenessRecord, path: Path) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(record.to_dict(), indent=2, sort_keys=True), encoding="utf-8")
+    return path
