@@ -25,6 +25,9 @@ IGNORED_MODULES = {
     # #191 compatibility shim only. The implementation lives in the ARCH106-
     # classified report/signal runtime module src/signals/scanner_metrics_pipeline.py.
     "src/validation/datafeed_liveness.py",
+    # #198 compatibility shim only. The implementation lives in the already
+    # existing structured logging helper src/structured_logging.py.
+    "src/exception_audit.py",
 }
 
 
