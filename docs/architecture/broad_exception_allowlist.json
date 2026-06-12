@@ -1,0 +1,83 @@
+{
+  "schema": "broad_exception_allowlist.v1",
+  "issue": "#198",
+  "required_fields": [
+    "path",
+    "function",
+    "behavior",
+    "rationale",
+    "evidence"
+  ],
+  "entries": [
+    {
+      "path": "src/cache/redis_cache.py",
+      "function": "RedisCache._connect_redis",
+      "behavior": "degraded_memory_cache_fallback",
+      "rationale": "Redis is optional; connection failure may fall back to deterministic in-memory cache.",
+      "evidence": "backend property exposes redis or memory"
+    },
+    {
+      "path": "src/historical/polygon_ingestion.py",
+      "function": "_read_existing_bars",
+      "behavior": "degraded_empty_existing_bars",
+      "rationale": "Corrupt or unreadable prior CSV must not block fresh ingestion; output metadata records written rows and status.",
+      "evidence": "HistoricalIngestionResult status/message/output_sha256"
+    },
+    {
+      "path": "src/historical/polygon_ingestion.py",
+      "function": "ingest_historical_symbol",
+      "behavior": "structured_error_result",
+      "rationale": "Per-symbol ingestion failure is captured as an error result so batch ingestion can continue with evidence.",
+      "evidence": "HistoricalIngestionResult status=error message includes error class"
+    },
+    {
+      "path": "src/macro/vix_adapter.py",
+      "function": "_try_fetch_latest_close",
+      "behavior": "candidate_source_skip",
+      "rationale": "VIX candidate symbols are tried in order; provider failure on one candidate may skip to the next candidate.",
+      "evidence": "VixSnapshot.source_notes records selected source or unavailable state"
+    },
+    {
+      "path": "src/macro/vix_adapter.py",
+      "function": "_latest_date_from_any",
+      "behavior": "candidate_date_skip",
+      "rationale": "Date lookup tries multiple candidate symbols; failure on one candidate may skip to the next candidate.",
+      "evidence": "VixSnapshot.as_of records selected date or null unavailable state"
+    },
+    {
+      "path": "src/persistence/atomic_write.py",
+      "function": "write_text_atomic",
+      "behavior": "cleanup_then_reraise",
+      "rationale": "Atomic write cleanup is attempted, then the original persistence failure is propagated fail-closed.",
+      "evidence": "except handler unlinks temporary file and raises"
+    },
+    {
+      "path": "src/reporting/market_regime.py",
+      "function": "_try_symbol_snapshot",
+      "behavior": "structured_symbol_error",
+      "rationale": "Symbol snapshot failures are returned as explicit symbol-scoped error strings and included in report errors.",
+      "evidence": "errors[] and failed_symbols[] include error class and message"
+    },
+    {
+      "path": "src/reporting/market_regime.py",
+      "function": "build_market_regime_summary",
+      "behavior": "blocked_or_degraded_regime_result",
+      "rationale": "Client or breadth failures produce blocked/degraded regime evidence with explicit errors.",
+      "evidence": "regime_validation_status, regime_policy, errors[]"
+    },
+    {
+      "path": "src/runtime/runtime_loop.py",
+      "function": "RuntimeLoop.start",
+      "behavior": "structured_log_then_fail_closed_threshold",
+      "rationale": "Runtime loop logs provider exceptions and raises RuntimeLoopError after configured threshold.",
+      "evidence": "emit_structured_log context and RuntimeLoopError"
+    },
+    {
+      "path": "src/outcome_tracking.py",
+      "function": "read_decision_records",
+      "behavior": "degraded_empty_records_with_audit_metadata",
+      "rationale": "Outcome reads may degrade to empty only when caller supplies audit_errors and receives structured metadata.",
+      "evidence": "build_exception_audit_event with stage/outcome_tracking.read_decision_records"
+    }
+  ]
+}
