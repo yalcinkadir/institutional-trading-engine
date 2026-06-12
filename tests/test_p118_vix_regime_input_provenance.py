@@ -37,11 +37,13 @@ def test_p118_vix_input_provenance_is_recorded_for_live_vix(monkeypatch: pytest.
     assert regime_input["vix"]["status"] == "LIVE"
     assert regime_input["vix"]["fallback_used"] is False
     assert regime_input["vix"]["timestamp"] == summary["timestamp_utc"]
+    assert summary["regime_policy"]["action"] == "ALLOW"
+    assert summary["regime_policy"]["confidence"] == "FULL"
     assert summary["data_status"] == "LIVE"
     assert "VIX" in summary["symbols"]
 
 
-def test_p118_unavailable_vix_is_deterministic_degraded_input(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_p118_unavailable_vix_is_deterministic_blocked_input(monkeypatch: pytest.MonkeyPatch) -> None:
     from src.reporting import market_regime
 
     monkeypatch.setattr(market_regime, "PolygonClient", lambda: _FakePolygonClient(unavailable_tickers={"I:VIX"}))
@@ -51,13 +53,16 @@ def test_p118_unavailable_vix_is_deterministic_degraded_input(monkeypatch: pytes
     regime_input = summary["regime_input"]
     assert regime_input["vix"]["symbol"] == "I:VIX"
     assert regime_input["vix"]["source"] == "polygon"
-    assert regime_input["vix"]["status"] == "DEGRADED"
+    assert regime_input["vix"]["status"] == "BLOCKED"
     assert regime_input["vix"]["fallback_used"] is True
-    assert regime_input["vix"]["fallback_value"] == 20.0
+    assert regime_input["vix"]["fallback_value"] is None
     assert "unsupported tier for I:VIX" in regime_input["vix"]["error"]
     assert summary["data_status"] == "PARTIAL"
+    assert summary["regime"] == market_regime.BLOCKED_MARKET_REGIME_UNAVAILABLE
     assert summary["regime"] != "Unknown"
-    assert any("VIX data unavailable" in note for note in summary["notes"])
+    assert summary["regime_policy"]["action"] == "BLOCK"
+    assert summary["regime_policy"]["confidence"] == "BLOCKED"
+    assert any("blocked" in note.lower() for note in summary["notes"])
 
 
 def test_p118_missing_core_indices_blocks_regime_input(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -71,7 +76,10 @@ def test_p118_missing_core_indices_blocks_regime_input(monkeypatch: pytest.Monke
 
     summary = market_regime.build_market_regime_summary("premarket")
 
-    assert summary["regime"] == "Unknown"
+    assert summary["regime"] == market_regime.BLOCKED_MARKET_REGIME_UNAVAILABLE
+    assert summary["regime"] != "Unknown"
     assert summary["data_status"] == "FALLBACK"
-    assert summary["regime_input"]["vix"]["status"] == "DEGRADED"
+    assert summary["regime_input"]["vix"]["status"] == "BLOCKED"
     assert summary["regime_input"]["index_trend"]["status"] == "BLOCKED"
+    assert summary["regime_policy"]["action"] == "BLOCK"
+    assert summary["regime_policy"]["confidence"] == "BLOCKED"
