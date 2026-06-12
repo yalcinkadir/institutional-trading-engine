@@ -12,7 +12,7 @@
 - VIX available now yields `regime_policy.action=ALLOW` and `confidence=FULL`.
 - VIX missing with proxy available yields `regime_policy.action=DEGRADE`, `confidence=DEGRADED` and `source=polygon_proxy`.
 - VIX missing without proxy, missing index trend inputs or Polygon client failure now yield `BLOCKED_MARKET_REGIME_UNAVAILABLE` and `regime_policy.action=BLOCK`.
-- Aligned existing P164 tests with the stricter #187 blocking policy.
+- Aligned existing P164 and P118 tests with the stricter #187 blocking policy.
 - Updated `README.md` with the #187 VIX/regime policy boundary.
 
 ### Guardrails
@@ -109,3 +109,55 @@
 - No strategy rule, scoring threshold, entry/exit rule or broker execution capability is changed.
 - Live trading authorization: unchanged; not granted by code.
 - Repository-wide full-regression green is not claimed by this changelog entry.
+
+---
+
+## IP9/IP10 Public Repository Governance — 2026-06-11
+
+### Added
+- Added IP9 public-edge review governance to the PR review process.
+- Added IP10 license and research-only usage disclaimer status coverage.
+
+### Guardrails
+- Public repository changes must preserve public-demo defaults and must not expose proprietary thresholds, setup maps, scoring weights, exit profiles or production-like parameters.
+- Research/paper-only and no-live-trading language must remain intact in public-facing project files.
+
+### Boundary
+- This is public repository governance and disclosure-safety documentation.
+- No strategy rule, scoring threshold, entry/exit rule or broker execution capability is changed.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
+## System Invariants and Logic Safety Governance #189 — 2026-06-11
+
+### Added
+- Added machine-checkable System Invariants and Logic Safety Governance coverage for #189.
+- Added status coverage for forbidden state conversions, logic-safety severity classes and evidence-traceability requirements.
+
+### Guardrails
+- `DEGRADED`, `BLOCKED`, `UNKNOWN`, demo/stub and missing-provenance states must not be promoted as full `PASS` evidence.
+- Logic-safety mappings require evidence commands, guard tests, contract tests, validation scripts, CI workflow results or evidence artifacts.
+
+### Boundary
+- This is logic-safety governance and evidence-traceability hardening.
+- No strategy rule, scoring threshold, entry/exit rule or broker execution capability is changed.
+- Live trading authorization: unchanged; not granted by code.
+- Repository-wide full-regression green is not claimed by this changelog entry.
+
+---
+
+## Evidence Quality Gate #188 — 2026-06-11
+
+### Added
+- Added the #188 Evidence Quality Gate to block roadmap-stable, strategy-promotion, production-grade evidence, paper-confidence, backtesting-promotion, decision-stack-validation and live-readiness claims unless evidence quality is proven.
+- Added CI/tooling linkage through `scripts/evaluate_evidence_quality_gate.py` and `tests/test_evidence_quality_gate_188.py`.
+
+### Guardrails
+- Evidence quality, durability, runtime reachability, historical input reproducibility, report validation, empty/no-signal classification and VIX/regime provenance must be proven before promotion claims.
+- Repository-wide full-regression green is not claimed unless explicitly validated by CI.
+
+### Boundary
+- This is evidence-governance hardening.
+- No strategy rule, scoring threshold, entry/exit rule or broker execution capability is changed.
+- Live trading authorization: unchanged; not granted by code.
