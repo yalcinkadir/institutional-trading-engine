@@ -21,6 +21,7 @@ class _Response:
 
 
 def _configure_api_key(monkeypatch) -> None:
+    monkeypatch.setenv("POLYGON_API_KEY", "test-key")
     monkeypatch.setattr(scanner, "API_KEY", "test-key")
     scanner.clear_market_data_failures()
 
@@ -95,7 +96,7 @@ def test_vix_defaults_to_supported_proxy_with_degraded_provenance(monkeypatch) -
     monkeypatch.setenv("VOLATILITY_PROXY_SYMBOL", "VIXY")
     calls: list[str] = []
 
-    def fake_get_daily_bars(symbol: str, days: int = 500, retries: int = 3):
+    def fake_get_daily_bars(symbol: str, days: int = 500, retries: int = 3, **_kwargs):
         calls.append(symbol)
         assert symbol == "VIXY"
         return _bars([10.0, 11.0])
@@ -120,7 +121,7 @@ def test_vix_primary_index_path_when_explicitly_enabled(monkeypatch) -> None:
     monkeypatch.setenv("POLYGON_INDEX_DATA_ENABLED", "true")
     calls: list[str] = []
 
-    def fake_get_daily_bars(symbol: str, days: int = 500, retries: int = 3):
+    def fake_get_daily_bars(symbol: str, days: int = 500, retries: int = 3, **_kwargs):
         calls.append(symbol)
         assert symbol == "I:VIX"
         return _bars([18.0, 17.0])
@@ -142,7 +143,7 @@ def test_vix_proxy_failure_blocks_regime_context(monkeypatch) -> None:
     _configure_api_key(monkeypatch)
     monkeypatch.delenv("POLYGON_INDEX_DATA_ENABLED", raising=False)
 
-    def fake_get_daily_bars(symbol: str, days: int = 500, retries: int = 3):
+    def fake_get_daily_bars(symbol: str, days: int = 500, retries: int = 3, **_kwargs):
         scanner._record_market_data_failure(
             scanner.MarketDataFailure(
                 symbol=symbol,
