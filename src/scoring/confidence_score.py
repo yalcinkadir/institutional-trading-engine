@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+import warnings
+
+DEPRECATED_CONFIDENCE_SCORE_PATH = True
+CANONICAL_CONFIDENCE_SCORE_PATH = "src.decision_confidence.calculate_confidence_score"
+
 
 def calculate_confidence_score(
     setup_score: int,
@@ -7,6 +12,23 @@ def calculate_confidence_score(
     vix: float,
     breadth_percent: float,
 ) -> dict:
+    """Deprecated research-only confidence helper.
+
+    The canonical confidence implementation is
+    `src.decision_confidence.calculate_confidence_score`.
+
+    This helper is retained only for historical compatibility and must not be used
+    as a report/runtime confidence source because it reuses VIX/breadth inputs that
+    already belong inside market-health/regime evidence.
+    """
+
+    warnings.warn(
+        "src.scoring.confidence_score.calculate_confidence_score is deprecated; "
+        f"use {CANONICAL_CONFIDENCE_SCORE_PATH}",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
     confidence = setup_score * 0.5
     confidence += market_health_score * 0.3
 
@@ -40,4 +62,7 @@ def calculate_confidence_score(
     return {
         "confidence": confidence,
         "level": level,
+        "deprecated": True,
+        "canonical_path": CANONICAL_CONFIDENCE_SCORE_PATH,
+        "usage": "research_only_legacy_compatibility",
     }
