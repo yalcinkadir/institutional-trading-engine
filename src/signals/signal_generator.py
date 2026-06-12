@@ -14,6 +14,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+from src.portfolio_risk import PortfolioCandidate, PortfolioRiskResult, evaluate_portfolio_risk
 from src.signals.entry_quality import derive_entry_quality
 from src.signals.exit_target_quality import derive_exit_target_quality
 from src.signals.signal_identity import build_signal_id
@@ -65,6 +66,9 @@ class Signal:
     score_source: str = "unknown"
     data_source: str = "unknown"
     thresholds_version: str = "unknown"
+    portfolio_risk_status: str = "NOT_EVALUATED"
+    portfolio_risk_block_reason: str | None = None
+    portfolio_risk_multiplier: float | None = None
 
 
 def _safe(v: Any, fallback: float | None = None) -> float | None:
@@ -82,6 +86,18 @@ def _safe_text(value: Any) -> str | None:
         return None
     text = str(value).strip()
     return text or None
+
+
+def _safe_returns_20d(value: Any) -> tuple[float, ...]:
+    if not isinstance(value, (list, tuple)):
+        return ()
+    values: list[float] = []
+    for item in value:
+        safe = _safe(item)
+        if safe is None:
+            return ()
+        values.append(safe)
+    return tuple(values)
 
 
 def _valid_until(days: int = 3) -> str:
@@ -197,6 +213,8 @@ def _unsafe_actionable_artifact_reasons(signal: Signal) -> list[str]:
         reasons.append("missing_fallback_level")
     if signal.data_status != "OK":
         reasons.append(f"data_status_{signal.data_status.lower()}")
+    if signal.portfolio_risk_status == "BLOCKED":
+        reasons.append("portfolio_risk_blocked")
     return reasons
 
 
@@ -230,15 +248,62 @@ def _export_risk_tier_for_action(action: str, risk_tier: Any) -> str:
     return "NO_TRADE"
 
 
+def _build_portfolio_risk_result(
+    *,
+    decision_report: dict,
+    scanner_metrics_map: dict[str, Any] | None,
+    limits: dict[str, float] | None,
+) -> PortfolioRiskResult | None:
+    candidates: list[PortfolioCandidate] = []
+    for item in decision_report.get("decisions", []):
+        if _action_for_decision(str(item.get("decision") or "")) != "BUY_WATCH":
+            continue
+        symbol = str(item.get("symbol") or "")
+        scanner = (scanner_metrics_map or {}).get(symbol) or {}
+        returns_20d = _safe_returns_20d(scanner.get("returns_20d"))
+        if len(returns_20d) < 3:
+            return None
+        candidates.append(
+            PortfolioCandidate(
+                symbol=symbol,
+                sector=str(item.get("sector") or scanner.get("sector") or "UNKNOWN"),
+                risk_tier=str(item.get("risk_tier") or "no_trade"),
+                position_size_multiplier=float(item.get("position_size_multiplier") or 0.0),
+                returns_20d=returns_20d,
+            )
+        )
+    if not candidates:
+        return evaluate_portfolio_risk([])
+    limits = limits or {}
+    return evaluate_portfolio_risk(
+        candidates,
+        max_portfolio_heat=float(limits.get("max_portfolio_heat", 3.0)),
+        max_sector_heat=float(limits.get("max_sector_heat", 1.5)),
+        correlation_threshold=float(limits.get("correlation_threshold", 0.80)),
+    )
+
+
 def build_signals(
     decision_report: dict,
     scanner_metrics_map: dict[str, Any] | None = None,
     market_regime: str = "Unknown",
+    *,
+    portfolio_risk_required: bool | None = None,
+    portfolio_risk_limits: dict[str, float] | None = None,
 ) -> list[Signal]:
     if scanner_metrics_map is None and _requires_scanner_metrics(decision_report):
         raise ValueError(
             "scanner_metrics_map is required for actionable signal generation; "
             "missing scanner metrics must fail closed instead of producing close:null no-trade signals"
+        )
+
+    portfolio_required = bool(decision_report.get("portfolio_risk_required", False)) if portfolio_risk_required is None else portfolio_risk_required
+    portfolio_risk_result = None
+    if portfolio_required:
+        portfolio_risk_result = _build_portfolio_risk_result(
+            decision_report=decision_report,
+            scanner_metrics_map=scanner_metrics_map,
+            limits=portfolio_risk_limits,
         )
 
     now_iso = datetime.now(UTC).isoformat()
@@ -336,6 +401,9 @@ def build_signals(
             target_1=t1,
             target_2=t2,
             atr=atr14,
+            symbol=symbol,
+            portfolio_risk_required=(original_action == "BUY_WATCH" and portfolio_required),
+            portfolio_risk_result=portfolio_risk_result,
         )
         if validation.risk_reward is not None:
             rr = round(validation.risk_reward, 2)
@@ -363,6 +431,9 @@ def build_signals(
             notes_parts.append("stop_quality: " + ", ".join(stop_quality_reasons))
         if original_action == "BUY_WATCH" and exit_quality_reasons:
             notes_parts.append("exit_quality: " + ", ".join(exit_quality_reasons))
+        if original_action == "BUY_WATCH" and validation.portfolio_risk_status == "BLOCKED":
+            quality_gate_failed = True
+            notes_parts.append(f"portfolio_risk: {validation.portfolio_risk_block_reason}")
         if original_action == "BUY_WATCH" and (quality_gate_failed or not validation.is_valid):
             action = "NO_TRADE"
             rr = None
@@ -421,6 +492,9 @@ def build_signals(
             score_source=score_source,
             data_source=data_source,
             thresholds_version=thresholds_version,
+            portfolio_risk_status=validation.portfolio_risk_status,
+            portfolio_risk_block_reason=validation.portfolio_risk_block_reason,
+            portfolio_risk_multiplier=validation.portfolio_risk_multiplier,
         ))
 
     return signals
@@ -438,7 +512,6 @@ def save_signals(
 
     target_dir = signals_dir or SIGNALS_DIR
     target_dir.mkdir(parents=True, exist_ok=True)
-
     date = date_str or datetime.now(UTC).strftime("%Y-%m-%d")
     json_path = target_dir / f"{date}-signals.json"
     md_path = target_dir / f"{date}-signals.md"
@@ -515,6 +588,7 @@ def save_signals(
                 f"### {s.symbol} - {s.action} ({s.risk_tier})",
                 f"- Signal ID: `{s.signal_id}`",
                 f"- Setup: {s.setup_type} | Score: {s.setup_score} | Decision: {s.decision} | Size: {s.position_size:.2f}x",
+                f"- Portfolio Risk: {s.portfolio_risk_status} | Multiplier: {s.portfolio_risk_multiplier if s.portfolio_risk_multiplier is not None else 'n/a'}",
                 f"- Score Source: {s.score_source} | Data Source: {s.data_source} | Thresholds: {s.thresholds_version}",
                 f"- Data: {s.data_status} | Source: {s.source or 'unknown'} | Fallback: {s.fallback_level or 'unknown'} | Timestamp: {s.source_timestamp or 'unknown'}",
                 f"- Entry: {s.entry_trigger} ({s.entry_type}) | Entry Reason: {s.entry_reason}",
@@ -534,6 +608,6 @@ def save_signals(
             lines.append(f"- **{s.symbol}**: {s.decision} / {s.risk_tier} - `{s.signal_id}` - {s.notes or 'regime/quality filter'}")
         lines.append("")
 
-    lines += ["---", "## Signal Validity", "- BUY_WATCH requires valid entry, stop, target and trade-plan validation."]
+    lines += ["---", "## Signal Validity", "- BUY_WATCH requires valid entry, stop, target, trade-plan validation and passing portfolio-risk gate when required."]
     md_path.write_text("\n".join(lines), encoding="utf-8")
     return json_path, md_path
