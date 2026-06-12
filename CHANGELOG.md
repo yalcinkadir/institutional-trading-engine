@@ -11,6 +11,7 @@
 - Updated `src/signals/trade_plan_validator.py` so required portfolio-risk context can block an otherwise valid long trade plan.
 - Updated `src/signals/signal_generator.py` so `build_signals()` calls `evaluate_portfolio_risk()` when portfolio-risk enforcement is required.
 - Missing returns context, portfolio heat, sector concentration or correlation warnings downgrade otherwise valid actionable signals to `NO_TRADE`.
+- Removed `src/portfolio_risk.py` from the P150 orphan quarantine manifest because #182 wires it into the active signal-generation path.
 
 ### Guardrails
 - Individual trade-plan validity is no longer sufficient when portfolio-risk enforcement is required.
@@ -111,3 +112,55 @@
 - No strategy rule, scoring threshold, entry/exit rule or broker execution capability is changed.
 - Live trading authorization: unchanged; not granted by code.
 - Repository-wide full-regression green is not claimed by this changelog entry.
+
+---
+
+## IP9/IP10 Public Repository Governance — 2026-06-11
+
+### Added
+- Added IP9 public-edge review governance to the PR review process.
+- Added IP10 license and research-only usage disclaimer status coverage.
+
+### Guardrails
+- Public repository changes must preserve public-demo defaults and must not expose proprietary thresholds, setup maps, scoring weights, exit profiles or production-like parameters.
+- Research/paper-only and no-live-trading language must remain intact in public-facing project files.
+
+### Boundary
+- This is public repository governance and disclosure-safety documentation.
+- No strategy rule, scoring threshold, entry/exit rule or broker execution capability is changed.
+- Live trading authorization: unchanged; not granted by code.
+
+---
+
+## System Invariants and Logic Safety Governance #189 — 2026-06-11
+
+### Added
+- Added machine-checkable System Invariants and Logic Safety Governance coverage for #189.
+- Added status coverage for forbidden state conversions, logic-safety severity classes and evidence-traceability requirements.
+
+### Guardrails
+- `DEGRADED`, `BLOCKED`, `UNKNOWN`, demo/stub and missing-provenance states must not be promoted as full `PASS` evidence.
+- Logic-safety mappings require evidence commands, guard tests, contract tests, validation scripts, CI workflow results or evidence artifacts.
+
+### Boundary
+- This is logic-safety governance and evidence-traceability hardening.
+- No strategy rule, scoring threshold, entry/exit rule or broker execution capability is changed.
+- Live trading authorization: unchanged; not granted by code.
+- Repository-wide full-regression green is not claimed by this changelog entry.
+
+---
+
+## Evidence Quality Gate #188 — 2026-06-11
+
+### Added
+- Added the #188 Evidence Quality Gate to block roadmap-stable, strategy-promotion, production-grade evidence, paper-confidence, backtesting-promotion, decision-stack-validation and live-readiness claims unless evidence quality is proven.
+- Added CI/tooling linkage through `scripts/evaluate_evidence_quality_gate.py` and `tests/test_evidence_quality_gate_188.py`.
+
+### Guardrails
+- Evidence quality, durability, runtime reachability, historical input reproducibility, report validation, empty/no-signal classification and VIX/regime provenance must be proven before promotion claims.
+- Repository-wide full-regression green is not claimed unless explicitly validated by CI.
+
+### Boundary
+- This is evidence-governance hardening.
+- No strategy rule, scoring threshold, entry/exit rule or broker execution capability is changed.
+- Live trading authorization: unchanged; not granted by code.
