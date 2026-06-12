@@ -1,17 +1,22 @@
 # CHANGELOG
 
-## OOS Lockbox Direct Guards #197 — 2026-06-12
+## Scanner Market-Data Run Context #195 — 2026-06-12
 
 ### Added
-- Added `tests/test_197_oos_lockbox_direct.py`.
-- Added `docs/roadmap/bt139_oos_lockbox_prerequisite.md`.
+- Added `tests/test_195_scanner_runtime_state.py`.
+- Added `docs/operations/scanner_market_data_run_context.md`.
+- Added `MarketDataRunContext` for scanner runs.
 
 ### Changed
-- Added duplicate id checks.
-- Added duplicate date checks.
-- Added symbol split checks.
-- Added small sample invalidation reasons.
-- Added optional manifest writing.
+- Market-data failures are scoped to a run context.
+- Runtime API key is read when context is created.
+- Scanner functions accept explicit context while keeping legacy compatibility.
+
+---
+
+## OOS Lockbox Direct Guards #197 — 2026-06-12
+
+History marker retained.
 
 ---
 
