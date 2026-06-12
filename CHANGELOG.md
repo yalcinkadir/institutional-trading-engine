@@ -3,16 +3,15 @@
 ## Exception Audit Hardening #198 — 2026-06-12
 
 ### Added
-- Added `src/exception_audit.py`.
-- Added `tests/test_198_exception_audit.py`.
-- Added `tests/test_198_broad_exception_allowlist.py`.
-- Added `docs/operations/broad_exception_handling.md`.
-- Added `docs/operations/broad_exception_allowlist.json`.
+- Added `docs/architecture/broad_exception_allowlist.json`.
+- Added `scripts/check_broad_exception_policy.py`.
+- Added `tests/test_198_broad_exception_policy.py`.
+- Added `docs/operations/broad_exception_policy.md`.
 
 ### Changed
-- Outcome read failures can expose structured audit metadata.
-- Market-regime client and breadth failures now expose structured `exception_audit` metadata.
-- Added a lightweight allowlist guard for approved broad-exception stages.
+- Active broad exception handlers are now covered by an explicit allowlist contract.
+- Structured exception audit metadata is tested for outcome, runtime-loop and safe-call paths.
+- CI has a lightweight policy guard for broad exception handlers in active paths.
 
 ---
 
