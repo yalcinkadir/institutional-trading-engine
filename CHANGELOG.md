@@ -1,22 +1,23 @@
 # CHANGELOG
 
-## Report Score Provenance #180 — 2026-06-12
+## Confidence Provenance #196 — 2026-06-12
 
 ### Added
-- Added `tests/test_180_placeholder_scoring_replacement.py`.
-- Added `docs/operations/decision_report_scoring.md`.
-- Added report and decision `score_provenance` fields.
+- Added `tests/test_196_confidence_double_counting.py`.
+- Added `tests/test_196_legacy_scoring_paths.py`.
+- Added `docs/operations/confidence_provenance.md`.
+- Added confidence component provenance.
 
 ### Changed
-- Removed symbol-name scoring from `src/reporting/decision_report.py`.
-- Removed list-position score noise from report candidate scoring.
-- Report scores now use market-state base score plus scanner evidence when available.
-- Missing scanner metrics are neutral and marked `market_context_neutral_no_placeholder`.
+- Risk tier is no longer used as independent regime evidence.
+- Risk tier is represented only as an explicit discount.
+- Legacy confidence and asset scoring helpers are deprecated compatibility paths.
 
-### Guardrails
-- `placeholder_score_contribution` is `0.0`.
-- `symbol_name_score_enabled` is `false`.
-- Symbol names are not score inputs.
+---
+
+## Report Score Provenance #180 — 2026-06-12
+
+History marker retained.
 
 ---
 
