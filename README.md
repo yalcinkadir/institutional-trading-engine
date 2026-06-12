@@ -1,14 +1,10 @@
-# Institutional Trading Engine
-
-![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
-![CI](https://img.shields.io/badge/CI-pytest-brightgreen.svg)
-![Status](https://img.shields.io/badge/status-research--evidence--platform-orange.svg)
+Institutional Trading Engine
 
 Institutional Trading Engine is a research, market-intelligence, screening, reporting, backtesting, evidence-validation and decision-support platform.
 
 The system is designed for research and paper-observation evidence collection. It does not place live trades and does not authorize real-money execution.
 
-## Current Validation Status
+Current Validation Status
 
 TEST1: Evidence-Oriented TDD Policy active
 
@@ -24,18 +20,18 @@ PO8: Daily Observation Review Summary implemented and CI-green
 PO9: Paper Observation Review Gate implemented and CI-green
 PO10: Daily Observation Automation Runner implemented and CI-green
 PO11: Scheduled Daily Observation Workflow implemented and CI-green
-PO12/#181: Durable Daily Observation Artifact Review Index implemented; `reports/daily_observation_automation/review_index.json` records long-term Paper Observation audit metadata, durable statuses, workflow run ids, data mode, degradation flags, artifact pointers and checksum fields without treating GitHub Actions artifacts as the audit source of truth.
+PO12/#181: Durable Daily Observation Artifact Review Index implemented; reports/daily_observation_automation/review_index.json records long-term Paper Observation audit metadata, durable statuses, workflow run ids, data mode, degradation flags, artifact pointers and checksum fields without treating GitHub Actions artifacts as the audit source of truth.
 PO13: Monthly Paper Observation Review Pack implemented and CI-green
 PO14: Forward Evidence Quality Gate implemented and CI-green
 P120: Productive Paper Observation evidence remains gated until schema-valid durable observation artifacts are produced and CI-green.
 P122: Paper Observation health gate blocks blind observation output when close/ATR/regime/scanner metrics indicate infrastructure failure.
 P124: Silent-failure run health gate distinguishes valid no-trade, degraded data, fallback/demo and failed runs before reports, Paper Observation or backtests are treated as successful.
-P166: Productive daily Paper Observation producer writes canonical `reports/daily_evidence/<date>.json` before PO11 validation and includes VIX/regime provenance.
-#191: Scanner datafeed liveness gate classifies all-null close/missing-bar runs as `DATAFEED_BLOCKED` and writes repo-visible liveness evidence under `reports/health/`.
-#192: Scheduled report liveness gate writes `reports/scheduled_report_liveness/<date>-<type>-liveness.json`, requires non-empty scheduled report/latest artifacts, requires signals and paper-health evidence for market reports, and blocks missing scheduled output from being counted as a productive report cycle.
-#185: Report validation risk-tier gate requires structured decision/risk-tier evidence or an explicit no-active-risk state; prose-only `Risk Tier` mentions are blocked by `tests/test_185_report_validation_risk_tier.py`.
-#186: Outcome tracking differentiates `SUCCESS`, `BLOCKED_NO_VALID_SIGNALS`, `DEMO_NO_DATA` and `BLOCKED_MISSING_INPUTS`; production outcome learning is not claimable when upstream signal files are empty, invalid or contain zero valid signals.
-#194: Signal state consistency guard enforces `action` as the execution-readiness source of truth; exported `NO_TRADE` records cannot retain `decision: approved`, actionable risk tiers, non-zero position size or executable entry state.
+P166: Productive daily Paper Observation producer writes canonical reports/daily_evidence/<date>.json before PO11 validation and includes VIX/regime provenance.
+#191: Scanner datafeed liveness gate classifies all-null close/missing-bar runs as DATAFEED_BLOCKED and writes repo-visible liveness evidence under reports/health/.
+#192: Scheduled report liveness gate writes reports/scheduled_report_liveness/<date>-<type>-liveness.json, requires non-empty scheduled report/latest artifacts, requires signals and paper-health evidence for market reports, and blocks missing scheduled output from being counted as a productive report cycle.
+#185: Report validation risk-tier gate requires structured decision/risk-tier evidence or an explicit no-active-risk state; prose-only Risk Tier mentions are blocked by tests/test_185_report_validation_risk_tier.py.
+#186: Outcome tracking differentiates SUCCESS, BLOCKED_NO_VALID_SIGNALS, DEMO_NO_DATA and BLOCKED_MISSING_INPUTS; production outcome learning is not claimable when upstream signal files are empty, invalid or contain zero valid signals.
+#194: Signal state consistency guard enforces action as the execution-readiness source of truth; exported NO_TRADE records cannot retain decision: approved, actionable risk tiers, non-zero position size or executable entry state.
 
 Runtime Governance:
 GOV1-GOV10: runtime / pre-live governance hardening implemented and CI-green
@@ -55,15 +51,16 @@ RGP10: latest bar timestamp ordering guard implemented and CI-green
 RGP11: signal identity float quantization implemented and CI-green
 RGP12: partial-exit lifecycle persistence implemented and CI-green
 RGP13: Runtime Proof Pack Summary Builder implemented and CI-green
-#193: Watcher lifecycle evidence writes authoritative dated summaries under `reports/watchers/lifecycle/YYYY-MM-DD.json` and `reports/watchers/lifecycle/latest.json`; zero-actionable runs are explicitly marked `NO_ACTIONABLE_SIGNALS` instead of silently succeeding.
+#193: Watcher lifecycle evidence writes authoritative dated summaries under reports/watchers/lifecycle/YYYY-MM-DD.json and reports/watchers/lifecycle/latest.json; zero-actionable runs are explicitly marked NO_ACTIONABLE_SIGNALS instead of silently succeeding.
+#182: Portfolio Risk Gate enforces portfolio-risk context in trade-plan validation and signal generation when required; missing portfolio context, portfolio heat, sector concentration or correlation warnings downgrade otherwise valid signals to NO_TRADE and emit portfolio_risk_status, portfolio_risk_block_reason and portfolio_risk_multiplier evidence.
 FCM1: Feature Connectivity Matrix Guard closed / targeted CI-wired; no repository-wide full-regression green claimed
 RPW1: Runtime Proof-Pack Artifact Writer / Retention Index closed / targeted CI-wired; no repository-wide full-regression green claimed
 DATA1: Market data quality contract blocks missing close/ATR, stale timestamps and missing source metadata before signals or reports consume them.
 P161: Dataflow Contract Matrix defines Scanner → Signals → Quality → Validator → Watcher → Evidence required fields, canonical ATR naming and fail-closed missing-field behavior.
-P164/#187: VIX/regime evidence first uses Polygon `I:VIX`; if unavailable because of provider entitlement, it falls back to configured volatility proxy `VOLATILITY_PROXY_SYMBOL` defaulting to `VIXY` with `PROXY_DEGRADED` provenance. If neither VIX nor proxy/index trend inputs are available, reports emit `BLOCKED_MARKET_REGIME_UNAVAILABLE` plus a structured `regime_policy` instead of unexplained `Unknown`.
-#178: Runtime reachability guard adds `docs/architecture/decision_critical_runtime_reachability.json` and `tests/test_runtime_reachability_guard_178.py` so decision-critical modules are either runtime-connected with proof or explicitly classified as non-runtime research/quarantine/test/deprecated.
-#188: Evidence Quality Gate adds `docs/operations/evidence-quality-gate.md`, `src/evidence_quality_gate.py`, `scripts/evaluate_evidence_quality_gate.py` and `tests/test_evidence_quality_gate_188.py` so roadmap, strategy, paper-confidence, production-grade evidence and live-readiness claims are blocked unless evidence quality is proven.
-#189: System Invariants and Logic Safety Governance implemented as machine-checkable documentation/test guards; `DEGRADED`, `BLOCKED`, `UNKNOWN`, demo/stub and missing-provenance states must not be promoted as full `PASS` evidence.
+P164/#187: VIX/regime evidence first uses Polygon I:VIX; if unavailable because of provider entitlement, it falls back to configured volatility proxy VOLATILITY_PROXY_SYMBOL defaulting to VIXY with PROXY_DEGRADED provenance. If neither VIX nor proxy/index trend inputs are available, reports emit BLOCKED_MARKET_REGIME_UNAVAILABLE plus a structured regime_policy instead of unexplained Unknown.
+#178: Runtime reachability guard adds docs/architecture/decision_critical_runtime_reachability.json and tests/test_runtime_reachability_guard_178.py so decision-critical modules are either runtime-connected with proof or explicitly classified as non-runtime research/quarantine/test/deprecated.
+#188: Evidence Quality Gate adds docs/operations/evidence-quality-gate.md, src/evidence_quality_gate.py, scripts/evaluate_evidence_quality_gate.py and tests/test_evidence_quality_gate_188.py so roadmap, strategy, paper-confidence, production-grade evidence and live-readiness claims are blocked unless evidence quality is proven.
+#189: System Invariants and Logic Safety Governance implemented as machine-checkable documentation/test guards; DEGRADED, BLOCKED, UNKNOWN, demo/stub and missing-provenance states must not be promoted as full PASS evidence.
 
 Backtesting / Evidence:
 BT2: Strategy Test Matrix implemented
@@ -73,16 +70,16 @@ BT6: Evidence Baseline Regression Gate implemented and CI-green
 BT7: Capacity / Turnover / Realism Gate implemented and CI-green
 BT130: Real Historical Backtest Evidence Pack Gate implemented and CI-green
 BT131: Real-data backtest evidence workflow implemented and CI-green; valid output requires BT9 and P121/BT130 gates, otherwise a BLOCKED artifact is uploaded.
-#177: Real-data historical trade plans are accepted as strategy evidence only when exported through the canonical Scanner → Signal Generator → Entry/Stop/Exit Quality → Trade Plan Validator adapter with `pipeline_generation_source=scanner_signal_quality_validator`; validated Paper Observation exports remain research/audit artifacts and are blocked by BT9 from real-data strategy-evidence claims.
-#184: Historical real-data backtest inputs must be durable and auditable. The repository, not expiring GitHub Actions artifacts, is the audit source of truth for accepted BT131 evidence; Polygon CSV bars, coverage manifests, runtime universe, trade plans and manifests must be persisted under `data/historical/` and `data/trade_plans/`, with accepted evidence carrying non-empty `input_checksums`.
+#177: Real-data historical trade plans are accepted as strategy evidence only when exported through the canonical Scanner → Signal Generator → Entry/Stop/Exit Quality → Trade Plan Validator adapter with pipeline_generation_source=scanner_signal_quality_validator; validated Paper Observation exports remain research/audit artifacts and are blocked by BT9 from real-data strategy-evidence claims.
+#184: Historical real-data backtest inputs must be durable and auditable. The repository, not expiring GitHub Actions artifacts, is the audit source of truth for accepted BT131 evidence; Polygon CSV bars, coverage manifests, runtime universe, trade plans and manifests must be persisted under data/historical/ and data/trade_plans/, with accepted evidence carrying non-empty input_checksums.
 CER1: Capacity / Execution Realism Evidence Review Summary implemented and CI-green
 PFA1: Position-level Forward Evidence Attribution implemented and CI-green
 BT8: Backtesting Evidence Report generator implemented and CI-green
 BT9: Real historical backtesting remains fail-closed unless the input pack gate passes universe, bars, trade-plan, demo-data, coverage-manifest checksum and #177 canonical pipeline-coupling checks.
 UNI1: Initial survivorship universe contract defines point-in-time symbol lifecycle validation for real backtesting.
-HIST1: Polygon historical bars ingestion writes canonical CSV bars plus coverage manifest with `output_sha256` for BT9 compatibility.
+HIST1: Polygon historical bars ingestion writes canonical CSV bars plus coverage manifest with output_sha256 for BT9 compatibility.
 HTP1: Validated Paper Observation records can be exported into deterministic historical trade plans plus manifest for research-only BT9 compatibility; they are not accepted as real-data strategy evidence.
-P121: Real historical-data backtest evidence is only claimable after a valid `real_data` evidence artifact passes the P121 schema gate.
+P121: Real historical-data backtest evidence is only claimable after a valid real_data evidence artifact passes the P121 schema gate.
 EV1-EV12: evidence-integrity remediation implemented and CI-green
 
 External Review Remediation:
@@ -98,7 +95,7 @@ Report Output Boundary Guard: protected public report artifacts implemented and 
 Live trading authorization: not granted by code
 Broker execution: paper-only infrastructure; live execution is not implemented
 
-## TEST1 Evidence-Oriented TDD Policy
+TEST1 Evidence-Oriented TDD Policy
 
 TEST1 makes test-first development mandatory for safety-relevant fixes, external review findings and trading-risk logic.
 
@@ -114,13 +111,15 @@ A fix is not complete unless a guard test captures the dangerous path, boundary 
 Policy document:
 docs/operations/test1_evidence_oriented_tdd_policy.md
 
-## Logic Safety Governance
+Logic Safety Governance
 
 #189 adds machine-checkable System Invariants and Logic Safety Governance.
 
 Policy documents:
-- docs/operations/system-invariants.md
-- docs/operations/logic-safety-governance.md
+
+* docs/operations/system-invariants.md
+* docs/operations/logic-safety-governance.md
 
 Guard tests:
-- tests/test_system_invariants_and_logic_safety_189.py
+
+* tests/test_system_invariants_and_logic_safety_189.py
