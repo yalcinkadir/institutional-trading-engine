@@ -36,9 +36,10 @@ Labels:
 
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass
 from typing import Any
+
+from src.validation.historical_edge_validation import coerce_finite_float_or_default
 
 
 @dataclass(frozen=True)
@@ -64,13 +65,7 @@ class SetupScoreResult:
 
 
 def _safe(value: Any, fallback: float) -> float:
-    if value is None:
-        return fallback
-    try:
-        f = float(value)
-        return fallback if math.isnan(f) or math.isinf(f) else f
-    except (TypeError, ValueError):
-        return fallback
+    return coerce_finite_float_or_default(value, fallback)
 
 
 def _clamp(v: float, lo: float = 0.0, hi: float = 100.0) -> float:
@@ -96,12 +91,8 @@ def _rs_score(rs_spread: float, rs_label: str | None) -> tuple[float, str]:
     rs_spread is the 20-day return delta vs benchmark (percentage points).
     Leader label adds a quality bonus.
     """
-    # Base: map rs_spread [-15, +15] → [0, 20]
     base = _clamp((rs_spread + 15.0) / 30.0 * 20.0, 0.0, 20.0)
-
-    # Label bonus: confirmed leadership adds 5 pts
     label_bonus = 5.0 if rs_label == "Leader" else 0.0
-
     pts = _clamp(base + label_bonus, 0.0, 25.0)
     note = (
         f"RS spread={rs_spread:+.1f}pp, label={rs_label or 'N/A'} (+{pts:.0f})"
@@ -188,7 +179,6 @@ def calculate_setup_score(
     notes: list[str] = []
     deductions: list[str] = []
 
-    # ── Positive contributions ─────────────────────────────────────────────
     trend_pts, trend_note = _trend_score(trend)
     contributions["trend_quality"] = trend_pts
     notes.append(trend_note)
@@ -211,26 +201,21 @@ def calculate_setup_score(
 
     raw_score = sum(contributions.values())
 
-    # ── Deductions ────────────────────────────────────────────────────────
-    # Warnings from scanner (data quality, structural issues)
     warning_penalty = min(len(warnings), 3) * 10.0
     if warning_penalty > 0:
         raw_score -= warning_penalty
         deductions.append(f"scanner warnings ×{min(len(warnings), 3)}: -{warning_penalty:.0f}")
 
-    # Downtrend structural deduction
     if trend == "Downtrend":
         raw_score -= 15.0
         deductions.append("Downtrend structural deduction: -15")
 
-    # Overbought / chase risk
     if rsi > 72.0:
         raw_score -= 10.0
         deductions.append(f"RSI={rsi:.1f} chase-risk deduction: -10")
 
     final_score = round(_clamp(raw_score, 0.0, 100.0), 1)
 
-    # ── Label ──────────────────────────────────────────────────────────────
     if final_score >= 80:
         label = "High Conviction"
     elif final_score >= 65:
