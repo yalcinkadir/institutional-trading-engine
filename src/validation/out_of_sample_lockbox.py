@@ -29,6 +29,8 @@ THRESHOLD_VERSION_FIELDS = (
     "decision_thresholds_version",
 )
 ENTRY_DATE_FIELDS = ("entry_date", "opened_at", "signal_date", "date")
+SIGNAL_ID_FIELDS = ("signal_id", "id", "trade_id")
+SYMBOL_FIELDS = ("symbol", "ticker")
 
 
 @dataclass(frozen=True)
@@ -152,6 +154,8 @@ def build_out_of_sample_lockbox(
         config=config,
         purged_records=purged_records,
         embargoed_records=embargoed_records,
+        in_sample_count=len(in_sample_records),
+        out_of_sample_count=len(out_of_sample_records),
     )
     passed = (
         not invalidation_reasons
@@ -220,7 +224,10 @@ def build_invalidation_reasons(
     config: OutOfSampleLockboxConfig,
     purged_records: int = 0,
     embargoed_records: int = 0,
+    in_sample_count: int | None = None,
+    out_of_sample_count: int | None = None,
 ) -> list[str]:
+    assigned = [record for record in assigned_records if isinstance(record, dict)]
     reasons: list[str] = []
 
     if config.threshold_version != DEFAULT_THRESHOLDS.version:
@@ -233,10 +240,30 @@ def build_invalidation_reasons(
     if embargoed_records:
         reasons.append(f"embargoed_records:{embargoed_records}")
 
+    min_records = int(config.edge_config.min_total_trades)
+    actual_in_sample_count = in_sample_count if in_sample_count is not None else 0
+    actual_out_of_sample_count = out_of_sample_count if out_of_sample_count is not None else 0
+    if actual_in_sample_count < min_records:
+        reasons.append(f"insufficient_in_sample_records:{actual_in_sample_count}<{min_records}")
+    if actual_out_of_sample_count < min_records:
+        reasons.append(f"insufficient_out_of_sample_records:{actual_out_of_sample_count}<{min_records}")
+
+    duplicate_signal_ids = _duplicate_values(assigned, SIGNAL_ID_FIELDS)
+    if duplicate_signal_ids:
+        reasons.append("duplicate_signal_ids:" + ",".join(duplicate_signal_ids))
+
+    duplicate_dates = _duplicate_record_dates(assigned)
+    if duplicate_dates:
+        reasons.append("duplicate_record_dates:" + ",".join(duplicate_dates))
+
+    leaked_symbols = _leaked_symbols_across_split(assigned, config=config)
+    if leaked_symbols:
+        reasons.append("leaked_symbols:" + ",".join(leaked_symbols))
+
     if not config.require_matching_record_threshold_version:
         return reasons
 
-    observed_versions = _collect_record_threshold_versions(assigned_records)
+    observed_versions = _collect_record_threshold_versions(assigned)
     if not observed_versions:
         reasons.append("missing_record_threshold_versions")
         return reasons
@@ -266,6 +293,55 @@ def build_evidence_contract_hash(config: OutOfSampleLockboxConfig) -> str:
     }
     canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def build_out_of_sample_lockbox_manifest(
+    report: OutOfSampleLockboxReport,
+    *,
+    source_records: Iterable[dict[str, Any]],
+    config: OutOfSampleLockboxConfig,
+    date_field: str = "exit_date",
+    fallback_date_fields: tuple[str, ...] = ("closed_at", "signal_date", "date"),
+) -> dict[str, Any]:
+    source_records_list = [dict(record) for record in source_records if isinstance(record, dict)]
+    in_sample_records, out_of_sample_records = _split_records_for_manifest(
+        source_records_list,
+        config=config,
+        date_field=date_field,
+        fallback_date_fields=fallback_date_fields,
+    )
+    return {
+        "schema": "out_of_sample_lockbox_manifest.v1",
+        "validation_method": report.validation_method,
+        "status": "PASS" if report.passed else "FAIL",
+        "split_parameters": {
+            "split_date": config.split_date.isoformat(),
+            "purge_days": config.purge_days,
+            "embargo_days": config.embargo_days,
+            "max_core_metric_degradation": config.max_core_metric_degradation,
+            "threshold_version": config.threshold_version,
+            "require_matching_record_threshold_version": config.require_matching_record_threshold_version,
+            "min_total_trades": config.edge_config.min_total_trades,
+        },
+        "date_ranges": {
+            "in_sample": _date_range_for_records(in_sample_records, primary_field=date_field, fallback_fields=fallback_date_fields),
+            "out_of_sample": _date_range_for_records(out_of_sample_records, primary_field=date_field, fallback_fields=fallback_date_fields),
+        },
+        "counts": {
+            "source_records": len(source_records_list),
+            "in_sample": report.in_sample_count,
+            "out_of_sample": report.out_of_sample_count,
+            "unassigned": report.unassigned_records,
+            "purged": report.purged_records,
+            "embargoed": report.embargoed_records,
+        },
+        "checksums": {
+            "source_records_sha256": _records_sha256(source_records_list),
+            "report_sha256": _json_sha256(report.to_dict()),
+            "evidence_contract_hash": report.evidence_contract_hash,
+        },
+        "invalidation_reasons": list(report.invalidation_reasons),
+    }
 
 
 def render_out_of_sample_lockbox_markdown(report: OutOfSampleLockboxReport) -> str:
@@ -325,11 +401,24 @@ def write_out_of_sample_lockbox_report(
     *,
     json_path: Path,
     markdown_path: Path,
+    manifest_path: Path | None = None,
+    source_records: Iterable[dict[str, Any]] | None = None,
+    config: OutOfSampleLockboxConfig | None = None,
 ) -> None:
     json_path.parent.mkdir(parents=True, exist_ok=True)
     markdown_path.parent.mkdir(parents=True, exist_ok=True)
     json_path.write_text(json.dumps(report.to_dict(), indent=2, allow_nan=False), encoding="utf-8")
     markdown_path.write_text(render_out_of_sample_lockbox_markdown(report), encoding="utf-8")
+    if manifest_path is not None:
+        if source_records is None or config is None:
+            raise ValueError("source_records and config are required when manifest_path is provided")
+        manifest_path.parent.mkdir(parents=True, exist_ok=True)
+        manifest = build_out_of_sample_lockbox_manifest(
+            report,
+            source_records=source_records,
+            config=config,
+        )
+        manifest_path.write_text(json.dumps(manifest, indent=2, allow_nan=False), encoding="utf-8")
 
 
 def _higher_is_better_check(
@@ -416,6 +505,51 @@ def _is_embargoed(entry_or_exit_date: date, *, config: OutOfSampleLockboxConfig)
     return embargo_start <= entry_or_exit_date <= embargo_end
 
 
+def _split_records_for_manifest(
+    records: Iterable[dict[str, Any]],
+    *,
+    config: OutOfSampleLockboxConfig,
+    date_field: str,
+    fallback_date_fields: tuple[str, ...],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    in_sample_records: list[dict[str, Any]] = []
+    out_of_sample_records: list[dict[str, Any]] = []
+    for record in records:
+        if not isinstance(record, dict):
+            continue
+        record_date = _extract_record_date(record, primary_field=date_field, fallback_fields=fallback_date_fields)
+        if record_date is None:
+            continue
+        entry_date = _extract_record_date(record, primary_field="entry_date", fallback_fields=ENTRY_DATE_FIELDS)
+        if _is_purged_overlap(entry_date, record_date, config=config):
+            continue
+        if _is_embargoed(entry_date or record_date, config=config):
+            continue
+        if record_date < config.split_date:
+            in_sample_records.append(dict(record))
+        else:
+            out_of_sample_records.append(dict(record))
+    return in_sample_records, out_of_sample_records
+
+
+def _date_range_for_records(
+    records: Iterable[dict[str, Any]],
+    *,
+    primary_field: str,
+    fallback_fields: tuple[str, ...],
+) -> dict[str, str | None]:
+    dates = [
+        parsed
+        for record in records
+        if isinstance(record, dict)
+        for parsed in [_extract_record_date(record, primary_field=primary_field, fallback_fields=fallback_fields)]
+        if parsed is not None
+    ]
+    if not dates:
+        return {"start": None, "end": None}
+    return {"start": min(dates).isoformat(), "end": max(dates).isoformat()}
+
+
 def _extract_record_date(
     record: dict[str, Any],
     *,
@@ -465,6 +599,63 @@ def _collect_record_threshold_versions(records: Iterable[dict[str, Any]]) -> set
                 versions.add(value.strip())
                 break
     return versions
+
+
+def _duplicate_values(records: Iterable[dict[str, Any]], fields: tuple[str, ...]) -> list[str]:
+    counts: dict[str, int] = {}
+    for record in records:
+        for field in fields:
+            value = record.get(field)
+            if value is not None and str(value).strip():
+                key = str(value).strip()
+                counts[key] = counts.get(key, 0) + 1
+                break
+    return sorted(value for value, count in counts.items() if count > 1)
+
+
+def _duplicate_record_dates(records: Iterable[dict[str, Any]]) -> list[str]:
+    counts: dict[str, int] = {}
+    for record in records:
+        record_date = _extract_record_date(record, primary_field="exit_date", fallback_fields=("closed_at", "signal_date", "date"))
+        if record_date is None:
+            continue
+        key = record_date.isoformat()
+        counts[key] = counts.get(key, 0) + 1
+    return sorted(value for value, count in counts.items() if count > 1)
+
+
+def _leaked_symbols_across_split(records: Iterable[dict[str, Any]], *, config: OutOfSampleLockboxConfig) -> list[str]:
+    in_sample_symbols: set[str] = set()
+    out_of_sample_symbols: set[str] = set()
+    for record in records:
+        symbol = _record_symbol(record)
+        if symbol is None:
+            continue
+        record_date = _extract_record_date(record, primary_field="exit_date", fallback_fields=("closed_at", "signal_date", "date"))
+        if record_date is None:
+            continue
+        if record_date < config.split_date:
+            in_sample_symbols.add(symbol)
+        else:
+            out_of_sample_symbols.add(symbol)
+    return sorted(in_sample_symbols & out_of_sample_symbols)
+
+
+def _record_symbol(record: dict[str, Any]) -> str | None:
+    for field in SYMBOL_FIELDS:
+        value = record.get(field)
+        if value is not None and str(value).strip():
+            return str(value).strip()
+    return None
+
+
+def _records_sha256(records: Iterable[dict[str, Any]]) -> str:
+    return _json_sha256([dict(record) for record in records if isinstance(record, dict)])
+
+
+def _json_sha256(payload: Any) -> str:
+    canonical = json.dumps(_json_safe(payload), sort_keys=True, separators=(",", ":"), allow_nan=False)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 def _format_number(value: float | int) -> str:
