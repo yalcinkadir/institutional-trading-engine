@@ -1,16 +1,24 @@
 # CHANGELOG
 
-## Scanner Market-Data Run Context #195 — 2026-06-12
+## Exception Audit Hardening #198 — 2026-06-12
 
 ### Added
-- Added `tests/test_195_scanner_runtime_state.py`.
-- Added `docs/operations/scanner_market_data_run_context.md`.
-- Added `MarketDataRunContext` for scanner runs.
+- Added `src/exception_audit.py`.
+- Added `tests/test_198_exception_audit.py`.
+- Added `tests/test_198_broad_exception_allowlist.py`.
+- Added `docs/operations/broad_exception_handling.md`.
+- Added `docs/operations/broad_exception_allowlist.json`.
 
 ### Changed
-- Market-data failures are scoped to a run context.
-- Runtime API key is read when context is created.
-- Scanner functions accept explicit context while keeping legacy compatibility.
+- Outcome read failures can expose structured audit metadata.
+- Market-regime client and breadth failures now expose structured `exception_audit` metadata.
+- Added a lightweight allowlist guard for approved broad-exception stages.
+
+---
+
+## Scanner Market-Data Run Context #195 — 2026-06-12
+
+History marker retained.
 
 ---
 
