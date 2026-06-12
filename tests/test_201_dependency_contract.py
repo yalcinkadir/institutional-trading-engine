@@ -39,7 +39,7 @@ def test_201_ci_uses_authoritative_install_entrypoint() -> None:
 
 
 def test_201_dependency_contract_is_documented() -> None:
-    doc = _text(CONTRACT_DOC)
+    doc = _text(CONTRACT_DOC).replace("`", "")
     assert "requirements.txt is the authoritative install entry point" in doc
     assert "-r requirements.lock" in doc
     assert "pip install -r requirements.txt" in doc
