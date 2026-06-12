@@ -1,6 +1,6 @@
 {
   "actionable_count": 0,
-  "commit_sha": "fe245d51c9a97faa96b36f39f4d8d7010da1c398",
+  "commit_sha": "91bc88ab532dea5a85423229f0b9ced6dc4f1fde",
   "data_provenance": {
     "data_quality_status": "OK",
     "data_statuses": [
@@ -12,14 +12,14 @@
     "market_data_failures": {},
     "signal_payload_version": "UNKNOWN",
     "source_timestamps": [
-      "2026-06-12T16:08:21.873133+00:00",
-      "2026-06-12T16:08:24.517418+00:00",
-      "2026-06-12T16:08:27.110566+00:00",
-      "2026-06-12T16:08:29.848675+00:00",
-      "2026-06-12T16:08:33.234147+00:00",
-      "2026-06-12T16:08:36.230556+00:00",
-      "2026-06-12T16:08:50.314461+00:00",
-      "2026-06-12T16:08:53.034884+00:00"
+      "2026-06-12T21:40:26.002948+00:00",
+      "2026-06-12T21:40:28.487664+00:00",
+      "2026-06-12T21:40:30.972629+00:00",
+      "2026-06-12T21:40:33.422878+00:00",
+      "2026-06-12T21:40:35.919319+00:00",
+      "2026-06-12T21:40:38.460928+00:00",
+      "2026-06-12T21:40:40.916068+00:00",
+      "2026-06-12T21:40:43.416441+00:00"
     ],
     "sources": [
       "polygon"
@@ -31,19 +31,19 @@
     "active_path": "scripts/generate_report.py::_build_market_payload",
     "approval_granted": true,
     "broker_execution_mode": "paper_only",
-    "evaluated_at": "2026-06-12T16:08:13.709019+00:00",
+    "evaluated_at": "2026-06-12T21:40:18.858867+00:00",
     "governance_status": "PASSED",
     "kill_switch_active": false,
     "live_trading_authorized": false,
     "reasons": [],
-    "report_type": "premarket",
+    "report_type": "postmarket",
     "stage": "active_report_path_governance"
   },
   "issues": [],
   "market_regime": "Strong Bullish (VIX proxy degraded)",
   "observation_health_status": "NO_TRADE_VALID",
   "passed": true,
-  "run_timestamp": "2026-06-12T16:07:42Z",
+  "run_timestamp": "2026-06-12T21:40:02Z",
   "total_signals": 8,
   "valid_close_count": 8,
   "valid_core_close_count": 1,
