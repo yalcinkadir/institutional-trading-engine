@@ -1,12 +1,16 @@
-"""Orthogonal confidence scoring for decision quality.
+"""Canonical confidence scoring for decision quality.
 
-P36 removes structural double counting by separating confidence into:
-- asset-level setup quality
-- market-level health
-- regime-level alignment
+#196 makes confidence provenance explicit and prevents risk-tier derived values from
+being presented as independent regime-alignment evidence.
 
-The helper intentionally does not consume VIX or market breadth directly. Those inputs
-belong inside market_health_score and must not be added a second time here.
+Canonical components:
+- asset setup score
+- market health score
+- independent regime-alignment score
+
+Risk tier may be used only as an explicit discount/penalty. It must not be used as
+an independent regime signal because risk tier is already derived from setup,
+regime, asymmetry and data-confidence inputs.
 """
 
 from __future__ import annotations
@@ -28,11 +32,20 @@ class RegimeAlignmentTier(str, Enum):
     NO_TRADE = "no_trade"
 
 
+# Deprecated compatibility map. Kept for legacy callers, but not used as
+# independent regime evidence by canonical confidence provenance.
 REGIME_ALIGNMENT_SCORES = {
     RegimeAlignmentTier.TIER_1: 100.0,
     RegimeAlignmentTier.TIER_2: 65.0,
     RegimeAlignmentTier.TIER_3: 35.0,
     RegimeAlignmentTier.NO_TRADE: 0.0,
+}
+
+RISK_TIER_DISCOUNTS = {
+    RegimeAlignmentTier.TIER_1: 0.0,
+    RegimeAlignmentTier.TIER_2: -5.0,
+    RegimeAlignmentTier.TIER_3: -10.0,
+    RegimeAlignmentTier.NO_TRADE: -20.0,
 }
 
 
@@ -50,18 +63,19 @@ class ConfidenceScore:
     market_component: float
     regime_component: float
     weights: dict[str, float]
+    provenance: dict[str, Any]
 
 
 def clamp_score(value: float) -> float:
     return max(0.0, min(100.0, float(value)))
 
 
-def regime_alignment_score_from_tier(tier: RegimeAlignmentTier | str | None) -> float:
+def _normalize_tier(tier: RegimeAlignmentTier | str | None) -> RegimeAlignmentTier:
     if tier is None:
-        return REGIME_ALIGNMENT_SCORES[RegimeAlignmentTier.NO_TRADE]
+        return RegimeAlignmentTier.NO_TRADE
 
     if isinstance(tier, RegimeAlignmentTier):
-        return REGIME_ALIGNMENT_SCORES[tier]
+        return tier
 
     normalized = str(tier).strip().lower().replace(" ", "_").replace("-", "_")
     aliases = {
@@ -82,39 +96,97 @@ def regime_alignment_score_from_tier(tier: RegimeAlignmentTier | str | None) -> 
         "block": RegimeAlignmentTier.NO_TRADE,
         "blocked": RegimeAlignmentTier.NO_TRADE,
     }
-    mapped = aliases.get(normalized)
-    if mapped is None:
-        return REGIME_ALIGNMENT_SCORES[RegimeAlignmentTier.NO_TRADE]
-    return REGIME_ALIGNMENT_SCORES[mapped]
+    return aliases.get(normalized, RegimeAlignmentTier.NO_TRADE)
+
+
+def regime_alignment_score_from_tier(tier: RegimeAlignmentTier | str | None) -> float:
+    """Deprecated compatibility mapping.
+
+    This function remains for legacy tests/callers, but #196 forbids using the
+    returned value as independent regime evidence in canonical confidence output.
+    Use `risk_tier_discount_score()` when tier information must influence
+    confidence.
+    """
+
+    return REGIME_ALIGNMENT_SCORES[_normalize_tier(tier)]
+
+
+def risk_tier_discount_score(tier: RegimeAlignmentTier | str | None) -> float:
+    return RISK_TIER_DISCOUNTS[_normalize_tier(tier)]
+
+
+def _coerce_alignment_value(value: Any) -> float | None:
+    if value is None:
+        return None
+    try:
+        score = float(value)
+    except (TypeError, ValueError):
+        return None
+    if 0.0 <= score <= 1.0:
+        score *= 100.0
+    return clamp_score(score)
 
 
 def regime_alignment_score_from_decision(decision: Any) -> float:
-    """Extract a regime-alignment score from a decision-like object.
+    """Extract independent regime-alignment score from a decision-like object.
 
-    Supports dictionaries and lightweight objects with common risk tier fields.
-    Unknown or missing tiers are treated conservatively as no-trade alignment.
+    #196 intentionally ignores `risk_tier`, `tier`, `decision_tier`,
+    `classification` and `action`. Those fields are downstream classifications,
+    not independent regime evidence.
     """
 
     candidate_keys = (
-        "risk_tier",
-        "tier",
-        "regime_tier",
-        "decision_tier",
-        "classification",
-        "action",
+        "regime_alignment_score",
+        "regime_alignment",
+        "market_regime_alignment",
+        "independent_regime_alignment_score",
     )
 
     if isinstance(decision, dict):
         for key in candidate_keys:
             if key in decision:
-                return regime_alignment_score_from_tier(decision.get(key))
-        return REGIME_ALIGNMENT_SCORES[RegimeAlignmentTier.NO_TRADE]
+                score = _coerce_alignment_value(decision.get(key))
+                return 0.0 if score is None else score
+        return 0.0
 
     for key in candidate_keys:
         if hasattr(decision, key):
-            return regime_alignment_score_from_tier(getattr(decision, key))
+            score = _coerce_alignment_value(getattr(decision, key))
+            return 0.0 if score is None else score
 
-    return REGIME_ALIGNMENT_SCORES[RegimeAlignmentTier.NO_TRADE]
+    return 0.0
+
+
+def _confidence_provenance(*, risk_tier_adjustment: float | None = None) -> dict[str, Any]:
+    components: dict[str, Any] = {
+        "asset_setup": {
+            "source": "setup_score",
+            "weight": ASSET_SETUP_WEIGHT,
+        },
+        "market_health": {
+            "source": "market_health_score",
+            "weight": MARKET_HEALTH_WEIGHT,
+        },
+        "regime_alignment": {
+            "source": "independent_regime_alignment_score",
+            "weight": REGIME_ALIGNMENT_WEIGHT,
+        },
+    }
+    if risk_tier_adjustment is not None:
+        components["risk_tier_adjustment"] = {
+            "source": "risk_tier_discount",
+            "weight": 0.0,
+            "score_delta": risk_tier_adjustment,
+            "used_as_independent_regime_evidence": False,
+        }
+
+    return {
+        "canonical_confidence_path": "src.decision_confidence.calculate_confidence_score",
+        "components": components,
+        "risk_tier_used_as_regime_alignment": False,
+        "legacy_tier_regime_mapping": "deprecated",
+        "double_counting_guard": "risk_tier_must_not_be_used_as_independent_regime_evidence",
+    }
 
 
 def calculate_confidence_score(data: ConfidenceInput) -> ConfidenceScore:
@@ -137,6 +209,46 @@ def calculate_confidence_score(data: ConfidenceInput) -> ConfidenceScore:
             "market_health": MARKET_HEALTH_WEIGHT,
             "regime_alignment": REGIME_ALIGNMENT_WEIGHT,
         },
+        provenance=_confidence_provenance(),
+    )
+
+
+def calculate_confidence_from_components(
+    *,
+    setup_score: float,
+    market_health_score: float,
+    independent_regime_alignment_score: float,
+) -> ConfidenceScore:
+    return calculate_confidence_score(
+        ConfidenceInput(
+            setup_score=setup_score,
+            market_health_score=market_health_score,
+            regime_alignment_score=independent_regime_alignment_score,
+        )
+    )
+
+
+def calculate_confidence_with_tier_discount(
+    *,
+    setup_score: float,
+    market_health_score: float,
+    independent_regime_alignment_score: float,
+    risk_tier: RegimeAlignmentTier | str | None,
+) -> ConfidenceScore:
+    base = calculate_confidence_from_components(
+        setup_score=setup_score,
+        market_health_score=market_health_score,
+        independent_regime_alignment_score=independent_regime_alignment_score,
+    )
+    discount = risk_tier_discount_score(risk_tier)
+    confidence = clamp_score(base.confidence + discount)
+    return ConfidenceScore(
+        confidence=round(confidence, 4),
+        setup_component=base.setup_component,
+        market_component=base.market_component,
+        regime_component=base.regime_component,
+        weights=base.weights,
+        provenance=_confidence_provenance(risk_tier_adjustment=discount),
     )
 
 
@@ -146,10 +258,16 @@ def calculate_confidence_from_tier(
     market_health_score: float,
     tier: RegimeAlignmentTier | str | None,
 ) -> ConfidenceScore:
-    return calculate_confidence_score(
-        ConfidenceInput(
-            setup_score=setup_score,
-            market_health_score=market_health_score,
-            regime_alignment_score=regime_alignment_score_from_tier(tier),
-        )
+    """Legacy API retained as tier-discount confidence, not regime evidence.
+
+    The old implementation used `tier` as the regime-alignment component. #196
+    changes this to use neutral independent regime evidence plus an explicit tier
+    discount so downstream users can see the dependency.
+    """
+
+    return calculate_confidence_with_tier_discount(
+        setup_score=setup_score,
+        market_health_score=market_health_score,
+        independent_regime_alignment_score=50.0,
+        risk_tier=tier,
     )
