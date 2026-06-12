@@ -1,6 +1,6 @@
 import os
 import time
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pathlib import Path
@@ -9,9 +9,11 @@ from typing import Any
 import pandas as pd
 import requests
 
-from src.config import SYMBOLS, BENCHMARK_MAP
+from src.config import BENCHMARK_MAP, SYMBOLS
 from src.signals.structure_levels import latest_confirmed_swing_low_3bar
 
+# Backwards-compatible legacy snapshot only. Runtime calls must use
+# MarketDataRunContext.from_env() or pass a context explicitly.
 API_KEY = os.getenv("POLYGON_API_KEY")
 
 
@@ -33,6 +35,8 @@ class MarketDataFailure:
     provider: str = "polygon"
     status_code: int | None = None
     attempts: int = 1
+    run_id: str | None = None
+    recorded_at: str | None = None
 
     def as_metrics_fields(self) -> dict[str, Any]:
         return {
@@ -42,31 +46,114 @@ class MarketDataFailure:
             "data_failure_kind": self.kind.value,
             "data_failure_message": self.message,
             "provider_status_code": self.status_code,
+            "run_id": self.run_id,
+            "failure_recorded_at": self.recorded_at,
+        }
+
+    def to_evidence(self) -> dict[str, Any]:
+        payload = asdict(self)
+        payload["kind"] = self.kind.value
+        return payload
+
+
+@dataclass
+class MarketDataRunContext:
+    run_id: str | None = None
+    api_key: str | None = None
+    failures: dict[str, MarketDataFailure] = field(default_factory=dict)
+    provider: str = "polygon"
+
+    @classmethod
+    def from_env(cls, *, run_id: str | None = None) -> "MarketDataRunContext":
+        return cls(run_id=run_id, api_key=os.getenv("POLYGON_API_KEY"))
+
+    def record_failure(self, failure: MarketDataFailure) -> None:
+        recorded = MarketDataFailure(
+            symbol=failure.symbol,
+            kind=failure.kind,
+            message=failure.message,
+            provider=failure.provider,
+            status_code=failure.status_code,
+            attempts=failure.attempts,
+            run_id=failure.run_id or self.run_id,
+            recorded_at=failure.recorded_at or datetime.now(timezone.utc).isoformat(),
+        )
+        self.failures[recorded.symbol] = recorded
+
+    def get_failure(self, symbol: str) -> MarketDataFailure | None:
+        return self.failures.get(symbol)
+
+    def clear_failures(self) -> None:
+        self.failures.clear()
+
+    def clear_symbol_failure(self, symbol: str) -> None:
+        self.failures.pop(symbol, None)
+
+    def failure_evidence(self) -> dict[str, Any]:
+        failures = [failure.to_evidence() for failure in self.failures.values()]
+        return {
+            "run_id": self.run_id,
+            "provider": self.provider,
+            "failure_count": len(failures),
+            "failures": sorted(failures, key=lambda item: str(item.get("symbol"))),
         }
 
 
+# Legacy compatibility only. New runtime calls use MarketDataRunContext.
 MARKET_DATA_FAILURES: dict[str, MarketDataFailure] = {}
+_DEFAULT_CONTEXT: MarketDataRunContext | None = None
 
 
-def _record_market_data_failure(failure: MarketDataFailure) -> None:
-    MARKET_DATA_FAILURES[failure.symbol] = failure
+def _default_context() -> MarketDataRunContext:
+    global _DEFAULT_CONTEXT
+    if _DEFAULT_CONTEXT is None:
+        _DEFAULT_CONTEXT = MarketDataRunContext.from_env(run_id="legacy-default")
+    return _DEFAULT_CONTEXT
 
 
-def get_market_data_failure(symbol: str) -> MarketDataFailure | None:
-    return MARKET_DATA_FAILURES.get(symbol)
+def new_market_data_run_context(*, run_id: str | None = None) -> MarketDataRunContext:
+    return MarketDataRunContext.from_env(run_id=run_id)
 
 
-def clear_market_data_failures() -> None:
+def _record_market_data_failure(
+    failure: MarketDataFailure,
+    *,
+    context: MarketDataRunContext | None = None,
+) -> None:
+    active_context = context or _default_context()
+    active_context.record_failure(failure)
+    recorded = active_context.get_failure(failure.symbol) or failure
+    MARKET_DATA_FAILURES[recorded.symbol] = recorded
+
+
+def get_market_data_failure(
+    symbol: str,
+    *,
+    context: MarketDataRunContext | None = None,
+) -> MarketDataFailure | None:
+    if context is not None:
+        return context.get_failure(symbol)
+    return _default_context().get_failure(symbol) or MARKET_DATA_FAILURES.get(symbol)
+
+
+def clear_market_data_failures(*, context: MarketDataRunContext | None = None) -> None:
+    if context is not None:
+        context.clear_failures()
+        return
     MARKET_DATA_FAILURES.clear()
+    _default_context().clear_failures()
 
 
-def _failure_stub_metrics(symbol: str) -> dict:
-    failure = get_market_data_failure(symbol)
+def _failure_stub_metrics(symbol: str, *, context: MarketDataRunContext | None = None) -> dict:
+    active_context = context or _default_context()
+    failure = get_market_data_failure(symbol, context=active_context)
     if failure is None:
         failure = MarketDataFailure(
             symbol=symbol,
             kind=MarketDataFailureKind.EMPTY_BARS,
             message="scanner returned no bars without a provider-level failure detail",
+            run_id=active_context.run_id,
+            recorded_at=datetime.now(timezone.utc).isoformat(),
         )
     return {
         "symbol": symbol,
@@ -118,18 +205,26 @@ def _volatility_proxy_symbol() -> str:
     return os.getenv("VOLATILITY_PROXY_SYMBOL", "VIXY").strip() or "VIXY"
 
 
-def get_daily_bars(symbol, days=500, retries=3):
+def get_daily_bars(
+    symbol,
+    days=500,
+    retries=3,
+    *,
+    context: MarketDataRunContext | None = None,
+):
+    active_context = context or _default_context()
+    api_key = active_context.api_key
     end_date = datetime.now(timezone.utc).date()
     start_date = end_date - timedelta(days=days)
 
-    if not API_KEY:
+    if not api_key:
         failure = MarketDataFailure(
             symbol=symbol,
             kind=MarketDataFailureKind.MISSING_API_KEY,
             message="POLYGON_API_KEY is not configured",
             attempts=0,
         )
-        _record_market_data_failure(failure)
+        _record_market_data_failure(failure, context=active_context)
         print(f"Market data failure for {symbol}: {failure.kind.value}: {failure.message}")
         return None
 
@@ -138,7 +233,7 @@ def get_daily_bars(symbol, days=500, retries=3):
         "adjusted": "true",
         "sort": "asc",
         "limit": 5000,
-        "apiKey": API_KEY,
+        "apiKey": api_key,
     }
 
     last_failure: MarketDataFailure | None = None
@@ -155,7 +250,7 @@ def get_daily_bars(symbol, days=500, retries=3):
                     status_code=429,
                     attempts=attempt_no,
                 )
-                _record_market_data_failure(last_failure)
+                _record_market_data_failure(last_failure, context=active_context)
                 wait_time = 15
                 print(f"Rate limit hit for {symbol}. Waiting {wait_time}s...")
                 if attempt < retries - 1:
@@ -171,7 +266,7 @@ def get_daily_bars(symbol, days=500, retries=3):
                     status_code=403,
                     attempts=attempt_no,
                 )
-                _record_market_data_failure(failure)
+                _record_market_data_failure(failure, context=active_context)
                 print(f"Market data failure for {symbol}: {failure.kind.value}: {failure.message}")
                 return None
 
@@ -185,7 +280,7 @@ def get_daily_bars(symbol, days=500, retries=3):
                     status_code=response.status_code,
                     attempts=attempt_no,
                 )
-                _record_market_data_failure(failure)
+                _record_market_data_failure(failure, context=active_context)
                 print(f"Market data failure for {symbol}: {failure.kind.value}: {failure.message}")
                 return None
 
@@ -199,7 +294,7 @@ def get_daily_bars(symbol, days=500, retries=3):
                     status_code=response.status_code,
                     attempts=attempt_no,
                 )
-                _record_market_data_failure(failure)
+                _record_market_data_failure(failure, context=active_context)
                 print(f"Market data failure for {symbol}: {failure.kind.value}: {failure.message}")
                 return None
 
@@ -211,10 +306,11 @@ def get_daily_bars(symbol, days=500, retries=3):
                     status_code=response.status_code,
                     attempts=attempt_no,
                 )
-                _record_market_data_failure(failure)
+                _record_market_data_failure(failure, context=active_context)
                 print(f"Market data failure for {symbol}: {failure.kind.value}: {failure.message}")
                 return None
 
+            active_context.clear_symbol_failure(symbol)
             MARKET_DATA_FAILURES.pop(symbol, None)
             df = pd.DataFrame(data["results"])
             df["date"] = pd.to_datetime(df["t"], unit="ms").dt.date
@@ -237,7 +333,7 @@ def get_daily_bars(symbol, days=500, retries=3):
                 message=f"Polygon request failed while loading daily bars: {exc}",
                 attempts=attempt_no,
             )
-            _record_market_data_failure(last_failure)
+            _record_market_data_failure(last_failure, context=active_context)
             print(f"Market data failure for {symbol}: {last_failure.kind.value}: {last_failure.message}")
             if attempt < retries - 1:
                 time.sleep(10)
@@ -245,7 +341,7 @@ def get_daily_bars(symbol, days=500, retries=3):
                 return None
 
     if last_failure is not None:
-        _record_market_data_failure(last_failure)
+        _record_market_data_failure(last_failure, context=active_context)
     return None
 
 
@@ -289,6 +385,8 @@ def _regime_volatility_payload(
                 "data_failure_kind": primary_failure.kind.value,
                 "data_failure_message": primary_failure.message,
                 "provider_status_code": primary_failure.status_code,
+                "run_id": primary_failure.run_id,
+                "failure_recorded_at": primary_failure.recorded_at,
             }
         )
     return payload
@@ -316,10 +414,12 @@ def _blocked_regime_volatility_payload(
         "data_failure_kind": effective_failure.kind.value,
         "data_failure_message": effective_failure.message,
         "provider_status_code": effective_failure.status_code,
+        "run_id": effective_failure.run_id,
+        "failure_recorded_at": effective_failure.recorded_at,
     }
 
 
-def get_vix_value(retries=3):
+def get_vix_value(retries=3, *, context: MarketDataRunContext | None = None):
     """Return volatility/regime context with explicit provenance.
 
     Polygon `I:VIX` requires an index-capable plan. By default this scanner does
@@ -328,12 +428,13 @@ def get_vix_value(retries=3):
     the scanner uses `VOLATILITY_PROXY_SYMBOL` (default: VIXY) and marks regime
     health as DEGRADED.
     """
+    active_context = context or _default_context()
     primary_symbol = "I:VIX"
     proxy_symbol = _volatility_proxy_symbol()
     primary_failure: MarketDataFailure | None = None
 
     if _env_flag("POLYGON_INDEX_DATA_ENABLED", default=False):
-        primary_df = get_daily_bars(primary_symbol, days=30, retries=retries)
+        primary_df = get_daily_bars(primary_symbol, days=30, retries=retries, context=active_context)
         if primary_df is not None and not primary_df.empty:
             return _regime_volatility_payload(
                 symbol=primary_symbol,
@@ -341,7 +442,7 @@ def get_vix_value(retries=3):
                 fallback_level="primary",
                 data_status="OK",
             )
-        primary_failure = get_market_data_failure(primary_symbol)
+        primary_failure = get_market_data_failure(primary_symbol, context=active_context)
     else:
         primary_failure = MarketDataFailure(
             symbol=primary_symbol,
@@ -349,9 +450,10 @@ def get_vix_value(retries=3):
             message="Polygon index aggregates are disabled for the configured provider tier; using volatility proxy",
             attempts=0,
         )
-        _record_market_data_failure(primary_failure)
+        _record_market_data_failure(primary_failure, context=active_context)
+        primary_failure = get_market_data_failure(primary_symbol, context=active_context)
 
-    proxy_df = get_daily_bars(proxy_symbol, days=30, retries=retries)
+    proxy_df = get_daily_bars(proxy_symbol, days=30, retries=retries, context=active_context)
     if proxy_df is not None and not proxy_df.empty:
         return _regime_volatility_payload(
             symbol=proxy_symbol,
@@ -362,7 +464,7 @@ def get_vix_value(retries=3):
             primary_failure=primary_failure,
         )
 
-    proxy_failure = get_market_data_failure(proxy_symbol)
+    proxy_failure = get_market_data_failure(proxy_symbol, context=active_context)
     return _blocked_regime_volatility_payload(
         proxy_failure,
         source_symbol=proxy_symbol,
@@ -537,11 +639,12 @@ def setup_readiness_label(metrics):
     return "Not Ready"
 
 
-def build_symbol_metrics(symbol, benchmark_returns):
-    df = get_daily_bars(symbol)
+def build_symbol_metrics(symbol, benchmark_returns, *, context: MarketDataRunContext | None = None):
+    active_context = context or _default_context()
+    df = get_daily_bars(symbol, context=active_context)
 
     if df is None or df.empty:
-        return _failure_stub_metrics(symbol)
+        return _failure_stub_metrics(symbol, context=active_context)
 
     df["SMA20"] = df["close"].rolling(20).mean()
     df["SMA50"] = df["close"].rolling(50).mean()
@@ -574,7 +677,7 @@ def build_symbol_metrics(symbol, benchmark_returns):
     stop_loss = pd.NA
     exit_1 = pd.NA
     exit_2 = pd.NA
-    
+
     metrics = {
         "symbol": symbol,
         "close": last["close"],
@@ -595,6 +698,7 @@ def build_symbol_metrics(symbol, benchmark_returns):
         "benchmark_ret_20d": benchmark_ret_20d,
         "rs_spread": rs_spread,
         "warnings": warnings,
+        "run_id": active_context.run_id,
     }
 
     metrics["trend"] = trend_label(
@@ -605,18 +709,19 @@ def build_symbol_metrics(symbol, benchmark_returns):
     metrics["rvol_label"] = rvol_label(metrics["rvol"])
     metrics["rs_label"] = rs_spread_label(metrics["rs_spread"])
     metrics["setup_readiness"] = setup_readiness_label(metrics)
-    
+
     if metrics["setup_readiness"] == "Breakout Watch":
         entry = metrics["high"] * 1.002
         stop_loss = entry - metrics["atr14"]
         exit_1 = entry + (1.5 * metrics["atr14"])
         exit_2 = entry + (2.5 * metrics["atr14"])
 
-    elif metrics["setup_readiness"] == "Pullback Candidate":
-        if pd.notna(metrics["sma20"]) and abs((metrics["close"] - metrics["sma20"]) / metrics["sma20"]) <= 0.03:
-            entry = metrics["sma20"]
-        elif pd.notna(metrics["sma50"]):
-            entry = metrics["sma50"]
+    if metrics["setup_readiness"] == "Pullback Candidate":
+        sma_candidates = [
+            value for value in [metrics["sma20"], metrics["sma50"]] if pd.notna(value)
+        ]
+        if sma_candidates:
+            entry = max(sma_candidates)
 
         if pd.notna(entry):
             stop_loss = entry - metrics["atr14"]
@@ -825,19 +930,20 @@ def build_leaders_section(metrics_map):
     return lines
 
 
-def build_report():
+def build_report(*, context: MarketDataRunContext | None = None):
+    active_context = context or new_market_data_run_context(run_id="scanner-report")
     benchmark_returns = {}
     for bench in ["SPY", "QQQ", "GLD"]:
-        df = get_daily_bars(bench)
+        df = get_daily_bars(bench, context=active_context)
         benchmark_returns[bench] = calculate_20d_return(df["close"]) if df is not None else pd.NA
         time.sleep(2)
 
-    vix_data = get_vix_value()
+    vix_data = get_vix_value(context=active_context)
 
     metrics_map = {}
     for symbol in SYMBOLS:
         print(f"Fetching {symbol}...")
-        metrics_map[symbol] = build_symbol_metrics(symbol, benchmark_returns)
+        metrics_map[symbol] = build_symbol_metrics(symbol, benchmark_returns, context=active_context)
         time.sleep(2)
 
     lines = []
