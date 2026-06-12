@@ -22,6 +22,43 @@ SMALL_SAMPLE_WARNING_THRESHOLD = 30
 
 
 @dataclass(frozen=True)
+class NumericCoercionResult:
+    ok: bool
+    value: float | None
+    reason: str | None
+    raw_value: Any
+
+
+def coerce_finite_float(value: Any, *, strict: bool = False) -> float | None | NumericCoercionResult:
+    if value is None:
+        result = NumericCoercionResult(False, None, "missing", value)
+        return result if strict else None
+    if isinstance(value, str) and not value.strip():
+        result = NumericCoercionResult(False, None, "empty_string", value)
+        return result if strict else None
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        result = NumericCoercionResult(False, None, "invalid_float", value)
+        return result if strict else None
+    if not math.isfinite(parsed):
+        result = NumericCoercionResult(False, None, "non_finite", value)
+        return result if strict else None
+    result = NumericCoercionResult(True, parsed, None, value)
+    return result if strict else parsed
+
+
+def coerce_finite_float_or_default(value: Any, default: float) -> float:
+    parsed = coerce_finite_float(value)
+    return float(default) if parsed is None else float(parsed)
+
+
+def json_safe_number(value: Any, *, fallback: float | None = None) -> float | None:
+    parsed = coerce_finite_float(value)
+    return fallback if parsed is None else parsed
+
+
+@dataclass(frozen=True)
 class HistoricalEdgeValidationConfig:
     min_total_trades: int = MIN_TOTAL_TRADES
     min_profit_factor: float = MIN_PROFIT_FACTOR
@@ -133,9 +170,9 @@ def extract_r_values(records: Iterable[dict[str, Any]], *, result_field: str = "
         if not isinstance(record, dict):
             continue
         raw_value = record.get(result_field, record.get("r_multiple"))
-        value = _safe_float(raw_value)
+        value = coerce_finite_float(raw_value)
         if value is not None:
-            values.append(value)
+            values.append(float(value))
     return values
 
 
@@ -351,13 +388,7 @@ def write_historical_edge_report(report: HistoricalEdgeValidationReport, *, json
 
 
 def _safe_float(value: Any) -> float | None:
-    try:
-        result = float(value)
-    except (TypeError, ValueError):
-        return None
-    if math.isnan(result) or math.isinf(result):
-        return None
-    return result
+    return coerce_finite_float(value)
 
 
 def _format_number(value: float | int) -> str:
