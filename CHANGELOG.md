@@ -1,16 +1,23 @@
 # CHANGELOG
 
-## Decision Engine Consistency #200 — 2026-06-12
+## OOS Lockbox Direct Guards #197 — 2026-06-12
 
 ### Added
-- Added `tests/test_200_decision_engine_consistency.py`.
-- Added `docs/operations/decision_engine_consistency.md`.
+- Added `tests/test_197_oos_lockbox_direct.py`.
+- Added `docs/roadmap/bt139_oos_lockbox_prerequisite.md`.
 
-### Contract
-- Exact match field: `boundary`.
-- Boundaries: `actionable_bullish`, `watch_or_neutral`, `defensive_or_blocked`.
-- Allowed differences: confidence score, probability distribution, position size and risk tier.
-- The boundary adapter lives in the contract test to avoid adding a new unclassified production module under `src/`.
+### Changed
+- Added duplicate id checks.
+- Added duplicate date checks.
+- Added symbol split checks.
+- Added small sample invalidation reasons.
+- Added optional manifest writing.
+
+---
+
+## Decision Engine Consistency #200 — 2026-06-12
+
+History marker retained.
 
 ---
 
