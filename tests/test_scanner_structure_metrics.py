@@ -32,7 +32,7 @@ def _daily_bars(rows: int = 230) -> pd.DataFrame:
 
 
 def test_build_symbol_metrics_emits_native_swing_low_metric(monkeypatch) -> None:
-    monkeypatch.setattr(scanner, "get_daily_bars", lambda symbol: _daily_bars())
+    monkeypatch.setattr(scanner, "get_daily_bars", lambda symbol, **_kwargs: _daily_bars())
 
     metrics = scanner.build_symbol_metrics("NVDA", {"SPY": 1.0})
 
@@ -44,7 +44,7 @@ def test_build_symbol_metrics_emits_native_swing_low_metric(monkeypatch) -> None
 def test_build_symbol_metrics_returns_na_when_no_confirmed_swing_low(monkeypatch) -> None:
     df = _daily_bars()
     df["low"] = range(len(df), 0, -1)
-    monkeypatch.setattr(scanner, "get_daily_bars", lambda symbol: df)
+    monkeypatch.setattr(scanner, "get_daily_bars", lambda symbol, **_kwargs: df)
 
     metrics = scanner.build_symbol_metrics("NVDA", {"SPY": 1.0})
 
