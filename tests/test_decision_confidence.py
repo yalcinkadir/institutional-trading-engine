@@ -12,6 +12,7 @@ from src.decision_confidence import (
     calculate_confidence_score,
     regime_alignment_score_from_decision,
     regime_alignment_score_from_tier,
+    risk_tier_discount_score,
 )
 
 
@@ -34,20 +35,21 @@ def test_confidence_score_uses_orthogonal_three_layer_formula() -> None:
         "market_health": MARKET_HEALTH_WEIGHT,
         "regime_alignment": REGIME_ALIGNMENT_WEIGHT,
     }
+    assert result.provenance["risk_tier_used_as_regime_alignment"] is False
 
 
 def test_confidence_weights_sum_to_one() -> None:
     assert ASSET_SETUP_WEIGHT + MARKET_HEALTH_WEIGHT + REGIME_ALIGNMENT_WEIGHT == 1.0
 
 
-def test_regime_alignment_tier_mapping() -> None:
+def test_regime_alignment_tier_mapping_is_legacy_compatibility_only() -> None:
     assert regime_alignment_score_from_tier(RegimeAlignmentTier.TIER_1) == 100.0
     assert regime_alignment_score_from_tier(RegimeAlignmentTier.TIER_2) == 65.0
     assert regime_alignment_score_from_tier(RegimeAlignmentTier.TIER_3) == 35.0
     assert regime_alignment_score_from_tier(RegimeAlignmentTier.NO_TRADE) == 0.0
 
 
-def test_regime_alignment_tier_aliases() -> None:
+def test_regime_alignment_tier_aliases_are_legacy_compatibility_only() -> None:
     assert regime_alignment_score_from_tier("Tier 1") == 100.0
     assert regime_alignment_score_from_tier("risk-tier-2") == 65.0
     assert regime_alignment_score_from_tier("tier3") == 35.0
@@ -56,15 +58,17 @@ def test_regime_alignment_tier_aliases() -> None:
     assert regime_alignment_score_from_tier(None) == 0.0
 
 
-def test_calculate_confidence_from_tier() -> None:
+def test_calculate_confidence_from_tier_uses_explicit_discount_not_regime_evidence() -> None:
     result = calculate_confidence_from_tier(
         setup_score=90,
         market_health_score=80,
         tier="tier_2",
     )
 
-    expected = (90 * 0.45) + (80 * 0.35) + (65 * 0.20)
-    assert result.confidence == expected
+    expected_without_discount = (90 * 0.45) + (80 * 0.35) + (50 * 0.20)
+    assert result.confidence == expected_without_discount + risk_tier_discount_score("tier_2")
+    assert result.provenance["components"]["risk_tier_adjustment"]["source"] == "risk_tier_discount"
+    assert result.provenance["risk_tier_used_as_regime_alignment"] is False
 
 
 def test_confidence_is_clamped_to_zero_to_hundred() -> None:
@@ -90,7 +94,7 @@ def test_confidence_is_clamped_to_zero_to_hundred() -> None:
     assert low.confidence == 0.0
 
 
-def test_no_trade_regime_alignment_reduces_confidence() -> None:
+def test_no_trade_tier_discount_reduces_confidence() -> None:
     tier_1 = calculate_confidence_from_tier(
         setup_score=80,
         market_health_score=80,
@@ -102,21 +106,24 @@ def test_no_trade_regime_alignment_reduces_confidence() -> None:
         tier="no_trade",
     )
 
-    assert tier_1.confidence == 84.0
-    assert no_trade.confidence == 64.0
+    assert tier_1.confidence == 74.0
+    assert no_trade.confidence == 54.0
     assert tier_1.confidence - no_trade.confidence == 20.0
 
 
-def test_regime_alignment_score_from_decision_dict() -> None:
-    assert regime_alignment_score_from_decision({"risk_tier": "tier_1"}) == 100.0
-    assert regime_alignment_score_from_decision({"tier": "tier_2"}) == 65.0
+def test_regime_alignment_score_from_decision_dict_requires_independent_field() -> None:
+    assert regime_alignment_score_from_decision({"risk_tier": "tier_1"}) == 0.0
+    assert regime_alignment_score_from_decision({"tier": "tier_2"}) == 0.0
     assert regime_alignment_score_from_decision({"action": "NO_TRADE"}) == 0.0
+    assert regime_alignment_score_from_decision({"regime_alignment_score": 72}) == 72.0
+    assert regime_alignment_score_from_decision({"regime_alignment": 0.65}) == 65.0
     assert regime_alignment_score_from_decision({}) == 0.0
 
 
-def test_regime_alignment_score_from_decision_object() -> None:
+def test_regime_alignment_score_from_decision_object_requires_independent_field() -> None:
     @dataclass(frozen=True)
     class Decision:
         risk_tier: str
+        regime_alignment_score: float
 
-    assert regime_alignment_score_from_decision(Decision(risk_tier="tier_3")) == 35.0
+    assert regime_alignment_score_from_decision(Decision(risk_tier="tier_3", regime_alignment_score=58)) == 58.0
