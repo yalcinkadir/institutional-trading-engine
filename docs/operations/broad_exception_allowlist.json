@@ -1,0 +1,49 @@
+{
+  "schema": "broad_exception_allowlist.v1",
+  "status_date": "2026-06-12",
+  "issue": 198,
+  "required_fields": [
+    "path",
+    "stage",
+    "behavior",
+    "component",
+    "rationale"
+  ],
+  "allowed_behaviors": [
+    "fail_closed_raise",
+    "degraded_continue",
+    "degraded_empty_records",
+    "fail_closed_blocked_regime",
+    "structured_audit_continue"
+  ],
+  "entries": [
+    {
+      "path": "src/outcome_tracking.py",
+      "stage": "outcome_tracking.read_decision_records",
+      "behavior": "degraded_empty_records",
+      "component": "outcome_tracking",
+      "rationale": "Outcome reads may degrade to an empty record set only when callers can receive structured audit metadata."
+    },
+    {
+      "path": "src/reporting/market_regime.py",
+      "stage": "reporting.market_regime.PolygonClient",
+      "behavior": "fail_closed_blocked_regime",
+      "component": "reporting.market_regime",
+      "rationale": "Market regime cannot be validated without a market-data client."
+    },
+    {
+      "path": "src/reporting/market_regime.py",
+      "stage": "reporting.market_regime.breadth",
+      "behavior": "degraded_continue",
+      "component": "reporting.market_regime",
+      "rationale": "Breadth can degrade only when explicit report evidence includes exception audit metadata."
+    },
+    {
+      "path": "src/runtime/runtime_loop.py",
+      "stage": "runtime_loop.cycle_provider",
+      "behavior": "fail_closed_raise",
+      "component": "runtime_loop",
+      "rationale": "Runtime loop catches provider failures only to count/log them and raises RuntimeLoopError after the configured threshold."
+    }
+  ]
+}
