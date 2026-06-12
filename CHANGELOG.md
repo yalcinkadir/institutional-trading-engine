@@ -1,17 +1,22 @@
 # CHANGELOG
 
-## Confidence Provenance #196 — 2026-06-12
+## Decision Engine Consistency #200 — 2026-06-12
 
 ### Added
-- Added `tests/test_196_confidence_double_counting.py`.
-- Added `tests/test_196_legacy_scoring_paths.py`.
-- Added `docs/operations/confidence_provenance.md`.
-- Added confidence component provenance.
+- Added `tests/test_200_decision_engine_consistency.py`.
+- Added `src/decision_engine_consistency.py`.
+- Added `docs/operations/decision_engine_consistency.md`.
 
-### Changed
-- Risk tier is no longer used as independent regime evidence.
-- Risk tier is represented only as an explicit discount.
-- Legacy confidence and asset scoring helpers are deprecated compatibility paths.
+### Contract
+- Exact match field: `boundary`.
+- Boundaries: `actionable_bullish`, `watch_or_neutral`, `defensive_or_blocked`.
+- Allowed differences: confidence score, probability distribution, position size and risk tier.
+
+---
+
+## Confidence Provenance #196 — 2026-06-12
+
+History marker retained.
 
 ---
 
