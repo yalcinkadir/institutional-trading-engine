@@ -4,6 +4,17 @@ Institutional Trading Engine is a research, market-intelligence, screening, repo
 
 The system is designed for research and paper-observation evidence collection. It does not place live trades and does not authorize real-money execution.
 
+## Setup
+
+The authoritative dependency install entry point is `requirements.txt`.
+
+`requirements.txt` delegates to the pinned lock file `requirements.lock`, so contributors and CI use the same dependency contract.
+
+```bash
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
+
 Current Validation Status
 
 TEST1: Evidence-Oriented TDD Policy active
