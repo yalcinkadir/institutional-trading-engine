@@ -38,6 +38,26 @@ from src.scoring.expectancy_adjuster import (
     find_expectancy_adjustment,
 )
 
+SCANNER_SCORE_FIELDS = (
+    "trend_score",
+    "volume_score",
+    "volatility_score",
+    "setup_quality_score",
+    "liquidity_score",
+)
+SCORE_INPUTS = [
+    "market_state_base_score",
+    "scanner_trend_score",
+    "scanner_volume_score",
+    "scanner_volatility_score",
+    "scanner_setup_quality_score",
+    "scanner_liquidity_score",
+    "regime_alignment",
+    "asymmetry_score",
+    "data_confidence",
+    "historical_expectancy_adjustment",
+]
+
 
 def _map_regime_to_market_state(
     regime: str,
@@ -171,17 +191,6 @@ def _bounded(value: float, lower: float, upper: float) -> float:
     return max(lower, min(upper, value))
 
 
-def _symbol_score_component(symbol: str) -> float:
-    """Stable non-demo symbol component for report scoring.
-
-    This intentionally avoids index-only arithmetic sequences such as 82,79,76...
-    while remaining deterministic and auditable until fuller scanner-derived setup
-    scoring is wired into the report path.
-    """
-    weighted = sum((idx + 1) * ord(char) for idx, char in enumerate(symbol.upper()))
-    return float((weighted % 17) - 8)
-
-
 def _market_state_base_score(market_state: MarketState) -> float:
     return {
         MarketState.LOW_VOL_BULL: 78.0,
@@ -192,11 +201,67 @@ def _market_state_base_score(market_state: MarketState) -> float:
     }[market_state]
 
 
+def _coerce_score(value: Any) -> float | None:
+    if value is None:
+        return None
+    try:
+        score = float(value)
+    except (TypeError, ValueError):
+        return None
+    if score > 1.0:
+        score = score / 100.0
+    return _bounded(score, 0.0, 1.0)
+
+
+def _screener_metrics_map(screener: dict) -> dict[str, dict[str, Any]]:
+    for key in ("scanner_metrics", "scanner_metrics_map", "symbol_metrics", "metrics"):
+        value = screener.get(key)
+        if isinstance(value, dict):
+            return {
+                str(symbol): metrics
+                for symbol, metrics in value.items()
+                if isinstance(metrics, dict)
+            }
+    return {}
+
+
+def _scanner_score_provenance(symbol: str, scanner_metrics: dict[str, Any] | None) -> dict[str, Any]:
+    used: dict[str, float] = {}
+    for field in SCANNER_SCORE_FIELDS:
+        score = _coerce_score((scanner_metrics or {}).get(field))
+        if score is not None:
+            used[field] = score
+
+    if used:
+        weighted_average = sum(used.values()) / len(used)
+        scanner_component = round((weighted_average - 0.5) * 16.0, 4)
+        source = "scanner_metrics"
+    else:
+        weighted_average = 0.5
+        scanner_component = 0.0
+        source = "market_context_neutral_no_placeholder"
+
+    return {
+        "symbol": symbol,
+        "setup_score_source": source,
+        "symbol_component_source": "disabled_no_placeholder",
+        "placeholder_score_contribution": 0.0,
+        "scanner_metrics_used": used,
+        "inputs": list(SCORE_INPUTS),
+        "score_components": {
+            "scanner_evidence_component": scanner_component,
+            "scanner_weighted_average": round(weighted_average, 4),
+        },
+    }
+
+
 def _candidate_for_symbol(
     symbol: str,
     index: int,
     context: MarketContext,
     data_quality_ok: bool,
+    *,
+    scanner_metrics: dict[str, Any] | None = None,
     outcome_history_path: str | Path = DEFAULT_OUTCOME_HISTORY,
 ) -> tuple[SetupCandidate, dict]:
     """
@@ -205,6 +270,8 @@ def _candidate_for_symbol(
     The candidate remains a normal Decision Engine candidate, but its setup_score
     is adjusted by lifecycle-aware historical evidence where available.
     """
+    del index  # #180: ranking must not depend on list-position placeholder noise.
+
     preferred_setup = {
         MarketState.LOW_VOL_BULL: SetupType.MOMENTUM_BREAKOUT,
         MarketState.HIGH_VOL_TRANSITION: SetupType.PULLBACK_CONTINUATION,
@@ -213,13 +280,14 @@ def _candidate_for_symbol(
         MarketState.NEUTRAL: SetupType.PULLBACK_CONTINUATION,
     }[context.market_state]
 
-    symbol_component = _symbol_score_component(symbol)
-    index_noise = float((index % 3) - 1)
+    score_provenance = _scanner_score_provenance(symbol, scanner_metrics)
+    scanner_component = float(score_provenance["score_components"]["scanner_evidence_component"])
+    scanner_weighted_average = float(score_provenance["score_components"]["scanner_weighted_average"])
+    base_market_state_score = _market_state_base_score(context.market_state)
     base_setup_score = round(
         _bounded(
-            _market_state_base_score(context.market_state)
-            + symbol_component
-            + index_noise
+            base_market_state_score
+            + scanner_component
             - (4.0 if context.liquidity_stress else 0.0)
             - (6.0 if context.breadth_collapse else 0.0),
             50.0,
@@ -227,24 +295,26 @@ def _candidate_for_symbol(
         ),
         2,
     )
+    scanner_alignment_component = (scanner_weighted_average - 0.5) * 0.08
     regime_alignment = round(
         _bounded(
             0.66
             + (0.14 if context.market_state == MarketState.LOW_VOL_BULL else 0.0)
             - (0.10 if context.liquidity_stress else 0.0)
             - (0.08 if context.breadth_collapse else 0.0)
-            + (symbol_component / 100.0),
+            + scanner_alignment_component,
             0.45,
             0.92,
         ),
         2,
     )
+    scanner_asymmetry_component = (scanner_weighted_average - 0.5) * 0.10
     asymmetry_score = round(
         _bounded(
             0.64
             + (0.06 if context.max_portfolio_heat >= 1.0 else 0.0)
-            + (abs(symbol_component) / 220.0)
-            - (0.05 if context.liquidity_stress else 0.0),
+            - (0.05 if context.liquidity_stress else 0.0)
+            + scanner_asymmetry_component,
             0.45,
             0.86,
         ),
@@ -282,7 +352,21 @@ def _candidate_for_symbol(
 
     score_source = "evidence_adjusted" if adjustment.score_delta != 0 else "scanner_derived"
     data_source = "live" if data_quality_ok else "scanner_metrics"
+    score_provenance["score_components"].update(
+        {
+            "market_state_base_score": base_market_state_score,
+            "liquidity_stress_penalty": -4.0 if context.liquidity_stress else 0.0,
+            "breadth_collapse_penalty": -6.0 if context.breadth_collapse else 0.0,
+            "base_setup_score": base_setup_score,
+            "historical_expectancy_delta": adjustment.score_delta,
+            "final_setup_score": adjusted_setup_score,
+            "regime_alignment": regime_alignment,
+            "asymmetry_score": asymmetry_score,
+            "data_confidence": data_confidence,
+        }
+    )
     meta = {
+        "base_market_state_score": base_market_state_score,
         "base_setup_score": base_setup_score,
         "expectancy_adjusted_score": adjusted_setup_score,
         "expectancy_score_delta": round(adjusted_setup_score - base_setup_score, 2),
@@ -298,6 +382,7 @@ def _candidate_for_symbol(
         "score_source": score_source,
         "data_source": data_source,
         "thresholds_version": "report_scoring_v2",
+        "score_provenance": score_provenance,
     }
 
     return candidate, meta
@@ -316,12 +401,14 @@ def build_decision_report(
     if report_governance["blocked"]:
         hard_overrides.extend(report_governance["reasons"])
 
+    scanner_metrics_map = _screener_metrics_map(screener)
     candidate_pairs = [
         _candidate_for_symbol(
             symbol,
             index,
             context,
             data_quality_ok,
+            scanner_metrics=scanner_metrics_map.get(str(symbol)),
             outcome_history_path=outcome_history_path,
         )
         for index, symbol in enumerate(screener.get("watchlist", []))
@@ -368,8 +455,10 @@ def build_decision_report(
                 "position_size_multiplier": adjusted_size,
                 "base_position_size_multiplier": result.position_size_multiplier,
                 "setup_score": candidate.setup_score,
+                "base_market_state_score": meta.get("base_market_state_score"),
                 "base_setup_score": meta.get("base_setup_score", candidate.setup_score),
                 "score_source": meta.get("score_source", "scanner_derived"),
+                "score_provenance": meta.get("score_provenance", {}),
                 "data_source": meta.get("data_source", "live"),
                 "thresholds_version": meta.get("thresholds_version", "report_scoring_v2"),
                 "regime_alignment": round(candidate.regime_alignment, 2),
@@ -454,6 +543,12 @@ def build_decision_report(
         "data_quality_note": data_quality_note,
         "expectancy_adjustments_used": expectancy_adjustments_used,
         "score_source": score_source,
+        "score_provenance": {
+            "placeholder_scoring_allowed": False,
+            "symbol_name_score_enabled": False,
+            "score_inputs": SCORE_INPUTS,
+            "scanner_metric_fields": list(SCANNER_SCORE_FIELDS),
+        },
         "data_source": data_source,
         "thresholds_version": "report_scoring_v2",
         "approved_count": approved_count,
