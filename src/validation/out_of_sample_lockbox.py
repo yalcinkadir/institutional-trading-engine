@@ -616,12 +616,25 @@ def _duplicate_values(records: Iterable[dict[str, Any]], fields: tuple[str, ...]
 def _duplicate_record_dates(records: Iterable[dict[str, Any]]) -> list[str]:
     counts: dict[str, int] = {}
     for record in records:
-        record_date = _extract_record_date(record, primary_field="exit_date", fallback_fields=("closed_at", "signal_date", "date"))
+        if not _has_contamination_identity(record):
+            continue
+        record_date = _extract_record_date(
+            record,
+            primary_field="exit_date",
+            fallback_fields=("closed_at", "signal_date", "date"),
+        )
         if record_date is None:
             continue
         key = record_date.isoformat()
         counts[key] = counts.get(key, 0) + 1
     return sorted(value for value, count in counts.items() if count > 1)
+
+
+def _has_contamination_identity(record: dict[str, Any]) -> bool:
+    return any(
+        record.get(field) is not None and str(record.get(field)).strip()
+        for field in (*SIGNAL_ID_FIELDS, *SYMBOL_FIELDS)
+    )
 
 
 def _leaked_symbols_across_split(records: Iterable[dict[str, Any]], *, config: OutOfSampleLockboxConfig) -> list[str]:
