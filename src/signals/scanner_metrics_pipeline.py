@@ -22,10 +22,9 @@ from src.validation.historical_edge_validation import coerce_finite_float
 
 REQUIRED_SIGNAL_METRICS = ("close", "atr14")
 REQUIRED_PROVENANCE_FIELDS = ("source", "source_timestamp", "fallback_level")
-OPTIONAL_SIGNAL_METRICS = (
+OPTIONAL_NUMERIC_SIGNAL_METRICS = (
     "atr_pct",
     "entry",
-    "entry_type",
     "stop_loss",
     "exit_1",
     "exit_2",
@@ -36,6 +35,7 @@ OPTIONAL_SIGNAL_METRICS = (
     "vwap",
     "swing_low_3bar",
 )
+OPTIONAL_SIGNAL_METRICS = (*OPTIONAL_NUMERIC_SIGNAL_METRICS, "entry_type")
 PROVENANCE_FIELDS = (
     "source",
     "source_timestamp",
@@ -153,7 +153,7 @@ def _safe_text(value: Any) -> str | None:
 def normalize_symbol_metrics(metrics: dict[str, Any]) -> dict[str, Any]:
     """Normalize one scanner metrics row while preserving compatible fields."""
     row = dict(metrics)
-    for field_name in (*REQUIRED_SIGNAL_METRICS, *OPTIONAL_SIGNAL_METRICS):
+    for field_name in (*REQUIRED_SIGNAL_METRICS, *OPTIONAL_NUMERIC_SIGNAL_METRICS):
         if field_name in row:
             row[field_name] = _safe_float(row.get(field_name))
     return row
@@ -312,13 +312,43 @@ def normalize_scanner_metrics_map(
     return normalized, diagnostics
 
 
+def _coerce_checked_at(value: datetime | str | None) -> str:
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    return datetime.now(UTC).isoformat()
+
+
+def _diagnostics_from_summary(summary: dict[str, Any], total_symbols: int) -> ScannerMetricsDiagnostics:
+    return ScannerMetricsDiagnostics(
+        total_symbols=int(summary.get("total_symbols", total_symbols)),
+        valid_symbols=int(summary.get("valid_symbols", 0)),
+        missing_symbols=list(summary.get("missing_symbols", [])),
+        missing_required_fields=dict(summary.get("missing_required_fields", {})),
+        missing_provenance_fields=dict(summary.get("missing_provenance_fields", {})),
+        stale_symbols=dict(summary.get("stale_symbols", {})),
+        market_data_failures=dict(summary.get("market_data_failures", {})),
+    )
+
+
 def build_datafeed_liveness_record(
-    normalized: dict[str, dict[str, Any]],
-    diagnostics: ScannerMetricsDiagnostics,
+    normalized: dict[str, dict[str, Any]] | None = None,
+    diagnostics: ScannerMetricsDiagnostics | None = None,
     *,
-    checked_at: datetime | None = None,
+    scanner_metrics_map: dict[str, dict[str, Any]] | None = None,
+    scanner_data_quality: dict[str, Any] | None = None,
+    checked_at: datetime | str | None = None,
 ) -> DatafeedLivenessRecord:
-    checked = (checked_at or datetime.now(UTC)).isoformat()
+    if normalized is None:
+        normalized = {symbol: normalize_symbol_metrics(metrics) for symbol, metrics in (scanner_metrics_map or {}).items()}
+    if diagnostics is None:
+        if scanner_data_quality is not None:
+            diagnostics = _diagnostics_from_summary(scanner_data_quality, len(normalized))
+        else:
+            normalized, diagnostics = normalize_scanner_metrics_map(normalized, list(normalized))
+
+    checked = _coerce_checked_at(checked_at)
     total = diagnostics.total_symbols
     valid_close_count = sum(
         1
@@ -326,7 +356,7 @@ def build_datafeed_liveness_record(
         if _safe_float(metrics.get("close")) is not None
     )
     all_close_missing = total > 0 and valid_close_count == 0
-    provider_reasons = sorted({detail["reason"] for detail in diagnostics.market_data_failures.values()})
+    provider_reasons = sorted({detail.get("reason") for detail in diagnostics.market_data_failures.values() if detail.get("reason")})
     provider_failure_reason = ",".join(provider_reasons) if provider_reasons else None
     datafeed_status = DATAFEED_OK
     notes: list[str] = []
@@ -361,7 +391,24 @@ def build_datafeed_liveness_record(
     )
 
 
-def write_datafeed_liveness_record(record: DatafeedLivenessRecord, path: Path) -> Path:
+def write_datafeed_liveness_record(
+    record: DatafeedLivenessRecord,
+    path: Path | None = None,
+    *,
+    output_dir: Path | None = None,
+    date_str: str | None = None,
+) -> Path | tuple[Path, Path]:
+    if output_dir is not None:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        dated_path = output_dir / f"{date_str or datetime.now(UTC).date().isoformat()}-datafeed-liveness.json"
+        latest_path = output_dir / "datafeed-liveness-latest.json"
+        payload = json.dumps(record.to_dict(), indent=2, sort_keys=True)
+        dated_path.write_text(payload, encoding="utf-8")
+        latest_path.write_text(payload, encoding="utf-8")
+        return dated_path, latest_path
+
+    if path is None:
+        raise ValueError("path or output_dir is required")
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(record.to_dict(), indent=2, sort_keys=True), encoding="utf-8")
     return path
