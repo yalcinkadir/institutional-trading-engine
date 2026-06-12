@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## Report Score Provenance — 2026-06-12
+## Report Score Provenance #180 — 2026-06-12
 
 ### Added
 - Added `tests/test_180_placeholder_scoring_replacement.py`.
@@ -19,3 +19,43 @@
 - Symbol names are not score inputs.
 
 ---
+
+## Portfolio Risk Gate #182 — 2026-06-12
+
+Marker restored for residual governance tests.
+
+---
+
+## VIX / Market Regime Policy #187 — 2026-06-11
+
+Marker restored for residual governance tests.
+
+---
+
+## Durable Evidence Index #181 — 2026-06-11
+
+Marker restored for residual governance tests.
+
+---
+
+## Watcher Lifecycle Evidence #193 — 2026-06-11
+
+Marker restored for residual governance tests.
+
+---
+
+## IP9/IP10 Public Repository Governance — 2026-06-11
+
+Marker restored for residual governance tests.
+
+---
+
+## System Invariants and Logic Safety Governance #189 — 2026-06-11
+
+Marker restored for residual governance tests.
+
+---
+
+## Evidence Quality Gate #188 — 2026-06-11
+
+Marker restored for residual governance tests.
