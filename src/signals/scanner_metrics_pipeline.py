@@ -48,6 +48,7 @@ MARKET_DATA_FAILURE_FIELDS = (
     "provider_status_code",
 )
 DEFAULT_MAX_STALENESS_MINUTES = 24 * 60
+DEFAULT_DATAFEED_LIVENESS_DIR = Path("reports") / "datafeed_liveness"
 
 DATAFEED_OK = "DATAFEED_OK"
 DATAFEED_DEGRADED = "DATAFEED_DEGRADED"
@@ -320,6 +321,10 @@ def _coerce_checked_at(value: datetime | str | None) -> str:
     return datetime.now(UTC).isoformat()
 
 
+def _date_from_checked_at(checked_at: str) -> str:
+    return checked_at[:10] if len(checked_at) >= 10 else datetime.now(UTC).date().isoformat()
+
+
 def _diagnostics_from_summary(summary: dict[str, Any], total_symbols: int) -> ScannerMetricsDiagnostics:
     return ScannerMetricsDiagnostics(
         total_symbols=int(summary.get("total_symbols", total_symbols)),
@@ -398,6 +403,10 @@ def write_datafeed_liveness_record(
     output_dir: Path | None = None,
     date_str: str | None = None,
 ) -> Path | tuple[Path, Path]:
+    if output_dir is None and path is None:
+        output_dir = DEFAULT_DATAFEED_LIVENESS_DIR
+        date_str = date_str or _date_from_checked_at(record.checked_at)
+
     if output_dir is not None:
         output_dir.mkdir(parents=True, exist_ok=True)
         dated_path = output_dir / f"{date_str or datetime.now(UTC).date().isoformat()}-datafeed-liveness.json"
