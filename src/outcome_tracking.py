@@ -16,7 +16,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Callable
 
-from src.exception_audit import build_exception_audit_event
+from src.structured_logging import build_exception_audit_event
 
 
 @dataclass(frozen=True)
