@@ -57,11 +57,6 @@
       "decision": "parked_pending_full_regression_after_removal"
     },
     {
-      "path": "src/portfolio_risk.py",
-      "classification": "quarantine_candidate",
-      "decision": "parked_pending_full_regression_after_removal"
-    },
-    {
       "path": "src/regime/regime_memory.py",
       "classification": "quarantine_candidate",
       "decision": "parked_pending_full_regression_after_removal"
