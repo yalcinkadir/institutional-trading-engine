@@ -150,6 +150,15 @@ def _safe_text(value: Any) -> str | None:
     return text or None
 
 
+def normalize_symbol_metrics(metrics: dict[str, Any]) -> dict[str, Any]:
+    """Normalize one scanner metrics row while preserving compatible fields."""
+    row = dict(metrics)
+    for field_name in (*REQUIRED_SIGNAL_METRICS, *OPTIONAL_SIGNAL_METRICS):
+        if field_name in row:
+            row[field_name] = _safe_float(row.get(field_name))
+    return row
+
+
 def _parse_timestamp(value: Any) -> datetime | None:
     text = _safe_text(value)
     if text is None:
@@ -177,7 +186,7 @@ def _staleness_reason(
     if age < timedelta(0):
         return "source_timestamp_in_future"
     if age > timedelta(minutes=max_staleness_minutes):
-        return f"stale_source_timestamp:{int(age.total_seconds() // 60)}m"
+        return "source_timestamp_too_old"
     return None
 
 
@@ -227,7 +236,14 @@ def normalize_scanner_metrics_map(
     max_staleness_minutes: int = DEFAULT_MAX_STALENESS_MINUTES,
 ) -> tuple[dict[str, dict[str, Any]], ScannerMetricsDiagnostics]:
     now_utc = now_utc or datetime.now(UTC)
-    raw_map = metrics_map or {}
+    if metrics_map is None:
+        return {}, ScannerMetricsDiagnostics(
+            total_symbols=len(required_symbols),
+            valid_symbols=0,
+            missing_symbols=list(required_symbols),
+        )
+
+    raw_map = metrics_map
     normalized: dict[str, dict[str, Any]] = {}
     missing_symbols: list[str] = []
     missing_required_fields: dict[str, list[str]] = {}
@@ -242,16 +258,10 @@ def normalize_scanner_metrics_map(
             normalized[symbol] = {}
             continue
 
-        row = dict(raw_metrics)
-        numeric_required_missing: list[str] = []
-        for field_name in REQUIRED_SIGNAL_METRICS:
-            row[field_name] = _safe_float(row.get(field_name))
-            if row[field_name] is None:
-                numeric_required_missing.append(field_name)
-        for field_name in OPTIONAL_SIGNAL_METRICS:
-            if field_name in row:
-                row[field_name] = _safe_float(row.get(field_name))
-
+        row = normalize_symbol_metrics(raw_metrics)
+        numeric_required_missing: list[str] = [
+            field_name for field_name in REQUIRED_SIGNAL_METRICS if row.get(field_name) is None
+        ]
         provenance_missing = [field_name for field_name in REQUIRED_PROVENANCE_FIELDS if not _safe_text(row.get(field_name))]
         failure_detail = _market_data_failure_details(row)
         if failure_detail is not None:
@@ -261,13 +271,22 @@ def normalize_scanner_metrics_map(
         if provenance_missing:
             missing_provenance_fields[symbol] = provenance_missing
 
-        stale_reason = _staleness_reason(
-            row.get("source_timestamp"),
-            now_utc=now_utc,
-            max_staleness_minutes=max_staleness_minutes,
-        )
-        if stale_reason is not None:
-            stale_symbols[symbol] = stale_reason
+        stale_reason = None
+        if not provenance_missing:
+            stale_reason = _staleness_reason(
+                row.get("source_timestamp"),
+                now_utc=now_utc,
+                max_staleness_minutes=max_staleness_minutes,
+            )
+            if stale_reason is not None:
+                stale_symbols[symbol] = stale_reason
+
+        if failure_detail is not None or numeric_required_missing:
+            row["data_status"] = "BLOCKED"
+        elif provenance_missing or stale_reason is not None:
+            row["data_status"] = "DEGRADED"
+        else:
+            row["data_status"] = row.get("data_status") or "OK"
 
         normalized[symbol] = row
 
@@ -278,6 +297,8 @@ def normalize_scanner_metrics_map(
         and symbol not in missing_symbols
         and symbol not in missing_required_fields
         and symbol not in market_data_failures
+        and symbol not in missing_provenance_fields
+        and symbol not in stale_symbols
     )
     diagnostics = ScannerMetricsDiagnostics(
         total_symbols=len(required_symbols),
