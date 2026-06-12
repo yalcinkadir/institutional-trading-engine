@@ -2,9 +2,9 @@
 
 Status: **PASS**
 Observation health: `NO_TRADE_VALID`
-Run timestamp: `2026-06-12T13:43:23Z`
+Run timestamp: `2026-06-12T16:07:42Z`
 Workflow: `Institutional Reports`
-Commit SHA: `4e3bef48132b495e2ebf934407c681caa474796e`
+Commit SHA: `fe245d51c9a97faa96b36f39f4d8d7010da1c398`
 Market regime: `Strong Bullish (VIX proxy degraded)`
 Data quality status: `OK`
 Total signals: 8
