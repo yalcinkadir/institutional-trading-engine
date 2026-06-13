@@ -29,6 +29,16 @@ def parse_args() -> argparse.Namespace:
         help="Directory for health gate JSON/Markdown reports.",
     )
     parser.add_argument(
+        "--scheduled-liveness-file",
+        default=None,
+        help="Optional scheduled-report liveness JSON to couple into the readiness decision.",
+    )
+    parser.add_argument(
+        "--watcher-lifecycle-file",
+        default=None,
+        help="Optional watcher lifecycle JSON to couple into the readiness decision.",
+    )
+    parser.add_argument(
         "--run-timestamp",
         default=os.environ.get("GITHUB_RUN_ATTEMPT_TIMESTAMP") or os.environ.get("RUN_TIMESTAMP"),
         help="UTC timestamp identifying this observation run.",
@@ -50,13 +60,18 @@ def main() -> int:
     args = parse_args()
     signals_file = Path(args.signals_file)
     report_dir = Path(args.report_dir)
+    scheduled_liveness_file = Path(args.scheduled_liveness_file) if args.scheduled_liveness_file else None
+    watcher_lifecycle_file = Path(args.watcher_lifecycle_file) if args.watcher_lifecycle_file else None
 
     report = validate_paper_observation_health_file(
         signals_file,
         run_timestamp=args.run_timestamp,
         workflow_name=args.workflow_name,
         commit_sha=args.commit_sha,
+        scheduled_liveness_file=scheduled_liveness_file,
+        watcher_lifecycle_file=watcher_lifecycle_file,
     )
+
     write_paper_observation_health_report(
         report,
         json_path=report_dir / "paper_observation_health.json",
@@ -75,6 +90,11 @@ def main() -> int:
     print(f"Data quality status: {report.data_quality_status}")
     print(f"Valid close values: {report.valid_close_count}/{report.total_signals}")
     print(f"Actionable signals: {report.actionable_count}")
+
+    if scheduled_liveness_file is not None:
+        print(f"Scheduled liveness file: {scheduled_liveness_file}")
+    if watcher_lifecycle_file is not None:
+        print(f"Watcher lifecycle file: {watcher_lifecycle_file}")
 
     if report.degradation_reasons:
         print("Degradation reasons:")
