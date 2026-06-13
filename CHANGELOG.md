@@ -63,6 +63,12 @@ History marker retained.
 
 ---
 
+## Evidence Quality Gate #188 — 2026-06-11
+
+History marker retained. Evidence Quality Gate does not authorize live trading.
+
+---
+
 ## VIX / Market Regime Policy #187 — 2026-06-11
 
 History marker retained.
