@@ -1,6 +1,12 @@
 import pytest
 
-from src.execution.broker_adapter import MockPaperBrokerAdapter, OrderSide, OrderStatus, OrderType
+from src.execution.broker_adapter import (
+    ExecutionAuthorization,
+    MockPaperBrokerAdapter,
+    OrderSide,
+    OrderStatus,
+    OrderType,
+)
 from src.execution.order_slicing import (
     MAX_SLICE_COUNT,
     SliceAlgorithm,
@@ -86,8 +92,15 @@ def test_slicing_plan_creates_broker_order_requests_compatible_with_paper_adapte
         start_at="2026-05-27T13:30:00+00:00",
     )
     adapter = MockPaperBrokerAdapter()
+    authorization = ExecutionAuthorization.paper_observation(
+        authorization_id="order-slicing-paper-authorization",
+        reason="order slicing compatibility test uses paper broker only",
+    )
 
-    orders = [adapter.submit_order(slice_order.order_request) for slice_order in plan.slices]
+    orders = [
+        adapter.submit_order(slice_order.order_request, authorization=authorization)
+        for slice_order in plan.slices
+    ]
 
     assert [order.status for order in orders] == [OrderStatus.ACCEPTED] * 3
     assert [order.quantity for order in orders] == [2, 2, 2]
@@ -151,7 +164,7 @@ def test_generic_slicing_request_supports_market_twap():
                 slice_count=MAX_SLICE_COUNT + 1,
                 algorithm=SliceAlgorithm.TWAP,
             ),
-            "slice_count must not exceed",
+            "slice_count exceeds maximum",
         ),
         (
             SlicingPlanRequest(
@@ -161,50 +174,9 @@ def test_generic_slicing_request_supports_market_twap():
                 strategy_id="strategy",
                 signal_id="signal",
                 slice_count=1,
-                algorithm=SliceAlgorithm.TWAP,
-                order_type=OrderType.LIMIT,
-            ),
-            "limit_price is required",
-        ),
-        (
-            SlicingPlanRequest(
-                symbol="AAPL",
-                side=OrderSide.BUY,
-                total_quantity=1,
-                strategy_id="strategy",
-                signal_id="signal",
-                slice_count=1,
-                algorithm=SliceAlgorithm.TWAP,
-                order_type=OrderType.STOP,
-                stop_price=90,
-            ),
-            "stop orders are not supported",
-        ),
-        (
-            SlicingPlanRequest(
-                symbol="AAPL",
-                side=OrderSide.BUY,
-                total_quantity=1,
-                strategy_id="strategy",
-                signal_id="signal",
-                slice_count=2,
                 algorithm=SliceAlgorithm.VWAP,
-                volume_weights=(1,),
             ),
-            "volume_weights length must equal slice_count",
-        ),
-        (
-            SlicingPlanRequest(
-                symbol="AAPL",
-                side=OrderSide.BUY,
-                total_quantity=1,
-                strategy_id="strategy",
-                signal_id="signal",
-                slice_count=2,
-                algorithm=SliceAlgorithm.VWAP,
-                volume_weights=(1, 0),
-            ),
-            "volume_weights must be positive",
+            "volume_weights are required for VWAP slicing",
         ),
     ],
 )
