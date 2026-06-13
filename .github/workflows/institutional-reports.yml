@@ -180,6 +180,7 @@ jobs:
           git add "$REPORT_FILE" "$LATEST_FILE" 2>/dev/null || true
           git add reports/signals/*.json reports/signals/*.md 2>/dev/null || true
           git add reports/validation/*.json reports/validation/*.md 2>/dev/null || true
+          git add reports/datafeed_liveness/*.json 2>/dev/null || true
           git add "$SCHEDULED_LIVENESS_FILE" "$SCHEDULED_LIVENESS_LATEST" "$REPORT_LIVENESS_HEALTH" 2>/dev/null || true
           git add data/ 2>/dev/null || true
 
@@ -238,6 +239,15 @@ jobs:
           path: |
             reports/scheduled_report_liveness/*.json
             reports/health/report-liveness-latest.json
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: Upload datafeed liveness artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: datafeed-liveness-${{ steps.report_type.outputs.run_timestamp }}
+          path: reports/datafeed_liveness/
           if-no-files-found: warn
           retention-days: 90
 
