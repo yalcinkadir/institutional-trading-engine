@@ -26,6 +26,14 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _assert_complete_input_pack_checksums(payload: dict, *, bars_path: Path, plans_file: Path, universe: Path, coverage_manifest: Path) -> None:
+    checksums = payload["input_checksums"]
+    assert checksums[bars_path.as_posix()] == _sha256(bars_path)
+    assert checksums[plans_file.as_posix()] == _sha256(plans_file)
+    assert checksums[universe.as_posix()] == _sha256(universe)
+    assert checksums[coverage_manifest.as_posix()] == _sha256(coverage_manifest)
+
+
 def _write_universe(path: Path, symbol: str = "AAPL") -> None:
     path.write_text(
         "symbol,effective_from,effective_to,active,asset_class,exchange,source,status,reason\n"
@@ -214,7 +222,13 @@ def test_real_data_backtest_writes_blocked_evidence_when_all_plans_are_rejected(
     assert payload["input_pack_gate_status"] == "PASSED"
     assert payload["input_completeness_status"] == "EMPTY_INPUT"
     assert payload["run_health_status"] == "BLOCKED"
-    assert payload["input_checksums"] == {bars_path.as_posix(): _sha256(bars_path)}
+    _assert_complete_input_pack_checksums(
+        payload,
+        bars_path=bars_path,
+        plans_file=plans_file,
+        universe=universe,
+        coverage_manifest=coverage_manifest,
+    )
     assert payload["input_plan_count"] == 1
     assert payload["accepted_plan_count"] == 0
     assert payload["rejected_plan_count"] == 1
