@@ -40,7 +40,7 @@ def _write_plans(path: Path) -> None:
     payload = {
         "metadata": {
             "pipeline_coupled": True,
-            "pipeline_generation_source": "scanner_signal_quality_validator",
+            "pipeline_generation_source": "runtime_pipeline_adapter",
             "runtime_gates_applied": ["scanner", "signal_generator", "quality_fusion", "trade_plan_validator"],
             "generated_signal_count": 1,
             "validated_trade_plan_count": 1,
@@ -54,7 +54,7 @@ def _write_plans(path: Path) -> None:
                 "entry_trigger": 101.0,
                 "stop_loss": 99.0,
                 "target_1": 103.0,
-                "source": "scanner_signal_quality_validator",
+                "source": "runtime_pipeline_adapter",
             }
         ],
     }
