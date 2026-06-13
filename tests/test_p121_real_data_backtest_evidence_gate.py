@@ -29,6 +29,14 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _assert_complete_input_pack_checksums(payload: dict, *, bars_path: Path, plans: Path, universe: Path, coverage_manifest: Path) -> None:
+    checksums = payload["input_checksums"]
+    assert checksums[bars_path.as_posix()] == _sha256(bars_path)
+    assert checksums[plans.as_posix()] == _sha256(plans)
+    assert checksums[universe.as_posix()] == _sha256(universe)
+    assert checksums[coverage_manifest.as_posix()] == _sha256(coverage_manifest)
+
+
 def _valid_real_payload() -> dict:
     payload = {
         "run_id": "real-bt-2026-06-05-001",
@@ -227,7 +235,7 @@ def test_p121_real_data_runner_writes_valid_evidence_artifact(tmp_path: Path) ->
     assert payload["input_completeness_status"] == "OK"
     assert payload["run_health_status"] == "OK"
     assert payload["coverage_manifest_path"] == str(coverage_manifest)
-    assert payload["input_checksums"] == {bars_path.as_posix(): _sha256(bars_path)}
+    _assert_complete_input_pack_checksums(payload, bars_path=bars_path, plans=plans, universe=universe, coverage_manifest=coverage_manifest)
     assert payload["pipeline_coupled"] is True
     assert payload["runtime_gates_applied"] == PIPELINE_METADATA["runtime_gates_applied"]
     assert payload["input_plan_count"] == 1
