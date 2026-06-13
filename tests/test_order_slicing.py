@@ -164,7 +164,7 @@ def test_generic_slicing_request_supports_market_twap():
                 slice_count=MAX_SLICE_COUNT + 1,
                 algorithm=SliceAlgorithm.TWAP,
             ),
-            "slice_count exceeds maximum",
+            f"slice_count must not exceed {MAX_SLICE_COUNT}",
         ),
         (
             SlicingPlanRequest(
