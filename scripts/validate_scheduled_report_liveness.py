@@ -152,10 +152,6 @@ def build_scheduled_report_liveness_artifact(
         status = state["freshness_status"]
 
         if family not in required_freshness_families:
-            if status == REPORT_LIVENESS_BLOCKED:
-                warnings.append(f"{family}_stale_or_missing_non_blocking:{state['business_days_without_fresh_output']}")
-            elif status == REPORT_LIVENESS_DEGRADED:
-                warnings.append(f"{family}_one_business_day_without_fresh_output_non_blocking")
             continue
 
         if status == REPORT_LIVENESS_BLOCKED:
