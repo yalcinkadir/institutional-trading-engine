@@ -29,6 +29,14 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _assert_complete_input_pack_checksums(payload: dict, *, bars_path: Path, plans: Path, universe: Path, coverage: Path) -> None:
+    checksums = payload["input_checksums"]
+    assert checksums[bars_path.as_posix()] == _sha256(bars_path)
+    assert checksums[plans.as_posix()] == _sha256(plans)
+    assert checksums[universe.as_posix()] == _sha256(universe)
+    assert checksums[coverage.as_posix()] == _sha256(coverage)
+
+
 def _write_plan(path: Path, *, valid: bool = True, unsupported_action: bool = False) -> None:
     plan = {
         "signal_id": "sig_SPY_bt130",
@@ -183,7 +191,7 @@ def test_bt130_real_data_runner_blocks_fully_rejected_plans(tmp_path: Path) -> N
     assert payload["input_pack_gate_status"] == "PASSED"
     assert payload["input_completeness_status"] == "EMPTY_INPUT"
     assert payload["run_health_status"] == "BLOCKED"
-    assert payload["input_checksums"] == {bars_path.as_posix(): _sha256(bars_path)}
+    _assert_complete_input_pack_checksums(payload, bars_path=bars_path, plans=plans, universe=universe, coverage=coverage)
     assert payload["input_plan_count"] == 1
     assert payload["accepted_plan_count"] == 0
     assert payload["rejected_plan_count"] == 1
