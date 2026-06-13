@@ -24,6 +24,7 @@ ALLOWED_GENERATED_REPORT_ROOTS = frozenset(
         "reports/weekly",
         "reports/signals",
         "reports/validation",
+        "reports/datafeed_liveness",
     }
 )
 
