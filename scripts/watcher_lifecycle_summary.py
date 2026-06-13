@@ -52,10 +52,30 @@ def _update_by_signal_id(updates: Iterable[SignalLifecycleUpdate]) -> dict[str, 
     return {update.signal_id: update for update in updates}
 
 
+def _lifecycle_event_payloads(update: SignalLifecycleUpdate) -> list[dict[str, Any]]:
+    payload = asdict(update)
+    supplemental_events = payload.pop("supplemental_events", []) or []
+    return [payload, *supplemental_events]
+
+
+def _events_by_signal_id(updates: Iterable[SignalLifecycleUpdate]) -> dict[str, list[dict[str, Any]]]:
+    events: dict[str, list[dict[str, Any]]] = {}
+    for update in updates:
+        for payload in _lifecycle_event_payloads(update):
+            signal_id = str(payload.get("signal_id") or payload.get("signal", {}).get("signal_id") or "")
+            if not signal_id:
+                continue
+            events.setdefault(signal_id, []).append(payload)
+    for signal_events in events.values():
+        signal_events.sort(key=lambda item: (str(item.get("timestamp") or ""), str(item.get("event_type") or "")))
+    return events
+
+
 def _record_for_signal(
     signal: dict[str, Any],
     *,
     update: SignalLifecycleUpdate | None,
+    lifecycle_events: list[dict[str, Any]],
     missing_market_data: dict[str, Any] | None,
     data_completeness_status: str,
     signal_file_path: Path,
@@ -100,6 +120,8 @@ def _record_for_signal(
         "data_completeness_status": data_completeness_status,
         "signal_file_path": signal_file_path.as_posix(),
         "signal_file_sha256": signal_file_sha256,
+        "lifecycle_event_count": len(lifecycle_events),
+        "lifecycle_events": lifecycle_events,
     }
 
 
@@ -120,7 +142,9 @@ def build_watcher_lifecycle_summary(
     signals_with_identity = [ensure_signal_identity(signal) for signal in signals]
     actionable_open_count = sum(1 for signal in signals_with_identity if _is_actionable_open_signal(signal))
     updates_by_signal_id = _update_by_signal_id(updates)
+    events_by_signal_id = _events_by_signal_id(updates)
     missing_by_signal_id = _missing_market_data_by_signal_id(health)
+    lifecycle_event_count = sum(len(events) for events in events_by_signal_id.values())
 
     if health.status == BLOCKED:
         status = BLOCKED
@@ -128,7 +152,7 @@ def build_watcher_lifecycle_summary(
         status = DEGRADED
     elif actionable_open_count == 0:
         status = NO_ACTIONABLE_SIGNALS
-    elif updates:
+    elif lifecycle_event_count:
         status = EVENTS_RECORDED
     else:
         status = NO_EVENTS_DETECTED
@@ -137,6 +161,7 @@ def build_watcher_lifecycle_summary(
         _record_for_signal(
             signal,
             update=updates_by_signal_id.get(str(signal["signal_id"])),
+            lifecycle_events=events_by_signal_id.get(str(signal["signal_id"]), []),
             missing_market_data=missing_by_signal_id.get(str(signal["signal_id"])),
             data_completeness_status=health.status,
             signal_file_path=signals_path,
@@ -156,7 +181,7 @@ def build_watcher_lifecycle_summary(
         "signal_file_sha256": signal_file_sha256,
         "signal_count": len(signals_with_identity),
         "actionable_open_count": actionable_open_count,
-        "lifecycle_event_count": len(updates),
+        "lifecycle_event_count": lifecycle_event_count,
         "data_completeness_status": health.status,
         "market_data_health": asdict(health),
         "records": records,
