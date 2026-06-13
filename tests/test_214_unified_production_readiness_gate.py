@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.validation.production_readiness_gate import evaluate_production_readiness
+from scripts.production_readiness_gate import evaluate_production_readiness
 
 
 def _paper_health(*, passed: bool = True) -> dict:
