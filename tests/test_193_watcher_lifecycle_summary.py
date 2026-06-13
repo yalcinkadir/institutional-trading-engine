@@ -4,11 +4,12 @@ import json
 from pathlib import Path
 
 from scripts.watcher_lifecycle_summary import (
+    EVENTS_RECORDED,
     NO_ACTIONABLE_SIGNALS,
     build_watcher_lifecycle_summary,
     write_watcher_lifecycle_summary,
 )
-from src.watchers.entry_exit_watcher import build_watcher_market_data_health
+from src.watchers.entry_exit_watcher import PriceBar, build_watcher_market_data_health, evaluate_signals
 
 
 def _signal(**overrides):
@@ -57,6 +58,66 @@ def test_193_watcher_lifecycle_summary_marks_zero_actionable_runs_explicitly(tmp
     assert summary["records"][0]["watcher_status"] == NO_ACTIONABLE_SIGNALS
     assert summary["records"][0]["trigger_expiry_block_reason"] == "not_actionable_or_terminal_signal"
     assert summary["records"][0]["data_completeness_status"] == "PASSED"
+    assert summary["records"][0]["lifecycle_event_count"] == 0
+    assert summary["records"][0]["lifecycle_events"] == []
+
+
+def test_193_watcher_lifecycle_summary_records_full_event_trail_with_supplemental_events(tmp_path: Path) -> None:
+    signals_file = tmp_path / "reports/signals/latest-signals.json"
+    signals_file.parent.mkdir(parents=True, exist_ok=True)
+    signals = [
+        _signal(
+            signal_id="stable-watch-id",
+            symbol="AAPL",
+            action="BUY_WATCH",
+            status="TRIGGERED",
+            entry_trigger=100.0,
+            stop_loss=95.0,
+            target_1=110.0,
+            target_2=120.0,
+            atr14=2.0,
+        )
+    ]
+    signals_file.write_text(json.dumps({"signals": signals}, indent=2), encoding="utf-8")
+    price_bar = PriceBar(
+        symbol="AAPL",
+        timestamp="2026-06-11T00:00:00+00:00",
+        open=108.0,
+        high=111.0,
+        low=107.0,
+        close=110.5,
+        is_complete=True,
+    )
+    _, updates, _ = evaluate_signals(signals, {"AAPL": price_bar})
+    health = build_watcher_market_data_health(
+        signals,
+        evaluated_symbols={"AAPL"},
+        generated_at="2026-06-11T18:30:00+00:00",
+        cycle_id="entry-exit-watcher-test-events",
+        artifact_path="reports/runtime/entry_exit_watcher_market_data_health.json",
+    )
+
+    summary = build_watcher_lifecycle_summary(
+        signals=signals,
+        updates=updates,
+        health=health,
+        cycle_id="entry-exit-watcher-test-events",
+        signals_file=signals_file,
+        generated_at="2026-06-11T18:30:00+00:00",
+    )
+
+    record = summary["records"][0]
+    event_types = [event["event_type"] for event in record["lifecycle_events"]]
+
+    assert summary["status"] == EVENTS_RECORDED
+    assert summary["lifecycle_event_count"] == 2
+    assert record["lifecycle_event_count"] == 2
+    assert event_types == ["PARTIAL_EXIT_FILLED", "TARGET_1_HIT"] or event_types == ["TARGET_1_HIT", "PARTIAL_EXIT_FILLED"]
+    assert "TARGET_1_HIT" in event_types
+    assert "PARTIAL_EXIT_FILLED" in event_types
+    assert record["watcher_status"] == "TARGET_1_HIT"
+    assert record["new_status"] == "TARGET_1_HIT"
+    assert all(event["signal_id"] == "stable-watch-id" for event in record["lifecycle_events"])
 
 
 def test_193_watcher_lifecycle_summary_writer_creates_dated_and_latest_files(tmp_path: Path) -> None:
