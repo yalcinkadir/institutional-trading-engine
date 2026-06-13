@@ -120,4 +120,4 @@ def test_arch106_inventory_check_allows_new_module_when_explicitly_classified(tm
     )
 
     assert is_current is True
-    assert message == "ARCH106 module inventory artifact is current.\n"
+    assert message == "ARCH106 module inventory artifact is current."
