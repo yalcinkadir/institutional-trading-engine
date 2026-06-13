@@ -65,6 +65,12 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _checksum_existing_file(path: Path | None) -> dict[str, str]:
+    if path is None or not path.exists() or not path.is_file():
+        return {}
+    return {path.as_posix(): sha256_file(path)}
+
+
 def _has_demo_marker(value: Any) -> bool:
     if isinstance(value, str):
         lower = value.lower()
@@ -310,11 +316,17 @@ def validate_bt9_input_pack(
         end_date=requested_end,
     )
     requested_symbols = sorted(set(universe_report.active_symbols) | set(plan_symbols))
-    date_range, input_checksums, bar_failures = _validate_bars(
+    date_range, bar_input_checksums, bar_failures = _validate_bars(
         bars_root,
         requested_symbols,
         coverage_manifest_path=coverage_manifest_path,
     )
+    input_checksums = {
+        **_checksum_existing_file(universe_path),
+        **_checksum_existing_file(coverage_manifest_path),
+        **_checksum_existing_file(trade_plans_path),
+        **bar_input_checksums,
+    }
     failures = universe_report.failures + trade_plan_failures + bar_failures
     return BT9RealHistoricalInputPackReport(
         passed=not failures,
