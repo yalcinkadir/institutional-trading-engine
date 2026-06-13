@@ -101,6 +101,26 @@ def test_bt139_records_missing_fields_explicitly(tmp_path: Path) -> None:
     assert report.missing_field_reasons["atr14_at_signal"] == ["sig_1"]
 
 
+def test_bt139_separates_real_no_trade_from_missing_input_paths(tmp_path: Path) -> None:
+    evaluated = _row(1)
+    real_no_trade = _row(2)
+    real_no_trade["outcome"] = "EXPIRED"
+    missing_input = _row(3)
+    missing_input["outcome"] = "MISSING_INPUT"
+    missing_input["missing_input_reason"] = "source_bar_missing"
+    unknown = _row(4)
+    unknown["outcome"] = "UNMAPPED_STATE"
+
+    report = analyze(_write_payload(tmp_path, _payload([evaluated, real_no_trade, missing_input, unknown])))
+
+    assert report.outcome_path_summary == {
+        "evaluated_trade_count": 1,
+        "real_no_trade_count": 1,
+        "skipped_or_missing_input_count": 1,
+        "unknown_outcome_count": 1,
+    }
+
+
 def test_bt139_classifies_reviewable_sample_when_diverse_enough(tmp_path: Path) -> None:
     symbols = ["AAPL", "MSFT", "META", "NVDA", "MU", "QQQ", "GLD", "SLV"]
     setups = ["breakout", "pullback"]
@@ -183,7 +203,9 @@ def test_bt139_writes_json_and_markdown_reports(tmp_path: Path) -> None:
     parsed = json.loads(output_json.read_text(encoding="utf-8"))
     markdown = output_md.read_text(encoding="utf-8")
 
-    assert parsed["report_version"] == "bt139.v1"
+    assert parsed["report_version"] == "bt139.v2"
     assert parsed["promotion_allowed"] is False
+    assert "outcome_path_summary" in parsed
     assert "# BT139 BT131 Sample Expansion Report" in markdown
     assert "Evidence quality" in markdown
+    assert "Outcome Path Summary" in markdown
