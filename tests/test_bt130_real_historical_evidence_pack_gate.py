@@ -12,7 +12,7 @@ from src.backtesting.historical_entry_exit_backtest import load_trade_plans_with
 RUNNER_SCRIPT = Path("scripts/run_historical_entry_exit_backtest.py")
 PIPELINE_METADATA = {
     "pipeline_coupled": True,
-    "pipeline_generation_source": "scanner_signal_quality_validator",
+    "pipeline_generation_source": "runtime_pipeline_adapter",
     "generated_signal_count": 1,
     "validated_trade_plan_count": 1,
     "blocked_signal_count": 0,
@@ -36,7 +36,7 @@ def _write_plan(path: Path, *, valid: bool = True, unsupported_action: bool = Fa
         "signal_date": "2026-06-01",
         "entry_trigger": 101.0,
         "target_1": 104.0,
-        "source": "paper_observation_validated",
+        "source": "runtime_pipeline_adapter",
     }
     if valid or unsupported_action:
         plan["stop_loss"] = 99.0
