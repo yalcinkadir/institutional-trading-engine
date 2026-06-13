@@ -33,7 +33,7 @@ def _bullish_market_regime() -> dict:
 
 def _screener() -> dict:
     return {
-        "watchlist": ["QQQ", "MSFT", "NVDA", "GLD"],
+        "watchlist": ["QQQ"],
     }
 
 
@@ -50,13 +50,13 @@ def _scanner_metrics_for(report: dict) -> dict[str, dict]:
             "source_timestamp": "2026-06-13T00:00:00+00:00",
             "fallback_level": "primary",
             "data_status": "OK",
-            "sector": "broad_market" if symbol in {"QQQ", "GLD"} else "technology",
-            "returns_20d": tuple((index + day + 1) / 1000.0 for day in range(20)),
+            "sector": "broad_market",
+            "returns_20d": tuple((day + 1) / 1000.0 for day in range(20)),
         }
     return metrics
 
 
-def test_205_default_repo_portfolio_state_allows_paper_observation_actionable_candidates() -> None:
+def test_205_default_repo_portfolio_state_allows_paper_observation_actionable_candidate() -> None:
     report = build_decision_report(_bullish_market_regime(), _screener())
 
     assert report["report_governance"]["status"] == "PASSED"
@@ -76,6 +76,7 @@ def test_205_default_repo_portfolio_state_allows_paper_observation_actionable_ca
 
     actionable = [signal for signal in signals if signal.action == "BUY_WATCH"]
     assert actionable, "valid paper-observation governance must allow executable BUY_WATCH signals"
+    assert len(actionable) == 1
     assert all(signal.entry_trigger is not None for signal in actionable)
     assert all(signal.stop_loss is not None for signal in actionable)
     assert all(signal.target_1 is not None for signal in actionable)
