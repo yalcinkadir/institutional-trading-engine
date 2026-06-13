@@ -47,10 +47,55 @@ class DynamicWeightingPolicy:
 
 
 MIN_SAMPLES = 10
+WEIGHT_PRECISION = 4
+TARGET_WEIGHT_SUM = 1.0
 
 
 def _clamp(value: float, minimum: float, maximum: float) -> float:
     return max(minimum, min(maximum, value))
+
+
+def _with_new_weight(item: FactorWeightAdjustment, new_weight: float) -> FactorWeightAdjustment:
+    rounded_weight = round(new_weight, WEIGHT_PRECISION)
+    return FactorWeightAdjustment(
+        factor=item.factor,
+        old_weight=round(item.old_weight, WEIGHT_PRECISION),
+        new_weight=rounded_weight,
+        delta=round(rounded_weight - item.old_weight, WEIGHT_PRECISION),
+        action=item.action,
+        reason=item.reason,
+    )
+
+
+def _force_exact_weight_sum(
+    adjustments: list[FactorWeightAdjustment],
+    *,
+    target_sum: float = TARGET_WEIGHT_SUM,
+) -> tuple[FactorWeightAdjustment, ...]:
+    """Correct rounding remainder so rounded weights sum exactly to target_sum."""
+
+    if not adjustments:
+        return ()
+
+    rounded_total = round(sum(item.new_weight for item in adjustments), WEIGHT_PRECISION)
+    remainder = round(target_sum - rounded_total, WEIGHT_PRECISION)
+    if remainder == 0:
+        return tuple(adjustments)
+
+    anchor_index = max(
+        range(len(adjustments)),
+        key=lambda index: (adjustments[index].new_weight, adjustments[index].factor),
+    )
+    anchor = adjustments[anchor_index]
+    adjusted_anchor = _with_new_weight(anchor, anchor.new_weight + remainder)
+    corrected = list(adjustments)
+    corrected[anchor_index] = adjusted_anchor
+    corrected_total = round(sum(item.new_weight for item in corrected), WEIGHT_PRECISION)
+    if corrected_total != round(target_sum, WEIGHT_PRECISION):
+        raise ValueError(
+            f"normalized dynamic weights do not sum to {target_sum}: {corrected_total}"
+        )
+    return tuple(corrected)
 
 
 def _normalize_weights(adjustments: list[FactorWeightAdjustment]) -> tuple[FactorWeightAdjustment, ...]:
@@ -61,17 +106,8 @@ def _normalize_weights(adjustments: list[FactorWeightAdjustment]) -> tuple[Facto
     normalized = []
     for item in adjustments:
         normalized_weight = item.new_weight / total
-        normalized.append(
-            FactorWeightAdjustment(
-                factor=item.factor,
-                old_weight=round(item.old_weight, 4),
-                new_weight=round(normalized_weight, 4),
-                delta=round(normalized_weight - item.old_weight, 4),
-                action=item.action,
-                reason=item.reason,
-            )
-        )
-    return tuple(normalized)
+        normalized.append(_with_new_weight(item, normalized_weight))
+    return _force_exact_weight_sum(normalized)
 
 
 def build_dynamic_weighting_policy(
@@ -121,16 +157,16 @@ def build_dynamic_weighting_policy(
         adjustments.append(
             FactorWeightAdjustment(
                 factor=factor.factor,
-                old_weight=round(factor.current_weight, 4),
-                new_weight=round(new_weight, 4),
-                delta=round(new_weight - factor.current_weight, 4),
+                old_weight=round(factor.current_weight, WEIGHT_PRECISION),
+                new_weight=round(new_weight, WEIGHT_PRECISION),
+                delta=round(new_weight - factor.current_weight, WEIGHT_PRECISION),
                 action=action,
                 reason=reason,
             )
         )
 
     normalized = _normalize_weights(adjustments)
-    total_weight = round(sum(item.new_weight for item in normalized), 4)
+    total_weight = round(sum(item.new_weight for item in normalized), WEIGHT_PRECISION)
 
     return DynamicWeightingPolicy(
         adjustments=normalized,
