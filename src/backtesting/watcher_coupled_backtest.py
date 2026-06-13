@@ -18,6 +18,9 @@ from src.backtesting.historical_models import HistoricalTradePlan
 from src.signals.signal_status import SignalStatus, is_terminal_signal_status, normalize_signal_status
 from src.watchers.entry_exit_watcher import PriceBar, SignalLifecycleUpdate, evaluate_signals
 
+MIN_PRODUCTION_PLAN_COUNT = 30
+MIN_PRODUCTION_SYMBOL_COUNT = 5
+
 
 @dataclass(frozen=True)
 class WatcherCoupledBacktestResult:
@@ -54,6 +57,11 @@ class WatcherCoupledBacktestReport:
     lifecycle_event_count: int
     terminal_signal_count: int
     results: list[WatcherCoupledBacktestResult]
+    production_rule_promotion_authorized: bool = False
+    production_readiness_status: str = "BLOCKED_LOW_COVERAGE"
+    production_readiness_blockers: list[str] = field(default_factory=list)
+    coverage_metrics: dict[str, Any] = field(default_factory=dict)
+    skipped_plan_reasons: dict[str, int] = field(default_factory=dict)
     limitations: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
@@ -69,6 +77,11 @@ class WatcherCoupledBacktestReport:
             "evaluated_plan_count": self.evaluated_plan_count,
             "lifecycle_event_count": self.lifecycle_event_count,
             "terminal_signal_count": self.terminal_signal_count,
+            "production_rule_promotion_authorized": self.production_rule_promotion_authorized,
+            "production_readiness_status": self.production_readiness_status,
+            "production_readiness_blockers": list(self.production_readiness_blockers),
+            "coverage_metrics": dict(self.coverage_metrics),
+            "skipped_plan_reasons": dict(self.skipped_plan_reasons),
             "limitations": self.limitations,
             "results": [result.to_dict() for result in self.results],
         }
@@ -140,6 +153,77 @@ def _today_for_bar_day(current_day: str) -> date | None:
         return None
 
 
+def _distribution(values: Iterable[str]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for value in values:
+        key = str(value or "UNKNOWN")
+        counts[key] = counts.get(key, 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def _lifecycle_event_distribution(results: list[WatcherCoupledBacktestResult]) -> dict[str, int]:
+    events: list[str] = []
+    for result in results:
+        for event in result.lifecycle_events:
+            events.append(str(event.get("event_type") or "UNKNOWN"))
+    return _distribution(events)
+
+
+def _coverage_metrics(
+    *,
+    plans: list[HistoricalTradePlan],
+    results: list[WatcherCoupledBacktestResult],
+    skipped_plan_reasons: dict[str, int],
+) -> dict[str, Any]:
+    final_status_distribution = _distribution(result.final_status for result in results)
+    lifecycle_event_distribution = _lifecycle_event_distribution(results)
+    terminal_signal_count = sum(1 for result in results if result.terminal)
+    symbols = sorted({plan.symbol for plan in plans})
+    return {
+        "min_required_plan_count": MIN_PRODUCTION_PLAN_COUNT,
+        "min_required_symbol_count": MIN_PRODUCTION_SYMBOL_COUNT,
+        "input_plan_count": len(plans),
+        "evaluated_plan_count": len(results),
+        "distinct_symbol_count": len(symbols),
+        "symbols": symbols,
+        "terminal_signal_count": terminal_signal_count,
+        "lifecycle_event_count": sum(result.lifecycle_event_count for result in results),
+        "final_status_distribution": final_status_distribution,
+        "lifecycle_event_distribution": lifecycle_event_distribution,
+        "win_count": final_status_distribution.get(SignalStatus.TARGET_1_HIT.value, 0)
+        + final_status_distribution.get(SignalStatus.TARGET_2_HIT.value, 0),
+        "loss_count": final_status_distribution.get(SignalStatus.STOP_HIT.value, 0),
+        "invalidated_count": final_status_distribution.get(SignalStatus.INVALIDATED_BEFORE_ENTRY.value, 0),
+        "expired_count": final_status_distribution.get(SignalStatus.EXPIRED.value, 0),
+        "average_r": None,
+        "max_adverse_excursion_r": None,
+        "skipped_plan_reasons": dict(sorted(skipped_plan_reasons.items())),
+    }
+
+
+def _production_readiness_blockers(coverage_metrics: dict[str, Any]) -> list[str]:
+    blockers: list[str] = []
+    if int(coverage_metrics.get("input_plan_count") or 0) < MIN_PRODUCTION_PLAN_COUNT:
+        blockers.append("sample_below_minimum")
+    if int(coverage_metrics.get("evaluated_plan_count") or 0) < MIN_PRODUCTION_PLAN_COUNT:
+        blockers.append("evaluated_sample_below_minimum")
+    if int(coverage_metrics.get("distinct_symbol_count") or 0) < MIN_PRODUCTION_SYMBOL_COUNT:
+        blockers.append("symbol_coverage_below_minimum")
+    if int(coverage_metrics.get("terminal_signal_count") or 0) <= 0:
+        blockers.append("no_terminal_lifecycle_evidence")
+    final_distribution = coverage_metrics.get("final_status_distribution") or {}
+    if not any(final_distribution.get(status, 0) for status in (SignalStatus.TARGET_1_HIT.value, SignalStatus.TARGET_2_HIT.value)):
+        blockers.append("missing_winning_lifecycle_path")
+    if not final_distribution.get(SignalStatus.STOP_HIT.value, 0):
+        blockers.append("missing_losing_lifecycle_path")
+    if not (
+        final_distribution.get(SignalStatus.INVALIDATED_BEFORE_ENTRY.value, 0)
+        or final_distribution.get(SignalStatus.EXPIRED.value, 0)
+    ):
+        blockers.append("missing_invalidated_or_expired_path")
+    return sorted(set(blockers))
+
+
 def run_watcher_coupled_backtest(
     plans: Iterable[HistoricalTradePlan],
     *,
@@ -159,6 +243,10 @@ def run_watcher_coupled_backtest(
         raise ValueError("watcher-coupled backtest must remain paper_only")
 
     watcher_signals = [_plan_to_watcher_signal(plan) for plan in plans_list]
+    skipped_plan_reasons: dict[str, int] = {}
+    for plan in plans_list:
+        if plan.symbol.upper() not in {symbol.upper() for symbol in bars_by_symbol}:
+            skipped_plan_reasons["missing_bars_for_symbol"] = skipped_plan_reasons.get("missing_bars_for_symbol", 0) + 1
     normalized_bars = {
         symbol.upper(): _normalise_bars(symbol.upper(), bars)
         for symbol, bars in bars_by_symbol.items()
@@ -198,6 +286,12 @@ def run_watcher_coupled_backtest(
             )
         )
 
+    lifecycle_event_count = sum(result.lifecycle_event_count for result in results)
+    terminal_signal_count = sum(1 for result in results if result.terminal)
+    coverage = _coverage_metrics(plans=plans_list, results=results, skipped_plan_reasons=skipped_plan_reasons)
+    readiness_blockers = _production_readiness_blockers(coverage)
+    production_readiness_status = "PASSED_SAMPLE_COVERAGE" if not readiness_blockers else "BLOCKED_LOW_COVERAGE"
+
     return WatcherCoupledBacktestReport(
         run_id=run_id,
         data_source=data_source,
@@ -208,12 +302,18 @@ def run_watcher_coupled_backtest(
         watcher_engine="src.watchers.entry_exit_watcher.evaluate_signals",
         input_plan_count=len(plans_list),
         evaluated_plan_count=len(results),
-        lifecycle_event_count=sum(result.lifecycle_event_count for result in results),
-        terminal_signal_count=sum(1 for result in results if result.terminal),
+        lifecycle_event_count=lifecycle_event_count,
+        terminal_signal_count=terminal_signal_count,
         results=results,
+        production_rule_promotion_authorized=False,
+        production_readiness_status=production_readiness_status,
+        production_readiness_blockers=readiness_blockers,
+        coverage_metrics=coverage,
+        skipped_plan_reasons=skipped_plan_reasons,
         limitations=[
             "Historical bars are completed-bar replay inputs; no live broker execution is performed.",
             "Intrabar ordering follows the production watcher conservative ordering.",
+            "Production rule promotion remains unauthorized until #212 sample coverage and lifecycle-path diversity gates pass.",
         ],
     )
 
