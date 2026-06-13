@@ -13,9 +13,11 @@ from src.execution.broker_adapter import (
     BrokerOrderRequest,
     BrokerPosition,
     BrokerReconciliationReport,
+    ExecutionAuthorization,
     OrderSide,
     OrderStatus,
     OrderType,
+    validate_execution_authorization,
 )
 
 
@@ -53,8 +55,14 @@ class AlpacaPaperAdapter:
         self.config = config
         self.transport = transport
 
-    def submit_order(self, request: BrokerOrderRequest) -> BrokerOrder:
-        issues = _validate_order_request(request)
+    def submit_order(
+        self,
+        request: BrokerOrderRequest,
+        *,
+        authorization: ExecutionAuthorization | None = None,
+    ) -> BrokerOrder:
+        issues = validate_execution_authorization(authorization, adapter_mode=self.mode)
+        issues.extend(_validate_order_request(request))
         if issues:
             return _rejected_order(request, "; ".join(issues))
 
@@ -65,6 +73,9 @@ class AlpacaPaperAdapter:
             "type": request.order_type.value,
             "time_in_force": self.config.time_in_force,
             "client_order_id": request.client_order_id or f"ite-{uuid4().hex}",
+            "execution_authorization_id": authorization.authorization_id,
+            "broker_execution_mode": authorization.broker_execution_mode,
+            "live_trading_authorized": authorization.live_trading_authorized,
         }
         if request.limit_price is not None:
             payload["limit_price"] = request.limit_price
@@ -148,6 +159,9 @@ class InMemoryAlpacaPaperTransport:
             "limit_price": payload.get("limit_price"),
             "stop_price": payload.get("stop_price"),
             "submitted_at": _now_iso(),
+            "execution_authorization_id": payload.get("execution_authorization_id"),
+            "broker_execution_mode": payload.get("broker_execution_mode"),
+            "live_trading_authorized": payload.get("live_trading_authorized"),
         }
         self.orders[order_id] = order
         return order
@@ -264,26 +278,18 @@ def _alpaca_fill_to_broker_fill(payload: dict[str, Any]) -> BrokerFill:
 
 
 def _map_alpaca_status(status: str) -> OrderStatus:
-    mapping = {
-        "new": OrderStatus.NEW,
-        "accepted": OrderStatus.ACCEPTED,
-        "accepted_for_bidding": OrderStatus.ACCEPTED,
-        "pending_new": OrderStatus.NEW,
-        "partially_filled": OrderStatus.PARTIALLY_FILLED,
-        "filled": OrderStatus.FILLED,
-        "done_for_day": OrderStatus.ACCEPTED,
-        "canceled": OrderStatus.CANCELLED,
-        "cancelled": OrderStatus.CANCELLED,
-        "expired": OrderStatus.CANCELLED,
-        "replaced": OrderStatus.ACCEPTED,
-        "pending_cancel": OrderStatus.ACCEPTED,
-        "pending_replace": OrderStatus.ACCEPTED,
-        "rejected": OrderStatus.REJECTED,
-        "stopped": OrderStatus.REJECTED,
-        "suspended": OrderStatus.REJECTED,
-        "calculated": OrderStatus.ACCEPTED,
-    }
-    return mapping.get(status.lower(), OrderStatus.REJECTED)
+    normalized = status.lower()
+    if normalized in {"accepted", "new", "pending_new"}:
+        return OrderStatus.ACCEPTED
+    if normalized in {"canceled", "cancelled", "expired"}:
+        return OrderStatus.CANCELLED
+    if normalized in {"rejected", "stopped", "suspended"}:
+        return OrderStatus.REJECTED
+    if normalized == "filled":
+        return OrderStatus.FILLED
+    if normalized == "partially_filled":
+        return OrderStatus.PARTIALLY_FILLED
+    return OrderStatus.NEW
 
 
 def _as_float(value: Any, *, field: str, default: float | None = None) -> float:
@@ -304,4 +310,4 @@ def _optional_float(value: Any, *, field: str) -> float | None:
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    return datetime.now(timezone.utc).isoformat()
