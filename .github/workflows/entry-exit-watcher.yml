@@ -63,11 +63,43 @@ jobs:
       - name: Validate watcher inputs
         shell: bash
         run: |
-          mkdir -p reports/alerts reports/signals data
+          mkdir -p reports/alerts reports/signals reports/runtime data
+          write_skip_health() {
+            local reason="$1"
+            local detail="$2"
+            python - <<'PY'
+import json
+import os
+from datetime import UTC, datetime
+from pathlib import Path
+
+path = Path("reports/runtime/entry_exit_watcher_runtime_health.json")
+path.parent.mkdir(parents=True, exist_ok=True)
+payload = {
+    "status": "BLOCKED",
+    "component": "entry_exit_watcher",
+    "runtime_state": "SKIPPED",
+    "skip": True,
+    "skip_reason": os.environ["WATCHER_SKIP_REASON"],
+    "skip_detail": os.environ["WATCHER_SKIP_DETAIL"],
+    "cycle_id": os.environ.get("WATCHER_CYCLE_ID", "unknown"),
+    "signals_file": os.environ.get("SIGNALS_FILE", "unknown"),
+    "generated_at": datetime.now(UTC).isoformat(),
+    "artifact_path": str(path),
+    "live_trading_authorized": False,
+    "broker_execution_mode": "paper_only",
+}
+path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+PY
+          }
           if [ -z "${POLYGON_API_KEY:-}" ]; then
             echo "POLYGON_API_KEY secret is missing. Skipping watcher runtime."
             echo "Entry/Exit Watcher SKIPPED" > reports/alerts/watcher-skip-message.txt
             echo "Reason: POLYGON_API_KEY secret is missing." >> reports/alerts/watcher-skip-message.txt
+            echo "Health: reports/runtime/entry_exit_watcher_runtime_health.json" >> reports/alerts/watcher-skip-message.txt
+            export WATCHER_SKIP_REASON="missing_polygon_api_key"
+            export WATCHER_SKIP_DETAIL="POLYGON_API_KEY secret is missing."
+            write_skip_health "$WATCHER_SKIP_REASON" "$WATCHER_SKIP_DETAIL"
             echo "WATCHER_SKIP=true" >> "$GITHUB_ENV"
             exit 0
           fi
@@ -75,6 +107,10 @@ jobs:
             echo "Signals file not found: $SIGNALS_FILE. Skipping watcher runtime."
             echo "Entry/Exit Watcher SKIPPED" > reports/alerts/watcher-skip-message.txt
             echo "Reason: signals file not found at $SIGNALS_FILE" >> reports/alerts/watcher-skip-message.txt
+            echo "Health: reports/runtime/entry_exit_watcher_runtime_health.json" >> reports/alerts/watcher-skip-message.txt
+            export WATCHER_SKIP_REASON="signals_file_not_found"
+            export WATCHER_SKIP_DETAIL="signals file not found at $SIGNALS_FILE"
+            write_skip_health "$WATCHER_SKIP_REASON" "$WATCHER_SKIP_DETAIL"
             echo "WATCHER_SKIP=true" >> "$GITHUB_ENV"
             exit 0
           fi
@@ -85,7 +121,7 @@ jobs:
         if: env.WATCHER_SKIP != 'true'
         shell: bash
         run: |
-          mkdir -p reports/alerts reports/signals data
+          mkdir -p reports/alerts reports/signals reports/runtime data
           python scripts/run_entry_exit_watcher.py --signals-file "$SIGNALS_FILE"
 
       - name: Build watcher alert summary
@@ -104,6 +140,14 @@ jobs:
         run: |
           if [ -f reports/alerts/watcher-alert-summary.txt ]; then
             python scripts/send_notification.py --message-file reports/alerts/watcher-alert-summary.txt --telegram --webhook --cycle-id "$WATCHER_CYCLE_ID" || true
+          fi
+
+      - name: Send watcher skip notification
+        if: success() && env.WATCHER_SKIP == 'true'
+        shell: bash
+        run: |
+          if [ -f reports/alerts/watcher-skip-message.txt ]; then
+            python scripts/send_notification.py --message-file reports/alerts/watcher-skip-message.txt --telegram --webhook --cycle-id "$WATCHER_CYCLE_ID" || true
           fi
 
       - name: Build watcher failure message
@@ -130,6 +174,7 @@ jobs:
           name: entry-exit-runtime-${{ github.run_id }}
           path: |
             reports/alerts/
+            reports/runtime/
             reports/signals/
             data/
             reports/watcher-failure-message.txt
