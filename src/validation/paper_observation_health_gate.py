@@ -52,6 +52,7 @@ class PaperObservationHealthReport:
     data_provenance: dict[str, Any] = field(default_factory=dict)
     degradation_reasons: list[str] = field(default_factory=list)
     governance_state: dict[str, Any] = field(default_factory=dict)
+    readiness_evidence: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -69,6 +70,7 @@ class PaperObservationHealthReport:
             "data_provenance": dict(self.data_provenance),
             "degradation_reasons": list(self.degradation_reasons),
             "governance_state": dict(self.governance_state),
+            "readiness_evidence": dict(self.readiness_evidence),
             "issues": [issue.to_dict() for issue in self.issues],
             "warnings": list(self.warnings),
         }
@@ -80,6 +82,8 @@ def validate_paper_observation_health(
     run_timestamp: str | None = None,
     workflow_name: str | None = None,
     commit_sha: str | None = None,
+    scheduled_liveness: dict[str, Any] | None = None,
+    watcher_lifecycle: dict[str, Any] | None = None,
 ) -> PaperObservationHealthReport:
     signals = payload.get("signals")
     if not isinstance(signals, list):
@@ -138,6 +142,12 @@ def validate_paper_observation_health(
     if actionable_count == 0 and not issues:
         warnings.append("No actionable signals, but market data health is valid; treat as normal no-trade day, not infrastructure failure.")
 
+    readiness_evidence = _derive_readiness_evidence(
+        scheduled_liveness=scheduled_liveness,
+        watcher_lifecycle=watcher_lifecycle,
+    )
+    issues.extend(_derive_readiness_issues(readiness_evidence))
+
     data_provenance = _derive_data_provenance(payload, signals, data_quality)
     degradation_reasons = _derive_degradation_reasons(
         issues=issues,
@@ -169,6 +179,7 @@ def validate_paper_observation_health(
         data_provenance=data_provenance,
         degradation_reasons=degradation_reasons,
         governance_state=_derive_governance_state(payload),
+        readiness_evidence=readiness_evidence,
     )
 
 
@@ -178,6 +189,8 @@ def validate_paper_observation_health_file(
     run_timestamp: str | None = None,
     workflow_name: str | None = None,
     commit_sha: str | None = None,
+    scheduled_liveness_file: Path | None = None,
+    watcher_lifecycle_file: Path | None = None,
 ) -> PaperObservationHealthReport:
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
@@ -187,6 +200,8 @@ def validate_paper_observation_health_file(
         run_timestamp=run_timestamp,
         workflow_name=workflow_name,
         commit_sha=commit_sha,
+        scheduled_liveness=_read_optional_json(scheduled_liveness_file),
+        watcher_lifecycle=_read_optional_json(watcher_lifecycle_file),
     )
 
 
@@ -217,6 +232,14 @@ def render_paper_observation_health_markdown(report: PaperObservationHealthRepor
         f"- Live trading authorized: `{report.governance_state.get('live_trading_authorized')}`",
         f"- Broker execution mode: `{report.governance_state.get('broker_execution_mode')}`",
         f"- Governance status: `{report.governance_state.get('governance_status')}`",
+        "",
+        "## Readiness evidence",
+        "",
+        f"- Scheduled liveness status: `{report.readiness_evidence.get('scheduled_liveness', {}).get('scheduled_report_status', 'NOT_PROVIDED')}`",
+        f"- Report liveness status: `{report.readiness_evidence.get('scheduled_liveness', {}).get('report_liveness_status', 'NOT_PROVIDED')}`",
+        f"- Productive report cycle: `{report.readiness_evidence.get('scheduled_liveness', {}).get('productive_report_cycle', 'NOT_PROVIDED')}`",
+        f"- Watcher evaluated plans: `{report.readiness_evidence.get('watcher_lifecycle', {}).get('evaluated_plan_count', 'NOT_PROVIDED')}`",
+        f"- Watcher lifecycle events: `{report.readiness_evidence.get('watcher_lifecycle', {}).get('lifecycle_event_count', 'NOT_PROVIDED')}`",
         "",
         "## Degradation reasons",
         "",
@@ -279,6 +302,78 @@ def _derive_data_provenance(
     }
 
 
+def _derive_readiness_evidence(
+    *,
+    scheduled_liveness: dict[str, Any] | None,
+    watcher_lifecycle: dict[str, Any] | None,
+) -> dict[str, Any]:
+    evidence: dict[str, Any] = {}
+    if isinstance(scheduled_liveness, dict):
+        evidence["scheduled_liveness"] = {
+            "scheduled_report_status": scheduled_liveness.get("scheduled_report_status"),
+            "report_liveness_status": scheduled_liveness.get("report_liveness_status") or scheduled_liveness.get("liveness_status"),
+            "productive_report_cycle": scheduled_liveness.get("productive_report_cycle"),
+            "current_run_state": scheduled_liveness.get("current_run_state"),
+            "errors": list(scheduled_liveness.get("errors", [])) if isinstance(scheduled_liveness.get("errors"), list) else [],
+            "warnings": list(scheduled_liveness.get("warnings", [])) if isinstance(scheduled_liveness.get("warnings"), list) else [],
+        }
+    if isinstance(watcher_lifecycle, dict):
+        evidence["watcher_lifecycle"] = {
+            "schema_version": watcher_lifecycle.get("schema_version"),
+            "evaluated_plan_count": _as_int(watcher_lifecycle.get("evaluated_plan_count"), 0),
+            "lifecycle_event_count": _as_int(watcher_lifecycle.get("lifecycle_event_count"), 0),
+            "terminal_signal_count": _as_int(watcher_lifecycle.get("terminal_signal_count"), 0),
+            "live_trading_authorized": watcher_lifecycle.get("live_trading_authorized", False),
+            "broker_execution_mode": watcher_lifecycle.get("broker_execution_mode", "paper_only"),
+        }
+    return evidence
+
+
+def _derive_readiness_issues(readiness_evidence: dict[str, Any]) -> list[PaperObservationHealthIssue]:
+    issues: list[PaperObservationHealthIssue] = []
+    scheduled_liveness = readiness_evidence.get("scheduled_liveness")
+    if isinstance(scheduled_liveness, dict):
+        scheduled_status = str(scheduled_liveness.get("scheduled_report_status") or "UNKNOWN")
+        liveness_status = str(scheduled_liveness.get("report_liveness_status") or "UNKNOWN")
+        productive_cycle = scheduled_liveness.get("productive_report_cycle") is True
+        current_run_state = str(scheduled_liveness.get("current_run_state") or "UNKNOWN")
+        if scheduled_status != "PASSED" or liveness_status != "REPORT_LIVENESS_OK" or not productive_cycle:
+            issues.append(
+                PaperObservationHealthIssue(
+                    "scheduled_report_liveness_not_ready",
+                    "scheduled report liveness is not green for the current Paper Observation readiness decision",
+                )
+            )
+        elif current_run_state not in {"UNKNOWN", "WORKFLOW_RAN_VALIDATED"}:
+            issues.append(
+                PaperObservationHealthIssue(
+                    "scheduled_report_current_run_not_validated",
+                    "scheduled report liveness exists but the current run was not validated",
+                )
+            )
+
+    watcher_lifecycle = readiness_evidence.get("watcher_lifecycle")
+    if isinstance(watcher_lifecycle, dict):
+        evaluated_plan_count = _as_int(watcher_lifecycle.get("evaluated_plan_count"), 0)
+        lifecycle_event_count = _as_int(watcher_lifecycle.get("lifecycle_event_count"), 0)
+        terminal_signal_count = _as_int(watcher_lifecycle.get("terminal_signal_count"), 0)
+        if evaluated_plan_count <= 0 or lifecycle_event_count <= 0 or terminal_signal_count <= 0:
+            issues.append(
+                PaperObservationHealthIssue(
+                    "watcher_lifecycle_evidence_missing",
+                    "watcher lifecycle evidence is empty or incomplete for the current Paper Observation readiness decision",
+                )
+            )
+        if watcher_lifecycle.get("live_trading_authorized") is True:
+            issues.append(
+                PaperObservationHealthIssue(
+                    "watcher_lifecycle_live_trading_authorized",
+                    "watcher lifecycle evidence must remain paper-only",
+                )
+            )
+    return issues
+
+
 def _derive_degradation_reasons(
     *,
     issues: list[PaperObservationHealthIssue],
@@ -331,6 +426,13 @@ def _derive_governance_state(payload: dict[str, Any]) -> dict[str, Any]:
     result.setdefault("broker_execution_mode", "paper_only")
     result.setdefault("governance_status", "NOT_EVALUATED")
     return result
+
+
+def _read_optional_json(path: Path | None) -> dict[str, Any] | None:
+    if path is None or not path.exists():
+        return None
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    return payload if isinstance(payload, dict) else None
 
 
 def _has_data_missing_reason(signal: dict[str, Any]) -> bool:
