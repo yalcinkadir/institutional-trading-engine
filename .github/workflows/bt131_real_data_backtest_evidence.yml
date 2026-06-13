@@ -425,6 +425,8 @@ jobs:
               "input_completeness_status": evidence.get("input_completeness_status"),
               "run_health_status": evidence.get("run_health_status"),
               "broker_execution_mode": evidence.get("broker_execution_mode"),
+              "root_source_evidence": "reports/backtests/real-data-backtest-evidence.json",
+              "latest_source_evidence": "reports/backtests/real_data/latest/real-data-backtest-evidence.json",
               "input_checksum_count": len(input_checksums),
               "input_checksums": input_checksums,
               "metrics": evidence.get("metrics", {}),
@@ -449,7 +451,7 @@ jobs:
           Path("reports/backtests/real_data/index.json").write_text(json.dumps(index, indent=2, sort_keys=True) + "\n", encoding="utf-8")
           PY
 
-          git add reports/backtests/real_data/
+          git add reports/backtests/real-data-backtest-evidence.json reports/backtests/real-data-backtest-evidence.md reports/backtests/real_data/
           git add data/historical/bars/1day/*.csv data/historical/metadata/*.json data/historical/metadata/*.csv data/trade_plans/*.json data/trade_plans/*manifest*.json
           if git diff --cached --quiet; then
             echo "No backtest report/input changes to commit."
