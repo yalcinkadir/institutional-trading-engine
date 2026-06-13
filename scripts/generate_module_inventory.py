@@ -262,9 +262,10 @@ def _check_unclassified_legacy_baseline(
 def write_inventory(
     output_path: Path = DEFAULT_OUTPUT_PATH,
     *,
+    repo_root: Path = REPO_ROOT,
     classification_path: Path = DEFAULT_CLASSIFICATION_PATH,
 ) -> Path:
-    inventory = build_inventory(classification_path=classification_path)
+    inventory = build_inventory(repo_root=repo_root, classification_path=classification_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(render_inventory(inventory), encoding="utf-8")
     return output_path
@@ -273,10 +274,11 @@ def write_inventory(
 def check_inventory(
     artifact_path: Path = DEFAULT_OUTPUT_PATH,
     *,
+    repo_root: Path = REPO_ROOT,
     classification_path: Path = DEFAULT_CLASSIFICATION_PATH,
 ) -> tuple[bool, str]:
     classification = load_classification(classification_path)
-    current = build_inventory(classification_path=classification_path)
+    current = build_inventory(repo_root=repo_root, classification_path=classification_path)
     baseline_ok, baseline_message = _check_unclassified_legacy_baseline(
         inventory=current,
         classification=classification,
