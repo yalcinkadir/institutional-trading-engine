@@ -63,49 +63,97 @@ jobs:
           fi
 
       - name: Build scheduled paper observation incoming sources
+        id: scheduled-source
         if: ${{ github.event_name == 'schedule' }}
+        continue-on-error: true
         run: |
+          mkdir -p reports/daily_paper_observation_source reports/daily_observation_incoming
+          set +e
           python scripts/build_daily_paper_observation_sources.py \
             --source-dir "reports/daily_paper_observation_raw" \
             --output-dir reports/daily_observation_incoming \
             --report-dir reports/daily_paper_observation_source
+          STATUS=$?
+          echo "$STATUS" > reports/daily_paper_observation_source/source_exit_code.txt
+          echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
+          exit 0
 
       - name: Build real paper observation incoming sources
+        id: real-source
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.use_real_paper_observation_source == 'true' }}
+        continue-on-error: true
         run: |
+          mkdir -p reports/daily_paper_observation_source reports/daily_observation_incoming
+          set +e
           python scripts/build_daily_paper_observation_sources.py \
             --source-dir "${{ github.event.inputs.real_paper_observation_source_dir }}" \
             --output-dir reports/daily_observation_incoming \
             --report-dir reports/daily_paper_observation_source
+          STATUS=$?
+          echo "$STATUS" > reports/daily_paper_observation_source/source_exit_code.txt
+          echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
+          exit 0
 
       - name: Bootstrap observation-only incoming sources
+        id: bootstrap-source
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.bootstrap_observation_only_sources == 'true' }}
+        continue-on-error: true
         run: |
+          mkdir -p reports/daily_evidence_source_bootstrap reports/daily_observation_incoming
+          set +e
           python scripts/bootstrap_daily_evidence_sources.py \
             --output-dir reports/daily_observation_incoming \
             --report-dir reports/daily_evidence_source_bootstrap \
             --report-date "${{ steps.report-date.outputs.value }}"
+          STATUS=$?
+          echo "$STATUS" > reports/daily_evidence_source_bootstrap/bootstrap_exit_code.txt
+          echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
+          exit 0
 
       - name: Persist daily observation sources
+        id: persist-sources
+        continue-on-error: true
         run: |
+          mkdir -p reports/daily_observation_source_feed reports/daily_observation_feed
+          set +e
           python scripts/persist_daily_observation_sources.py \
             --incoming-dir reports/daily_observation_incoming \
             --feed-dir reports/daily_observation_feed \
             --report-dir reports/daily_observation_source_feed \
             --report-date "${{ steps.report-date.outputs.value }}"
+          STATUS=$?
+          echo "$STATUS" > reports/daily_observation_source_feed/persist_exit_code.txt
+          echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
+          exit 0
 
       - name: Build daily evidence inputs
+        id: build-inputs
+        continue-on-error: true
         run: |
+          mkdir -p reports/daily_evidence_input_build reports/daily_evidence_inputs
+          set +e
           python scripts/build_daily_evidence_inputs.py \
             --source-dir reports/daily_observation_feed \
             --output-dir reports/daily_evidence_inputs \
             --report-dir reports/daily_evidence_input_build
+          STATUS=$?
+          echo "$STATUS" > reports/daily_evidence_input_build/build_exit_code.txt
+          echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
+          exit 0
 
       - name: Validate daily evidence inputs
+        id: validate-inputs
+        continue-on-error: true
         run: |
+          mkdir -p reports/daily_evidence_input_validation
+          set +e
           python scripts/validate_daily_evidence_inputs.py \
             --input-dir reports/daily_evidence_inputs \
             --output-dir reports/daily_evidence_input_validation
+          STATUS=$?
+          echo "$STATUS" > reports/daily_evidence_input_validation/validation_exit_code.txt
+          echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
+          exit 0
 
       - name: Generate B1-B6 evidence component reports
         id: components
@@ -203,10 +251,46 @@ jobs:
             reports/daily_evidence/
             reports/daily_evidence_components/
 
+      - name: Fail workflow on scheduled source build failure
+        if: ${{ github.event_name == 'schedule' && steps.scheduled-source.outputs.exit_code != '0' }}
+        run: |
+          echo "Scheduled paper observation source build failed. Artifact was uploaded for diagnostics."
+          exit 1
+
+      - name: Fail workflow on real source build failure
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.use_real_paper_observation_source == 'true' && steps.real-source.outputs.exit_code != '0' }}
+        run: |
+          echo "Real paper observation source build failed. Artifact was uploaded for diagnostics."
+          exit 1
+
+      - name: Fail workflow on bootstrap source failure
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.bootstrap_observation_only_sources == 'true' && steps.bootstrap-source.outputs.exit_code != '0' }}
+        run: |
+          echo "Bootstrap observation-only source build failed. Artifact was uploaded for diagnostics."
+          exit 1
+
+      - name: Fail workflow on source persistence failure
+        if: ${{ steps.persist-sources.outputs.exit_code != '0' }}
+        run: |
+          echo "Daily observation source persistence failed. Artifact was uploaded for diagnostics."
+          exit 1
+
+      - name: Fail workflow on input build failure
+        if: ${{ steps.build-inputs.outputs.exit_code != '0' }}
+        run: |
+          echo "Daily evidence input build failed. Artifact was uploaded for diagnostics."
+          exit 1
+
+      - name: Fail workflow on input validation failure
+        if: ${{ steps.validate-inputs.outputs.exit_code != '0' }}
+        run: |
+          echo "Daily evidence input validation failed. Artifact was uploaded for diagnostics."
+          exit 1
+
       - name: Fail workflow on non-observation evidence failure
         if: ${{ steps.components.outputs.exit_code != '0' && !(github.event_name == 'workflow_dispatch' && (github.event.inputs.bootstrap_observation_only_sources == 'true' || github.event.inputs.use_real_paper_observation_source == 'true')) }}
         run: |
-          echo "Component generation failed outside observation-only dispatch mode."
+          echo "Component generation failed outside observation-only dispatch mode. Artifact was uploaded for diagnostics."
           exit 1
 
       - name: Fail workflow on non-observation report build failure
