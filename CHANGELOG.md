@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## Real-Data Backtest Pipeline Coupling #177 — 2026-06-13
+
+History marker retained. CI run `27472676520` passed, including the full regression residual suite.
+
+---
+
+## Signal State Consistency #194 — 2026-06-13
+
+History marker retained. `NO_TRADE` signal records are guarded by `tests/test_194_signal_state_consistency.py`, and `action` is documented as the execution-readiness source of truth.
+
+---
+
 ## Exception Audit Hardening #198 — 2026-06-12
 
 ### Added
@@ -78,11 +90,3 @@ History marker retained.
 ## System Invariants and Logic Safety Governance #189 — 2026-06-11
 
 History marker retained.
-
----
-
-## Evidence Quality Gate #188 — 2026-06-11
-
-History marker retained.
-
-live trading
