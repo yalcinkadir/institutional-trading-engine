@@ -2,6 +2,16 @@
 
 Institutional-grade trading decision engine with evidence-first gates, paper-observation discipline, real-data backtesting boundaries, and fail-closed governance.
 
+## Setup
+
+Install dependencies through the authoritative entry point:
+
+```bash
+pip install -r requirements.txt
+```
+
+`requirements.txt` delegates to `requirements.lock`; CI and local development must not bypass the lock contract.
+
 ## Current Validation Status
 
 PO13: Monthly Paper Observation Review Pack implemented and CI-green
@@ -10,12 +20,16 @@ P120: Productive Paper Observation evidence remains gated until schema-valid dur
 P122: Paper Observation health gate blocks blind observation output when close/ATR/regime/scanner metrics indicate infrastructure failure.
 P124: Silent-failure run health gate distinguishes valid no-trade, degraded data, fallback/demo and failed runs before reports, Paper Observation or backtests are treated as successful.
 P166: Productive daily Paper Observation producer writes canonical reports/daily_evidence/<date>.json before PO11 validation and includes VIX/regime provenance.
+#178: Runtime reachability boundary is documented through `decision_critical_runtime_reachability.json`; decision-critical runtime modules must have runtime execution proof before they are treated as connected.
+#188: Evidence Quality Gate is documented in `docs/operations/evidence-quality-gate.md` and guarded by `tests/test_evidence_quality_gate_188.py`; it does not authorize live trading.
+#189: System Invariants and Logic Safety Governance guard decision-critical invariants before merge/readiness claims.
 #191: Scanner datafeed liveness gate classifies all-null close/missing-bar runs as DATAFEED_BLOCKED and writes repo-visible liveness evidence under reports/health/.
 #192: Scheduled report liveness gate writes reports/scheduled_report_liveness/<date>-<type>-liveness.json, requires non-empty scheduled report/latest artifacts, requires signals and paper-health evidence for market reports, and blocks missing scheduled output from being counted as a productive report cycle.
 #185: Report validation risk-tier gate requires structured decision/risk-tier evidence or an explicit no-active-risk state; prose-only Risk Tier mentions are blocked by tests/test_185_report_validation_risk_tier.py.
 #186: Outcome tracking differentiates SUCCESS, BLOCKED_NO_VALID_SIGNALS, DEMO_NO_DATA and BLOCKED_MISSING_INPUTS; production outcome learning is not claimable when upstream signal files are empty, invalid or contain zero valid signals.
 #177: Real-data backtest evidence requires runtime-pipeline-coupled trade plans; fake or non-runtime metadata is blocked by BT9 and scanner/signal/quality/validator exports require machine-checkable execution proof. CI run 27472676520 passed.
 #194: Signal state consistency guard enforces action as the execution-readiness source of truth; exported NO_TRADE records cannot retain decision: approved, actionable risk tiers, non-zero position size or executable entry state. CI run 27472676520 passed.
+IP9/IP10: Public Repository Governance is implemented and CI-wired; public-safe repository boundaries remain enforced.
 
 Runtime Governance:
 GOV1-GOV10: runtime / pre-live governance hardening implemented and CI-green
@@ -31,6 +45,8 @@ RGP7: no-fill fill-quality evidence guard implemented and CI-green
 RGP8: position event idempotency guard implemented and CI-green
 RGP9: deterministic execution ordering guard implemented and CI-green
 RGP10: evidence-vs-state reconciliation guard implemented and CI-green
+RGP11: runtime governance report consistency implemented and CI-green
+RGP12: post-governance stabilization review implemented and CI-green
 
 ## Safety Boundary
 
