@@ -71,7 +71,23 @@ def test_198_market_regime_client_failure_contains_structured_audit(monkeypatch:
 
 
 def test_198_market_regime_breadth_failure_contains_structured_audit(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(market_regime, "_try_symbol_snapshot", lambda _client, ticker: ({"ticker": ticker, "close": 100, "above_sma50": True, "above_sma200": True}, None))
+    class DummyClient:
+        pass
+
+    monkeypatch.setattr(market_regime, "PolygonClient", DummyClient)
+    monkeypatch.setattr(
+        market_regime,
+        "_try_symbol_snapshot",
+        lambda _client, ticker: (
+            {
+                "ticker": ticker,
+                "close": 100,
+                "above_sma50": True,
+                "above_sma200": True,
+            },
+            None,
+        ),
+    )
 
     def broken_breadth(_client):
         raise RuntimeError("breadth failed")
