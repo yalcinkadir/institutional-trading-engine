@@ -109,6 +109,20 @@ def test_po11_workflow_does_not_reference_live_broker_or_secrets() -> None:
         assert token not in text
 
 
+def test_192_report_workflow_produces_daily_evidence_before_liveness_gate() -> None:
+    text = _report_workflow_text()
+
+    health_index = text.index("Validate paper observation health")
+    daily_evidence_index = text.index("Produce daily observation evidence for liveness")
+    liveness_index = text.index("Validate scheduled report liveness")
+
+    assert health_index < daily_evidence_index < liveness_index
+    assert "scripts/produce_daily_observation_evidence_p166.py" in text
+    assert '--observation-date "$RUN_DATE"' in text
+    assert '--report-type "$REPORT_TYPE"' in text
+    assert "reports/daily_evidence/*.json" in text
+
+
 def test_192_report_workflow_validates_scheduled_report_liveness_after_health_gate() -> None:
     text = _report_workflow_text()
 
