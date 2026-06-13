@@ -33,9 +33,12 @@ def test_institutional_reports_workflow_does_not_stage_entire_reports_tree() -> 
     assert 'git add "$REPORT_FILE" "$LATEST_FILE"' in workflow
     assert "git add reports/signals/*.json reports/signals/*.md" in workflow
     assert "git add reports/validation/*.json reports/validation/*.md" in workflow
+    assert "git add reports/datafeed_liveness/*.json" in workflow
     assert all(
         line.startswith("git add reports/signals/")
         or line.startswith("git add reports/validation/")
+        or line.startswith("git add reports/datafeed_liveness/")
+        or line.startswith('git add "$SCHEDULED_LIVENESS_FILE"')
         for line in _lines_containing(workflow, "git add reports/")
     )
 
@@ -59,6 +62,7 @@ def test_issue_163_declared_report_outputs_are_boundary_allowed() -> None:
         "reports/weekly/2026-W24-weekly.md",
         "reports/signals/latest-signals.json",
         "reports/validation/latest-paper-observation-health.json",
+        "reports/datafeed_liveness/datafeed-liveness-latest.json",
     ]
 
     for path in allowed_paths:
