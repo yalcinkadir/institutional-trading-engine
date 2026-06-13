@@ -212,8 +212,10 @@ def test_bt131_workflow_persists_validated_reports_and_inputs_to_repo_without_te
     assert "bt176_candidate_variant_id" in text
     assert "bt176_experiment_scope" in text
     assert "bt176_production_rule_change_allowed" in text
+    assert "root_source_evidence" in text
+    assert "latest_source_evidence" in text
     assert "git pull --rebase" in text
-    assert "git add reports/backtests/real_data/" in text
+    assert "git add reports/backtests/real-data-backtest-evidence.json reports/backtests/real-data-backtest-evidence.md reports/backtests/real_data/" in text
     assert "git add data/historical/bars/1day/*.csv data/historical/metadata/*.json data/historical/metadata/*.csv data/trade_plans/*.json data/trade_plans/*manifest*.json" in text
     assert "git commit -m \"Persist BT131 real-data backtest reports and source inputs" in text
     assert "git push" in text
