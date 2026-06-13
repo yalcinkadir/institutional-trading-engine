@@ -2,13 +2,20 @@
   "schema_version": "bt207.watcher_coupled_lifecycle_report.v1",
   "run_id": "bt207-watcher-coupled-real-data-latest",
   "generated_at": "2026-06-13T21:05:00Z",
-  "issue": "#207",
+  "issue": "#207/#212",
   "data_source": "real_data",
   "market_data_vendor": "polygon",
   "is_demo": false,
   "live_trading_authorized": false,
   "broker_execution_mode": "paper_only",
   "production_rule_promotion_authorized": false,
+  "production_readiness_status": "BLOCKED_LOW_COVERAGE",
+  "production_readiness_blockers": [
+    "missing_invalidated_or_expired_path",
+    "missing_losing_lifecycle_path",
+    "sample_below_minimum",
+    "symbol_coverage_below_minimum"
+  ],
   "backtest_coupling": "watcher_lifecycle_replay",
   "watcher_engine": "src.watchers.entry_exit_watcher.evaluate_signals",
   "report_classification": "non_proxy_lifecycle_replay",
@@ -26,6 +33,34 @@
   "evaluated_plan_count": 1,
   "lifecycle_event_count": 3,
   "terminal_signal_count": 1,
+  "coverage_metrics": {
+    "min_required_plan_count": 30,
+    "min_required_symbol_count": 5,
+    "input_plan_count": 1,
+    "evaluated_plan_count": 1,
+    "distinct_symbol_count": 1,
+    "symbols": [
+      "AAPL"
+    ],
+    "terminal_signal_count": 1,
+    "lifecycle_event_count": 3,
+    "final_status_distribution": {
+      "TARGET_2_HIT": 1
+    },
+    "lifecycle_event_distribution": {
+      "ENTRY_TRIGGERED": 1,
+      "TARGET_1_HIT": 1,
+      "TARGET_2_HIT": 1
+    },
+    "win_count": 1,
+    "loss_count": 0,
+    "invalidated_count": 0,
+    "expired_count": 0,
+    "average_r": null,
+    "max_adverse_excursion_r": null,
+    "skipped_plan_reasons": {}
+  },
+  "skipped_plan_reasons": {},
   "results": [
     {
       "signal_id": "bt207-real-data-sample-aapl-001",
@@ -74,11 +109,14 @@
     "deterministic_lifecycle_state_transitions": true,
     "not_mae_mfe_proxy": true,
     "cannot_authorize_production_rule_change": true,
-    "no_live_trading_authorization": true
+    "no_live_trading_authorization": true,
+    "sample_coverage_gate_added": true,
+    "production_readiness_blocked_until_sample_threshold": true
   },
   "limitations": [
     "This report is a lightweight latest-report evidence pointer for #207 acceptance; it does not authorize production rule promotion.",
     "BT133/BT134 variant reports may remain research proxy analyses unless separately regenerated through this lifecycle replay path.",
-    "Historical bars are completed-bar replay inputs; no live broker execution is performed."
+    "Historical bars are completed-bar replay inputs; no live broker execution is performed.",
+    "#212 sample coverage is not yet production-ready: latest real-data watcher-coupled evidence still contains only one historical plan and lacks losing/invalidated lifecycle diversity."
   ]
 }
