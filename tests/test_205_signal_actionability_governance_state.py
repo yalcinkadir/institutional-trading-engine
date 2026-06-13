@@ -50,6 +50,8 @@ def _scanner_metrics_for(report: dict) -> dict[str, dict]:
             "source_timestamp": "2026-06-13T00:00:00+00:00",
             "fallback_level": "primary",
             "data_status": "OK",
+            "sector": "broad_market" if symbol in {"QQQ", "GLD"} else "technology",
+            "returns_20d": tuple((index + day + 1) / 1000.0 for day in range(20)),
         }
     return metrics
 
@@ -61,6 +63,8 @@ def test_205_default_repo_portfolio_state_allows_paper_observation_actionable_ca
     assert report["report_governance"]["portfolio_governance_valid"] is True
     assert report["report_governance"]["live_trading_authorized"] is False
     assert report["report_governance"]["broker_execution_mode"] == "paper_only"
+    assert report["portfolio_risk_required"] is True
+    assert report["portfolio_risk_policy"] == "required_for_actionable_signals"
     assert "invalid_portfolio_governance_state" not in report["hard_overrides"]
     assert report["approved_count"] > 0
 
@@ -75,6 +79,8 @@ def test_205_default_repo_portfolio_state_allows_paper_observation_actionable_ca
     assert all(signal.entry_trigger is not None for signal in actionable)
     assert all(signal.stop_loss is not None for signal in actionable)
     assert all(signal.target_1 is not None for signal in actionable)
+    assert all(signal.portfolio_risk_status == "PASSED" for signal in actionable)
+    assert all(signal.portfolio_risk_multiplier == 1.0 for signal in actionable)
 
 
 def test_205_invalid_portfolio_governance_still_fails_closed() -> None:
