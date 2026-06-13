@@ -32,6 +32,38 @@ class OrderStatus(str, Enum):
 
 
 @dataclass(frozen=True)
+class ExecutionAuthorization:
+    """Machine-readable approval required before any broker adapter submits orders."""
+
+    authorization_id: str
+    broker_execution_mode: str
+    live_trading_authorized: bool
+    paper_trading_authorized: bool
+    approved_by: str
+    reason: str
+
+    @classmethod
+    def paper_observation(
+        cls,
+        *,
+        authorization_id: str = "paper-observation-runtime-authorization",
+        approved_by: str = "runtime_governance",
+        reason: str = "paper observation broker interaction only",
+    ) -> "ExecutionAuthorization":
+        return cls(
+            authorization_id=authorization_id,
+            broker_execution_mode="paper_only",
+            live_trading_authorized=False,
+            paper_trading_authorized=True,
+            approved_by=approved_by,
+            reason=reason,
+        )
+
+    def to_dict(self) -> dict[str, object]:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
 class BrokerOrderRequest:
     symbol: str
     side: OrderSide
@@ -130,7 +162,12 @@ class BrokerReconciliationReport:
 class PaperBrokerAdapter(Protocol):
     mode: BrokerMode
 
-    def submit_order(self, request: BrokerOrderRequest) -> BrokerOrder: ...
+    def submit_order(
+        self,
+        request: BrokerOrderRequest,
+        *,
+        authorization: ExecutionAuthorization | None = None,
+    ) -> BrokerOrder: ...
 
     def cancel_order(self, order_id: str) -> BrokerOrder: ...
 
@@ -155,8 +192,14 @@ class MockPaperBrokerAdapter:
         self._fills: list[BrokerFill] = []
         self._positions: dict[str, BrokerPosition] = {}
 
-    def submit_order(self, request: BrokerOrderRequest) -> BrokerOrder:
-        issues = _validate_order_request(request)
+    def submit_order(
+        self,
+        request: BrokerOrderRequest,
+        *,
+        authorization: ExecutionAuthorization | None = None,
+    ) -> BrokerOrder:
+        issues = validate_execution_authorization(authorization, adapter_mode=self.mode)
+        issues.extend(_validate_order_request(request))
         order_id = request.client_order_id or f"paper-{uuid4().hex}"
         status = OrderStatus.REJECTED if issues else OrderStatus.ACCEPTED
         order = BrokerOrder(
@@ -235,6 +278,29 @@ class MockPaperBrokerAdapter:
         )
 
 
+def validate_execution_authorization(
+    authorization: ExecutionAuthorization | None,
+    *,
+    adapter_mode: BrokerMode,
+) -> list[str]:
+    issues: list[str] = []
+    if authorization is None:
+        return ["execution authorization is required"]
+    if not authorization.authorization_id.strip():
+        issues.append("authorization_id is required")
+    if not authorization.approved_by.strip():
+        issues.append("approved_by is required")
+    if authorization.broker_execution_mode != "paper_only":
+        issues.append("broker_execution_mode must be paper_only")
+    if authorization.live_trading_authorized:
+        issues.append("live_trading_authorized must be false for paper broker adapters")
+    if not authorization.paper_trading_authorized:
+        issues.append("paper_trading_authorized must be true")
+    if adapter_mode != BrokerMode.PAPER:
+        issues.append("only paper broker adapters are supported")
+    return issues
+
+
 def _validate_order_request(request: BrokerOrderRequest) -> list[str]:
     issues: list[str] = []
     if not request.symbol.strip():
@@ -253,4 +319,4 @@ def _validate_order_request(request: BrokerOrderRequest) -> list[str]:
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    return datetime.now(timezone.utc).isoformat()
