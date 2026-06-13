@@ -15,6 +15,50 @@ DURABLE_STATUS_FAILED = "FAILED"
 DURABLE_STATUS_NO_TRADE_VALID = "NO_TRADE_VALID"
 UNKNOWN = "UNKNOWN"
 NOT_AVAILABLE = "not_available"
+RELATED_EVIDENCE_REFERENCES = (
+    {
+        "issue": "#204",
+        "evidence_type": "scheduled_report_liveness",
+        "path": "reports/scheduled_report_liveness/latest-scheduled-report-liveness.json",
+        "purpose": "Proves whether scheduled report cycles are productive only when fresh daily evidence exists.",
+    },
+    {
+        "issue": "#205",
+        "evidence_type": "signal_actionability_governance",
+        "path": "reports/signals/latest-signals.json",
+        "purpose": "Shows whether latest signals are actionable or explicitly blocked by governance state.",
+    },
+    {
+        "issue": "#206",
+        "evidence_type": "backtest_source_evidence",
+        "path": "reports/backtests/real-data-backtest-evidence.json",
+        "purpose": "Provides fetchable real-data backtest source evidence with input/result hashes.",
+    },
+    {
+        "issue": "#207",
+        "evidence_type": "watcher_coupled_backtest",
+        "path": "src/backtesting/watcher_coupled_backtest.py",
+        "purpose": "Links backtest replay logic to watcher lifecycle semantics for historical bars.",
+    },
+    {
+        "issue": "#208",
+        "evidence_type": "dynamic_weighting_invariant",
+        "path": "tests/test_dynamic_weighting_engine.py",
+        "purpose": "Guards exported dynamic weights so rounded sums remain exactly 1.0.",
+    },
+    {
+        "issue": "#209",
+        "evidence_type": "watcher_skip_runtime_health",
+        "path": "reports/runtime/entry_exit_watcher_runtime_health.json",
+        "purpose": "Documents watcher skip states as blocked runtime health evidence.",
+    },
+    {
+        "issue": "#210",
+        "evidence_type": "execution_boundary",
+        "path": "src/execution/broker_adapter.py",
+        "purpose": "Documents explicit paper-only execution authorization boundary.",
+    },
+)
 
 
 @dataclass(frozen=True)
@@ -129,6 +173,10 @@ def _durable_status(
     if automation_status == "PASSED":
         return DURABLE_STATUS_SUCCESS
     return DURABLE_STATUS_FAILED
+
+
+def _related_evidence_references() -> list[dict[str, str]]:
+    return [dict(item) for item in RELATED_EVIDENCE_REFERENCES]
 
 
 def build_daily_observation_artifact_review_index(
@@ -246,6 +294,7 @@ def build_daily_observation_artifact_review_index(
         "large_runtime_artifacts_committed_to_main": False,
         "github_actions_artifacts_are_audit_source": False,
         "durable_history_reconstructable_after_artifact_expiry": True,
+        "related_evidence_references": _related_evidence_references(),
         "total_artifacts": total_artifacts,
         "status_counts": status_counts,
         "durable_status_counts": durable_status_counts,
