@@ -9,38 +9,93 @@ from src.execution.alpaca_paper_adapter import (
 from src.execution.broker_adapter import (
     BrokerMode,
     BrokerOrderRequest,
+    ExecutionAuthorization,
     OrderSide,
     OrderStatus,
     OrderType,
 )
 
 
-def _adapter() -> AlpacaPaperAdapter:
+def _authorization() -> ExecutionAuthorization:
+    return ExecutionAuthorization.paper_observation()
+
+
+def _valid_request() -> BrokerOrderRequest:
+    return BrokerOrderRequest(
+        symbol="aapl",
+        side=OrderSide.BUY,
+        quantity=3,
+        order_type=OrderType.MARKET,
+        strategy_id="rule_based_core_v1",
+        signal_id="sig-001",
+    )
+
+
+def _adapter(*, transport: InMemoryAlpacaPaperTransport | None = None) -> AlpacaPaperAdapter:
     return AlpacaPaperAdapter(
         AlpacaPaperAdapterConfig(),
-        transport=InMemoryAlpacaPaperTransport(cash=75_000),
+        transport=transport or InMemoryAlpacaPaperTransport(cash=75_000),
     )
 
 
-def test_alpaca_paper_adapter_accepts_market_order():
+def test_alpaca_paper_adapter_blocks_missing_execution_authorization_fail_closed():
     adapter = _adapter()
 
-    order = adapter.submit_order(
-        BrokerOrderRequest(
-            symbol="aapl",
-            side=OrderSide.BUY,
-            quantity=3,
-            order_type=OrderType.MARKET,
-            strategy_id="rule_based_core_v1",
-            signal_id="sig-001",
-        )
+    order = adapter.submit_order(_valid_request())
+
+    assert order.status == OrderStatus.REJECTED
+    assert "execution authorization is required" in (order.reason or "")
+
+
+def test_alpaca_paper_adapter_blocks_live_authorization_flag_fail_closed():
+    adapter = _adapter()
+    authorization = ExecutionAuthorization(
+        authorization_id="live-not-allowed",
+        broker_execution_mode="paper_only",
+        live_trading_authorized=True,
+        paper_trading_authorized=True,
+        approved_by="unit-test",
+        reason="negative test",
     )
+
+    order = adapter.submit_order(_valid_request(), authorization=authorization)
+
+    assert order.status == OrderStatus.REJECTED
+    assert "live_trading_authorized must be false" in (order.reason or "")
+
+
+def test_alpaca_paper_adapter_blocks_non_paper_execution_mode_fail_closed():
+    adapter = _adapter()
+    authorization = ExecutionAuthorization(
+        authorization_id="live-mode-not-allowed",
+        broker_execution_mode="live",
+        live_trading_authorized=False,
+        paper_trading_authorized=True,
+        approved_by="unit-test",
+        reason="negative test",
+    )
+
+    order = adapter.submit_order(_valid_request(), authorization=authorization)
+
+    assert order.status == OrderStatus.REJECTED
+    assert "broker_execution_mode must be paper_only" in (order.reason or "")
+
+
+def test_alpaca_paper_adapter_accepts_market_order_with_authorization():
+    transport = InMemoryAlpacaPaperTransport(cash=75_000)
+    adapter = _adapter(transport=transport)
+
+    order = adapter.submit_order(_valid_request(), authorization=_authorization())
 
     assert adapter.mode == BrokerMode.PAPER
     assert order.status == OrderStatus.ACCEPTED
     assert order.symbol == "AAPL"
     assert order.quantity == 3
     assert adapter.get_order_status(order.order_id).status == OrderStatus.ACCEPTED
+    raw_order = transport.get_order(order.order_id)
+    assert raw_order["execution_authorization_id"] == "paper-observation-runtime-authorization"
+    assert raw_order["broker_execution_mode"] == "paper_only"
+    assert raw_order["live_trading_authorized"] is False
 
 
 def test_alpaca_paper_adapter_rejects_invalid_order_fail_closed():
@@ -54,7 +109,8 @@ def test_alpaca_paper_adapter_rejects_invalid_order_fail_closed():
             order_type=OrderType.MARKET,
             strategy_id="",
             signal_id="",
-        )
+        ),
+        authorization=_authorization(),
     )
 
     assert order.status == OrderStatus.REJECTED
@@ -90,7 +146,8 @@ def test_alpaca_paper_adapter_cancel_order():
             order_type=OrderType.MARKET,
             strategy_id="strategy",
             signal_id="signal",
-        )
+        ),
+        authorization=_authorization(),
     )
 
     cancelled = adapter.cancel_order(order.order_id)
@@ -110,7 +167,8 @@ def test_alpaca_paper_adapter_account_snapshot_and_reconciliation():
             limit_price=900.0,
             strategy_id="strategy",
             signal_id="signal",
-        )
+        ),
+        authorization=_authorization(),
     )
 
     snapshot = adapter.get_account_snapshot()
