@@ -150,6 +150,16 @@ jobs:
             --workflow-name "${GITHUB_WORKFLOW}" \
             --commit-sha "${GITHUB_SHA}"
 
+      - name: Produce daily observation evidence for liveness
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p reports/daily_evidence
+          python scripts/produce_daily_observation_evidence_p166.py \
+            --observation-date "$RUN_DATE" \
+            --selected-symbols "MSFT,NVDA,META,AAPL,MU,QQQ,GLD,SLV" \
+            --report-type "$REPORT_TYPE"
+
       - name: Validate scheduled report liveness
         if: always()
         shell: bash
@@ -180,6 +190,7 @@ jobs:
           git add "$REPORT_FILE" "$LATEST_FILE" 2>/dev/null || true
           git add reports/signals/*.json reports/signals/*.md 2>/dev/null || true
           git add reports/validation/*.json reports/validation/*.md 2>/dev/null || true
+          git add reports/daily_evidence/*.json 2>/dev/null || true
           git add reports/datafeed_liveness/*.json 2>/dev/null || true
           git add "$SCHEDULED_LIVENESS_FILE" "$SCHEDULED_LIVENESS_LATEST" "$REPORT_LIVENESS_HEALTH" 2>/dev/null || true
           git add data/ 2>/dev/null || true
