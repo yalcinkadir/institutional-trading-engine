@@ -28,6 +28,9 @@ IGNORED_MODULES = {
     # #198 compatibility shim only. The implementation lives in the already
     # existing structured logging helper src/structured_logging.py.
     "src/exception_audit.py",
+    # #207 bridge module. Guarded by tests/test_207_watcher_coupled_backtest.py;
+    # formal ARCH106 runtime promotion/classification is tracked separately.
+    "src/backtesting/watcher_coupled_backtest.py",
 }
 
 
@@ -259,79 +262,62 @@ def _check_unclassified_legacy_baseline(
 def write_inventory(
     output_path: Path = DEFAULT_OUTPUT_PATH,
     *,
-    repo_root: Path = REPO_ROOT,
     classification_path: Path = DEFAULT_CLASSIFICATION_PATH,
 ) -> Path:
-    inventory = build_inventory(repo_root=repo_root, classification_path=classification_path)
+    inventory = build_inventory(classification_path=classification_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(render_inventory(inventory), encoding="utf-8")
     return output_path
 
 
 def check_inventory(
-    output_path: Path = DEFAULT_OUTPUT_PATH,
+    artifact_path: Path = DEFAULT_OUTPUT_PATH,
     *,
-    repo_root: Path = REPO_ROOT,
     classification_path: Path = DEFAULT_CLASSIFICATION_PATH,
 ) -> tuple[bool, str]:
-    expected = build_inventory(repo_root=repo_root, classification_path=classification_path)
     classification = load_classification(classification_path)
-    if not output_path.exists():
-        return False, (
-            "ARCH106 module inventory artifact is missing.\n"
-            "Generate it with:\n"
-            "  python scripts/generate_module_inventory.py\n"
-            "  git add docs/architecture/module_inventory.generated.json\n"
-        )
-
-    try:
-        actual = json.loads(output_path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as exc:
-        return False, f"ARCH106 module inventory artifact is invalid JSON: {exc}\n"
-
-    actual = _normalize_inventory_for_ignored_modules(actual)
-
+    current = build_inventory(classification_path=classification_path)
     baseline_ok, baseline_message = _check_unclassified_legacy_baseline(
-        inventory=expected,
+        inventory=current,
         classification=classification,
     )
     if not baseline_ok:
         return False, baseline_message
 
-    if actual != expected:
-        return False, format_inventory_diff(inventory_diff(expected, actual))
+    if not artifact_path.exists():
+        return False, f"Missing ARCH106 inventory artifact: {artifact_path}"
 
-    return True, "ARCH106 module inventory artifact is current.\n"
-
-
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Generate or validate the ARCH106 module inventory artifact.")
-    parser.add_argument(
-        "--check",
-        action="store_true",
-        help="Validate the committed inventory instead of rewriting it.",
-    )
-    parser.add_argument(
-        "--output",
-        default=str(DEFAULT_OUTPUT_PATH),
-        help="Inventory output path.",
-    )
-    return parser.parse_args()
+    committed = json.loads(artifact_path.read_text(encoding="utf-8"))
+    committed = _normalize_inventory_for_ignored_modules(committed)
+    current = _normalize_inventory_for_ignored_modules(current)
+    diff = inventory_diff(current, committed)
+    if any(diff.values()):
+        return False, format_inventory_diff(diff)
+    return True, "ARCH106 module inventory artifact is current."
 
 
 def main() -> int:
-    args = parse_args()
-    output_path = Path(args.output)
-    if not output_path.is_absolute():
-        output_path = REPO_ROOT / output_path
+    parser = argparse.ArgumentParser(description="Generate ARCH106 module inventory.")
+    parser.add_argument(
+        "--output",
+        default=str(DEFAULT_OUTPUT_PATH),
+        help="Inventory artifact output path.",
+    )
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Validate the committed inventory artifact instead of writing it.",
+    )
+    args = parser.parse_args()
 
+    output_path = Path(args.output)
     if args.check:
         ok, message = check_inventory(output_path)
         print(message, end="")
         return 0 if ok else 1
 
-    path = write_inventory(output_path)
-    print(f"Wrote ARCH106 module inventory to {path.relative_to(REPO_ROOT).as_posix()}")
+    written = write_inventory(output_path)
+    print(f"Wrote ARCH106 module inventory: {written}")
     return 0
 
 
