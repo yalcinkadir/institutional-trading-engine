@@ -39,6 +39,7 @@ def test_207_replays_historical_bars_through_watcher_lifecycle_engine() -> None:
 
     payload = report.to_dict()
     result = payload["results"][0]
+    event_types = [event["event_type"] for event in result["lifecycle_events"]]
 
     assert payload["backtest_coupling"] == "watcher_lifecycle_replay"
     assert payload["watcher_engine"] == "src.watchers.entry_exit_watcher.evaluate_signals"
@@ -50,11 +51,10 @@ def test_207_replays_historical_bars_through_watcher_lifecycle_engine() -> None:
     assert payload["terminal_signal_count"] == 1
     assert result["final_status"] == "TARGET_2_HIT"
     assert result["terminal"] is True
-    assert [event["event_type"] for event in result["lifecycle_events"][:3]] == [
-        "ENTRY_TRIGGERED",
-        "TARGET_1_HIT",
-        "TARGET_2_HIT",
-    ]
+    assert event_types[:2] == ["ENTRY_TRIGGERED", "TARGET_1_HIT"]
+    assert "PARTIAL_EXIT_FILLED" in event_types
+    assert event_types[-1] == "TARGET_2_HIT"
+    assert event_types.index("ENTRY_TRIGGERED") < event_types.index("TARGET_1_HIT") < event_types.index("TARGET_2_HIT")
 
 
 def test_207_uses_conservative_watcher_ordering() -> None:
