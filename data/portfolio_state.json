@@ -4,9 +4,9 @@
   "drawdown_percent": 0.0,
   "daily_loss_percent": 0.0,
   "open_positions": [],
-  "source": "manual_initial_live_decision_support_state",
+  "source": "manual_paper_observation_portfolio_state",
   "warnings": [
-    "Initial placeholder portfolio state. Replace with real broker/paper-broker portfolio state before runtime approval."
+    "Manual paper-observation portfolio state. No live trading authorization; refresh before broker-connected execution."
   ],
-  "governance_valid": false
+  "governance_valid": true
 }
