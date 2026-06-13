@@ -37,6 +37,12 @@ PIPELINE_GATE_NAMES = [
 ]
 PIPELINE_GENERATION_SOURCE = "scanner_signal_quality_validator"
 OBSERVATION_GENERATION_SOURCE = "validated_paper_observation_export"
+PIPELINE_EXECUTION_PROOF_VERSION = "2026.06.13-v1"
+PIPELINE_EXECUTION_ADAPTER = "historical_scanner_signal_quality_validator_export"
+PIPELINE_EXECUTION_ENTRYPOINTS = [
+    "src.signals.signal_generator.build_signals",
+    "scripts.export_historical_trade_plans._signal_to_plan",
+]
 
 
 @dataclass(frozen=True)
@@ -237,6 +243,21 @@ def _signal_date(signal: Signal) -> str:
     return str(signal.generated_at or "")[:10]
 
 
+def _pipeline_execution_proof(*, decision_report: dict[str, Any], scanner_metrics_map: dict[str, Any]) -> dict[str, Any]:
+    proof_payload = {
+        "decision_report": decision_report,
+        "scanner_metrics_map": scanner_metrics_map,
+    }
+    return {
+        "proof_version": PIPELINE_EXECUTION_PROOF_VERSION,
+        "adapter": PIPELINE_EXECUTION_ADAPTER,
+        "source_payload_sha256": hashlib.sha256(_json_bytes(proof_payload)).hexdigest(),
+        "executed_runtime_entrypoints": PIPELINE_EXECUTION_ENTRYPOINTS,
+        "runtime_gates_applied": PIPELINE_GATE_NAMES,
+        "proof_boundary": "generated_by_exporter_runtime_path",
+    }
+
+
 def _signal_to_plan(signal: Signal) -> tuple[dict[str, Any] | None, list[str]]:
     failures: list[str] = []
     if signal.action != "BUY_WATCH":
@@ -337,6 +358,10 @@ def _build_pipeline_plans(payload: dict[str, Any]) -> tuple[list[dict[str, Any]]
         "validated_trade_plan_count": len(plans),
         "blocked_signal_count": max(len(signals) - len(plans), 0),
         "runtime_gates_applied": PIPELINE_GATE_NAMES,
+        "pipeline_execution_proof": _pipeline_execution_proof(
+            decision_report=decision_report,
+            scanner_metrics_map=scanner_metrics_map,
+        ),
     }
     return plans, metadata, failures
 
