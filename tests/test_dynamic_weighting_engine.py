@@ -102,10 +102,10 @@ def test_208_dynamic_weighting_sum_is_exact_for_4_factors():
 def test_208_dynamic_weighting_sum_is_exact_after_rounding_remainder_for_6_factors():
     weights = _assert_exact_sum_for_factor_count(6)
 
-    assert weights == [0.1666, 0.1666, 0.1666, 0.1666, 0.1666, 0.167]
+    assert weights == [0.1667, 0.1667, 0.1667, 0.1667, 0.1667, 0.1665]
 
 
 def test_208_dynamic_weighting_sum_is_exact_after_rounding_remainder_for_7_factors():
     weights = _assert_exact_sum_for_factor_count(7)
 
-    assert weights == [0.1428, 0.1428, 0.1428, 0.1428, 0.1428, 0.1428, 0.1432]
+    assert weights == [0.1429, 0.1429, 0.1429, 0.1429, 0.1429, 0.1429, 0.1426]
