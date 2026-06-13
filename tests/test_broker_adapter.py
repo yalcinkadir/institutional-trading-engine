@@ -3,6 +3,7 @@ import pytest
 from src.execution.broker_adapter import (
     BrokerMode,
     BrokerOrderRequest,
+    ExecutionAuthorization,
     MockPaperBrokerAdapter,
     OrderSide,
     OrderStatus,
@@ -10,18 +11,67 @@ from src.execution.broker_adapter import (
 )
 
 
+def _authorization() -> ExecutionAuthorization:
+    return ExecutionAuthorization.paper_observation()
+
+
+def _valid_request() -> BrokerOrderRequest:
+    return BrokerOrderRequest(
+        symbol="aapl",
+        side=OrderSide.BUY,
+        quantity=10,
+        order_type=OrderType.MARKET,
+        strategy_id="rule_based_core_v1",
+        signal_id="sig-001",
+    )
+
+
+def test_mock_paper_adapter_blocks_missing_execution_authorization_fail_closed():
+    adapter = MockPaperBrokerAdapter()
+
+    order = adapter.submit_order(_valid_request())
+
+    assert order.status == OrderStatus.REJECTED
+    assert "execution authorization is required" in (order.reason or "")
+
+
+def test_mock_paper_adapter_blocks_live_authorization_flag_fail_closed():
+    adapter = MockPaperBrokerAdapter()
+    authorization = ExecutionAuthorization(
+        authorization_id="live-not-allowed",
+        broker_execution_mode="paper_only",
+        live_trading_authorized=True,
+        paper_trading_authorized=True,
+        approved_by="unit-test",
+        reason="negative test",
+    )
+
+    order = adapter.submit_order(_valid_request(), authorization=authorization)
+
+    assert order.status == OrderStatus.REJECTED
+    assert "live_trading_authorized must be false" in (order.reason or "")
+
+
+def test_mock_paper_adapter_blocks_non_paper_execution_mode_fail_closed():
+    adapter = MockPaperBrokerAdapter()
+    authorization = ExecutionAuthorization(
+        authorization_id="live-mode-not-allowed",
+        broker_execution_mode="live",
+        live_trading_authorized=False,
+        paper_trading_authorized=True,
+        approved_by="unit-test",
+        reason="negative test",
+    )
+
+    order = adapter.submit_order(_valid_request(), authorization=authorization)
+
+    assert order.status == OrderStatus.REJECTED
+    assert "broker_execution_mode must be paper_only" in (order.reason or "")
+
+
 def test_mock_paper_adapter_accepts_valid_market_order():
     adapter = MockPaperBrokerAdapter()
-    order = adapter.submit_order(
-        BrokerOrderRequest(
-            symbol="aapl",
-            side=OrderSide.BUY,
-            quantity=10,
-            order_type=OrderType.MARKET,
-            strategy_id="rule_based_core_v1",
-            signal_id="sig-001",
-        )
-    )
+    order = adapter.submit_order(_valid_request(), authorization=_authorization())
 
     assert adapter.mode == BrokerMode.PAPER
     assert order.status == OrderStatus.ACCEPTED
@@ -39,7 +89,8 @@ def test_mock_paper_adapter_rejects_invalid_order_fail_closed():
             order_type=OrderType.MARKET,
             strategy_id="",
             signal_id="",
-        )
+        ),
+        authorization=_authorization(),
     )
 
     assert order.status == OrderStatus.REJECTED
@@ -57,7 +108,8 @@ def test_limit_and_stop_orders_require_prices():
             order_type=OrderType.LIMIT,
             strategy_id="strategy",
             signal_id="signal",
-        )
+        ),
+        authorization=_authorization(),
     )
     stop_order = adapter.submit_order(
         BrokerOrderRequest(
@@ -67,7 +119,8 @@ def test_limit_and_stop_orders_require_prices():
             order_type=OrderType.STOP,
             strategy_id="strategy",
             signal_id="signal",
-        )
+        ),
+        authorization=_authorization(),
     )
 
     assert limit_order.status == OrderStatus.REJECTED
@@ -86,7 +139,8 @@ def test_cancel_order_updates_status():
             order_type=OrderType.MARKET,
             strategy_id="strategy",
             signal_id="signal",
-        )
+        ),
+        authorization=_authorization(),
     )
 
     cancelled = adapter.cancel_order(order.order_id)
