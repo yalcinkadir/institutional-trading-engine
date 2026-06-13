@@ -38,6 +38,7 @@ def test_protected_public_report_paths_are_blocked(protected_path: str) -> None:
         "reports/weekly/2026-W23-weekly.md",
         "reports/signals/latest-signals.json",
         "reports/validation/paper-observation-health.md",
+        "reports/daily_evidence/2026-06-13.json",
         "reports/datafeed_liveness/datafeed-liveness-latest.json",
     ],
 )
@@ -116,6 +117,7 @@ def test_allowed_roots_are_single_source_of_truth() -> None:
             "reports/weekly",
             "reports/signals",
             "reports/validation",
+            "reports/daily_evidence",
             "reports/datafeed_liveness",
         }
     )
