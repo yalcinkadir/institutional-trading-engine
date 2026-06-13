@@ -57,6 +57,9 @@ SCORE_INPUTS = [
     "data_confidence",
     "historical_expectancy_adjustment",
 ]
+PORTFOLIO_RISK_REQUIRED = True
+PORTFOLIO_RISK_POLICY = "required_for_actionable_signals"
+BROKER_EXECUTION_MODE = "paper_only"
 
 
 def _map_regime_to_market_state(
@@ -183,7 +186,7 @@ def _build_report_governance(market_regime: dict, portfolio_state_store: Any | N
         "portfolio_state_warnings": list(kill_result.get("portfolio_state_warnings", [])),
         "vix_available": kill_result.get("vix_available") is True,
         "live_trading_authorized": False,
-        "broker_execution_mode": "paper_only",
+        "broker_execution_mode": BROKER_EXECUTION_MODE,
     }
 
 
@@ -538,6 +541,11 @@ def build_decision_report(
         "allowed_setups": [setup.value for setup in allowed_setups],
         "hard_overrides": hard_overrides,
         "report_governance": report_governance,
+        "portfolio_risk_required": PORTFOLIO_RISK_REQUIRED,
+        "portfolio_risk_policy": PORTFOLIO_RISK_POLICY,
+        "live_trading_authorized": False,
+        "broker_execution_mode": BROKER_EXECUTION_MODE,
+        "capital_allocation_authorized": False,
         "portfolio_heat_limit": 0.0 if report_governance["blocked"] else context.max_portfolio_heat,
         "summary": summary,
         "data_quality_note": data_quality_note,
