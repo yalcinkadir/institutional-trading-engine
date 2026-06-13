@@ -49,6 +49,21 @@ def test_181_durable_index_records_required_audit_fields() -> None:
     assert entry["durable_status"] == DURABLE_STATUS_SUCCESS
 
 
+def test_181_durable_index_links_related_evidence_families_without_committing_large_artifacts() -> None:
+    result = build_daily_observation_artifact_review_index([_artifact("2026-06-01")])
+    references = result.index["related_evidence_references"]
+    by_issue = {item["issue"]: item for item in references}
+
+    assert result.index["large_runtime_artifacts_committed_to_main"] is False
+    assert result.index["github_actions_artifacts_are_audit_source"] is False
+    assert set(by_issue) == {"#204", "#205", "#206", "#207", "#208", "#209", "#210"}
+    assert by_issue["#204"]["path"] == "reports/scheduled_report_liveness/latest-scheduled-report-liveness.json"
+    assert by_issue["#206"]["path"] == "reports/backtests/real-data-backtest-evidence.json"
+    assert by_issue["#207"]["path"] == "src/backtesting/watcher_coupled_backtest.py"
+    assert by_issue["#209"]["path"] == "reports/runtime/entry_exit_watcher_runtime_health.json"
+    assert by_issue["#210"]["path"] == "src/execution/broker_adapter.py"
+
+
 def test_181_durable_index_uses_explicit_unknowns_when_metadata_is_not_available() -> None:
     result = build_daily_observation_artifact_review_index([_artifact("2026-06-01")])
 
