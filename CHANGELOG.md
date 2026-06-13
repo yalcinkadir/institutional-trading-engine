@@ -8,7 +8,7 @@ History marker retained. CI run `27472676520` passed, including the full regress
 
 ## Signal State Consistency #194 — 2026-06-13
 
-History marker retained. `NO_TRADE` signal records are guarded by `tests/test_194_signal_state_consistency.py`, and `action` is documented as the execution-readiness source of truth.
+History marker retained. `NO_TRADE` signal records are guarded by `tests/test_194_signal_state_consistency.py`, and `action` is documented as the execution-readiness source of truth. CI run `27472676520` passed.
 
 ---
 
