@@ -8,12 +8,14 @@ from src.signals.signal_generator import build_signals
 class _PortfolioStateStore:
     def load(self) -> PortfolioState:
         return PortfolioState(
-            date="2026-06-13",
+            equity_start=100_000.0,
+            equity_current=100_000.0,
+            drawdown_percent=0.0,
             daily_loss_percent=0.0,
-            portfolio_heat=0.0,
-            open_positions=0,
-            consecutive_losses=0,
-            data_quality="OK",
+            open_positions=[],
+            source="test_portfolio_state_store",
+            warnings=[],
+            governance_valid=True,
         )
 
 
