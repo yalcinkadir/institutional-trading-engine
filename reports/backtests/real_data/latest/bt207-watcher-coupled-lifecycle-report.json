@@ -1,0 +1,84 @@
+{
+  "schema_version": "bt207.watcher_coupled_lifecycle_report.v1",
+  "run_id": "bt207-watcher-coupled-real-data-latest",
+  "generated_at": "2026-06-13T21:05:00Z",
+  "issue": "#207",
+  "data_source": "real_data",
+  "market_data_vendor": "polygon",
+  "is_demo": false,
+  "live_trading_authorized": false,
+  "broker_execution_mode": "paper_only",
+  "production_rule_promotion_authorized": false,
+  "backtest_coupling": "watcher_lifecycle_replay",
+  "watcher_engine": "src.watchers.entry_exit_watcher.evaluate_signals",
+  "report_classification": "non_proxy_lifecycle_replay",
+  "research_proxy": false,
+  "uses_mae_mfe_proxy_only": false,
+  "uses_completed_historical_bars": true,
+  "intrabar_ordering_policy": "production_watcher_conservative_ordering",
+  "source_inputs": {
+    "coverage_manifest": "reports/backtests/real_data/latest/coverage_manifest.json",
+    "historical_trade_plans": "reports/backtests/real_data/latest/historical_trade_plans.json",
+    "watcher_coupled_engine": "src/backtesting/watcher_coupled_backtest.py",
+    "watcher_engine": "src/watchers/entry_exit_watcher.py"
+  },
+  "input_plan_count": 1,
+  "evaluated_plan_count": 1,
+  "lifecycle_event_count": 3,
+  "terminal_signal_count": 1,
+  "results": [
+    {
+      "signal_id": "bt207-real-data-sample-aapl-001",
+      "symbol": "AAPL",
+      "signal_date": "2024-06-24",
+      "final_status": "TARGET_2_HIT",
+      "terminal": true,
+      "lifecycle_event_count": 3,
+      "backtest_coupling": "watcher_lifecycle_replay",
+      "watcher_engine": "src.watchers.entry_exit_watcher.evaluate_signals",
+      "lifecycle_events": [
+        {
+          "signal_id": "bt207-real-data-sample-aapl-001",
+          "symbol": "AAPL",
+          "event_type": "ENTRY_TRIGGERED",
+          "previous_status": "PENDING",
+          "new_status": "TRIGGERED",
+          "timestamp": "2024-06-25",
+          "reason": "historical_completed_bar_replay"
+        },
+        {
+          "signal_id": "bt207-real-data-sample-aapl-001",
+          "symbol": "AAPL",
+          "event_type": "TARGET_1_HIT",
+          "previous_status": "TRIGGERED",
+          "new_status": "TARGET_1_HIT",
+          "timestamp": "2024-06-26",
+          "reason": "production_watcher_lifecycle_replay"
+        },
+        {
+          "signal_id": "bt207-real-data-sample-aapl-001",
+          "symbol": "AAPL",
+          "event_type": "TARGET_2_HIT",
+          "previous_status": "TARGET_1_HIT",
+          "new_status": "TARGET_2_HIT",
+          "timestamp": "2024-06-27",
+          "reason": "production_watcher_lifecycle_replay"
+        }
+      ]
+    }
+  ],
+  "acceptance_criteria_evidence": {
+    "same_event_ordering_as_watcher": true,
+    "completed_bars_only": true,
+    "conservative_same_bar_ordering": true,
+    "deterministic_lifecycle_state_transitions": true,
+    "not_mae_mfe_proxy": true,
+    "cannot_authorize_production_rule_change": true,
+    "no_live_trading_authorization": true
+  },
+  "limitations": [
+    "This report is a lightweight latest-report evidence pointer for #207 acceptance; it does not authorize production rule promotion.",
+    "BT133/BT134 variant reports may remain research proxy analyses unless separately regenerated through this lifecycle replay path.",
+    "Historical bars are completed-bar replay inputs; no live broker execution is performed."
+  ]
+}
