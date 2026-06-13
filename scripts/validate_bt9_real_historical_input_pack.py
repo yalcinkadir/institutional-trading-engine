@@ -34,6 +34,11 @@ FORBIDDEN_PIPELINE_GENERATION_SOURCES = {
     "deterministic_historical_generator",
     "historical_demo_generator",
 }
+PIPELINE_SOURCES_REQUIRING_EXECUTION_PROOF = {"scanner_signal_quality_validator"}
+REQUIRED_PIPELINE_EXECUTION_ENTRYPOINTS = {
+    "src.signals.signal_generator.build_signals",
+    "scripts.export_historical_trade_plans._signal_to_plan",
+}
 
 
 @dataclass(frozen=True)
@@ -78,6 +83,60 @@ def _metadata_runtime_gates(metadata: dict[str, Any]) -> list[str]:
     return []
 
 
+def _proof_runtime_gates(proof: dict[str, Any]) -> list[str]:
+    raw = proof.get("runtime_gates_applied") or []
+    if isinstance(raw, list):
+        return [str(item) for item in raw]
+    return []
+
+
+def _proof_entrypoints(proof: dict[str, Any]) -> set[str]:
+    raw = proof.get("executed_runtime_entrypoints") or []
+    if isinstance(raw, list):
+        return {str(item) for item in raw}
+    return set()
+
+
+def _validate_pipeline_execution_proof(metadata: dict[str, Any], generation_source: str) -> list[str]:
+    """Require machine-checkable proof for #177 scanner/signal/quality/validator exports.
+
+    Plain metadata such as `pipeline_coupled=true` and `runtime_gates_applied=[...]` is not
+    enough for strategy evidence. For the concrete #177 scanner/signal/quality/validator path,
+    the exporter must also write a bounded execution proof that identifies the adapter, payload
+    checksum and runtime entrypoints used to derive the trade plans.
+    """
+
+    if generation_source not in PIPELINE_SOURCES_REQUIRING_EXECUTION_PROOF:
+        return []
+
+    proof = metadata.get("pipeline_execution_proof")
+    if not isinstance(proof, dict) or not proof:
+        return ["trade_plans_missing_pipeline_execution_proof"]
+
+    failures: list[str] = []
+    if str(proof.get("proof_version") or "") != "2026.06.13-v1":
+        failures.append(f"trade_plans_invalid_pipeline_execution_proof_version:{proof.get('proof_version')}")
+    if str(proof.get("adapter") or "") != "historical_scanner_signal_quality_validator_export":
+        failures.append(f"trade_plans_invalid_pipeline_execution_adapter:{proof.get('adapter')}")
+
+    source_payload_sha256 = str(proof.get("source_payload_sha256") or "")
+    if len(source_payload_sha256) != 64 or any(char not in "0123456789abcdef" for char in source_payload_sha256.lower()):
+        failures.append("trade_plans_invalid_pipeline_execution_source_payload_sha256")
+
+    missing_entrypoints = sorted(REQUIRED_PIPELINE_EXECUTION_ENTRYPOINTS - _proof_entrypoints(proof))
+    if missing_entrypoints:
+        failures.append(f"trade_plans_missing_pipeline_execution_entrypoints:{','.join(missing_entrypoints)}")
+
+    missing_proof_gates = sorted(set(REQUIRED_RUNTIME_GATES) - set(_proof_runtime_gates(proof)))
+    if missing_proof_gates:
+        failures.append(f"trade_plans_missing_pipeline_execution_gates:{','.join(missing_proof_gates)}")
+
+    if str(proof.get("proof_boundary") or "") != "generated_by_exporter_runtime_path":
+        failures.append(f"trade_plans_invalid_pipeline_execution_proof_boundary:{proof.get('proof_boundary')}")
+
+    return failures
+
+
 def _validate_trade_plan_metadata(metadata: Any) -> list[str]:
     """Fail closed when real-data backtest plans do not prove runtime-pipeline origin."""
 
@@ -105,6 +164,8 @@ def _validate_trade_plan_metadata(metadata: Any) -> list[str]:
         failures.append("trade_plans_missing_generated_signal_count")
     if validated_trade_plan_count in (None, ""):
         failures.append("trade_plans_missing_validated_trade_plan_count")
+
+    failures.extend(_validate_pipeline_execution_proof(metadata, generation_source))
 
     return failures
 
