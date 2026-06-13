@@ -52,6 +52,10 @@ OPTIONAL_ROW_FIELDS = (
     "asset_group",
 )
 
+REAL_NO_TRADE_OUTCOMES = {"EXPIRED", "UNTRIGGERED", "PENDING", "NO_TRADE", "NO_ACTIONABLE_SIGNALS"}
+MISSING_INPUT_OUTCOMES = {"MISSING_INPUT", "MISSING_INPUTS", "SKIPPED_MISSING_INPUT", "BLOCKED_MISSING_INPUTS"}
+EVALUATED_OUTCOMES = {"TARGET_1_HIT", "TARGET_2_HIT", "STOP_HIT", "WIN", "LOSS", "NEUTRAL"}
+
 
 @dataclass(frozen=True)
 class SampleThresholds:
@@ -96,6 +100,7 @@ class BT139Report:
     per_setup_trade_count: dict[str, int]
     per_regime_trade_count: dict[str, int]
     concentrated_signal_days: list[dict[str, Any]]
+    outcome_path_summary: dict[str, int]
     missing_field_reasons: dict[str, list[str]]
     evidence_quality: str
     promotion_allowed: bool
@@ -160,6 +165,10 @@ def _regime(row: dict[str, Any]) -> str:
     return str(row.get("market_regime") or row.get("regime") or "UNKNOWN")
 
 
+def _outcome(row: dict[str, Any]) -> str:
+    return str(row.get("outcome") or row.get("classification") or row.get("lifecycle_status") or "UNKNOWN").upper()
+
+
 def _valid_date(value: Any) -> str | None:
     if value is None:
         return None
@@ -190,6 +199,28 @@ def _count_missing_fields(rows: list[dict[str, Any]]) -> dict[str, list[str]]:
     return missing
 
 
+def _outcome_path_summary(rows: list[dict[str, Any]]) -> dict[str, int]:
+    summary = {
+        "evaluated_trade_count": 0,
+        "real_no_trade_count": 0,
+        "skipped_or_missing_input_count": 0,
+        "unknown_outcome_count": 0,
+    }
+
+    for row in rows:
+        outcome = _outcome(row)
+        if outcome in EVALUATED_OUTCOMES:
+            summary["evaluated_trade_count"] += 1
+        elif outcome in REAL_NO_TRADE_OUTCOMES:
+            summary["real_no_trade_count"] += 1
+        elif outcome in MISSING_INPUT_OUTCOMES or row.get("missing_input_reason") or row.get("skip_reason"):
+            summary["skipped_or_missing_input_count"] += 1
+        else:
+            summary["unknown_outcome_count"] += 1
+
+    return summary
+
+
 def _cluster_days(rows: list[dict[str, Any]]) -> tuple[int, int, list[dict[str, Any]]]:
     by_day: dict[str, list[dict[str, Any]]] = defaultdict(list)
 
@@ -207,7 +238,7 @@ def _cluster_days(rows: list[dict[str, Any]]) -> tuple[int, int, list[dict[str, 
         if cluster_size < 2:
             continue
 
-        outcomes = Counter(str(row.get("outcome") or "UNKNOWN") for row in day_rows)
+        outcomes = Counter(_outcome(row) for row in day_rows)
         symbols = sorted({str(row.get("symbol") or "UNKNOWN") for row in day_rows})
 
         concentrated.append(
@@ -342,7 +373,7 @@ def analyze(evidence_path: Path) -> BT139Report:
         block_reasons.append("sample quality below REVIEWABLE_SAMPLE")
 
     return BT139Report(
-        report_version="bt139.v1",
+        report_version="bt139.v2",
         source_evidence=str(evidence_path),
         run_id=str(evidence.get("run_id")),
         data_source=str(evidence.get("data_source")),
@@ -368,6 +399,7 @@ def analyze(evidence_path: Path) -> BT139Report:
         per_setup_trade_count=dict(sorted(setup_counts.items())),
         per_regime_trade_count=dict(sorted(regime_counts.items())),
         concentrated_signal_days=concentrated_signal_days,
+        outcome_path_summary=_outcome_path_summary(rows),
         missing_field_reasons=_count_missing_fields(rows),
         evidence_quality=evidence_quality,
         promotion_allowed=promotion_allowed,
@@ -378,6 +410,7 @@ def analyze(evidence_path: Path) -> BT139Report:
             "No live trading authorization.",
             "broker_execution_mode remains paper_only.",
             "Downstream strategy variants remain blocked below REVIEWABLE_SAMPLE.",
+            "Real no-trade paths are counted separately from skipped or missing-input paths.",
         ],
     )
 
@@ -421,6 +454,14 @@ def render_markdown(report: BT139Report) -> str:
         lines.extend(f"- {reason}" for reason in report.promotion_block_reasons)
     else:
         lines.append("- none")
+
+    lines.extend(["", "## Outcome Path Summary", ""])
+    lines.extend(
+        _markdown_table(
+            ["Path", "Count"],
+            [[key, value] for key, value in report.outcome_path_summary.items()],
+        )
+    )
 
     lines.extend(["", "## Symbol Coverage", ""])
     lines.extend(
