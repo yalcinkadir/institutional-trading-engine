@@ -118,7 +118,7 @@ def _valid_evidence_payload(input_checksums: dict[str, str]) -> dict:
     }
 
 
-def test_184_bt9_passes_when_manifest_checksum_matches_source_bars(tmp_path: Path) -> None:
+def _write_valid_input_pack(tmp_path: Path) -> dict[str, Path | str]:
     universe = tmp_path / "data/historical/metadata/bt131_runtime_universe.csv"
     bars_root = tmp_path / "data/historical/bars/1day"
     bars = bars_root / "SPY.csv"
@@ -130,15 +130,47 @@ def test_184_bt9_passes_when_manifest_checksum_matches_source_bars(tmp_path: Pat
     _write_plans(plans)
     _write_manifest(manifest, bars_path=bars, sha256=digest)
 
+    return {
+        "universe": universe,
+        "bars_root": bars_root,
+        "bars": bars,
+        "plans": plans,
+        "manifest": manifest,
+        "bars_sha256": digest,
+    }
+
+
+def test_184_bt9_passes_when_manifest_checksum_matches_source_bars(tmp_path: Path) -> None:
+    paths = _write_valid_input_pack(tmp_path)
+
     report = validate_bt9_input_pack(
-        universe_path=universe,
-        bars_root=bars_root,
-        trade_plans_path=plans,
-        coverage_manifest_path=manifest,
+        universe_path=paths["universe"],
+        bars_root=paths["bars_root"],
+        trade_plans_path=paths["plans"],
+        coverage_manifest_path=paths["manifest"],
     )
 
     assert report.passed, report.failures
-    assert report.input_checksums == {bars.as_posix(): digest}
+    assert report.input_checksums[paths["bars"].as_posix()] == paths["bars_sha256"]
+
+
+def test_184_bt9_records_complete_historical_input_pack_checksums(tmp_path: Path) -> None:
+    paths = _write_valid_input_pack(tmp_path)
+
+    report = validate_bt9_input_pack(
+        universe_path=paths["universe"],
+        bars_root=paths["bars_root"],
+        trade_plans_path=paths["plans"],
+        coverage_manifest_path=paths["manifest"],
+    )
+
+    assert report.passed, report.failures
+    assert report.input_checksums == {
+        paths["universe"].as_posix(): _sha256(paths["universe"]),
+        paths["manifest"].as_posix(): _sha256(paths["manifest"]),
+        paths["plans"].as_posix(): _sha256(paths["plans"]),
+        paths["bars"].as_posix(): _sha256(paths["bars"]),
+    }
 
 
 def test_184_bt9_fails_when_coverage_manifest_is_missing(tmp_path: Path) -> None:
