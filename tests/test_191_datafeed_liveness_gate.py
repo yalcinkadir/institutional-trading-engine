@@ -11,6 +11,8 @@ from src.validation.datafeed_liveness import (
     write_datafeed_liveness_record,
 )
 
+WORKFLOW_PATH = Path(".github/workflows/institutional-reports.yml")
+
 
 def _decision_report() -> dict:
     return {
@@ -138,3 +140,10 @@ def test_191_writes_repo_visible_liveness_record(tmp_path: Path) -> None:
     assert payload["datafeed_status"] == DATAFEED_BLOCKED
     assert payload["provider_failure_reason"] == PROVIDER_FAILURE_SCHEMA_MISMATCH
     assert payload["all_close_missing"] is True
+
+
+def test_191_institutional_reports_workflow_persists_datafeed_liveness_evidence() -> None:
+    text = WORKFLOW_PATH.read_text(encoding="utf-8")
+
+    assert "reports/datafeed_liveness/*.json" in text
+    assert "reports/datafeed_liveness/" in text
