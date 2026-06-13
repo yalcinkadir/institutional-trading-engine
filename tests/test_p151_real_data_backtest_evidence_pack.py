@@ -27,6 +27,14 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _assert_complete_input_pack_checksums(evidence: dict, *, bars_path: Path, plans: Path, universe: Path, coverage: Path) -> None:
+    checksums = evidence["input_checksums"]
+    assert checksums[bars_path.as_posix()] == _sha256(bars_path)
+    assert checksums[plans.as_posix()] == _sha256(plans)
+    assert checksums[universe.as_posix()] == _sha256(universe)
+    assert checksums[coverage.as_posix()] == _sha256(coverage)
+
+
 def _write_plan(path: Path) -> None:
     path.write_text(
         json.dumps(
@@ -191,7 +199,7 @@ def test_p151_builds_valid_real_data_evidence_package_from_prepared_inputs(tmp_p
     assert evidence["data_source"] == "real_data"
     assert evidence["is_demo"] is False
     assert evidence["input_pack_gate_status"] == "PASSED"
-    assert evidence["input_checksums"] == {bars_path.as_posix(): _sha256(bars_path)}
+    _assert_complete_input_pack_checksums(evidence, bars_path=bars_path, plans=plans, universe=universe, coverage=coverage)
     assert evidence["pipeline_coupled"] is True
     assert evidence["runtime_gates_applied"] == PIPELINE_METADATA["runtime_gates_applied"]
     assert evidence["accepted_plan_count"] == 1
