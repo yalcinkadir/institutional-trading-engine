@@ -17,7 +17,7 @@ from src.historical.polygon_ingestion import (
 
 PIPELINE_METADATA = {
     "pipeline_coupled": True,
-    "pipeline_generation_source": "scanner_signal_quality_validator",
+    "pipeline_generation_source": "runtime_pipeline_adapter",
     "generated_signal_count": 1,
     "validated_trade_plan_count": 1,
     "blocked_signal_count": 0,
