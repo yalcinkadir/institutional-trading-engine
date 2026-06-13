@@ -60,3 +60,42 @@ def test_dynamic_weighting_warns_on_insufficient_samples():
     )
 
     assert any("insufficient_samples" in item for item in result.warnings)
+
+
+def test_208_dynamic_weighting_sum_is_exact_after_rounding_remainder():
+    result = build_dynamic_weighting_policy(
+        [
+            FactorWeightInput(
+                factor="quality",
+                current_weight=1.0,
+                reliability_score=55,
+                samples=25,
+                expectancy=0.5,
+                confidence=0.7,
+            ),
+            FactorWeightInput(
+                factor="momentum",
+                current_weight=1.0,
+                reliability_score=55,
+                samples=25,
+                expectancy=0.5,
+                confidence=0.7,
+            ),
+            FactorWeightInput(
+                factor="risk",
+                current_weight=1.0,
+                reliability_score=55,
+                samples=25,
+                expectancy=0.5,
+                confidence=0.7,
+            ),
+        ],
+        max_delta_per_update=0.0,
+        max_weight=1.0,
+    )
+
+    weights = [item.new_weight for item in result.adjustments]
+
+    assert result.total_weight == 1.0
+    assert round(sum(weights), 4) == 1.0
+    assert weights == [0.3333, 0.3333, 0.3334]
